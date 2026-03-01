@@ -35,7 +35,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     // IDE(Spring Boot)로 직접 실행할 때도 드라이버 클래스가 클래스패스에 포함되도록 implementation으로 둔다.
-    implementation("org.postgresql:postgresql")
+    runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.mysql:mysql-connector-j")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
