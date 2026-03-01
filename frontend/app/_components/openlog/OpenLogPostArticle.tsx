@@ -112,14 +112,16 @@ export function OpenLogPostArticle({
     <div className="mx-auto w-full max-w-[880px] pb-12">
       <div className="flex items-start gap-6">
         <aside
-          className="sticky top-24 hidden w-[56px] shrink-0 lg:block"
+          className="sticky top-16 hidden w-[56px] shrink-0 lg:block"
           aria-label="Post actions"
         >
-          <PostActionRail
-            likes={post.likes}
-            comments={post.comments}
-            suggestEditsHref={suggestEditsHref}
-          />
+          <div className="flex h-[calc(100dvh-4rem)] items-center">
+            <PostActionRail
+              likes={post.likes}
+              comments={post.comments}
+              suggestEditsHref={suggestEditsHref}
+            />
+          </div>
         </aside>
 
         <article className="w-full max-w-[768px]">
