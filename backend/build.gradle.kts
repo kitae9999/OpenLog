@@ -28,13 +28,15 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("tools.jackson.module:jackson-module-kotlin")
-    runtimeOnly("com.mysql:mysql-connector-j")
     testImplementation("org.springframework.boot:spring-boot-starter-cache-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-redis-test")
     testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    // IDE(Spring Boot)로 직접 실행할 때도 드라이버 클래스가 클래스패스에 포함되도록 implementation으로 둔다.
+    implementation("org.postgresql:postgresql")
+    runtimeOnly("com.mysql:mysql-connector-j")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -53,3 +55,7 @@ allOpen {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+// IntelliJ/Gradle sync can request this task for Kotlin DSL model preparation.
+// Some Gradle/Kotlin plugin combos don't create it automatically; keep a no-op task for compatibility.
+tasks.register("prepareKotlinBuildScriptModel")
