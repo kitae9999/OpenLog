@@ -40,3 +40,8 @@ out/
 .kotlin
 
 application-local.yaml
+
+AGENTS.private.md
+
+_docs/
+
