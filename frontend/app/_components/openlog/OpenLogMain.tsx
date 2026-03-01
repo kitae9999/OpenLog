@@ -1,7 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { OpenLogFooter, OpenLogHeader, cn, openLogAssets } from "./OpenLogChrome";
+import {
+  OpenLogFooter,
+  OpenLogHeader,
+  cn,
+  openLogAssets,
+} from "./OpenLogChrome";
 
 type TabKey = "trending" | "latest" | "following";
 
@@ -43,7 +48,11 @@ const topContributors = [
   },
 ] as const;
 
-export function OpenLogMain({ activeTab = "trending" }: { activeTab?: TabKey }) {
+export function OpenLogMain({
+  activeTab = "trending",
+}: {
+  activeTab?: TabKey;
+}) {
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
       <OpenLogHeader />
@@ -85,10 +94,17 @@ function FeedTabs({ active }: { active: TabKey }) {
               href={`/?tab=${tab.key}`}
               className={cn(
                 "relative -mb-px inline-flex items-center gap-2 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                isActive ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-950"
+                isActive
+                  ? "text-zinc-950"
+                  : "text-zinc-500 hover:text-zinc-950",
               )}
             >
-              <tab.Icon className={cn("size-4", isActive ? "text-zinc-950" : "text-zinc-400")} />
+              <tab.Icon
+                className={cn(
+                  "size-4",
+                  isActive ? "text-zinc-950" : "text-zinc-400",
+                )}
+              />
               {tab.label}
               {isActive ? (
                 <span className="absolute inset-x-0 -bottom-px h-0.5 bg-zinc-950" />
@@ -257,13 +273,13 @@ function KnowledgeGraphCard() {
       </div>
 
       <div className="mt-4 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-          <Image
-            src={openLogAssets.knowledgeGraph}
-            alt="Knowledge graph preview"
-            width={280}
-            height={190}
-            className="mx-auto h-auto w-full max-w-[280px]"
-          />
+        <Image
+          src={openLogAssets.knowledgeGraph}
+          alt="Knowledge graph preview"
+          width={280}
+          height={190}
+          className="mx-auto h-auto w-full max-w-[280px]"
+        />
       </div>
 
       <p className="mt-4 text-sm leading-6 text-zinc-500">
@@ -309,7 +325,10 @@ function TopContributors() {
 
       <div className="mt-4 space-y-4">
         {topContributors.map((person, idx) => (
-          <div key={`${person.name}-${idx}`} className="flex items-center gap-3">
+          <div
+            key={`${person.name}-${idx}`}
+            className="flex items-center gap-3"
+          >
             <Image
               src={person.avatar}
               alt={`${person.name} avatar`}
@@ -360,7 +379,12 @@ function ContributeCard() {
 
 function IconTrendingUp({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M3 17l7-7 4 4 7-7"
         stroke="currentColor"
@@ -381,7 +405,12 @@ function IconTrendingUp({ className }: { className?: string }) {
 
 function IconBookOpen({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M4 19.5V6a2 2 0 012-2h5a2 2 0 012 2v13.5"
         stroke="currentColor"
@@ -406,7 +435,12 @@ function IconBookOpen({ className }: { className?: string }) {
 
 function IconUsers({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"
         stroke="currentColor"
@@ -437,7 +471,12 @@ function IconUsers({ className }: { className?: string }) {
 
 function IconThumbsUp({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M14 9V5a3 3 0 00-3-3l-1 7"
         stroke="currentColor"
@@ -465,7 +504,12 @@ function IconThumbsUp({ className }: { className?: string }) {
 
 function IconEye({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"
         stroke="currentColor"
@@ -486,7 +530,12 @@ function IconEye({ className }: { className?: string }) {
 
 function IconGitPullRequest({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M18 3v6a3 3 0 01-3 3h-3"
         stroke="currentColor"
@@ -521,7 +570,12 @@ function IconGitPullRequest({ className }: { className?: string }) {
 
 function IconArrowRight({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M5 12h14"
         stroke="currentColor"
