@@ -43,5 +43,12 @@ application-local.yaml
 
 AGENTS.private.md
 
-_docs/
+_docs/*
+!_docs/tasks/
+!_docs/tasks/**/*.md
+!_docs/worklog/
+!_docs/worklog/**/*.md
+!_docs/PR/
+!_docs/PR/**/*.md
 
+/_docs
