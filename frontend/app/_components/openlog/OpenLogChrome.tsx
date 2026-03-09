@@ -20,7 +20,16 @@ const navLinks = [
   { href: "/topics", label: "Topics" },
 ] as const;
 
-export function OpenLogHeader() {
+const logoWordmarkClassName =
+  "text-[24px] font-bold leading-none [font-family:Georgia,serif]";
+const logoMarkClassName = "font-bold leading-none [font-family:Georgia,serif]";
+const DEV_DEFAULT_IS_LOGGED_IN = true;
+
+export function OpenLogHeader({
+  isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
+}: {
+  isLoggedIn?: boolean;
+}) {
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-[1083px] items-center justify-between gap-4 px-4 sm:px-8">
@@ -29,22 +38,28 @@ export function OpenLogHeader() {
             href="/"
             className="flex items-center gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
           >
-            <span className="grid size-7 place-items-center rounded-lg bg-black text-[13px] font-semibold text-white">
+            <span
+              className={cn(
+                "grid size-7 place-items-center rounded-lg bg-black text-[16px] text-white",
+                logoMarkClassName,
+              )}
+            >
               O
             </span>
-            <span className="text-[18px] font-semibold tracking-tight">
-              OpenLog
-            </span>
+            <span className={logoWordmarkClassName}>OpenLog</span>
           </Link>
 
-          <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
+          <nav
+            aria-label="Primary"
+            className="hidden items-center gap-6 md:flex"
+          >
             {navLinks.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
                 className={cn(
                   "text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                  item.label === "Trending" && "text-zinc-950"
+                  item.label === "Trending" && "text-zinc-950",
                 )}
               >
                 {item.label}
@@ -55,6 +70,16 @@ export function OpenLogHeader() {
 
         <div className="flex items-center gap-3">
           <SearchBar className="hidden md:block" />
+
+          {isLoggedIn ? (
+            <Link
+              href="/write"
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              <IconPencil className="size-4" />
+              Write
+            </Link>
+          ) : null}
 
           <button
             type="button"
@@ -88,11 +113,16 @@ export function OpenLogFooter() {
   return (
     <footer className="border-t border-zinc-200/70 bg-white">
       <div className="mx-auto flex w-full max-w-[1083px] flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <div className="flex items-center gap-2 text-sm font-semibold text-zinc-950">
-          <span className="grid size-6 place-items-center rounded-md bg-black text-[12px] font-semibold text-white">
+        <div className="flex items-center gap-2 text-zinc-950">
+          <span
+            className={cn(
+              "grid size-6 place-items-center rounded-md bg-black text-[12px] text-white",
+              logoMarkClassName,
+            )}
+          >
             O
           </span>
-          OpenLog
+          <span className={logoWordmarkClassName}>OpenLog</span>
         </div>
 
         <div className="flex flex-wrap gap-6 text-sm text-zinc-500">
@@ -124,7 +154,7 @@ function SearchBar({ className }: { className?: string }) {
           name="q"
           type="search"
           placeholder="Search..."
-          className="h-9 w-full rounded-full border border-zinc-200 bg-zinc-50 pl-10 pr-4 text-sm text-zinc-950 placeholder:text-zinc-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-900/10"
+          className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-10 pr-4 text-sm text-zinc-950 placeholder:text-zinc-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-900/10"
         />
       </label>
     </form>
@@ -137,7 +167,12 @@ export function cn(...values: Array<string | false | null | undefined>) {
 
 function IconSearch({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M11 19a8 8 0 100-16 8 8 0 000 16z"
         stroke="currentColor"
@@ -158,7 +193,12 @@ function IconSearch({ className }: { className?: string }) {
 
 function IconBell({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7"
         stroke="currentColor"
@@ -176,3 +216,28 @@ function IconBell({ className }: { className?: string }) {
   );
 }
 
+function IconPencil({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 20h9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16.5 3.5a2.12 2.12 0 113 3L7 19l-4 1 1-4 12.5-12.5z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

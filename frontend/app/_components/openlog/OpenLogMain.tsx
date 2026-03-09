@@ -55,8 +55,8 @@ export function OpenLogMain({
 }) {
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
+      {/*추후 로그인 기능 넣으면 props로 로그인 여부 전달*/}
       <OpenLogHeader />
-
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
           <section aria-label="Feed" className="min-w-0">
@@ -76,7 +76,6 @@ export function OpenLogMain({
           </aside>
         </div>
       </main>
-
       <OpenLogFooter />
     </div>
   );
