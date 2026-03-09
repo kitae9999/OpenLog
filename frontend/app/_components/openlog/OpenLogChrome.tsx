@@ -15,7 +15,7 @@ export const openLogAssets = {
 } as const;
 
 const navLinks = [
-  { href: "/?tab=trending", label: "Trending" },
+  { href: "/?tab=trending", label: "Home" },
   { href: "/explore", label: "Explore" },
   { href: "/topics", label: "Topics" },
 ] as const;
@@ -59,7 +59,7 @@ export function OpenLogHeader({
                 href={item.href}
                 className={cn(
                   "text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                  item.label === "Trending" && "text-zinc-950",
+                  item.label === "Home" && "text-zinc-950",
                 )}
               >
                 {item.label}
