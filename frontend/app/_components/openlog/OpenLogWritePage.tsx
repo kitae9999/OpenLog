@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {
   startTransition,
@@ -221,7 +222,16 @@ export function OpenLogWritePage() {
                     />
                     <ModeButton
                       active={mode === "preview"}
-                      icon={<IconEye className="size-4" />}
+                      icon={
+                        <Image
+                          src="/Eye.svg"
+                          alt=""
+                          width={16}
+                          height={16}
+                          aria-hidden="true"
+                          className="size-4"
+                        />
+                      }
                       label="Preview"
                       onClick={() => handleModeChange("preview")}
                     />
@@ -940,21 +950,6 @@ function IconEdit({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function IconEye({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
     </svg>
   );
 }

@@ -84,9 +84,16 @@ export function OpenLogHeader({
               <button
                 type="button"
                 aria-label="Notifications"
-                className="relative grid size-9 place-items-center rounded-full text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                className="group relative grid size-9 place-items-center rounded-full text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
-                <IconBell className="size-5" />
+                <Image
+                  src="/Bell.svg"
+                  alt=""
+                  width={20}
+                  height={20}
+                  aria-hidden="true"
+                  className="size-5 opacity-80 transition group-hover:brightness-0"
+                />
                 <span className="absolute right-[9px] top-[9px] size-2 rounded-full border-2 border-white bg-red-500" />
               </button>
 
@@ -188,31 +195,6 @@ function IconSearch({ className }: { className?: string }) {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconBell({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M13.73 21a2 2 0 01-3.46 0"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
       />
     </svg>
   );
