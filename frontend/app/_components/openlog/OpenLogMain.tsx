@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
+  DEV_DEFAULT_IS_LOGGED_IN,
   OpenLogFooter,
   OpenLogHeader,
   cn,
@@ -50,17 +51,21 @@ const topContributors = [
 
 export function OpenLogMain({
   activeTab = "trending",
+  isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
 }: {
   activeTab?: TabKey;
+  isLoggedIn?: boolean;
 }) {
+  const resolvedActiveTab =
+    !isLoggedIn && activeTab === "following" ? "trending" : activeTab;
+
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
-      {/*추후 로그인 기능 넣으면 props로 로그인 여부 전달*/}
-      <OpenLogHeader />
+      <OpenLogHeader isLoggedIn={isLoggedIn} />
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
           <section aria-label="Feed" className="min-w-0">
-            <FeedTabs active={activeTab} />
+            <FeedTabs active={resolvedActiveTab} isLoggedIn={isLoggedIn} />
 
             <div className="mt-6 space-y-10">
               <FeaturedPostCard />
@@ -81,11 +86,21 @@ export function OpenLogMain({
   );
 }
 
-function FeedTabs({ active }: { active: TabKey }) {
+function FeedTabs({
+  active,
+  isLoggedIn,
+}: {
+  active: TabKey;
+  isLoggedIn: boolean;
+}) {
+  const visibleTabs = isLoggedIn
+    ? tabs
+    : tabs.filter((tab) => tab.key !== "following");
+
   return (
     <div className="border-b border-zinc-200/70">
       <div className="flex gap-6">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = tab.key === active;
           return (
             <Link

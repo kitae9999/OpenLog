@@ -23,7 +23,7 @@ const navLinks = [
 const logoWordmarkClassName =
   "text-[24px] font-bold leading-none [font-family:Georgia,serif]";
 const logoMarkClassName = "font-bold leading-none [font-family:Georgia,serif]";
-const DEV_DEFAULT_IS_LOGGED_IN = true;
+export const DEV_DEFAULT_IS_LOGGED_IN = true;
 
 export function OpenLogHeader({
   isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
@@ -72,37 +72,39 @@ export function OpenLogHeader({
           <SearchBar className="hidden md:block" />
 
           {isLoggedIn ? (
-            <Link
-              href="/write"
-              className="inline-flex h-9 items-center gap-2 rounded-xl bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            >
-              <IconPencil className="size-4" />
-              Write
-            </Link>
+            <>
+              <Link
+                href="/write"
+                className="inline-flex h-9 items-center gap-2 rounded-xl bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                <IconPencil className="size-4" />
+                Write
+              </Link>
+
+              <button
+                type="button"
+                aria-label="Notifications"
+                className="relative grid size-9 place-items-center rounded-full text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                <IconBell className="size-5" />
+                <span className="absolute right-[9px] top-[9px] size-2 rounded-full border-2 border-white bg-red-500" />
+              </button>
+
+              <Link
+                href="/profile"
+                aria-label="Your profile"
+                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                <Image
+                  src={openLogAssets.avatarA}
+                  alt="Profile avatar"
+                  width={32}
+                  height={32}
+                  className="size-8 rounded-full border border-zinc-200 object-cover"
+                />
+              </Link>
+            </>
           ) : null}
-
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="relative grid size-9 place-items-center rounded-full text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-          >
-            <IconBell className="size-5" />
-            <span className="absolute right-[9px] top-[9px] size-2 rounded-full border-2 border-white bg-red-500" />
-          </button>
-
-          <Link
-            href="/profile"
-            aria-label="Your profile"
-            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-          >
-            <Image
-              src={openLogAssets.avatarA}
-              alt="Profile avatar"
-              width={32}
-              height={32}
-              className="size-8 rounded-full border border-zinc-200 object-cover"
-            />
-          </Link>
         </div>
       </div>
     </header>
