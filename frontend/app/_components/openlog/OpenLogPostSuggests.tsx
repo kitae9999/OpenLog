@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { OpenLogPost } from "./OpenLogPostArticle";
 import { cn } from "./OpenLogChrome";
+import { OpenLogGitPullRequestIcon } from "./OpenLogGitPullRequestIcon";
 import { OpenLogPostTabs } from "./OpenLogPostTabs";
 import type { OpenLogSuggestion } from "./openLogPostData";
 
@@ -73,7 +74,7 @@ export function OpenLogPostSuggests({
                       : "text-violet-500",
                   )}
                 >
-                  <IconSuggestStatus className="size-5" />
+                  <OpenLogGitPullRequestIcon className="size-5" />
                 </span>
 
                 <div className="min-w-0">
@@ -121,7 +122,7 @@ function StatusSummary({
         active ? "font-semibold text-zinc-950" : "font-medium text-zinc-500",
       )}
     >
-      <IconSuggestStatus className="size-4" />
+      <OpenLogGitPullRequestIcon className="size-4" />
       <span>
         {count} {label}
       </span>
@@ -154,32 +155,6 @@ function IconArrowLeft({ className }: { className?: string }) {
   );
 }
 
-function IconSuggestStatus({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <circle cx="5" cy="5" r="2" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="15" cy="15" r="2" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="M7 5h3a3 3 0 013 3v5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5 7v8"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 function IconComment({ className }: { className?: string }) {
   return (

@@ -7,6 +7,7 @@ import {
   cn,
   openLogAssets,
 } from "./OpenLogChrome";
+import { OpenLogGitPullRequestIcon } from "./OpenLogGitPullRequestIcon";
 
 type TabKey = "trending" | "latest" | "following";
 
@@ -358,14 +359,7 @@ function TopContributors() {
           TOP CONTRIBUTORS
         </h2>
         <span className="text-zinc-400">
-          <Image
-            src="/GitPullRequest.svg"
-            alt=""
-            width={14}
-            height={14}
-            aria-hidden="true"
-            className="size-4"
-          />
+          <OpenLogGitPullRequestIcon className="size-4" />
         </span>
       </div>
 

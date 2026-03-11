@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "./OpenLogChrome";
+import { OpenLogGitPullRequestIcon } from "./OpenLogGitPullRequestIcon";
 
 export type OpenLogPostTabKey = "article" | "suggests";
 
@@ -41,7 +42,7 @@ export function OpenLogPostTabs({
               : "border-transparent text-zinc-500 hover:text-zinc-950",
           )}
         >
-          <IconSuggests className="size-4" />
+          <OpenLogGitPullRequestIcon className="size-4" />
           <span>Suggests</span>
           {suggestCount > 0 ? (
             <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-100 px-1.5 text-[11px] font-bold leading-none text-zinc-950">
@@ -90,39 +91,6 @@ function IconArticle({ className }: { className?: string }) {
       />
       <path
         d="M5.5 12h5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function IconSuggests({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <circle cx="4" cy="4" r="1.75" stroke="currentColor" strokeWidth="1.4" />
-      <circle
-        cx="12"
-        cy="12"
-        r="1.75"
-        stroke="currentColor"
-        strokeWidth="1.4"
-      />
-      <path
-        d="M5.75 4H8a2 2 0 012 2v4.25"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4 5.75V12"
         stroke="currentColor"
         strokeWidth="1.4"
         strokeLinecap="round"

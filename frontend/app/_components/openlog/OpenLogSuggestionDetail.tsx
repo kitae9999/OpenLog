@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn, openLogAssets } from "./OpenLogChrome";
 import { OpenLogDiscussionComposer } from "./OpenLogDiscussionComposer";
+import { OpenLogGitPullRequestIcon } from "./OpenLogGitPullRequestIcon";
 import type { OpenLogPost } from "./OpenLogPostArticle";
 import type { OpenLogSuggestion } from "./openLogPostData";
 
@@ -53,7 +54,7 @@ export function OpenLogSuggestionDetail({
               statusClassName,
             )}
           >
-            <IconPullRequest className="size-3.5" />
+            <OpenLogGitPullRequestIcon className="size-3.5" />
             {statusLabel}
           </span>
           <span className="font-semibold text-zinc-950">
@@ -95,7 +96,7 @@ export function OpenLogSuggestionDetail({
                 type="button"
                 className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
               >
-                <IconMerge className="size-4" />
+                <OpenLogGitPullRequestIcon className="size-4" />
                 Accept Suggests
               </button>
             </div>
@@ -219,7 +220,7 @@ function MergedNotice({
   return (
     <section className="flex items-start gap-3 rounded-xl border border-violet-100 bg-violet-50 px-4 py-4">
       <span className="mt-0.5 inline-flex size-7 items-center justify-center rounded-full bg-violet-600 text-white">
-        <IconMerge className="size-4" />
+        <OpenLogGitPullRequestIcon className="size-4" />
       </span>
       <div>
         <h2 className="text-sm font-bold text-violet-900">{title}</h2>
@@ -421,74 +422,17 @@ function IconArrowRight({ className }: { className?: string }) {
   );
 }
 
-function IconPullRequest({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <circle cx="4" cy="4" r="1.75" stroke="currentColor" strokeWidth="1.4" />
-      <circle
-        cx="12"
-        cy="12"
-        r="1.75"
-        stroke="currentColor"
-        strokeWidth="1.4"
-      />
-      <path
-        d="M5.75 4H8a2 2 0 012 2v4.25"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4 5.75V12"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 function IconFileDiff({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      className={className}
+    <span
       aria-hidden="true"
-    >
-      <path
-        d="M10 1.5H4.5A1.5 1.5 0 003 3v10a1.5 1.5 0 001.5 1.5h7A1.5 1.5 0 0013 13V4.5L10 1.5z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10 1.5V4a.5.5 0 00.5.5H13"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 7v4"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M6 9h4"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-    </svg>
+      className={cn("inline-block shrink-0 bg-current align-middle", className)}
+      style={{
+        WebkitMask: "url('/filediff.svg') center / contain no-repeat",
+        mask: "url('/filediff.svg') center / contain no-repeat",
+      }}
+    />
   );
 }
 
@@ -504,46 +448,6 @@ function IconComment({ className }: { className?: string }) {
         d="M13 10a2.5 2.5 0 01-2.5 2.5H5.25L2 14.5v-9A2.5 2.5 0 014.5 3h6A2.5 2.5 0 0113 5.5V10z"
         stroke="currentColor"
         strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconMerge({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <circle cx="4" cy="4" r="1.75" stroke="currentColor" strokeWidth="1.4" />
-      <circle
-        cx="12"
-        cy="12"
-        r="1.75"
-        stroke="currentColor"
-        strokeWidth="1.4"
-      />
-      <path
-        d="M5.75 4H8a2 2 0 012 2v1"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4 5.75V12"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9.5 8.5l2.5 2.5 2.5-2.5"
-        stroke="currentColor"
-        strokeWidth="1.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
