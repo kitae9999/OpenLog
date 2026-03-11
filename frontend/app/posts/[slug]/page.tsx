@@ -51,7 +51,10 @@ const tailwindBody = (
   </div>
 );
 
-const postBySlug: Record<string, { post: OpenLogPost; body?: ReactNode }> = {
+const postBySlug: Record<
+  string,
+  { post: OpenLogPost; body?: ReactNode; suggestCount?: number }
+> = {
   "tailwind-v4": {
     post: {
       title: "The Future of CSS: Tailwind v4",
@@ -65,6 +68,7 @@ const postBySlug: Record<string, { post: OpenLogPost; body?: ReactNode }> = {
       comments: 12,
     },
     body: tailwindBody,
+    suggestCount: 1,
   },
   "understanding-react-server-components": {
     post: {
@@ -78,6 +82,7 @@ const postBySlug: Record<string, { post: OpenLogPost; body?: ReactNode }> = {
       likes: 1240,
       comments: 24,
     },
+    suggestCount: 1,
   },
 };
 
@@ -104,6 +109,7 @@ export default async function PostPage({
           contributors={contributors}
           backHref="/?tab=trending"
           suggestEditsHref="/contribute"
+          suggestCount={entry.suggestCount}
         >
           {entry.body}
         </OpenLogPostArticle>

@@ -59,7 +59,9 @@ const defaultBody = (
         {": "}The component&apos;s code is never sent to the client.
       </li>
       <li>
-        <span className="font-semibold text-zinc-950">Direct Backend Access</span>
+        <span className="font-semibold text-zinc-950">
+          Direct Backend Access
+        </span>
         {": "}Server Components can query the database directly.
       </li>
     </ul>
@@ -99,12 +101,14 @@ export function OpenLogPostArticle({
   backHref = "/",
   children,
   suggestEditsHref = "/contribute",
+  suggestCount = 0,
 }: {
   post: OpenLogPost;
   contributors?: OpenLogContributor[];
   backHref?: string;
   children?: ReactNode;
   suggestEditsHref?: string;
+  suggestCount?: number;
 }) {
   const list = contributors ?? [];
 
@@ -132,6 +136,11 @@ export function OpenLogPostArticle({
             <IconArrowLeft className="size-4" />
             Back to feed
           </Link>
+
+          <PostTabs
+            suggestCount={suggestCount}
+            suggestEditsHref={suggestEditsHref}
+          />
 
           <header className="mt-8 space-y-5">
             <div className="flex items-start justify-between gap-4">
@@ -245,6 +254,41 @@ export function OpenLogPostArticle({
   );
 }
 
+function PostTabs({
+  suggestCount,
+  suggestEditsHref,
+}: {
+  suggestCount: number;
+  suggestEditsHref: string;
+}) {
+  return (
+    <nav aria-label="Post sections" className="mt-6 border-b border-zinc-200">
+      <div className="flex items-center gap-6">
+        <span
+          aria-current="page"
+          className="relative -mb-px inline-flex h-[34px] items-center gap-2 border-b-2 border-zinc-950 text-sm font-medium text-zinc-950"
+        >
+          <IconArticle className="size-4" />
+          Article
+        </span>
+
+        <Link
+          href={suggestEditsHref}
+          className="group relative -mb-px inline-flex h-[34px] items-center gap-2 border-b-2 border-transparent text-sm font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          <IconEdit className="size-4 transition-colors" />
+          <span>Suggests</span>
+          {suggestCount > 0 ? (
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-100 px-1.5 text-[11px] font-bold leading-none text-zinc-950">
+              {suggestCount}
+            </span>
+          ) : null}
+        </Link>
+      </div>
+    </nav>
+  );
+}
+
 function PostActionRail({
   likes,
   comments,
@@ -255,7 +299,7 @@ function PostActionRail({
   suggestEditsHref: string;
 }) {
   return (
-    <nav className="flex flex-col items-center gap-3 rounded-full border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
+    <nav className="flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
       <button
         type="button"
         aria-label={`Like (${likes})`}
@@ -280,11 +324,11 @@ function PostActionRail({
 
       <Link
         href={suggestEditsHref}
-        aria-label="Suggest edits"
+        aria-label="Suggests"
         className="group flex w-full flex-col items-center gap-1 rounded-xl bg-black px-1 py-2 text-white transition hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30"
       >
         <IconEdit className="size-5 transition-transform group-hover:scale-[1.03]" />
-        <span className="text-[10px] font-semibold leading-none">Edits</span>
+        <span className="text-[10px] font-semibold leading-none">Suggests</span>
       </Link>
     </nav>
   );
@@ -300,7 +344,7 @@ function MobileActionBar({
   suggestEditsHref: string;
 }) {
   return (
-    <div className="flex h-[62px] w-full max-w-[576px] items-center justify-between rounded-full border border-zinc-200 bg-white/80 px-6 shadow-[0_20px_25px_rgba(0,0,0,0.1),0_8px_10px_rgba(0,0,0,0.1)] backdrop-blur">
+    <div className="flex h-[62px] w-full max-w-[450px] items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-6 shadow-[0_20px_25px_rgba(0,0,0,0.1),0_8px_10px_rgba(0,0,0,0.1)] backdrop-blur">
       <div className="flex items-center gap-6">
         <button
           type="button"
@@ -326,7 +370,7 @@ function MobileActionBar({
         className="inline-flex h-9 items-center gap-2 rounded-full bg-black pl-5 pr-4 text-sm font-medium text-white transition hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30"
       >
         <IconEdit className="size-4" />
-        Suggest Edits
+        Suggests
       </Link>
     </div>
   );
@@ -344,7 +388,9 @@ function ContributorCard({ contributor }: { contributor: OpenLogContributor }) {
           className="size-10 rounded-full border border-zinc-200 object-cover"
         />
         <span className="absolute -bottom-0.5 -right-0.5 grid size-4 place-items-center rounded-full border-2 border-white bg-emerald-500">
-          <span className="text-[10px] font-bold leading-none text-white">✓</span>
+          <span className="text-[10px] font-bold leading-none text-white">
+            ✓
+          </span>
         </span>
       </div>
 
@@ -360,7 +406,12 @@ function ContributorCard({ contributor }: { contributor: OpenLogContributor }) {
 
 function IconArrowLeft({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M19 12H5"
         stroke="currentColor"
@@ -380,7 +431,12 @@ function IconArrowLeft({ className }: { className?: string }) {
 
 function IconShare({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M18 8a3 3 0 10-2.83-4H15a3 3 0 103 4z"
         fill="currentColor"
@@ -410,9 +466,58 @@ function IconShare({ className }: { className?: string }) {
   );
 }
 
+function IconArticle({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M10 1.5H4.5A1.5 1.5 0 003 3v10a1.5 1.5 0 001.5 1.5h7A1.5 1.5 0 0013 13V4.5L10 1.5z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 1.5V4a.5.5 0 00.5.5H13"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5.5 7h1.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M5.5 9.5h5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M5.5 12h5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function IconHeart({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"
         stroke="currentColor"
@@ -426,7 +531,12 @@ function IconHeart({ className }: { className?: string }) {
 
 function IconMessageSquare({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8z"
         stroke="currentColor"
@@ -440,7 +550,12 @@ function IconMessageSquare({ className }: { className?: string }) {
 
 function IconEdit({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M12 20h9"
         stroke="currentColor"
