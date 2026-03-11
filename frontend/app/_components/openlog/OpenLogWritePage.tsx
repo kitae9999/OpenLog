@@ -13,6 +13,11 @@ import {
 } from "react";
 import { OpenLogFooter, OpenLogHeader, cn } from "./OpenLogChrome";
 import { OpenLogMarkdownContent } from "./OpenLogMarkdownContent";
+import { OpenLogMarkdownToolbar } from "./OpenLogMarkdownToolbar";
+import {
+  formatSelection,
+  type ToolbarAction,
+} from "./openLogMarkdownFormatting";
 
 type ComposerMode = "edit" | "preview";
 type SaveReason = "auto" | "manual" | "restored" | "cleared";
@@ -276,73 +281,11 @@ export function OpenLogWritePage() {
               </section>
 
               <section className="overflow-hidden rounded-[14px] border border-zinc-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]">
-                <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 bg-zinc-50 px-4 py-2">
-                  <ToolbarButton
-                    label="Bold"
-                    active={false}
+                <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2">
+                  <OpenLogMarkdownToolbar
                     disabled={mode === "preview"}
-                    onClick={() => insertFormatting("bold")}
-                  >
-                    <span className="text-[15px] font-bold">B</span>
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Italic"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("italic")}
-                  >
-                    <span className="text-[15px] italic">I</span>
-                  </ToolbarButton>
-                  <ToolbarDivider />
-                  <ToolbarButton
-                    label="Link"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("link")}
-                  >
-                    <IconLink className="size-4" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Code block"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("code-block")}
-                  >
-                    <span className="text-[12px] font-semibold">&lt;/&gt;</span>
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Inline code"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("inline-code")}
-                  >
-                    <IconInlineCode className="size-4" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Quote"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("quote")}
-                  >
-                    <IconQuote className="size-4" />
-                  </ToolbarButton>
-                  <ToolbarDivider />
-                  <ToolbarButton
-                    label="Bulleted list"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("unordered-list")}
-                  >
-                    <IconList className="size-4" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Numbered list"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("ordered-list")}
-                  >
-                    <IconOrderedList className="size-4" />
-                  </ToolbarButton>
+                    onAction={insertFormatting}
+                  />
                 </div>
 
                 <div className="min-h-[520px] bg-white">
@@ -439,43 +382,6 @@ function ModeButton({
   );
 }
 
-function ToolbarButton({
-  children,
-  label,
-  disabled,
-  active,
-  onClick,
-}: {
-  children: ReactNode;
-  label: string;
-  disabled: boolean;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "inline-flex size-8 items-center justify-center rounded-md text-zinc-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        disabled
-          ? "cursor-not-allowed opacity-40"
-          : active
-            ? "bg-white text-zinc-950"
-            : "hover:bg-white hover:text-zinc-950",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function ToolbarDivider() {
-  return <span className="h-4 w-px bg-zinc-300" aria-hidden="true" />;
-}
-
 function MarkdownPreview({
   title,
   description,
@@ -529,100 +435,6 @@ function MarkdownPreview({
       </div>
     </article>
   );
-}
-
-type ToolbarAction =
-  | "bold"
-  | "italic"
-  | "link"
-  | "inline-code"
-  | "code-block"
-  | "quote"
-  | "unordered-list"
-  | "ordered-list";
-
-function formatSelection(
-  action: ToolbarAction,
-  source: string,
-  selectedText: string,
-  selectionStart: number,
-  selectionEnd: number,
-) {
-  const fallbackSelection = selectedText || placeholderForAction(action);
-  let replacement = fallbackSelection;
-  let nextSelectionStart = selectionStart;
-  let nextSelectionEnd = selectionEnd;
-
-  switch (action) {
-    case "bold":
-      replacement = `**${fallbackSelection}**`;
-      nextSelectionStart = selectionStart + 2;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "italic":
-      replacement = `*${fallbackSelection}*`;
-      nextSelectionStart = selectionStart + 1;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "link":
-      replacement = `[${fallbackSelection}](https://example.com)`;
-      nextSelectionStart = selectionStart + 1;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "inline-code":
-      replacement = `\`${fallbackSelection}\``;
-      nextSelectionStart = selectionStart + 1;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "code-block":
-      replacement = `\`\`\`\n${fallbackSelection}\n\`\`\``;
-      nextSelectionStart = selectionStart + 4;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "quote":
-      replacement = `> ${fallbackSelection}`;
-      nextSelectionStart = selectionStart + 2;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "unordered-list":
-      replacement = `- ${fallbackSelection}`;
-      nextSelectionStart = selectionStart + 2;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "ordered-list":
-      replacement = `1. ${fallbackSelection}`;
-      nextSelectionStart = selectionStart + 3;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-  }
-
-  return {
-    nextValue:
-      source.slice(0, selectionStart) + replacement + source.slice(selectionEnd),
-    nextSelectionStart,
-    nextSelectionEnd,
-  };
-}
-
-function placeholderForAction(action: ToolbarAction) {
-  switch (action) {
-    case "bold":
-      return "important insight";
-    case "italic":
-      return "subtle emphasis";
-    case "link":
-      return "reference";
-    case "inline-code":
-      return "npm run lint";
-    case "code-block":
-      return "const answer = 42;";
-    case "quote":
-      return "Highlight a key takeaway.";
-    case "unordered-list":
-      return "List item";
-    case "ordered-list":
-      return "First step";
-  }
 }
 
 function countWords(value: string) {
@@ -726,157 +538,6 @@ function IconSave({ className }: { className?: string }) {
         d="M7 3v5h8"
         stroke="currentColor"
         strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconLink({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 10-7.07-7.07L11 4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 107.07 7.07L13 20"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconQuote({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M10 11H6a2 2 0 01-2-2V7a4 4 0 014-4h2v4H8v2h2v2z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M20 11h-4a2 2 0 01-2-2V7a4 4 0 014-4h2v4h-2v2h2v2z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconInlineCode({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect
-        x="3.5"
-        y="6.5"
-        width="17"
-        height="11"
-        rx="3.5"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="M10 10l-2 2 2 2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14 10l2 2-2 2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconList({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M9 6h11"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9 12h11"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9 18h11"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <circle cx="4" cy="6" r="1.5" fill="currentColor" />
-      <circle cx="4" cy="12" r="1.5" fill="currentColor" />
-      <circle cx="4" cy="18" r="1.5" fill="currentColor" />
-    </svg>
-  );
-}
-
-function IconOrderedList({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M10 6h10"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10 12h10"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10 18h10"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 7V5l-1 1"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3.5 11.5h1a1.5 1.5 0 010 3h-1.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3 17.5h2v1.5H3l2-2a1 1 0 00-.71-1.71H3"
-        stroke="currentColor"
-        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

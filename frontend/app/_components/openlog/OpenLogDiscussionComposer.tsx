@@ -1,14 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "./OpenLogChrome";
 import { OpenLogMarkdownContent } from "./OpenLogMarkdownContent";
+import { OpenLogMarkdownToolbar } from "./OpenLogMarkdownToolbar";
+import {
+  formatSelection,
+  type ToolbarAction,
+} from "./openLogMarkdownFormatting";
 
 export function OpenLogDiscussionComposer() {
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [value, setValue] = useState("");
+  const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const isEmpty = value.trim().length === 0;
+
+  function insertFormatting(action: ToolbarAction) {
+    const textarea = editorRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const selectedText = value.slice(selectionStart, selectionEnd);
+    const { nextValue, nextSelectionStart, nextSelectionEnd } = formatSelection(
+      action,
+      value,
+      selectedText,
+      selectionStart,
+      selectionEnd,
+    );
+
+    setValue(nextValue);
+
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    });
+  }
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
@@ -47,10 +78,18 @@ export function OpenLogDiscussionComposer() {
         </div>
       </div>
 
+      <div className="border-b border-zinc-200 bg-zinc-50/80 px-4 py-2">
+        <OpenLogMarkdownToolbar
+          disabled={mode === "preview"}
+          onAction={insertFormatting}
+        />
+      </div>
+
       {mode === "write" ? (
         <label className="block">
           <span className="sr-only">Leave a comment</span>
           <textarea
+            ref={editorRef}
             value={value}
             onChange={(event) => setValue(event.target.value)}
             placeholder="Leave a comment"
