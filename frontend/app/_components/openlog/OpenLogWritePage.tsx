@@ -30,7 +30,8 @@ const markdownCheatsheet = [
   { syntax: "**Bold**", label: "Bold" },
   { syntax: "*Italic*", label: "Italic" },
   { syntax: "[Link](url)", label: "Link" },
-  { syntax: "`Code`", label: "Code" },
+  { syntax: "`Code`", label: "Inline code" },
+  { syntax: "```\\nCode block\\n```", label: "Code block" },
   { syntax: "# Heading", label: "H1" },
 ] as const;
 
@@ -302,12 +303,20 @@ export function OpenLogWritePage() {
                     <IconLink className="size-4" />
                   </ToolbarButton>
                   <ToolbarButton
-                    label="Code"
+                    label="Code block"
                     active={false}
                     disabled={mode === "preview"}
-                    onClick={() => insertFormatting("code")}
+                    onClick={() => insertFormatting("code-block")}
                   >
                     <span className="text-[12px] font-semibold">&lt;/&gt;</span>
+                  </ToolbarButton>
+                  <ToolbarButton
+                    label="Inline code"
+                    active={false}
+                    disabled={mode === "preview"}
+                    onClick={() => insertFormatting("inline-code")}
+                  >
+                    <IconInlineCode className="size-4" />
                   </ToolbarButton>
                   <ToolbarButton
                     label="Quote"
@@ -526,7 +535,8 @@ type ToolbarAction =
   | "bold"
   | "italic"
   | "link"
-  | "code"
+  | "inline-code"
+  | "code-block"
   | "quote"
   | "unordered-list"
   | "ordered-list";
@@ -559,9 +569,14 @@ function formatSelection(
       nextSelectionStart = selectionStart + 1;
       nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
       break;
-    case "code":
+    case "inline-code":
       replacement = `\`${fallbackSelection}\``;
       nextSelectionStart = selectionStart + 1;
+      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
+      break;
+    case "code-block":
+      replacement = `\`\`\`\n${fallbackSelection}\n\`\`\``;
+      nextSelectionStart = selectionStart + 4;
       nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
       break;
     case "quote":
@@ -597,8 +612,10 @@ function placeholderForAction(action: ToolbarAction) {
       return "subtle emphasis";
     case "link":
       return "reference";
-    case "code":
+    case "inline-code":
       return "npm run lint";
+    case "code-block":
+      return "const answer = 42;";
     case "quote":
       return "Highlight a key takeaway.";
     case "unordered-list":
@@ -749,6 +766,41 @@ function IconQuote({ className }: { className?: string }) {
       />
       <path
         d="M20 11h-4a2 2 0 01-2-2V7a4 4 0 014-4h2v4h-2v2h2v2z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconInlineCode({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect
+        x="3.5"
+        y="6.5"
+        width="17"
+        height="11"
+        rx="3.5"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="M10 10l-2 2 2 2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 10l2 2-2 2"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
