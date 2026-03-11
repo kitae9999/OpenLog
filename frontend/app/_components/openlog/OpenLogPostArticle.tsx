@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { OpenLogPostTabs } from "./OpenLogPostTabs";
 
 export type OpenLogContributor = {
   name: string;
@@ -100,6 +101,8 @@ export function OpenLogPostArticle({
   contributors,
   backHref = "/",
   children,
+  articleHref = "#",
+  suggestsHref = "/contribute",
   suggestEditsHref = "/contribute",
   suggestCount = 0,
 }: {
@@ -107,6 +110,8 @@ export function OpenLogPostArticle({
   contributors?: OpenLogContributor[];
   backHref?: string;
   children?: ReactNode;
+  articleHref?: string;
+  suggestsHref?: string;
   suggestEditsHref?: string;
   suggestCount?: number;
 }) {
@@ -137,9 +142,11 @@ export function OpenLogPostArticle({
             Back to feed
           </Link>
 
-          <PostTabs
+          <OpenLogPostTabs
+            activeTab="article"
+            articleHref={articleHref}
+            suggestsHref={suggestsHref}
             suggestCount={suggestCount}
-            suggestEditsHref={suggestEditsHref}
           />
 
           <header className="mt-8 space-y-5">
@@ -251,41 +258,6 @@ export function OpenLogPostArticle({
         </article>
       </div>
     </div>
-  );
-}
-
-function PostTabs({
-  suggestCount,
-  suggestEditsHref,
-}: {
-  suggestCount: number;
-  suggestEditsHref: string;
-}) {
-  return (
-    <nav aria-label="Post sections" className="mt-6 border-b border-zinc-200">
-      <div className="flex items-center gap-6">
-        <span
-          aria-current="page"
-          className="relative -mb-px inline-flex h-[34px] items-center gap-2 border-b-2 border-zinc-950 text-sm font-medium text-zinc-950"
-        >
-          <IconArticle className="size-4" />
-          Article
-        </span>
-
-        <Link
-          href={suggestEditsHref}
-          className="group relative -mb-px inline-flex h-[34px] items-center gap-2 border-b-2 border-transparent text-sm font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-        >
-          <IconEdit className="size-4 transition-colors" />
-          <span>Suggests</span>
-          {suggestCount > 0 ? (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-100 px-1.5 text-[11px] font-bold leading-none text-zinc-950">
-              {suggestCount}
-            </span>
-          ) : null}
-        </Link>
-      </div>
-    </nav>
   );
 }
 
@@ -460,50 +432,6 @@ function IconShare({ className }: { className?: string }) {
         d="M12 2v13"
         stroke="currentColor"
         strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function IconArticle({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M10 1.5H4.5A1.5 1.5 0 003 3v10a1.5 1.5 0 001.5 1.5h7A1.5 1.5 0 0013 13V4.5L10 1.5z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10 1.5V4a.5.5 0 00.5.5H13"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5.5 7h1.5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M5.5 9.5h5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M5.5 12h5"
-        stroke="currentColor"
-        strokeWidth="1.4"
         strokeLinecap="round"
       />
     </svg>
