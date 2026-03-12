@@ -12,17 +12,15 @@ import {
   type ReactNode,
 } from "react";
 import { OpenLogFooter, OpenLogHeader, cn } from "./OpenLogChrome";
+import { OpenLogMarkdownContent } from "./OpenLogMarkdownContent";
+import { OpenLogMarkdownToolbar } from "./OpenLogMarkdownToolbar";
+import {
+  formatSelection,
+  type ToolbarAction,
+} from "./openLogMarkdownFormatting";
 
 type ComposerMode = "edit" | "preview";
 type SaveReason = "auto" | "manual" | "restored" | "cleared";
-
-type MarkdownBlock =
-  | { type: "heading"; level: 1 | 2 | 3; text: string }
-  | { type: "paragraph"; text: string }
-  | { type: "quote"; lines: string[] }
-  | { type: "unordered-list"; items: string[] }
-  | { type: "ordered-list"; items: string[] }
-  | { type: "code"; language: string; code: string };
 
 const DRAFT_STORAGE_KEY = "openlog.write.draft";
 
@@ -37,7 +35,8 @@ const markdownCheatsheet = [
   { syntax: "**Bold**", label: "Bold" },
   { syntax: "*Italic*", label: "Italic" },
   { syntax: "[Link](url)", label: "Link" },
-  { syntax: "`Code`", label: "Code" },
+  { syntax: "`Code`", label: "Inline code" },
+  { syntax: "```\\nCode block\\n```", label: "Code block" },
   { syntax: "# Heading", label: "H1" },
 ] as const;
 
@@ -282,65 +281,11 @@ export function OpenLogWritePage() {
               </section>
 
               <section className="overflow-hidden rounded-[14px] border border-zinc-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]">
-                <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 bg-zinc-50 px-4 py-2">
-                  <ToolbarButton
-                    label="Bold"
-                    active={false}
+                <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2">
+                  <OpenLogMarkdownToolbar
                     disabled={mode === "preview"}
-                    onClick={() => insertFormatting("bold")}
-                  >
-                    <span className="text-[15px] font-bold">B</span>
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Italic"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("italic")}
-                  >
-                    <span className="text-[15px] italic">I</span>
-                  </ToolbarButton>
-                  <ToolbarDivider />
-                  <ToolbarButton
-                    label="Link"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("link")}
-                  >
-                    <IconLink className="size-4" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Code"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("code")}
-                  >
-                    <span className="text-[12px] font-semibold">&lt;/&gt;</span>
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Quote"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("quote")}
-                  >
-                    <IconQuote className="size-4" />
-                  </ToolbarButton>
-                  <ToolbarDivider />
-                  <ToolbarButton
-                    label="Bulleted list"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("unordered-list")}
-                  >
-                    <IconList className="size-4" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Numbered list"
-                    active={false}
-                    disabled={mode === "preview"}
-                    onClick={() => insertFormatting("ordered-list")}
-                  >
-                    <IconOrderedList className="size-4" />
-                  </ToolbarButton>
+                    onAction={insertFormatting}
+                  />
                 </div>
 
                 <div className="min-h-[520px] bg-white">
@@ -437,43 +382,6 @@ function ModeButton({
   );
 }
 
-function ToolbarButton({
-  children,
-  label,
-  disabled,
-  active,
-  onClick,
-}: {
-  children: ReactNode;
-  label: string;
-  disabled: boolean;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "inline-flex size-8 items-center justify-center rounded-md text-zinc-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        disabled
-          ? "cursor-not-allowed opacity-40"
-          : active
-            ? "bg-white text-zinc-950"
-            : "hover:bg-white hover:text-zinc-950",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function ToolbarDivider() {
-  return <span className="h-4 w-px bg-zinc-300" aria-hidden="true" />;
-}
-
 function MarkdownPreview({
   title,
   description,
@@ -483,7 +391,6 @@ function MarkdownPreview({
   description: string;
   body: string;
 }) {
-  const blocks = parseMarkdown(body);
   const hasContent = title.trim() || description.trim() || body.trim();
 
   if (!hasContent) {
@@ -517,361 +424,17 @@ function MarkdownPreview({
       </header>
 
       <div className="mt-8 space-y-6 text-[16px] leading-8 text-zinc-700">
-        {blocks.length > 0 ? (
-          blocks.map((block, index) => {
-            const key = `${block.type}-${index}`;
-
-            switch (block.type) {
-              case "heading": {
-                const className =
-                  block.level === 1
-                    ? "text-[32px]"
-                    : block.level === 2
-                      ? "text-[26px]"
-                      : "text-[20px]";
-
-                return (
-                  <h3
-                    key={key}
-                    className={cn(
-                      "[font-family:Georgia,serif] font-bold leading-tight tracking-[-0.03em] text-zinc-950",
-                      className,
-                    )}
-                  >
-                    {renderInlineContent(block.text, key)}
-                  </h3>
-                );
-              }
-              case "paragraph":
-                return (
-                  <p key={key} className="max-w-[66ch]">
-                    {renderInlineContent(block.text, key)}
-                  </p>
-                );
-              case "quote":
-                return (
-                  <blockquote
-                    key={key}
-                    className="border-l-4 border-zinc-200 pl-5 text-zinc-600"
-                  >
-                    <div className="space-y-3">
-                      {block.lines.map((line, lineIndex) => (
-                        <p key={`${key}-${lineIndex}`}>
-                          {renderInlineContent(line, `${key}-${lineIndex}`)}
-                        </p>
-                      ))}
-                    </div>
-                  </blockquote>
-                );
-              case "unordered-list":
-                return (
-                  <ul key={key} className="list-disc space-y-2 pl-6">
-                    {block.items.map((item, itemIndex) => (
-                      <li key={`${key}-${itemIndex}`}>
-                        {renderInlineContent(item, `${key}-${itemIndex}`)}
-                      </li>
-                    ))}
-                  </ul>
-                );
-              case "ordered-list":
-                return (
-                  <ol key={key} className="list-decimal space-y-2 pl-6">
-                    {block.items.map((item, itemIndex) => (
-                      <li key={`${key}-${itemIndex}`}>
-                        {renderInlineContent(item, `${key}-${itemIndex}`)}
-                      </li>
-                    ))}
-                  </ol>
-                );
-              case "code":
-                return (
-                  <div
-                    key={key}
-                    className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-950 text-zinc-100"
-                  >
-                    <div className="border-b border-white/10 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-zinc-400">
-                      {block.language || "code"}
-                    </div>
-                    <pre className="overflow-x-auto p-4 text-[13px] leading-6">
-                      <code>{block.code}</code>
-                    </pre>
-                  </div>
-                );
-            }
-          })
-        ) : (
-          <p className="text-zinc-400">
-            Your markdown body will render here once you start writing.
-          </p>
-        )}
+        <OpenLogMarkdownContent
+          markdown={body}
+          emptyFallback={
+            <p className="text-zinc-400">
+              Your markdown body will render here once you start writing.
+            </p>
+          }
+        />
       </div>
     </article>
   );
-}
-
-type ToolbarAction =
-  | "bold"
-  | "italic"
-  | "link"
-  | "code"
-  | "quote"
-  | "unordered-list"
-  | "ordered-list";
-
-function formatSelection(
-  action: ToolbarAction,
-  source: string,
-  selectedText: string,
-  selectionStart: number,
-  selectionEnd: number,
-) {
-  const fallbackSelection = selectedText || placeholderForAction(action);
-  let replacement = fallbackSelection;
-  let nextSelectionStart = selectionStart;
-  let nextSelectionEnd = selectionEnd;
-
-  switch (action) {
-    case "bold":
-      replacement = `**${fallbackSelection}**`;
-      nextSelectionStart = selectionStart + 2;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "italic":
-      replacement = `*${fallbackSelection}*`;
-      nextSelectionStart = selectionStart + 1;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "link":
-      replacement = `[${fallbackSelection}](https://example.com)`;
-      nextSelectionStart = selectionStart + 1;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "code":
-      replacement = `\`${fallbackSelection}\``;
-      nextSelectionStart = selectionStart + 1;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "quote":
-      replacement = `> ${fallbackSelection}`;
-      nextSelectionStart = selectionStart + 2;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "unordered-list":
-      replacement = `- ${fallbackSelection}`;
-      nextSelectionStart = selectionStart + 2;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-    case "ordered-list":
-      replacement = `1. ${fallbackSelection}`;
-      nextSelectionStart = selectionStart + 3;
-      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
-      break;
-  }
-
-  return {
-    nextValue:
-      source.slice(0, selectionStart) + replacement + source.slice(selectionEnd),
-    nextSelectionStart,
-    nextSelectionEnd,
-  };
-}
-
-function placeholderForAction(action: ToolbarAction) {
-  switch (action) {
-    case "bold":
-      return "important insight";
-    case "italic":
-      return "subtle emphasis";
-    case "link":
-      return "reference";
-    case "code":
-      return "npm run lint";
-    case "quote":
-      return "Highlight a key takeaway.";
-    case "unordered-list":
-      return "List item";
-    case "ordered-list":
-      return "First step";
-  }
-}
-
-function parseMarkdown(markdown: string): MarkdownBlock[] {
-  const normalized = markdown.replace(/\r\n/g, "\n");
-  const lines = normalized.split("\n");
-  const blocks: MarkdownBlock[] = [];
-
-  for (let index = 0; index < lines.length; ) {
-    const line = lines[index];
-
-    if (!line.trim()) {
-      index += 1;
-      continue;
-    }
-
-    if (line.startsWith("```")) {
-      const language = line.slice(3).trim();
-      const codeLines: string[] = [];
-      index += 1;
-
-      while (index < lines.length && !lines[index].startsWith("```")) {
-        codeLines.push(lines[index]);
-        index += 1;
-      }
-
-      if (index < lines.length) {
-        index += 1;
-      }
-
-      blocks.push({
-        type: "code",
-        language,
-        code: codeLines.join("\n"),
-      });
-      continue;
-    }
-
-    const headingMatch = line.match(/^(#{1,3})\s+(.+)$/);
-    if (headingMatch) {
-      blocks.push({
-        type: "heading",
-        level: headingMatch[1].length as 1 | 2 | 3,
-        text: headingMatch[2],
-      });
-      index += 1;
-      continue;
-    }
-
-    if (line.startsWith(">")) {
-      const quoteLines: string[] = [];
-
-      while (index < lines.length && lines[index].startsWith(">")) {
-        quoteLines.push(lines[index].replace(/^>\s?/, ""));
-        index += 1;
-      }
-
-      blocks.push({ type: "quote", lines: quoteLines });
-      continue;
-    }
-
-    if (isUnorderedListLine(line)) {
-      const items: string[] = [];
-
-      while (index < lines.length && isUnorderedListLine(lines[index])) {
-        items.push(lines[index].replace(/^[-*]\s+/, ""));
-        index += 1;
-      }
-
-      blocks.push({ type: "unordered-list", items });
-      continue;
-    }
-
-    if (isOrderedListLine(line)) {
-      const items: string[] = [];
-
-      while (index < lines.length && isOrderedListLine(lines[index])) {
-        items.push(lines[index].replace(/^\d+\.\s+/, ""));
-        index += 1;
-      }
-
-      blocks.push({ type: "ordered-list", items });
-      continue;
-    }
-
-    const paragraphLines = [line.trim()];
-    index += 1;
-
-    while (
-      index < lines.length &&
-      lines[index].trim() &&
-      !isStructuredMarkdownLine(lines[index])
-    ) {
-      paragraphLines.push(lines[index].trim());
-      index += 1;
-    }
-
-    blocks.push({
-      type: "paragraph",
-      text: paragraphLines.join(" "),
-    });
-  }
-
-  return blocks;
-}
-
-function renderInlineContent(text: string, keyPrefix: string): ReactNode[] {
-  const nodes: ReactNode[] = [];
-  const pattern =
-    /(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\))/g;
-  let lastIndex = 0;
-
-  for (const match of text.matchAll(pattern)) {
-    const matchIndex = match.index ?? 0;
-
-    if (matchIndex > lastIndex) {
-      nodes.push(text.slice(lastIndex, matchIndex));
-    }
-
-    if (match[2]) {
-      nodes.push(
-        <strong key={`${keyPrefix}-${matchIndex}`} className="font-semibold text-zinc-950">
-          {match[2]}
-        </strong>,
-      );
-    } else if (match[3]) {
-      nodes.push(
-        <em key={`${keyPrefix}-${matchIndex}`} className="italic">
-          {match[3]}
-        </em>,
-      );
-    } else if (match[4]) {
-      nodes.push(
-        <code
-          key={`${keyPrefix}-${matchIndex}`}
-          className="rounded bg-zinc-100 px-1.5 py-0.5 text-[0.92em] text-zinc-900"
-        >
-          {match[4]}
-        </code>,
-      );
-    } else if (match[5] && match[6]) {
-      nodes.push(
-        <a
-          key={`${keyPrefix}-${matchIndex}`}
-          href={match[6]}
-          target="_blank"
-          rel="noreferrer"
-          className="font-medium text-[#1f3f9f] underline decoration-[#1f3f9f]/30 underline-offset-4"
-        >
-          {match[5]}
-        </a>,
-      );
-    }
-
-    lastIndex = matchIndex + match[0].length;
-  }
-
-  if (lastIndex < text.length) {
-    nodes.push(text.slice(lastIndex));
-  }
-
-  return nodes.length > 0 ? nodes : [text];
-}
-
-function isStructuredMarkdownLine(line: string) {
-  return (
-    line.startsWith("```") ||
-    /^#{1,3}\s+/.test(line) ||
-    line.startsWith(">") ||
-    isUnorderedListLine(line) ||
-    isOrderedListLine(line)
-  );
-}
-
-function isUnorderedListLine(line: string) {
-  return /^[-*]\s+/.test(line);
-}
-
-function isOrderedListLine(line: string) {
-  return /^\d+\.\s+/.test(line);
 }
 
 function countWords(value: string) {
@@ -975,122 +538,6 @@ function IconSave({ className }: { className?: string }) {
         d="M7 3v5h8"
         stroke="currentColor"
         strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconLink({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 10-7.07-7.07L11 4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 107.07 7.07L13 20"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconQuote({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M10 11H6a2 2 0 01-2-2V7a4 4 0 014-4h2v4H8v2h2v2z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M20 11h-4a2 2 0 01-2-2V7a4 4 0 014-4h2v4h-2v2h2v2z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconList({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M9 6h11"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9 12h11"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9 18h11"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <circle cx="4" cy="6" r="1.5" fill="currentColor" />
-      <circle cx="4" cy="12" r="1.5" fill="currentColor" />
-      <circle cx="4" cy="18" r="1.5" fill="currentColor" />
-    </svg>
-  );
-}
-
-function IconOrderedList({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M10 6h10"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10 12h10"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10 18h10"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 7V5l-1 1"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3.5 11.5h1a1.5 1.5 0 010 3h-1.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3 17.5h2v1.5H3l2-2a1 1 0 00-.71-1.71H3"
-        stroke="currentColor"
-        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

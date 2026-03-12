@@ -2,14 +2,11 @@ import { notFound } from "next/navigation";
 import {
   OpenLogFooter,
   OpenLogHeader,
-} from "../../_components/openlog/OpenLogChrome";
-import { OpenLogPostArticle } from "../../_components/openlog/OpenLogPostArticle";
-import {
-  getOpenLogPostEntry,
-  openLogContributors,
-} from "../../_components/openlog/openLogPostData";
+} from "../../../_components/openlog/OpenLogChrome";
+import { OpenLogPostSuggests } from "../../../_components/openlog/OpenLogPostSuggests";
+import { getOpenLogPostEntry } from "../../../_components/openlog/openLogPostData";
 
-export default async function PostPage({
+export default async function PostSuggestsPage({
   params,
 }: {
   params?: Promise<{ slug?: string | string[] }>;
@@ -29,18 +26,15 @@ export default async function PostPage({
     <div className="min-h-dvh bg-white text-zinc-950">
       <OpenLogHeader />
 
-      <main className="mx-auto w-full max-w-[1083px] pb-16 pt-6 sm:px-8">
-        <OpenLogPostArticle
+      <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
+        <OpenLogPostSuggests
           post={entry.post}
-          contributors={openLogContributors}
+          suggestions={entry.suggestions}
           backHref="/?tab=trending"
           articleHref={articleHref}
           suggestsHref={suggestsHref}
-          suggestEditsHref="/contribute"
           suggestCount={entry.suggestCount}
-        >
-          {entry.body}
-        </OpenLogPostArticle>
+        />
       </main>
 
       <OpenLogFooter />
