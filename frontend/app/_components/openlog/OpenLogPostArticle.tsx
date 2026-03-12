@@ -118,8 +118,8 @@ export function OpenLogPostArticle({
   const list = contributors ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-[1000px] pb-12">
-      <div className="flex items-start gap-20">
+    <div className="mx-auto w-full max-w-[950px] pb-12">
+      <div className="flex items-start gap-15">
         <aside
           className="sticky top-16 hidden w-[60px] shrink-0 lg:block"
           aria-label="Post actions"
