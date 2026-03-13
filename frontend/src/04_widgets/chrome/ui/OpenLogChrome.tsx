@@ -1,21 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { OpenLogGuestActions } from "./OpenLogGuestActions";
-
-export const openLogAssets = {
-  featuredCover:
-    "http://localhost:3845/assets/215944c0ae039b44468166b8e84bf99beae0f71d.png",
-  postCover:
-    "http://localhost:3845/assets/1d59d1970b8502f1a9dfc1f9aea722f8578e0946.png",
-  profileAvatar:
-    "http://localhost:3845/assets/1d59d1970b8502f1a9dfc1f9aea722f8578e0946.png",
-  knowledgeGraph:
-    "http://localhost:3845/assets/7cccabd62c9ceae10c4b94563846cc9452172b1c.png",
-  avatarA:
-    "http://localhost:3845/assets/8925e570ef6cac4accffa930abb18210e5de450e.png",
-  avatarB:
-    "http://localhost:3845/assets/97658fca33fb8976d18773f7d5ef527f8d3a91a5.png",
-} as const;
+import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/openLogDemo";
+import { openLogAssets } from "@/shared/config/openLogAssets";
+import { cn } from "@/shared/lib/cn";
+import { OpenLogGuestActions } from "@/features/auth/ui/OpenLogGuestActions";
 
 const navLinks = [
   { href: "/?tab=trending", label: "Trending" },
@@ -26,7 +14,6 @@ const navLinks = [
 const logoWordmarkClassName =
   "text-[24px] font-bold leading-none [font-family:Georgia,serif]";
 const logoMarkClassName = "font-bold leading-none [font-family:Georgia,serif]";
-export const DEV_DEFAULT_IS_LOGGED_IN = false;
 
 export function OpenLogHeader({
   isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
@@ -177,10 +164,6 @@ function SearchBar({ className }: { className?: string }) {
       </label>
     </form>
   );
-}
-
-export function cn(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(" ");
 }
 
 function IconSearch({ className }: { className?: string }) {

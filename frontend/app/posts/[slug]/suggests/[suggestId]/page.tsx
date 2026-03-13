@@ -2,12 +2,12 @@ import { notFound } from "next/navigation";
 import {
   OpenLogFooter,
   OpenLogHeader,
-} from "../../../../_components/openlog/OpenLogChrome";
-import { OpenLogSuggestionDetail } from "../../../../_components/openlog/OpenLogSuggestionDetail";
+} from "@/widgets/chrome/ui/OpenLogChrome";
 import {
   getOpenLogPostEntry,
   getOpenLogSuggestion,
-} from "../../../../_components/openlog/openLogPostData";
+} from "@/entities/post/model/openLogPostData";
+import { OpenLogSuggestionDetail } from "@/widgets/post/ui/OpenLogSuggestionDetail";
 
 export default async function PostSuggestionDetailPage({
   params,

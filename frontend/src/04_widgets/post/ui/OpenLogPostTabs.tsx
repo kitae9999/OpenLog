@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { cn } from "./OpenLogChrome";
-import { OpenLogGitPullRequestIcon } from "./OpenLogGitPullRequestIcon";
+import { cn } from "@/shared/lib/cn";
+import { OpenLogGitPullRequestIcon } from "@/shared/ui/icons/OpenLogGitPullRequestIcon";
 
 export type OpenLogPostTabKey = "article" | "suggests";
 

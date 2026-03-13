@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "./OpenLogChrome";
+import { cn } from "@/shared/lib/cn";
 
 type MarkdownBlock =
   | { type: "heading"; level: 1 | 2 | 3; text: string }

@@ -11,13 +11,21 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { OpenLogFooter, OpenLogHeader, cn } from "./OpenLogChrome";
-import { OpenLogMarkdownContent } from "./OpenLogMarkdownContent";
-import { OpenLogMarkdownToolbar } from "./OpenLogMarkdownToolbar";
+import { cn } from "@/shared/lib/cn";
+import {
+  OpenLogMarkdownContent,
+} from "@/shared/ui/markdown/OpenLogMarkdownContent";
+import {
+  OpenLogMarkdownToolbar,
+} from "@/shared/ui/markdown/OpenLogMarkdownToolbar";
 import {
   formatSelection,
   type ToolbarAction,
-} from "./openLogMarkdownFormatting";
+} from "@/shared/lib/markdown/openLogMarkdownFormatting";
+import {
+  OpenLogFooter,
+  OpenLogHeader,
+} from "@/widgets/chrome/ui/OpenLogChrome";
 
 type ComposerMode = "edit" | "preview";
 type SaveReason = "auto" | "manual" | "restored" | "cleared";

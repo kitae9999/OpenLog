@@ -1,13 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
+import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/openLogDemo";
+import { openLogAssets } from "@/shared/config/openLogAssets";
+import { cn } from "@/shared/lib/cn";
+import { OpenLogGitPullRequestIcon } from "@/shared/ui/icons/OpenLogGitPullRequestIcon";
 import {
-  DEV_DEFAULT_IS_LOGGED_IN,
   OpenLogFooter,
   OpenLogHeader,
-  cn,
-  openLogAssets,
-} from "./OpenLogChrome";
-import { OpenLogGitPullRequestIcon } from "./OpenLogGitPullRequestIcon";
+} from "@/widgets/chrome/ui/OpenLogChrome";
 
 type TabKey = "trending" | "latest" | "following";
 

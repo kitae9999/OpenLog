@@ -1,25 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type {
+  OpenLogContributor,
+  OpenLogPost,
+} from "@/entities/post/model/openLogPostData";
 import { OpenLogPostTabs } from "./OpenLogPostTabs";
-
-export type OpenLogContributor = {
-  name: string;
-  role: string;
-  avatarSrc: string;
-};
-
-export type OpenLogPost = {
-  title: string;
-  authorName: string;
-  authorAvatarSrc: string;
-  publishedAtLabel: string;
-  readTimeLabel: string;
-  tags: string[];
-  coverSrc: string;
-  likes: number;
-  comments: number;
-};
 
 const defaultBody = (
   <div className="mt-8 space-y-6 text-[14px] leading-[1.65] text-zinc-700">

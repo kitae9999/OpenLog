@@ -1,4 +1,4 @@
-import { cn } from "./OpenLogChrome";
+import { cn } from "@/shared/lib/cn";
 
 const pullRequestMaskStyle = {
   WebkitMask: "url('/GitPullRequest.svg') center / contain no-repeat",

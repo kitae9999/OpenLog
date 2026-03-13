@@ -1,11 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { cn, openLogAssets } from "./OpenLogChrome";
-import { OpenLogDiscussionComposer } from "./OpenLogDiscussionComposer";
-import { OpenLogGitPullRequestIcon } from "./OpenLogGitPullRequestIcon";
-import type { OpenLogPost } from "./OpenLogPostArticle";
-import type { OpenLogSuggestion } from "./openLogPostData";
+import type {
+  OpenLogPost,
+  OpenLogSuggestion,
+} from "@/entities/post/model/openLogPostData";
+import { openLogAssets } from "@/shared/config/openLogAssets";
+import { cn } from "@/shared/lib/cn";
+import { OpenLogGitPullRequestIcon } from "@/shared/ui/icons/OpenLogGitPullRequestIcon";
+import { OpenLogDiscussionComposer } from "@/features/discussion-composer/ui/OpenLogDiscussionComposer";
 
 export function OpenLogSuggestionDetail({
   post,

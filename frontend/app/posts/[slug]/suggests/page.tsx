@@ -2,9 +2,9 @@ import { notFound } from "next/navigation";
 import {
   OpenLogFooter,
   OpenLogHeader,
-} from "../../../_components/openlog/OpenLogChrome";
-import { OpenLogPostSuggests } from "../../../_components/openlog/OpenLogPostSuggests";
-import { getOpenLogPostEntry } from "../../../_components/openlog/openLogPostData";
+} from "@/widgets/chrome/ui/OpenLogChrome";
+import { getOpenLogPostEntry } from "@/entities/post/model/openLogPostData";
+import { OpenLogPostSuggests } from "@/widgets/post/ui/OpenLogPostSuggests";
 
 export default async function PostSuggestsPage({
   params,

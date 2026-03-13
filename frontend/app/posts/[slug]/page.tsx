@@ -2,12 +2,12 @@ import { notFound } from "next/navigation";
 import {
   OpenLogFooter,
   OpenLogHeader,
-} from "../../_components/openlog/OpenLogChrome";
-import { OpenLogPostArticle } from "../../_components/openlog/OpenLogPostArticle";
+} from "@/widgets/chrome/ui/OpenLogChrome";
+import { OpenLogPostArticle } from "@/widgets/post/ui/OpenLogPostArticle";
 import {
   getOpenLogPostEntry,
   openLogContributors,
-} from "../../_components/openlog/openLogPostData";
+} from "@/entities/post/model/openLogPostData";
 
 export default async function PostPage({
   params,

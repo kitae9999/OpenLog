@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OpenLogProfilePage } from "../_components/openlog/OpenLogProfilePage";
+import { OpenLogProfilePage } from "@/widgets/profile/ui/OpenLogProfilePage";
 
 export const metadata: Metadata = {
   title: "Profile | OpenLog",

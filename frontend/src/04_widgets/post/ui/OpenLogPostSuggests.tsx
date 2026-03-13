@@ -1,9 +1,11 @@
 import Link from "next/link";
-import type { OpenLogPost } from "./OpenLogPostArticle";
-import { cn } from "./OpenLogChrome";
-import { OpenLogGitPullRequestIcon } from "./OpenLogGitPullRequestIcon";
+import type {
+  OpenLogPost,
+  OpenLogSuggestion,
+} from "@/entities/post/model/openLogPostData";
+import { cn } from "@/shared/lib/cn";
+import { OpenLogGitPullRequestIcon } from "@/shared/ui/icons/OpenLogGitPullRequestIcon";
 import { OpenLogPostTabs } from "./OpenLogPostTabs";
-import type { OpenLogSuggestion } from "./openLogPostData";
 
 export function OpenLogPostSuggests({
   post,

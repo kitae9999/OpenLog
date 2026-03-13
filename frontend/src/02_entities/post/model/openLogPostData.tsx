@@ -1,6 +1,23 @@
 import type { ReactNode } from "react";
-import type { OpenLogContributor, OpenLogPost } from "./OpenLogPostArticle";
-import { openLogAssets } from "./OpenLogChrome";
+import { openLogAssets } from "@/shared/config/openLogAssets";
+
+export type OpenLogContributor = {
+  name: string;
+  role: string;
+  avatarSrc: string;
+};
+
+export type OpenLogPost = {
+  title: string;
+  authorName: string;
+  authorAvatarSrc: string;
+  publishedAtLabel: string;
+  readTimeLabel: string;
+  tags: string[];
+  coverSrc: string;
+  likes: number;
+  comments: number;
+};
 
 export type OpenLogReviewer = {
   name: string;

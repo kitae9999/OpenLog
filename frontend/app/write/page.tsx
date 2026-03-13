@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OpenLogWritePage } from "../_components/openlog/OpenLogWritePage";
+import { OpenLogWritePage } from "@/widgets/write/ui/OpenLogWritePage";
 
 export const metadata: Metadata = {
   title: "Write | OpenLog",

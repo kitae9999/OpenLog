@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { cn } from "./OpenLogChrome";
-import type { ToolbarAction } from "./openLogMarkdownFormatting";
+import { cn } from "@/shared/lib/cn";
+import type { ToolbarAction } from "@/shared/lib/markdown/openLogMarkdownFormatting";
 
 export function OpenLogMarkdownToolbar({
   disabled,

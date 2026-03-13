@@ -1,13 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { cn } from "./OpenLogChrome";
-import { OpenLogMarkdownContent } from "./OpenLogMarkdownContent";
-import { OpenLogMarkdownToolbar } from "./OpenLogMarkdownToolbar";
+import { cn } from "@/shared/lib/cn";
+import {
+  OpenLogMarkdownContent,
+} from "@/shared/ui/markdown/OpenLogMarkdownContent";
+import {
+  OpenLogMarkdownToolbar,
+} from "@/shared/ui/markdown/OpenLogMarkdownToolbar";
 import {
   formatSelection,
   type ToolbarAction,
-} from "./openLogMarkdownFormatting";
+} from "@/shared/lib/markdown/openLogMarkdownFormatting";
 
 export function OpenLogDiscussionComposer() {
   const [mode, setMode] = useState<"write" | "preview">("write");

@@ -1,4 +1,4 @@
-import { OpenLogMain } from "./_components/openlog/OpenLogMain";
+import { OpenLogMain } from "@/widgets/home-feed/ui/OpenLogMain";
 
 export default async function Home({
   searchParams,
