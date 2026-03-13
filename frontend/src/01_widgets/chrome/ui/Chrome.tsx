@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/openLogDemo";
 import { openLogAssets } from "@/shared/config/openLogAssets";
 import { cn } from "@/shared/lib/cn";
-import { OpenLogGuestActions } from "@/features/auth/ui/OpenLogGuestActions";
+import { GuestActions } from "@/features/auth/ui/GuestActions";
 
 const navLinks = [
   { href: "/?tab=trending", label: "Trending" },
@@ -15,7 +15,7 @@ const logoWordmarkClassName =
   "text-[24px] font-bold leading-none [font-family:Georgia,serif]";
 const logoMarkClassName = "font-bold leading-none [font-family:Georgia,serif]";
 
-export function OpenLogHeader({
+export function Header({
   isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
   showWriteAction = true,
 }: {
@@ -106,7 +106,7 @@ export function OpenLogHeader({
               </Link>
             </>
           ) : (
-            <OpenLogGuestActions />
+            <GuestActions />
           )}
         </div>
       </div>
@@ -114,7 +114,7 @@ export function OpenLogHeader({
   );
 }
 
-export function OpenLogFooter() {
+export function Footer() {
   return (
     <footer className="border-t border-zinc-200/70 bg-white">
       <div className="mx-auto flex w-full max-w-[1083px] flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">

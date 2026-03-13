@@ -72,7 +72,7 @@ const authModalCopy: Record<
   },
 };
 
-export function OpenLogGuestActions() {
+export function GuestActions() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const titleId = useId();

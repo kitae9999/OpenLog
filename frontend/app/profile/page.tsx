@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OpenLogProfilePage } from "@/widgets/profile/ui/OpenLogProfilePage";
+import { ProfileView } from "@/widgets/profile/ui/ProfileView";
 
 export const metadata: Metadata = {
   title: "Profile | OpenLog",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ProfilePage() {
-  return <OpenLogProfilePage />;
+  return <ProfileView />;
 }

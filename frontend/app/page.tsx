@@ -1,4 +1,4 @@
-import { OpenLogMain } from "@/widgets/home-feed/ui/OpenLogMain";
+import { HomeFeed } from "@/widgets/home-feed/ui/HomeFeed";
 
 export default async function Home({
   searchParams,
@@ -7,7 +7,7 @@ export default async function Home({
 }) {
   const sp = await searchParams;
   const tab = normalizeTab(sp?.tab);
-  return <OpenLogMain activeTab={tab} />;
+  return <HomeFeed activeTab={tab} />;
 }
 
 function normalizeTab(value: string | undefined) {

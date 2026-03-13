@@ -9,7 +9,7 @@ type MarkdownBlock =
   | { type: "ordered-list"; items: string[] }
   | { type: "code"; language: string; code: string };
 
-export function OpenLogMarkdownContent({
+export function MarkdownContent({
   markdown,
   variant = "default",
   emptyFallback = null,

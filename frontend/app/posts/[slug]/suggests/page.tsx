@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import {
-  OpenLogFooter,
-  OpenLogHeader,
-} from "@/widgets/chrome/ui/OpenLogChrome";
+  Footer,
+  Header,
+} from "@/widgets/chrome/ui/Chrome";
 import { getOpenLogPostEntry } from "@/entities/post/model/openLogPostData";
-import { OpenLogPostSuggests } from "@/widgets/post/ui/OpenLogPostSuggests";
+import { PostSuggests } from "@/widgets/post/ui/PostSuggests";
 
 export default async function PostSuggestsPage({
   params,
@@ -24,10 +24,10 @@ export default async function PostSuggestsPage({
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
-      <OpenLogHeader />
+      <Header />
 
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
-        <OpenLogPostSuggests
+        <PostSuggests
           post={entry.post}
           suggestions={entry.suggestions}
           backHref="/?tab=trending"
@@ -37,7 +37,7 @@ export default async function PostSuggestsPage({
         />
       </main>
 
-      <OpenLogFooter />
+      <Footer />
     </div>
   );
 }

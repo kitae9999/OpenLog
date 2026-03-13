@@ -3,11 +3,11 @@ import Link from "next/link";
 import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/openLogDemo";
 import { openLogAssets } from "@/shared/config/openLogAssets";
 import { cn } from "@/shared/lib/cn";
-import { OpenLogGitPullRequestIcon } from "@/shared/ui/icons/OpenLogGitPullRequestIcon";
+import { GitPullRequestIcon } from "@/shared/ui/icons/GitPullRequestIcon";
 import {
-  OpenLogFooter,
-  OpenLogHeader,
-} from "@/widgets/chrome/ui/OpenLogChrome";
+  Footer,
+  Header,
+} from "@/widgets/chrome/ui/Chrome";
 
 type TabKey = "trending" | "latest" | "following";
 
@@ -49,7 +49,7 @@ const topContributors = [
   },
 ] as const;
 
-export function OpenLogMain({
+export function HomeFeed({
   activeTab = "trending",
   isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
 }: {
@@ -61,7 +61,7 @@ export function OpenLogMain({
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
-      <OpenLogHeader isLoggedIn={isLoggedIn} />
+      <Header isLoggedIn={isLoggedIn} />
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
           <section aria-label="Feed" className="min-w-0">
@@ -81,7 +81,7 @@ export function OpenLogMain({
           </aside>
         </div>
       </main>
-      <OpenLogFooter />
+      <Footer />
     </div>
   );
 }
@@ -359,7 +359,7 @@ function TopContributors() {
           TOP CONTRIBUTORS
         </h2>
         <span className="text-zinc-400">
-          <OpenLogGitPullRequestIcon className="size-4" />
+          <GitPullRequestIcon className="size-4" />
         </span>
       </div>
 

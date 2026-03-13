@@ -7,10 +7,10 @@ import type {
 } from "@/entities/post/model/openLogPostData";
 import { openLogAssets } from "@/shared/config/openLogAssets";
 import { cn } from "@/shared/lib/cn";
-import { OpenLogGitPullRequestIcon } from "@/shared/ui/icons/OpenLogGitPullRequestIcon";
-import { OpenLogDiscussionComposer } from "@/features/discussion-composer/ui/OpenLogDiscussionComposer";
+import { GitPullRequestIcon } from "@/shared/ui/icons/GitPullRequestIcon";
+import { DiscussionComposer } from "@/features/discussion-composer/ui/DiscussionComposer";
 
-export function OpenLogSuggestionDetail({
+export function SuggestionDetail({
   post,
   suggestion,
   articleHref,
@@ -57,7 +57,7 @@ export function OpenLogSuggestionDetail({
               statusClassName,
             )}
           >
-            <OpenLogGitPullRequestIcon className="size-3.5" />
+            <GitPullRequestIcon className="size-3.5" />
             {statusLabel}
           </span>
           <span className="font-semibold text-zinc-950">
@@ -99,7 +99,7 @@ export function OpenLogSuggestionDetail({
                 type="button"
                 className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
               >
-                <OpenLogGitPullRequestIcon className="size-4" />
+                <GitPullRequestIcon className="size-4" />
                 Accept Suggests
               </button>
             </div>
@@ -223,7 +223,7 @@ function MergedNotice({
   return (
     <section className="flex items-start gap-3 rounded-xl border border-violet-100 bg-violet-50 px-4 py-4">
       <span className="mt-0.5 inline-flex size-7 items-center justify-center rounded-full bg-violet-600 text-white">
-        <OpenLogGitPullRequestIcon className="size-4" />
+        <GitPullRequestIcon className="size-4" />
       </span>
       <div>
         <h2 className="text-sm font-bold text-violet-900">{title}</h2>
@@ -285,7 +285,7 @@ function DiscussionSection({
           className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
         />
         <div className="min-w-0 flex-1">
-          <OpenLogDiscussionComposer />
+          <DiscussionComposer />
         </div>
       </div>
     </section>

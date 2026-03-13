@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import {
-  OpenLogFooter,
-  OpenLogHeader,
-} from "@/widgets/chrome/ui/OpenLogChrome";
-import { OpenLogPostArticle } from "@/widgets/post/ui/OpenLogPostArticle";
+  Footer,
+  Header,
+} from "@/widgets/chrome/ui/Chrome";
+import { PostArticle } from "@/widgets/post/ui/PostArticle";
 import {
   getOpenLogPostEntry,
   openLogContributors,
@@ -27,10 +27,10 @@ export default async function PostPage({
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
-      <OpenLogHeader />
+      <Header />
 
       <main className="mx-auto w-full max-w-[1083px] pb-16 pt-6 sm:px-8">
-        <OpenLogPostArticle
+        <PostArticle
           post={entry.post}
           contributors={openLogContributors}
           backHref="/?tab=trending"
@@ -40,10 +40,10 @@ export default async function PostPage({
           suggestCount={entry.suggestCount}
         >
           {entry.body}
-        </OpenLogPostArticle>
+        </PostArticle>
       </main>
 
-      <OpenLogFooter />
+      <Footer />
     </div>
   );
 }

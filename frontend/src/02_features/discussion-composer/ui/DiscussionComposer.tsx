@@ -3,17 +3,17 @@
 import { useRef, useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
-  OpenLogMarkdownContent,
-} from "@/shared/ui/markdown/OpenLogMarkdownContent";
+  MarkdownContent,
+} from "@/shared/ui/markdown/MarkdownContent";
 import {
-  OpenLogMarkdownToolbar,
-} from "@/shared/ui/markdown/OpenLogMarkdownToolbar";
+  MarkdownToolbar,
+} from "@/shared/ui/markdown/MarkdownToolbar";
 import {
   formatSelection,
   type ToolbarAction,
 } from "@/shared/lib/markdown/openLogMarkdownFormatting";
 
-export function OpenLogDiscussionComposer() {
+export function DiscussionComposer() {
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [value, setValue] = useState("");
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -83,7 +83,7 @@ export function OpenLogDiscussionComposer() {
       </div>
 
       <div className="border-b border-zinc-200 bg-zinc-50/80 px-4 py-2">
-        <OpenLogMarkdownToolbar
+        <MarkdownToolbar
           disabled={mode === "preview"}
           onAction={insertFormatting}
         />
@@ -102,7 +102,7 @@ export function OpenLogDiscussionComposer() {
         </label>
       ) : (
         <div className="min-h-[160px] px-4 py-4 text-sm leading-6 text-zinc-800">
-          <OpenLogMarkdownContent
+          <MarkdownContent
             markdown={value}
             variant="compact"
             emptyFallback={

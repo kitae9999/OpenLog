@@ -5,7 +5,7 @@ import type {
   OpenLogContributor,
   OpenLogPost,
 } from "@/entities/post/model/openLogPostData";
-import { OpenLogPostTabs } from "./OpenLogPostTabs";
+import { PostTabs } from "./PostTabs";
 
 const defaultBody = (
   <div className="mt-8 space-y-6 text-[14px] leading-[1.65] text-zinc-700">
@@ -82,7 +82,7 @@ async function NoteList({ userId }) {
   </div>
 );
 
-export function OpenLogPostArticle({
+export function PostArticle({
   post,
   contributors,
   backHref = "/",
@@ -128,7 +128,7 @@ export function OpenLogPostArticle({
             Back to feed
           </Link>
 
-          <OpenLogPostTabs
+          <PostTabs
             activeTab="article"
             articleHref={articleHref}
             suggestsHref={suggestsHref}

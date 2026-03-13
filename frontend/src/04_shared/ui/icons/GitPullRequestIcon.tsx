@@ -5,7 +5,7 @@ const pullRequestMaskStyle = {
   mask: "url('/GitPullRequest.svg') center / contain no-repeat",
 } as const;
 
-export function OpenLogGitPullRequestIcon({
+export function GitPullRequestIcon({
   className,
 }: {
   className?: string;

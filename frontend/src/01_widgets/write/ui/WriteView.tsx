@@ -13,19 +13,19 @@ import {
 } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
-  OpenLogMarkdownContent,
-} from "@/shared/ui/markdown/OpenLogMarkdownContent";
+  MarkdownContent,
+} from "@/shared/ui/markdown/MarkdownContent";
 import {
-  OpenLogMarkdownToolbar,
-} from "@/shared/ui/markdown/OpenLogMarkdownToolbar";
+  MarkdownToolbar,
+} from "@/shared/ui/markdown/MarkdownToolbar";
 import {
   formatSelection,
   type ToolbarAction,
 } from "@/shared/lib/markdown/openLogMarkdownFormatting";
 import {
-  OpenLogFooter,
-  OpenLogHeader,
-} from "@/widgets/chrome/ui/OpenLogChrome";
+  Footer,
+  Header,
+} from "@/widgets/chrome/ui/Chrome";
 
 type ComposerMode = "edit" | "preview";
 type SaveReason = "auto" | "manual" | "restored" | "cleared";
@@ -48,7 +48,7 @@ const markdownCheatsheet = [
   { syntax: "# Heading", label: "H1" },
 ] as const;
 
-export function OpenLogWritePage() {
+export function WriteView() {
   const [mode, setMode] = useState<ComposerMode>("edit");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -180,7 +180,7 @@ export function OpenLogWritePage() {
 
   return (
     <div className="min-h-dvh bg-zinc-50 text-zinc-950">
-      <OpenLogHeader />
+      <Header />
 
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <section className="flex flex-col gap-6">
@@ -290,7 +290,7 @@ export function OpenLogWritePage() {
 
               <section className="overflow-hidden rounded-[14px] border border-zinc-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]">
                 <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2">
-                  <OpenLogMarkdownToolbar
+                  <MarkdownToolbar
                     disabled={mode === "preview"}
                     onAction={insertFormatting}
                   />
@@ -356,7 +356,7 @@ export function OpenLogWritePage() {
         </section>
       </main>
 
-      <OpenLogFooter />
+      <Footer />
     </div>
   );
 }
@@ -432,7 +432,7 @@ function MarkdownPreview({
       </header>
 
       <div className="mt-8 space-y-6 text-[16px] leading-8 text-zinc-700">
-        <OpenLogMarkdownContent
+        <MarkdownContent
           markdown={body}
           emptyFallback={
             <p className="text-zinc-400">

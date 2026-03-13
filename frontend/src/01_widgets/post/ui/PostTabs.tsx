@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { cn } from "@/shared/lib/cn";
-import { OpenLogGitPullRequestIcon } from "@/shared/ui/icons/OpenLogGitPullRequestIcon";
+import { GitPullRequestIcon } from "@/shared/ui/icons/GitPullRequestIcon";
 
-export type OpenLogPostTabKey = "article" | "suggests";
+export type PostTabKey = "article" | "suggests";
 
-export function OpenLogPostTabs({
+export function PostTabs({
   activeTab,
   articleHref,
   suggestsHref,
   suggestCount = 0,
 }: {
-  activeTab: OpenLogPostTabKey;
+  activeTab: PostTabKey;
   articleHref: string;
   suggestsHref: string;
   suggestCount?: number;
@@ -42,7 +42,7 @@ export function OpenLogPostTabs({
               : "border-transparent text-zinc-500 hover:text-zinc-950",
           )}
         >
-          <OpenLogGitPullRequestIcon className="size-4" />
+          <GitPullRequestIcon className="size-4" />
           <span>Suggests</span>
           {suggestCount > 0 ? (
             <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-100 px-1.5 text-[11px] font-bold leading-none text-zinc-950">

@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import {
-  OpenLogFooter,
-  OpenLogHeader,
-} from "@/widgets/chrome/ui/OpenLogChrome";
+  Footer,
+  Header,
+} from "@/widgets/chrome/ui/Chrome";
 import {
   getOpenLogPostEntry,
   getOpenLogSuggestion,
 } from "@/entities/post/model/openLogPostData";
-import { OpenLogSuggestionDetail } from "@/widgets/post/ui/OpenLogSuggestionDetail";
+import { SuggestionDetail } from "@/widgets/post/ui/SuggestionDetail";
 
 export default async function PostSuggestionDetailPage({
   params,
@@ -34,10 +34,10 @@ export default async function PostSuggestionDetailPage({
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
-      <OpenLogHeader />
+      <Header />
 
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
-        <OpenLogSuggestionDetail
+        <SuggestionDetail
           post={entry.post}
           suggestion={suggestion}
           articleHref={articleHref}
@@ -45,7 +45,7 @@ export default async function PostSuggestionDetailPage({
         />
       </main>
 
-      <OpenLogFooter />
+      <Footer />
     </div>
   );
 }

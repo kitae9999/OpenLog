@@ -1,11 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { openLogAssets } from "@/shared/config/openLogAssets";
-import { OpenLogGitPullRequestIcon } from "@/shared/ui/icons/OpenLogGitPullRequestIcon";
+import { GitPullRequestIcon } from "@/shared/ui/icons/GitPullRequestIcon";
 import {
-  OpenLogFooter,
-  OpenLogHeader,
-} from "@/widgets/chrome/ui/OpenLogChrome";
+  Footer,
+  Header,
+} from "@/widgets/chrome/ui/Chrome";
 
 const profile = {
   name: "Sarah Drasner",
@@ -50,10 +50,10 @@ const recentActivity = [
   },
 ] as const;
 
-export function OpenLogProfilePage() {
+export function ProfileView() {
   return (
     <div className="flex min-h-dvh flex-col bg-[#f9fafb] text-zinc-950">
-      <OpenLogHeader showWriteAction={false} />
+      <Header showWriteAction={false} />
 
       <main className="mx-auto w-full max-w-[1083px] flex-1 px-4 pb-20 pt-8 sm:px-8">
         <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">
@@ -156,7 +156,7 @@ export function OpenLogProfilePage() {
           <section>
             <div className="flex items-center gap-2">
               <span className="text-zinc-900">
-                <OpenLogGitPullRequestIcon className="size-5" />
+                <GitPullRequestIcon className="size-5" />
               </span>
               <h2 className="text-[20px] font-bold tracking-tight text-zinc-950">
                 Recent Activity
@@ -192,7 +192,7 @@ export function OpenLogProfilePage() {
         </div>
       </main>
 
-      <OpenLogFooter />
+      <Footer />
     </div>
   );
 }

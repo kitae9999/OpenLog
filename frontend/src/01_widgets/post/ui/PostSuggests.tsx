@@ -4,10 +4,10 @@ import type {
   OpenLogSuggestion,
 } from "@/entities/post/model/openLogPostData";
 import { cn } from "@/shared/lib/cn";
-import { OpenLogGitPullRequestIcon } from "@/shared/ui/icons/OpenLogGitPullRequestIcon";
-import { OpenLogPostTabs } from "./OpenLogPostTabs";
+import { GitPullRequestIcon } from "@/shared/ui/icons/GitPullRequestIcon";
+import { PostTabs } from "./PostTabs";
 
-export function OpenLogPostSuggests({
+export function PostSuggests({
   post,
   suggestions,
   backHref = "/",
@@ -35,7 +35,7 @@ export function OpenLogPostSuggests({
         Back to feed
       </Link>
 
-      <OpenLogPostTabs
+      <PostTabs
         activeTab="suggests"
         articleHref={articleHref}
         suggestsHref={suggestsHref}
@@ -76,7 +76,7 @@ export function OpenLogPostSuggests({
                       : "text-violet-500",
                   )}
                 >
-                  <OpenLogGitPullRequestIcon className="size-5" />
+                  <GitPullRequestIcon className="size-5" />
                 </span>
 
                 <div className="min-w-0">
@@ -124,7 +124,7 @@ function StatusSummary({
         active ? "font-semibold text-zinc-950" : "font-medium text-zinc-500",
       )}
     >
-      <OpenLogGitPullRequestIcon className="size-4" />
+      <GitPullRequestIcon className="size-4" />
       <span>
         {count} {label}
       </span>
