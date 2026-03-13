@@ -6,6 +6,8 @@ export const openLogAssets = {
     "http://localhost:3845/assets/215944c0ae039b44468166b8e84bf99beae0f71d.png",
   postCover:
     "http://localhost:3845/assets/1d59d1970b8502f1a9dfc1f9aea722f8578e0946.png",
+  profileAvatar:
+    "http://localhost:3845/assets/1d59d1970b8502f1a9dfc1f9aea722f8578e0946.png",
   knowledgeGraph:
     "http://localhost:3845/assets/7cccabd62c9ceae10c4b94563846cc9452172b1c.png",
   avatarA:
@@ -15,7 +17,7 @@ export const openLogAssets = {
 } as const;
 
 const navLinks = [
-  { href: "/?tab=trending", label: "Home" },
+  { href: "/?tab=trending", label: "Trending" },
   { href: "/explore", label: "Explore" },
   { href: "/topics", label: "Topics" },
 ] as const;
@@ -27,8 +29,10 @@ export const DEV_DEFAULT_IS_LOGGED_IN = true;
 
 export function OpenLogHeader({
   isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
+  showWriteAction = true,
 }: {
   isLoggedIn?: boolean;
+  showWriteAction?: boolean;
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
@@ -59,7 +63,7 @@ export function OpenLogHeader({
                 href={item.href}
                 className={cn(
                   "text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                  item.label === "Home" && "text-zinc-950",
+                  item.label === "Trending" && "text-zinc-950",
                 )}
               >
                 {item.label}
@@ -73,13 +77,15 @@ export function OpenLogHeader({
 
           {isLoggedIn ? (
             <>
-              <Link
-                href="/write"
-                className="inline-flex h-9 items-center gap-2 rounded-xl bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-              >
-                <IconPencil className="size-4" />
-                Write
-              </Link>
+              {showWriteAction ? (
+                <Link
+                  href="/write"
+                  className="inline-flex h-9 items-center gap-2 rounded-xl bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                >
+                  <IconPencil className="size-4" />
+                  Write
+                </Link>
+              ) : null}
 
               <button
                 type="button"
@@ -153,7 +159,7 @@ export function OpenLogFooter() {
 
 function SearchBar({ className }: { className?: string }) {
   return (
-    <form action="/" method="GET" className={cn("w-[320px]", className)}>
+    <form action="/" method="GET" className={cn("w-[256px]", className)}>
       <label className="relative block">
         <span className="sr-only">Search</span>
         <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">
