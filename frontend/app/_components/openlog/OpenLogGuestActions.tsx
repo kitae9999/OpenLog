@@ -72,105 +72,105 @@ export function OpenLogGuestActions() {
               />
 
               <div className="relative z-10 w-full max-w-[448px]">
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby={titleId}
-              aria-describedby={descriptionId}
-              className="relative w-full max-w-[448px] overflow-hidden rounded-2xl border border-[#f3f4f6] bg-white p-8 shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]"
-              data-node-id="77:1175"
-            >
-              <button
-                type="button"
-                aria-label="Dismiss login modal"
-                onClick={closeModal}
-                className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full text-[#98a2b3] transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                data-node-id="77:1202"
-              >
-                <IconClose className="size-5" />
-              </button>
-
-              <div
-                className="flex flex-col items-center gap-8 pt-3"
-                data-node-id="77:1176"
-              >
                 <div
-                  className="flex w-full max-w-[382px] flex-col items-center"
-                  data-node-id="77:1177"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby={titleId}
+                  aria-describedby={descriptionId}
+                  className="relative w-full max-w-[448px] overflow-hidden rounded-2xl border border-[#f3f4f6] bg-white p-8 shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]"
+                  data-node-id="77:1175"
                 >
+                  <button
+                    type="button"
+                    aria-label="Dismiss login modal"
+                    onClick={closeModal}
+                    className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full text-[#98a2b3] transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                    data-node-id="77:1202"
+                  >
+                    <IconClose className="size-5" />
+                  </button>
+
                   <div
-                    className="grid size-12 place-items-center rounded-[14px] bg-black text-[24px] font-bold leading-none text-white [font-family:Georgia,serif]"
-                    data-node-id="77:1178"
+                    className="flex flex-col items-center gap-8 pt-3"
+                    data-node-id="77:1176"
                   >
-                    O
-                  </div>
-
-                  <h2
-                    id={titleId}
-                    className="mt-4 text-center text-[24px] leading-8 text-[#101828] [font-family:Georgia,serif]"
-                    data-node-id="77:1180"
-                  >
-                    Welcome back
-                  </h2>
-
-                  <p
-                    id={descriptionId}
-                    className="mt-2 max-w-[360px] text-center text-[14px] leading-5 tracking-[-0.01em] text-[#6a7282]"
-                    data-node-id="77:1182"
-                  >
-                    Sign in to review code, suggest changes, and build your
-                    knowledge graph.
-                  </p>
-                </div>
-
-                <div
-                  className="flex w-full max-w-[382px] flex-col gap-3"
-                  data-node-id="77:1184"
-                >
-                  <button
-                    type="button"
-                    autoFocus
-                    className={`${modalButtonClassName} border border-[#e5e7eb] bg-white text-[#364153] hover:bg-zinc-50`}
-                    data-node-id="77:1185"
-                  >
-                    <Image
-                      src="/google.svg"
-                      alt=""
-                      width={20}
-                      height={20}
-                      aria-hidden="true"
-                      className="size-5"
-                    />
-                    Continue with Google
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`${modalButtonClassName} bg-[#24292f] text-white hover:bg-[#1b2027]`}
-                    data-node-id="77:1192"
-                  >
-                    <IconGitHub className="size-5" />
-                    Continue with GitHub
-                  </button>
-                </div>
-
-                <div
-                  className="w-full max-w-[382px] border-t border-[#f3f4f6] pt-6 text-center"
-                  data-node-id="77:1197"
-                >
-                  <p className="text-[14px] leading-5 tracking-[-0.01em] text-[#4a5565]">
-                    Don&apos;t have an account?{" "}
-                    <button
-                      type="button"
-                      className="font-bold leading-6 text-black transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                      data-node-id="77:1200"
+                    <div
+                      className="flex w-full max-w-[382px] flex-col items-center"
+                      data-node-id="77:1177"
                     >
-                      Sign up
-                    </button>
-                  </p>
+                      <div
+                        className="grid size-12 place-items-center rounded-[14px] bg-black text-[24px] font-bold leading-none text-white [font-family:Georgia,serif]"
+                        data-node-id="77:1178"
+                      >
+                        O
+                      </div>
+
+                      <h2
+                        id={titleId}
+                        className="mt-4 text-center text-[24px] leading-8 text-[#101828] [font-family:Georgia,serif]"
+                        data-node-id="77:1180"
+                      >
+                        Welcome back
+                      </h2>
+
+                      <p
+                        id={descriptionId}
+                        className="mt-2 max-w-[360px] text-center text-[14px] leading-5 tracking-[-0.01em] text-[#6a7282]"
+                        data-node-id="77:1182"
+                      >
+                        Sign in to share insights, suggest changes, and build
+                        your knowledge graph.
+                      </p>
+                    </div>
+
+                    <div
+                      className="flex w-full max-w-[382px] flex-col gap-3"
+                      data-node-id="77:1184"
+                    >
+                      <button
+                        type="button"
+                        autoFocus
+                        className={`${modalButtonClassName} border border-[#e5e7eb] bg-white text-[#364153] hover:bg-zinc-50`}
+                        data-node-id="77:1185"
+                      >
+                        <Image
+                          src="/google.svg"
+                          alt=""
+                          width={20}
+                          height={20}
+                          aria-hidden="true"
+                          className="size-5"
+                        />
+                        Continue with Google
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`${modalButtonClassName} bg-[#24292f] text-white hover:bg-[#1b2027]`}
+                        data-node-id="77:1192"
+                      >
+                        <IconGitHub className="size-5" />
+                        Continue with GitHub
+                      </button>
+                    </div>
+
+                    <div
+                      className="w-full max-w-[382px] border-t border-[#f3f4f6] pt-6 text-center"
+                      data-node-id="77:1197"
+                    >
+                      <p className="text-[14px] leading-5 tracking-[-0.01em] text-[#4a5565]">
+                        Don&apos;t have an account?{" "}
+                        <button
+                          type="button"
+                          className="font-bold leading-6 text-black transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                          data-node-id="77:1200"
+                        >
+                          Sign up
+                        </button>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
               </div>
             </div>,
             document.body,
@@ -182,7 +182,12 @@ export function OpenLogGuestActions() {
 
 function IconClose({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M6 6l8 8M14 6l-8 8"
         stroke="currentColor"
