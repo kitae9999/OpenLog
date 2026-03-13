@@ -21,10 +21,10 @@
     ],
     "paths": {
       "@/app/*": ["./app/*"],
-      "@/shared/*": ["./src/01_shared/*"],
-      "@/entities/*": ["./src/02_entities/*"],
-      "@/features/*": ["./src/03_features/*"],
-      "@/widgets/*": ["./src/04_widgets/*"]
+      "@/widgets/*": ["./src/01_widgets/*"],
+      "@/features/*": ["./src/02_features/*"],
+      "@/entities/*": ["./src/03_entities/*"],
+      "@/shared/*": ["./src/04_shared/*"]
     }
   },
   "include": [
