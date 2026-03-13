@@ -1,13 +1,10 @@
 import { notFound } from "next/navigation";
+import { Footer, Header } from "@/widgets/chrome/ui";
 import {
-  OpenLogFooter,
-  OpenLogHeader,
-} from "../../../../_components/openlog/OpenLogChrome";
-import { OpenLogSuggestionDetail } from "../../../../_components/openlog/OpenLogSuggestionDetail";
-import {
-  getOpenLogPostEntry,
-  getOpenLogSuggestion,
-} from "../../../../_components/openlog/openLogPostData";
+  getPostEntry,
+  getSuggestion,
+} from "@/entities/post/model";
+import { SuggestionDetail } from "@/widgets/post/ui";
 
 export default async function PostSuggestionDetailPage({
   params,
@@ -24,8 +21,8 @@ export default async function PostSuggestionDetailPage({
 
   if (!slug || !suggestId) notFound();
 
-  const entry = getOpenLogPostEntry(slug);
-  const suggestion = getOpenLogSuggestion(slug, suggestId);
+  const entry = getPostEntry(slug);
+  const suggestion = getSuggestion(slug, suggestId);
 
   if (!entry || !suggestion) notFound();
 
@@ -34,10 +31,10 @@ export default async function PostSuggestionDetailPage({
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
-      <OpenLogHeader />
+      <Header />
 
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
-        <OpenLogSuggestionDetail
+        <SuggestionDetail
           post={entry.post}
           suggestion={suggestion}
           articleHref={articleHref}
@@ -45,7 +42,7 @@ export default async function PostSuggestionDetailPage({
         />
       </main>
 
-      <OpenLogFooter />
+      <Footer />
     </div>
   );
 }

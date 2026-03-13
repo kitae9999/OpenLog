@@ -1,10 +1,7 @@
 import { notFound } from "next/navigation";
-import {
-  OpenLogFooter,
-  OpenLogHeader,
-} from "../../../_components/openlog/OpenLogChrome";
-import { OpenLogPostSuggests } from "../../../_components/openlog/OpenLogPostSuggests";
-import { getOpenLogPostEntry } from "../../../_components/openlog/openLogPostData";
+import { Footer, Header } from "@/widgets/chrome/ui";
+import { getPostEntry } from "@/entities/post/model";
+import { PostSuggests } from "@/widgets/post/ui";
 
 export default async function PostSuggestsPage({
   params,
@@ -16,7 +13,7 @@ export default async function PostSuggestsPage({
   const slug = Array.isArray(slugParam) ? slugParam[0] : slugParam;
   if (!slug) notFound();
 
-  const entry = getOpenLogPostEntry(slug);
+  const entry = getPostEntry(slug);
   if (!entry) notFound();
 
   const articleHref = `/posts/${slug}`;
@@ -24,10 +21,10 @@ export default async function PostSuggestsPage({
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
-      <OpenLogHeader />
+      <Header />
 
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
-        <OpenLogPostSuggests
+        <PostSuggests
           post={entry.post}
           suggestions={entry.suggestions}
           backHref="/?tab=trending"
@@ -37,7 +34,7 @@ export default async function PostSuggestsPage({
         />
       </main>
 
-      <OpenLogFooter />
+      <Footer />
     </div>
   );
 }

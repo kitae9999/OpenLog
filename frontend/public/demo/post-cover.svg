@@ -1,0 +1,20 @@
+<svg width="1200" height="800" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="800" rx="40" fill="#F5F7FB"/>
+  <rect x="88" y="88" width="1024" height="624" rx="32" fill="url(#panel)"/>
+  <path d="M192 586C305 435 412 338 579 320C744 302 822 218 1000 140" stroke="#C6D6EE" stroke-width="14" stroke-linecap="round"/>
+  <path d="M164 242H446" stroke="#E7EEF8" stroke-width="22" stroke-linecap="round"/>
+  <path d="M164 294H590" stroke="#D8E4F4" stroke-width="18" stroke-linecap="round"/>
+  <rect x="164" y="360" width="286" height="188" rx="26" fill="#101828" fill-opacity="0.06"/>
+  <rect x="494" y="392" width="218" height="18" rx="9" fill="#B9CAE3"/>
+  <rect x="494" y="434" width="316" height="18" rx="9" fill="#D8E4F4"/>
+  <rect x="494" y="476" width="252" height="18" rx="9" fill="#D8E4F4"/>
+  <rect x="846" y="338" width="146" height="214" rx="24" fill="#FFFFFF" fill-opacity="0.7"/>
+  <circle cx="920" cy="404" r="34" fill="#0F172A"/>
+  <path d="M900 462H940" stroke="#A8B8D3" stroke-width="12" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="panel" x1="88" y1="88" x2="1112" y2="712" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E8EEF8"/>
+    </linearGradient>
+  </defs>
+</svg>

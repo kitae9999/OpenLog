@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OpenLogWritePage } from "../_components/openlog/OpenLogWritePage";
+import { WriteView } from "@/widgets/write/ui";
 
 export const metadata: Metadata = {
   title: "Write | OpenLog",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function WritePage() {
-  return <OpenLogWritePage />;
+  return <WriteView />;
 }
