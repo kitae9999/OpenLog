@@ -7,8 +7,8 @@ import type {
 } from "@/entities/post/model/openLogPostData";
 import { openLogAssets } from "@/shared/config/openLogAssets";
 import { cn } from "@/shared/lib/cn";
-import { GitPullRequestIcon } from "@/shared/ui/icons/GitPullRequestIcon";
-import { DiscussionComposer } from "@/features/discussion-composer/ui/DiscussionComposer";
+import { GitPullRequestIcon } from "@/shared/ui/icons";
+import { DiscussionComposer } from "@/features/discussion-composer/ui";
 
 export function SuggestionDetail({
   post,

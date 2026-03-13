@@ -1,13 +1,10 @@
 import { notFound } from "next/navigation";
-import {
-  Footer,
-  Header,
-} from "@/widgets/chrome/ui/Chrome";
-import { PostArticle } from "@/widgets/post/ui/PostArticle";
+import { Footer, Header } from "@/widgets/chrome/ui";
+import { PostArticle } from "@/widgets/post/ui";
 import {
   getOpenLogPostEntry,
   openLogContributors,
-} from "@/entities/post/model/openLogPostData";
+} from "@/entities/post/model";
 
 export default async function PostPage({
   params,

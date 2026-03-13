@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/shared/lib/cn";
-import { GitPullRequestIcon } from "@/shared/ui/icons/GitPullRequestIcon";
+import { GitPullRequestIcon } from "@/shared/ui/icons";
 
 export type PostTabKey = "article" | "suggests";
 

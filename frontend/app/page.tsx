@@ -1,4 +1,4 @@
-import { HomeFeed } from "@/widgets/home-feed/ui/HomeFeed";
+import { HomeFeed } from "@/widgets/home-feed/ui";
 
 export default async function Home({
   searchParams,

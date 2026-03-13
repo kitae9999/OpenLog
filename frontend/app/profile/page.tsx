@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ProfileView } from "@/widgets/profile/ui/ProfileView";
+import { ProfileView } from "@/widgets/profile/ui";
 
 export const metadata: Metadata = {
   title: "Profile | OpenLog",

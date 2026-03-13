@@ -1,11 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { openLogAssets } from "@/shared/config/openLogAssets";
-import { GitPullRequestIcon } from "@/shared/ui/icons/GitPullRequestIcon";
-import {
-  Footer,
-  Header,
-} from "@/widgets/chrome/ui/Chrome";
+import { GitPullRequestIcon } from "@/shared/ui/icons";
+import { Footer, Header } from "@/widgets/chrome/ui";
 
 const profile = {
   name: "Sarah Drasner",

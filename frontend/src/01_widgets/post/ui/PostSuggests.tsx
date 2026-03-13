@@ -4,7 +4,7 @@ import type {
   OpenLogSuggestion,
 } from "@/entities/post/model/openLogPostData";
 import { cn } from "@/shared/lib/cn";
-import { GitPullRequestIcon } from "@/shared/ui/icons/GitPullRequestIcon";
+import { GitPullRequestIcon } from "@/shared/ui/icons";
 import { PostTabs } from "./PostTabs";
 
 export function PostSuggests({

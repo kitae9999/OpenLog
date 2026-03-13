@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
-import type { ToolbarAction } from "@/shared/lib/markdown/openLogMarkdownFormatting";
+import type { ToolbarAction } from "@/shared/lib/markdown";
 
 export function MarkdownToolbar({
   disabled,

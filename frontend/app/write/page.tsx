@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WriteView } from "@/widgets/write/ui/WriteView";
+import { WriteView } from "@/widgets/write/ui";
 
 export const metadata: Metadata = {
   title: "Write | OpenLog",

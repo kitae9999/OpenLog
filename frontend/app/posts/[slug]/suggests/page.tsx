@@ -1,10 +1,7 @@
 import { notFound } from "next/navigation";
-import {
-  Footer,
-  Header,
-} from "@/widgets/chrome/ui/Chrome";
-import { getOpenLogPostEntry } from "@/entities/post/model/openLogPostData";
-import { PostSuggests } from "@/widgets/post/ui/PostSuggests";
+import { Footer, Header } from "@/widgets/chrome/ui";
+import { getOpenLogPostEntry } from "@/entities/post/model";
+import { PostSuggests } from "@/widgets/post/ui";
 
 export default async function PostSuggestsPage({
   params,

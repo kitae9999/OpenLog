@@ -12,20 +12,12 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/shared/lib/cn";
-import {
-  MarkdownContent,
-} from "@/shared/ui/markdown/MarkdownContent";
-import {
-  MarkdownToolbar,
-} from "@/shared/ui/markdown/MarkdownToolbar";
+import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import {
   formatSelection,
   type ToolbarAction,
-} from "@/shared/lib/markdown/openLogMarkdownFormatting";
-import {
-  Footer,
-  Header,
-} from "@/widgets/chrome/ui/Chrome";
+} from "@/shared/lib/markdown";
+import { Footer, Header } from "@/widgets/chrome/ui";
 
 type ComposerMode = "edit" | "preview";
 type SaveReason = "auto" | "manual" | "restored" | "cleared";

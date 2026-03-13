@@ -2,16 +2,11 @@
 
 import { useRef, useState } from "react";
 import { cn } from "@/shared/lib/cn";
-import {
-  MarkdownContent,
-} from "@/shared/ui/markdown/MarkdownContent";
-import {
-  MarkdownToolbar,
-} from "@/shared/ui/markdown/MarkdownToolbar";
+import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import {
   formatSelection,
   type ToolbarAction,
-} from "@/shared/lib/markdown/openLogMarkdownFormatting";
+} from "@/shared/lib/markdown";
 
 export function DiscussionComposer() {
   const [mode, setMode] = useState<"write" | "preview">("write");

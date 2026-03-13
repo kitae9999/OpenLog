@@ -3,17 +3,9 @@ import Link from "next/link";
 import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/openLogDemo";
 import { openLogAssets } from "@/shared/config/openLogAssets";
 import { cn } from "@/shared/lib/cn";
-import { GuestActions } from "@/features/auth/ui/GuestActions";
-
-const navLinks = [
-  { href: "/?tab=trending", label: "Trending" },
-  { href: "/explore", label: "Explore" },
-  { href: "/topics", label: "Topics" },
-] as const;
-
-const logoWordmarkClassName =
-  "text-[24px] font-bold leading-none [font-family:Georgia,serif]";
-const logoMarkClassName = "font-bold leading-none [font-family:Georgia,serif]";
+import { GuestActions } from "@/features/auth/ui";
+import { logoMarkClassName, logoWordmarkClassName, navLinks } from "./brand";
+import { SearchBar } from "./SearchBar";
 
 export function Header({
   isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
@@ -111,84 +103,6 @@ export function Header({
         </div>
       </div>
     </header>
-  );
-}
-
-export function Footer() {
-  return (
-    <footer className="border-t border-zinc-200/70 bg-white">
-      <div className="mx-auto flex w-full max-w-[1083px] flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <div className="flex items-center gap-2 text-zinc-950">
-          <span
-            className={cn(
-              "grid size-6 place-items-center rounded-md bg-black text-[12px] text-white",
-              logoMarkClassName,
-            )}
-          >
-            O
-          </span>
-          <span className={logoWordmarkClassName}>OpenLog</span>
-        </div>
-
-        <div className="flex flex-wrap gap-6 text-sm text-zinc-500">
-          <span>© 2026 OpenLog. Collective Knowledge Platform.</span>
-          <Link href="/terms" className="hover:text-zinc-950">
-            Terms
-          </Link>
-          <Link href="/privacy" className="hover:text-zinc-950">
-            Privacy
-          </Link>
-          <Link href="/status" className="hover:text-zinc-950">
-            Status
-          </Link>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-function SearchBar({ className }: { className?: string }) {
-  return (
-    <form action="/" method="GET" className={cn("w-[256px]", className)}>
-      <label className="relative block">
-        <span className="sr-only">Search</span>
-        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">
-          <IconSearch className="size-4" />
-        </span>
-        <input
-          name="q"
-          type="search"
-          placeholder="Search..."
-          className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-10 pr-4 text-sm text-zinc-950 placeholder:text-zinc-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-900/10"
-        />
-      </label>
-    </form>
-  );
-}
-
-function IconSearch({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M11 19a8 8 0 100-16 8 8 0 000 16z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M21 21l-4.35-4.35"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 
