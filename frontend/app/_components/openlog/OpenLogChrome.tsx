@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { OpenLogGuestActions } from "./OpenLogGuestActions";
 
 export const openLogAssets = {
   featuredCover:
@@ -25,7 +26,7 @@ const navLinks = [
 const logoWordmarkClassName =
   "text-[24px] font-bold leading-none [font-family:Georgia,serif]";
 const logoMarkClassName = "font-bold leading-none [font-family:Georgia,serif]";
-export const DEV_DEFAULT_IS_LOGGED_IN = true;
+export const DEV_DEFAULT_IS_LOGGED_IN = false;
 
 export function OpenLogHeader({
   isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
@@ -117,7 +118,9 @@ export function OpenLogHeader({
                 />
               </Link>
             </>
-          ) : null}
+          ) : (
+            <OpenLogGuestActions />
+          )}
         </div>
       </div>
     </header>
