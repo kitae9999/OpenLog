@@ -1,4 +1,4 @@
-import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/openLogDemo";
+import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/demo";
 import { Footer, Header } from "@/widgets/chrome/ui";
 import { ContributeCard } from "./ContributeCard";
 import { FeedTabs } from "./FeedTabs";

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { openLogAssets } from "@/shared/config/openLogAssets";
+import { assets } from "@/shared/config/assets";
 
 export function PostRow() {
   return (
@@ -9,7 +9,7 @@ export function PostRow() {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3 text-sm text-zinc-500">
             <Image
-              src={openLogAssets.avatarA}
+              src={assets.avatarA}
               alt="Kent C. Dodds avatar"
               width={28}
               height={28}
@@ -60,7 +60,7 @@ export function PostRow() {
 
         <div className="relative h-[132px] w-full shrink-0 overflow-hidden rounded-2xl border border-zinc-200/70 bg-zinc-50 md:w-[260px]">
           <Image
-            src={openLogAssets.postCover}
+            src={assets.postCover}
             alt="Post cover"
             fill
             sizes="(min-width: 768px) 260px, 100vw"

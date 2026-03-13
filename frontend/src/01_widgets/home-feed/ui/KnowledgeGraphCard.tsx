@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { openLogAssets } from "@/shared/config/openLogAssets";
+import { assets } from "@/shared/config/assets";
 
 export function KnowledgeGraphCard() {
   return (
@@ -20,7 +20,7 @@ export function KnowledgeGraphCard() {
 
       <div className="mt-4 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <Image
-          src={openLogAssets.knowledgeGraph}
+          src={assets.knowledgeGraph}
           alt="Knowledge graph preview"
           width={280}
           height={190}

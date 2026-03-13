@@ -1,10 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type {
-  OpenLogContributor,
-  OpenLogPost,
-} from "@/entities/post/model/openLogPostData";
+import type { Contributor, Post } from "@/entities/post/model";
 import { PostTabs } from "./PostTabs";
 
 const defaultBody = (
@@ -92,8 +89,8 @@ export function PostArticle({
   suggestEditsHref = "/contribute",
   suggestCount = 0,
 }: {
-  post: OpenLogPost;
-  contributors?: OpenLogContributor[];
+  post: Post;
+  contributors?: Contributor[];
   backHref?: string;
   children?: ReactNode;
   articleHref?: string;
@@ -334,7 +331,7 @@ function MobileActionBar({
   );
 }
 
-function ContributorCard({ contributor }: { contributor: OpenLogContributor }) {
+function ContributorCard({ contributor }: { contributor: Contributor }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-4">
       <div className="relative shrink-0">

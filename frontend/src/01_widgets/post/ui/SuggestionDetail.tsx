@@ -1,11 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type {
-  OpenLogPost,
-  OpenLogSuggestion,
-} from "@/entities/post/model/openLogPostData";
-import { openLogAssets } from "@/shared/config/openLogAssets";
+import type { Post, Suggestion } from "@/entities/post/model";
+import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
 import { DiscussionComposer } from "@/features/discussion-composer/ui";
@@ -16,8 +13,8 @@ export function SuggestionDetail({
   articleHref,
   suggestsHref,
 }: {
-  post: OpenLogPost;
-  suggestion: OpenLogSuggestion;
+  post: Post;
+  suggestion: Suggestion;
   articleHref: string;
   suggestsHref: string;
 }) {
@@ -150,7 +147,7 @@ export function SuggestionDetail({
 function SuggestionLeadComment({
   suggestion,
 }: {
-  suggestion: OpenLogSuggestion;
+  suggestion: Suggestion;
 }) {
   return (
     <div className="flex items-start gap-4">
@@ -178,7 +175,7 @@ function SuggestionLeadComment({
   );
 }
 
-function SuggestionDiff({ suggestion }: { suggestion: OpenLogSuggestion }) {
+function SuggestionDiff({ suggestion }: { suggestion: Suggestion }) {
   return (
     <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50/80 px-4 py-4">
@@ -236,7 +233,7 @@ function MergedNotice({
 function DiscussionSection({
   suggestion,
 }: {
-  suggestion: OpenLogSuggestion;
+  suggestion: Suggestion;
 }) {
   return (
     <section>
@@ -278,7 +275,7 @@ function DiscussionSection({
 
       <div className="mt-6 flex items-start gap-4">
         <Image
-          src={openLogAssets.avatarA}
+          src={assets.avatarA}
           alt="Current user avatar"
           width={40}
           height={40}

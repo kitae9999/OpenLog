@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
-import { openLogAssets } from "@/shared/config/openLogAssets";
+import { assets } from "@/shared/config/assets";
 
-export type OpenLogContributor = {
+export type Contributor = {
   name: string;
   role: string;
   avatarSrc: string;
 };
 
-export type OpenLogPost = {
+export type Post = {
   title: string;
   authorName: string;
   authorAvatarSrc: string;
@@ -19,20 +19,20 @@ export type OpenLogPost = {
   comments: number;
 };
 
-export type OpenLogReviewer = {
+export type Reviewer = {
   name: string;
   avatarSrc: string;
   status?: "approved";
 };
 
-export type OpenLogSuggestionComment = {
+export type SuggestionComment = {
   authorName: string;
   authorAvatarSrc: string;
   commentedAtLabel: string;
   message: string;
 };
 
-export type OpenLogDiscussionComment = {
+export type DiscussionComment = {
   id: string;
   authorName: string;
   authorAvatarSrc: string;
@@ -40,14 +40,14 @@ export type OpenLogDiscussionComment = {
   message: string;
 };
 
-export type OpenLogDiffRow = {
+export type DiffRow = {
   oldLine?: number;
   newLine?: number;
   kind: "context" | "remove" | "add";
   content: string;
 };
 
-export type OpenLogSuggestion = {
+export type Suggestion = {
   id: string;
   numberLabel: string;
   title: string;
@@ -58,33 +58,33 @@ export type OpenLogSuggestion = {
   status: "open" | "closed" | "merged";
   targetBranch: string;
   sourceBranch: string;
-  comment: OpenLogSuggestionComment;
-  reviewers: OpenLogReviewer[];
-  diffRows: OpenLogDiffRow[];
+  comment: SuggestionComment;
+  reviewers: Reviewer[];
+  diffRows: DiffRow[];
   resolutionNote?: {
     title: string;
     description: string;
   };
-  discussionComments: OpenLogDiscussionComment[];
+  discussionComments: DiscussionComment[];
 };
 
-export type OpenLogPostEntry = {
-  post: OpenLogPost;
+export type PostEntry = {
+  post: Post;
   body?: ReactNode;
   suggestCount?: number;
-  suggestions: OpenLogSuggestion[];
+  suggestions: Suggestion[];
 };
 
-export const openLogContributors: OpenLogContributor[] = [
+export const contributors: Contributor[] = [
   {
     name: "Kent C. Dodds",
     role: "Software Engineer and Educator.",
-    avatarSrc: openLogAssets.avatarA,
+    avatarSrc: assets.avatarA,
   },
   {
     name: "Dan Abramov",
     role: "React Core Team.",
-    avatarSrc: openLogAssets.avatarB,
+    avatarSrc: assets.avatarB,
   },
 ];
 
@@ -115,16 +115,16 @@ const tailwindBody = (
   </div>
 );
 
-const openLogPostEntries: Record<string, OpenLogPostEntry> = {
+const postEntries: Record<string, PostEntry> = {
   "tailwind-v4": {
     post: {
       title: "The Future of CSS: Tailwind v4",
       authorName: "Kent C. Dodds",
-      authorAvatarSrc: openLogAssets.avatarA,
+      authorAvatarSrc: assets.avatarA,
       publishedAtLabel: "2026. 2. 25.",
       readTimeLabel: "5 min read",
       tags: ["CSS", "Tooling"],
-      coverSrc: openLogAssets.postCover,
+      coverSrc: assets.postCover,
       likes: 890,
       comments: 12,
     },
@@ -137,14 +137,14 @@ const openLogPostEntries: Record<string, OpenLogPostEntry> = {
         title: "Clarify zero-config theme token migration",
         openedAtLabel: "2026. 3. 11.",
         authorName: "Kent C. Dodds",
-        authorAvatarSrc: openLogAssets.avatarA,
+        authorAvatarSrc: assets.avatarA,
         commentCount: 2,
         status: "open",
         targetBranch: "master",
         sourceBranch: "patch-1",
         comment: {
           authorName: "Kent C. Dodds",
-          authorAvatarSrc: openLogAssets.avatarA,
+          authorAvatarSrc: assets.avatarA,
           commentedAtLabel: "2026. 3. 11.",
           message:
             "I rewrote the upgrade note so the token migration reads as truly zero-config in the common case, while keeping the edge-case caveat.",
@@ -152,7 +152,7 @@ const openLogPostEntries: Record<string, OpenLogPostEntry> = {
         reviewers: [
           {
             name: "Sarah Drasner",
-            avatarSrc: openLogAssets.avatarB,
+            avatarSrc: assets.avatarB,
           },
         ],
         diffRows: [
@@ -201,14 +201,14 @@ const openLogPostEntries: Record<string, OpenLogPostEntry> = {
         title: "Close outdated note about PostCSS setup",
         openedAtLabel: "2026. 3. 9.",
         authorName: "Dan Abramov",
-        authorAvatarSrc: openLogAssets.avatarB,
+        authorAvatarSrc: assets.avatarB,
         commentCount: 1,
         status: "closed",
         targetBranch: "master",
         sourceBranch: "cleanup-postcss-note",
         comment: {
           authorName: "Dan Abramov",
-          authorAvatarSrc: openLogAssets.avatarB,
+          authorAvatarSrc: assets.avatarB,
           commentedAtLabel: "2026. 3. 9.",
           message:
             "This removes the old PostCSS warning and keeps the setup guide aligned with the current default toolchain.",
@@ -216,7 +216,7 @@ const openLogPostEntries: Record<string, OpenLogPostEntry> = {
         reviewers: [
           {
             name: "Kent C. Dodds",
-            avatarSrc: openLogAssets.avatarA,
+            avatarSrc: assets.avatarA,
           },
         ],
         diffRows: [
@@ -245,11 +245,11 @@ const openLogPostEntries: Record<string, OpenLogPostEntry> = {
     post: {
       title: "Understanding React Server Components",
       authorName: "Sarah Drasner",
-      authorAvatarSrc: openLogAssets.avatarB,
+      authorAvatarSrc: assets.avatarB,
       publishedAtLabel: "2026. 2. 28.",
       readTimeLabel: "8 min read",
       tags: ["React", "Web Development", "Performance"],
-      coverSrc: openLogAssets.featuredCover,
+      coverSrc: assets.featuredCover,
       likes: 1240,
       comments: 24,
     },
@@ -261,14 +261,14 @@ const openLogPostEntries: Record<string, OpenLogPostEntry> = {
         title: "Fix typo and clarify bundle size section",
         openedAtLabel: "2026. 3. 11.",
         authorName: "Kent C. Dodds",
-        authorAvatarSrc: openLogAssets.avatarA,
+        authorAvatarSrc: assets.avatarA,
         commentCount: 0,
         status: "open",
         targetBranch: "master",
         sourceBranch: "patch-1",
         comment: {
           authorName: "Kent C. Dodds",
-          authorAvatarSrc: openLogAssets.avatarA,
+          authorAvatarSrc: assets.avatarA,
           commentedAtLabel: "2026. 3. 11.",
           message:
             "I clarified the section on bundle size to mention dependencies, and fixed a minor phrasing issue.",
@@ -276,7 +276,7 @@ const openLogPostEntries: Record<string, OpenLogPostEntry> = {
         reviewers: [
           {
             name: "Sarah Drasner",
-            avatarSrc: openLogAssets.avatarB,
+            avatarSrc: assets.avatarB,
           },
         ],
         diffRows: [
@@ -337,14 +337,14 @@ const openLogPostEntries: Record<string, OpenLogPostEntry> = {
         title: "Add comment explaining Server component boundaries",
         openedAtLabel: "2026. 3. 10.",
         authorName: "Dan Abramov",
-        authorAvatarSrc: openLogAssets.avatarB,
+        authorAvatarSrc: assets.avatarB,
         commentCount: 0,
         status: "merged",
         targetBranch: "master",
         sourceBranch: "patch-1",
         comment: {
           authorName: "Dan Abramov",
-          authorAvatarSrc: openLogAssets.avatarB,
+          authorAvatarSrc: assets.avatarB,
           commentedAtLabel: "2026. 3. 10.",
           message:
             "Added a useful comment above the code block to help beginners understand context.",
@@ -352,7 +352,7 @@ const openLogPostEntries: Record<string, OpenLogPostEntry> = {
         reviewers: [
           {
             name: "Sarah Drasner",
-            avatarSrc: openLogAssets.avatarB,
+            avatarSrc: assets.avatarB,
             status: "approved",
           },
         ],
@@ -408,12 +408,12 @@ const openLogPostEntries: Record<string, OpenLogPostEntry> = {
   },
 };
 
-export function getOpenLogPostEntry(slug: string) {
-  return openLogPostEntries[slug];
+export function getPostEntry(slug: string) {
+  return postEntries[slug];
 }
 
-export function getOpenLogSuggestion(slug: string, suggestionId: string) {
-  return openLogPostEntries[slug]?.suggestions.find(
+export function getSuggestion(slug: string, suggestionId: string) {
+  return postEntries[slug]?.suggestions.find(
     (suggestion) => suggestion.id === suggestionId,
   );
 }

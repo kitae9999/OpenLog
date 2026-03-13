@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { Footer, Header } from "@/widgets/chrome/ui";
 import {
-  getOpenLogPostEntry,
-  getOpenLogSuggestion,
+  getPostEntry,
+  getSuggestion,
 } from "@/entities/post/model";
 import { SuggestionDetail } from "@/widgets/post/ui";
 
@@ -21,8 +21,8 @@ export default async function PostSuggestionDetailPage({
 
   if (!slug || !suggestId) notFound();
 
-  const entry = getOpenLogPostEntry(slug);
-  const suggestion = getOpenLogSuggestion(slug, suggestId);
+  const entry = getPostEntry(slug);
+  const suggestion = getSuggestion(slug, suggestId);
 
   if (!entry || !suggestion) notFound();
 

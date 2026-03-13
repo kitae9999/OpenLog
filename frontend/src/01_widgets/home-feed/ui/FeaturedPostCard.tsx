@@ -1,12 +1,12 @@
 import Image from "next/image";
-import { openLogAssets } from "@/shared/config/openLogAssets";
+import { assets } from "@/shared/config/assets";
 
 export function FeaturedPostCard() {
   return (
     <article className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-sm">
       <div className="relative aspect-[16/9] w-full">
         <Image
-          src={openLogAssets.featuredCover}
+          src={assets.featuredCover}
           alt="Featured cover"
           fill
           priority
@@ -21,7 +21,7 @@ export function FeaturedPostCard() {
       <div className="p-6">
         <div className="flex items-center gap-3 text-sm text-zinc-500">
           <Image
-            src={openLogAssets.avatarB}
+            src={assets.avatarB}
             alt="Sarah Drasner avatar"
             width={28}
             height={28}
@@ -70,14 +70,14 @@ export function FeaturedPostCard() {
 
           <div className="flex items-center -space-x-2">
             <Image
-              src={openLogAssets.avatarA}
+              src={assets.avatarA}
               alt="Reader avatar"
               width={24}
               height={24}
               className="size-6 rounded-full border-2 border-white object-cover"
             />
             <Image
-              src={openLogAssets.avatarB}
+              src={assets.avatarB}
               alt="Reader avatar"
               width={24}
               height={24}

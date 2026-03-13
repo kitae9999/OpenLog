@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Footer, Header } from "@/widgets/chrome/ui";
-import { getOpenLogPostEntry } from "@/entities/post/model";
+import { getPostEntry } from "@/entities/post/model";
 import { PostSuggests } from "@/widgets/post/ui";
 
 export default async function PostSuggestsPage({
@@ -13,7 +13,7 @@ export default async function PostSuggestsPage({
   const slug = Array.isArray(slugParam) ? slugParam[0] : slugParam;
   if (!slug) notFound();
 
-  const entry = getOpenLogPostEntry(slug);
+  const entry = getPostEntry(slug);
   if (!entry) notFound();
 
   const articleHref = `/posts/${slug}`;

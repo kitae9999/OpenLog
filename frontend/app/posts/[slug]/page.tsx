@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { Footer, Header } from "@/widgets/chrome/ui";
 import { PostArticle } from "@/widgets/post/ui";
 import {
-  getOpenLogPostEntry,
-  openLogContributors,
+  getPostEntry,
+  contributors,
 } from "@/entities/post/model";
 
 export default async function PostPage({
@@ -16,7 +16,7 @@ export default async function PostPage({
   const slug = Array.isArray(slugParam) ? slugParam[0] : slugParam;
   if (!slug) notFound();
 
-  const entry = getOpenLogPostEntry(slug);
+  const entry = getPostEntry(slug);
   if (!entry) notFound();
 
   const articleHref = `/posts/${slug}`;
@@ -29,7 +29,7 @@ export default async function PostPage({
       <main className="mx-auto w-full max-w-[1083px] pb-16 pt-6 sm:px-8">
         <PostArticle
           post={entry.post}
-          contributors={openLogContributors}
+          contributors={contributors}
           backHref="/?tab=trending"
           articleHref={articleHref}
           suggestsHref={suggestsHref}

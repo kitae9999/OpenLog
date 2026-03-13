@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { openLogAssets } from "@/shared/config/openLogAssets";
+import { assets } from "@/shared/config/assets";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
 import { Footer, Header } from "@/widgets/chrome/ui";
 
@@ -10,7 +10,7 @@ const profile = {
   location: "San Francisco, CA",
   website: "github.com/sarah",
   joinedLabel: "Joined March 2024",
-  avatarSrc: openLogAssets.profileAvatar,
+  avatarSrc: assets.profileAvatar,
 } as const;
 
 const authoredPosts = [
@@ -19,7 +19,7 @@ const authoredPosts = [
     title: "Understanding React Server Components",
     publishedAtLabel: "2026. 2. 28.",
     readTimeLabel: "8 min read",
-    thumbnailSrc: openLogAssets.featuredCover,
+    thumbnailSrc: assets.featuredCover,
   },
 ] as const;
 

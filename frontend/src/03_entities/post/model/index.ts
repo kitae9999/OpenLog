@@ -1,15 +1,15 @@
 export {
-  getOpenLogPostEntry,
-  getOpenLogSuggestion,
-  openLogContributors,
-} from "./openLogPostData";
+  getPostEntry,
+  getSuggestion,
+  contributors,
+} from "./postData";
 export type {
-  OpenLogContributor,
-  OpenLogDiffRow,
-  OpenLogDiscussionComment,
-  OpenLogPost,
-  OpenLogPostEntry,
-  OpenLogReviewer,
-  OpenLogSuggestion,
-  OpenLogSuggestionComment,
-} from "./openLogPostData";
+  Contributor,
+  DiffRow,
+  DiscussionComment,
+  Post,
+  PostEntry,
+  Reviewer,
+  Suggestion,
+  SuggestionComment,
+} from "./postData";

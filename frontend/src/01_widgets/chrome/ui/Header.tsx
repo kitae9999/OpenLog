@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/openLogDemo";
-import { openLogAssets } from "@/shared/config/openLogAssets";
+import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/demo";
+import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GuestActions } from "@/features/auth/ui";
 import { logoMarkClassName, logoWordmarkClassName, navLinks } from "./brand";
@@ -89,7 +89,7 @@ export function Header({
                 className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 <Image
-                  src={openLogAssets.avatarA}
+                  src={assets.avatarA}
                   alt="Profile avatar"
                   width={32}
                   height={32}

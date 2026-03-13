@@ -1,4 +1,4 @@
 export {
   formatSelection,
   type ToolbarAction,
-} from "./openLogMarkdownFormatting";
+} from "./markdownFormatting";

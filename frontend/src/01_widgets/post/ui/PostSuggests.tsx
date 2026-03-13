@@ -1,8 +1,5 @@
 import Link from "next/link";
-import type {
-  OpenLogPost,
-  OpenLogSuggestion,
-} from "@/entities/post/model/openLogPostData";
+import type { Post, Suggestion } from "@/entities/post/model";
 import { cn } from "@/shared/lib/cn";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
 import { PostTabs } from "./PostTabs";
@@ -15,8 +12,8 @@ export function PostSuggests({
   suggestsHref,
   suggestCount = 0,
 }: {
-  post: OpenLogPost;
-  suggestions: OpenLogSuggestion[];
+  post: Post;
+  suggestions: Suggestion[];
   backHref?: string;
   articleHref: string;
   suggestsHref: string;
