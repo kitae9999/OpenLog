@@ -4,13 +4,80 @@ import Image from "next/image";
 import { startTransition, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 
+type AuthMode = "login" | "signup";
+
 const modalButtonClassName =
   "flex h-12 w-full items-center justify-center gap-3 rounded-[14px] text-[16px] font-medium tracking-[-0.02em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20";
 
+const authModalCopy: Record<
+  AuthMode,
+  {
+    title: string;
+    description: string;
+    footerLead: string;
+    footerActionLabel: string;
+    footerActionTarget: AuthMode;
+    containerNodeId: string;
+    contentNodeId: string;
+    heroNodeId: string;
+    logoNodeId: string;
+    titleNodeId: string;
+    descriptionNodeId: string;
+    providersNodeId: string;
+    googleNodeId: string;
+    githubNodeId: string;
+    footerNodeId: string;
+    footerActionNodeId: string;
+    closeNodeId: string;
+  }
+> = {
+  login: {
+    title: "Welcome back",
+    description:
+      "Sign in to review code, suggest changes, and build your knowledge graph.",
+    footerLead: "Don't have an account?",
+    footerActionLabel: "Sign up",
+    footerActionTarget: "signup",
+    containerNodeId: "77:1175",
+    contentNodeId: "77:1176",
+    heroNodeId: "77:1177",
+    logoNodeId: "77:1178",
+    titleNodeId: "77:1180",
+    descriptionNodeId: "77:1182",
+    providersNodeId: "77:1184",
+    googleNodeId: "77:1185",
+    githubNodeId: "77:1192",
+    footerNodeId: "77:1197",
+    footerActionNodeId: "77:1200",
+    closeNodeId: "77:1202",
+  },
+  signup: {
+    title: "Join OpenLog",
+    description: "Create an account to start contributing to the community.",
+    footerLead: "Already have an account?",
+    footerActionLabel: "Log in",
+    footerActionTarget: "login",
+    containerNodeId: "77:1469",
+    contentNodeId: "77:1470",
+    heroNodeId: "77:1471",
+    logoNodeId: "77:1472",
+    titleNodeId: "77:1474",
+    descriptionNodeId: "77:1476",
+    providersNodeId: "77:1478",
+    googleNodeId: "77:1479",
+    githubNodeId: "77:1486",
+    footerNodeId: "77:1491",
+    footerActionNodeId: "77:1494",
+    closeNodeId: "77:1496",
+  },
+};
+
 export function OpenLogGuestActions() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
   const titleId = useId();
   const descriptionId = useId();
+  const activeModal = authModalCopy[authMode];
 
   useEffect(() => {
     if (!isModalOpen) {
@@ -34,8 +101,9 @@ export function OpenLogGuestActions() {
     };
   }, [isModalOpen]);
 
-  function openModal() {
+  function openModal(mode: AuthMode = "login") {
     startTransition(() => {
+      setAuthMode(mode);
       setIsModalOpen(true);
     });
   }
@@ -46,11 +114,17 @@ export function OpenLogGuestActions() {
     });
   }
 
+  function switchMode(nextMode: AuthMode) {
+    startTransition(() => {
+      setAuthMode(nextMode);
+    });
+  }
+
   return (
     <>
       <button
         type="button"
-        onClick={openModal}
+        onClick={() => openModal("login")}
         aria-haspopup="dialog"
         aria-expanded={isModalOpen}
         className="inline-flex h-9 items-center rounded-xl bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
@@ -66,7 +140,7 @@ export function OpenLogGuestActions() {
             >
               <button
                 type="button"
-                aria-label="Close login modal"
+                aria-label={`Close ${authMode} modal`}
                 onClick={closeModal}
                 className="absolute inset-0 bg-zinc-950/12 backdrop-blur-[10px] backdrop-saturate-150"
               />
@@ -77,30 +151,30 @@ export function OpenLogGuestActions() {
                   aria-modal="true"
                   aria-labelledby={titleId}
                   aria-describedby={descriptionId}
-                  className="relative w-full max-w-[448px] overflow-hidden rounded-2xl border border-[#f3f4f6] bg-white p-8 shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]"
-                  data-node-id="77:1175"
+                  className="relative w-full overflow-hidden rounded-2xl border border-[#f3f4f6] bg-white p-8 shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]"
+                  data-node-id={activeModal.containerNodeId}
                 >
                   <button
                     type="button"
-                    aria-label="Dismiss login modal"
+                    aria-label={`Dismiss ${authMode} modal`}
                     onClick={closeModal}
                     className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full text-[#98a2b3] transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                    data-node-id="77:1202"
+                    data-node-id={activeModal.closeNodeId}
                   >
                     <IconClose className="size-5" />
                   </button>
 
                   <div
                     className="flex flex-col items-center gap-8 pt-3"
-                    data-node-id="77:1176"
+                    data-node-id={activeModal.contentNodeId}
                   >
                     <div
                       className="flex w-full max-w-[382px] flex-col items-center"
-                      data-node-id="77:1177"
+                      data-node-id={activeModal.heroNodeId}
                     >
                       <div
                         className="grid size-12 place-items-center rounded-[14px] bg-black text-[24px] font-bold leading-none text-white [font-family:Georgia,serif]"
-                        data-node-id="77:1178"
+                        data-node-id={activeModal.logoNodeId}
                       >
                         O
                       </div>
@@ -108,30 +182,29 @@ export function OpenLogGuestActions() {
                       <h2
                         id={titleId}
                         className="mt-4 text-center text-[24px] leading-8 text-[#101828] [font-family:Georgia,serif]"
-                        data-node-id="77:1180"
+                        data-node-id={activeModal.titleNodeId}
                       >
-                        Welcome back
+                        {activeModal.title}
                       </h2>
 
                       <p
                         id={descriptionId}
                         className="mt-2 max-w-[360px] text-center text-[14px] leading-5 tracking-[-0.01em] text-[#6a7282]"
-                        data-node-id="77:1182"
+                        data-node-id={activeModal.descriptionNodeId}
                       >
-                        Sign in to share insights, suggest changes, and build
-                        your knowledge graph.
+                        {activeModal.description}
                       </p>
                     </div>
 
                     <div
                       className="flex w-full max-w-[382px] flex-col gap-3"
-                      data-node-id="77:1184"
+                      data-node-id={activeModal.providersNodeId}
                     >
                       <button
                         type="button"
                         autoFocus
                         className={`${modalButtonClassName} border border-[#e5e7eb] bg-white text-[#364153] hover:bg-zinc-50`}
-                        data-node-id="77:1185"
+                        data-node-id={activeModal.googleNodeId}
                       >
                         <Image
                           src="/google.svg"
@@ -147,7 +220,7 @@ export function OpenLogGuestActions() {
                       <button
                         type="button"
                         className={`${modalButtonClassName} bg-[#24292f] text-white hover:bg-[#1b2027]`}
-                        data-node-id="77:1192"
+                        data-node-id={activeModal.githubNodeId}
                       >
                         <IconGitHub className="size-5" />
                         Continue with GitHub
@@ -156,16 +229,19 @@ export function OpenLogGuestActions() {
 
                     <div
                       className="w-full max-w-[382px] border-t border-[#f3f4f6] pt-6 text-center"
-                      data-node-id="77:1197"
+                      data-node-id={activeModal.footerNodeId}
                     >
                       <p className="text-[14px] leading-5 tracking-[-0.01em] text-[#4a5565]">
-                        Don&apos;t have an account?{" "}
+                        {activeModal.footerLead}{" "}
                         <button
                           type="button"
+                          onClick={() =>
+                            switchMode(activeModal.footerActionTarget)
+                          }
                           className="font-bold leading-6 text-black transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                          data-node-id="77:1200"
+                          data-node-id={activeModal.footerActionNodeId}
                         >
-                          Sign up
+                          {activeModal.footerActionLabel}
                         </button>
                       </p>
                     </div>
