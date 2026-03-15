@@ -181,7 +181,7 @@ function AuthDialog({
             <button
               type="button"
               autoFocus
-              onClick={() => handleOAuth("GOOGLE", authMode)}
+              onClick={() => handleOAuth("GOOGLE")}
               className={`${modalButtonClassName} border border-[#e5e7eb] bg-white text-[#364153] hover:bg-zinc-50`}
             >
               <Image
@@ -197,7 +197,7 @@ function AuthDialog({
 
             <button
               type="button"
-              onClick={() => handleOAuth("GITHUB", authMode)}
+              onClick={() => handleOAuth("GITHUB")}
               className={`${modalButtonClassName} bg-[#24292f] text-white hover:bg-[#1b2027]`}
             >
               <IconGitHub className="size-5" />
