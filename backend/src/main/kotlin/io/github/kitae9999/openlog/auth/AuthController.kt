@@ -8,13 +8,11 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("auth")
-class AuthController(val authService: AuthService) {
+class AuthController(private val authService: AuthService) {
     @GetMapping("google")
     fun redirectToGoogleOAuth(
     ): Unit{ // Unit은 생략가능
-        if (intent != "login" && intent != "register" ){
-            throw BadRequestException()
-        }else
+        this.authService.getGoogleAuthUrl()
     }
 
     @GetMapping("github")
