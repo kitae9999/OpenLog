@@ -8,17 +8,17 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("auth")
 class AuthController(val authService: AuthService) {
-//    @GetMapping("google")
-//    fun redirectToGoogleOAuth(
-//        @RequestParam("intent") intent: String
-//    ): Unit{ // Unit은 생략가능
-//        if (intent != "login" && intent != "register" ){
-//            throw
-//        }else
-//    }
-//
-//    @GetMapping("github")
-//    fun redirectToGithubOAuth(){
-//
-//    }
+    @GetMapping("google")
+    fun redirectToGoogleOAuth(
+        @RequestParam("intent") intent: String
+    ): Unit{ // Unit은 생략가능
+        if (intent != "login" && intent != "register" ){
+            throw
+        }else
+    }
+
+    @GetMapping("github")
+    fun redirectToGithubOAuth(){
+
+    }
 }

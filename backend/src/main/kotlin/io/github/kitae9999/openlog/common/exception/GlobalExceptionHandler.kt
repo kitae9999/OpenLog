@@ -17,4 +17,14 @@ class GlobalExceptionHandler {
             )
         )
     }
+
+    @ExceptionHandler(BadRequestException::class)
+    fun handleBadRequestException(e: BadRequestException): ResponseEntity<ErrorResponse>{
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            ErrorResponse(
+                code = "BAD_REQUEST",
+                message = e.message ?: "잘못된 요청입니다."
+            )
+        )
+    }
 }
