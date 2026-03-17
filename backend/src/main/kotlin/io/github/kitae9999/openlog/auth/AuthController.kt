@@ -53,6 +53,8 @@ class AuthController(private val authService: AuthService) {
 
         val tokenResponse = authService.exchangeGoogleCode(code)
 
+
+
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
             .build()
