@@ -1,10 +1,14 @@
 package io.github.kitae9999.openlog.auth
 
 import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
+import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
+import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestClient
+import org.springframework.web.client.body
 import org.springframework.web.util.UriComponentsBuilder
 import java.time.Duration
 import java.util.UUID
@@ -15,6 +19,9 @@ class AuthService(
     private val clientId : String,
     @Value("\${oauth.google.redirect-uri}")
     private val redirectUri : String,
+    @Value("\${oauth.google.client-secret}")
+    private val clientSecret: String,
+
     private val redisTemplate: StringRedisTemplate,
     restClientBuilder: RestClient.Builder,
 ) {
@@ -31,6 +38,35 @@ class AuthService(
     val restClient = restClientBuilder
         .baseUrl("https://oauth2.googleapis.com")
         .build()
+//
+    data class  GoogleTokenResponse(
+        val access_token: String,
+        val scope: String,
+        val token_type: String,
+        val id_token: String? = null,
+    )
+//
+//    data class GoogleUserInfoResponse(
+//
+//    )
+
+    fun exchangeGoogleCode(code: String): GoogleTokenResponse {
+        val form = LinkedMultiValueMap<String, String>().apply {
+            add("code", code)
+            add("client_id", clientId)
+            add("client_secret",clientSecret)
+            add("redirect_uri",redirectUri)
+            add("grant_type", "authorization_code")
+        }
+
+        return restClient.post()
+            .uri("/token")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .body(form)
+            .retrieve()
+            .body<GoogleTokenResponse>() // HTTP 응답은 항상 body를 가진다고 보장할 수 없
+            ?: throw OAuthAuthenticationException()
+    }
     /**
      * auth 이벤트 발생 시 state 발행 및 레디스 저장
      */

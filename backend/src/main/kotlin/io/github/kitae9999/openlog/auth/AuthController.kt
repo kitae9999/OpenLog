@@ -51,7 +51,7 @@ class AuthController(private val authService: AuthService) {
             .maxAge(Duration.ZERO)
             .build()
 
-
+        val tokenResponse = authService.exchangeGoogleCode(code)
 
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
