@@ -4,6 +4,7 @@ import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
+import org.springframework.web.client.RestClient
 import org.springframework.web.util.UriComponentsBuilder
 import java.time.Duration
 import java.util.UUID
@@ -15,6 +16,7 @@ class AuthService(
     @Value("\${oauth.google.redirect-uri}")
     private val redirectUri : String,
     private val redisTemplate: StringRedisTemplate,
+    restClientBuilder: RestClient.Builder,
 ) {
     companion object {
         private  val OAUTH_STATE_TTL: Duration = Duration.ofMinutes(5)
@@ -26,6 +28,9 @@ class AuthService(
         val authUrl: String,
     )
 
+    val restClient = restClientBuilder
+        .baseUrl("https://oauth2.googleapis.com")
+        .build()
     /**
      * auth 이벤트 발생 시 state 발행 및 레디스 저장
      */

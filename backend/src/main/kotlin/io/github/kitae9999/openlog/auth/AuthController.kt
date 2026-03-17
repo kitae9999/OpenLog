@@ -58,8 +58,8 @@ class AuthController(private val authService: AuthService) {
             .build()
     }
 
-    @GetMapping("github")
-    fun redirectToGithubOAuth(){
-
-    }
+//    @GetMapping("github")
+//    fun redirectToGithubOAuth(){
+//
+//    }
 }
