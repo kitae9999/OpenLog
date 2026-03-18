@@ -4,6 +4,7 @@ import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap
@@ -38,16 +39,32 @@ class AuthService(
     val restClient = restClientBuilder
         .baseUrl("https://oauth2.googleapis.com")
         .build()
-//
+
+    val googleApiClient = restClientBuilder
+        .baseUrl("https://openidconnect.googleapis.com")
+        .build()
+
     data class  GoogleTokenResponse(
         val access_token: String,
         val scope: String,
         val id_token: String? = null,
     )
 //
-//    data class GoogleUserInfoResponse(
-//
-//    )
+    data class GoogleUserInfoResponse(
+        val sub: String,
+        val email: String? = null,
+        val name: String? = null,
+        val picture: String? = null,
+    )
+
+    fun getGoogleUserInfo(accessToken: String): GoogleUserInfoResponse{
+        return googleApiClient.get()
+            .uri("/v1/userinfo")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
+            .retrieve()
+            .body<GoogleUserInfoResponse>()
+            ?: throw OAuthAuthenticationException()
+    }
 
     fun exchangeGoogleCode(code: String): GoogleTokenResponse {
         val form = LinkedMultiValueMap<String, String>().apply {
