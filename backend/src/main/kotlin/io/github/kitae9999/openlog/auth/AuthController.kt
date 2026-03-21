@@ -53,7 +53,9 @@ class AuthController(private val authService: AuthService) {
 
         val (access_token, scope, id_token) = authService.exchangeGoogleCode(code)
 
-        authService.getGoogleUserInfo(access_token)
+        val (sub, email, name, picture) = authService.getGoogleUserInfo(access_token)
+
+
 
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
