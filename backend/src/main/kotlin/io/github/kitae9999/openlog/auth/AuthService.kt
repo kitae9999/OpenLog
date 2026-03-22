@@ -2,6 +2,8 @@ package io.github.kitae9999.openlog.auth
 
 import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
+import io.github.kitae9999.openlog.auth.repository.OauthAccountRepository
+import io.github.kitae9999.openlog.user.repository.UserRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.http.HttpHeaders
@@ -23,8 +25,10 @@ class AuthService(
     @Value("\${oauth.google.client-secret}")
     private val clientSecret: String,
 
-    private val redisTemplate: StringRedisTemplate,
+    private val redisTemplate: StringRedisTemplate, // bean 주입
     restClientBuilder: RestClient.Builder,
+    private val userRepository: UserRepository,
+    private val oauthAccountRepository: OauthAccountRepository,
 ) {
     companion object {
         private  val OAUTH_STATE_TTL: Duration = Duration.ofMinutes(5)
