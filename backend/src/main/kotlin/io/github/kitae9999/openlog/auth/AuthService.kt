@@ -48,7 +48,6 @@ class AuthService(
     data class GoogleUserInfoResponse(
         val sub: String,
         val email: String? = null,
-        val name: String? = null,
         val picture: String? = null,
     )
 
@@ -72,10 +71,10 @@ class AuthService(
     data class  GoogleTokenResponse(
         val accessToken: String,
         val scope: String,
-        val idToken: String? = null,
+        val idToken: String,
     )
 
-    fun verifyGoogleIdToken(idToken: String?): GoogleIdToken {
+    fun verifyGoogleIdToken(idToken: String): GoogleIdToken {
         val verified = idTokenVerifier.verify(idToken)
             ?: throw OAuthAuthenticationException()
 
@@ -141,8 +140,9 @@ class AuthService(
         }
     }
 
-    fun saveOAuthUser(sub: String, picture: String?, email: String?, name: String?){
-        val newUser = User()
+    fun saveOAuthUser(sub: String, picture: String?, email: String?){
+        val newUser = User(
+        )
     }
 
     /**

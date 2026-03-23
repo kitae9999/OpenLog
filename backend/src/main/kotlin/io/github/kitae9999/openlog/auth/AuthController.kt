@@ -56,13 +56,13 @@ class AuthController(private val authService: AuthService) {
 
         val verified = authService.verifyGoogleIdToken(idToken);
 
-        val (sub, email, name, picture) = authService.getGoogleUserInfo(accessToken)
+        val (sub, email, picture) = authService.getGoogleUserInfo(accessToken)
 
         if (verified.payload.subject != sub) {
             throw OAuthAuthenticationException()
         }
 
-        authService.saveOAuthUser(sub,picture,email,name)
+        authService.saveOAuthUser(sub,picture,email)
 
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())

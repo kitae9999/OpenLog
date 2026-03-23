@@ -15,8 +15,6 @@ class User(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
 
-    username: String,
-
     nickname: String? = null,
 
     profileImageUrl: String? = null,
@@ -25,10 +23,6 @@ class User(
 
     email: String? = null,
 ){
-    @Column(nullable = false, unique = true)
-    var username: String = username
-        protected set
-
     @Column()
     var nickname: String? = nickname
         protected set
