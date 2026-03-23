@@ -29,7 +29,7 @@ class User(
     var username: String = username
         protected set
 
-    @Column(nullable = false)
+    @Column()
     var nickname: String? = nickname
         protected set
 
