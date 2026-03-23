@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.auth
 
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseCookie
@@ -15,7 +16,14 @@ import java.time.Duration
 
 @RestController
 @RequestMapping("auth")
-class AuthController(private val authService: AuthService) {
+class AuthController(
+    private val authService: AuthService,
+    private val jwtTokenService: JwtTokenService,
+    @Value("\${auth.jwt.cookie-name:openlog_access_token}")
+    private val accessTokenCookieName: String,
+    @Value("\${auth.jwt.cookie-secure:false}")
+    private val accessTokenCookieSecure: Boolean,
+) {
 
     @GetMapping("google")
     fun redirectToGoogleOAuth(
@@ -63,9 +71,17 @@ class AuthController(private val authService: AuthService) {
         }
 
         val currentUser = authService.findOrCreateGoogleUser(sub,picture,email)
+        val issuedJwt = jwtTokenService.createAccessToken(currentUser)
+        val authCookie = ResponseCookie.from(accessTokenCookieName, issuedJwt)
+            .httpOnly(true)
+            .secure(accessTokenCookieSecure)
+            .sameSite("Lax")
+            .path("/")
+            .maxAge(jwtTokenService.accessTokenTtl())
+            .build()
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+            .header(HttpHeaders.SET_COOKIE, deleteCookie.toString(), authCookie.toString())
             .build()
     }
 

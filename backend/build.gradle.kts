@@ -30,6 +30,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("com.google.api-client:google-api-client:2.7.0")
+    implementation("io.jsonwebtoken:jjwt-api:0.12.7")
     testImplementation("org.springframework.boot:spring-boot-starter-cache-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-redis-test")
@@ -39,6 +40,8 @@ dependencies {
     // IDE(Spring Boot)로 직접 실행할 때도 드라이버 클래스가 클래스패스에 포함되도록 implementation으로 둔다.
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.mysql:mysql-connector-j")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.7")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.7")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
