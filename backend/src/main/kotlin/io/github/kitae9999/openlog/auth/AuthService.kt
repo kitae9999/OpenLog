@@ -1,5 +1,6 @@
 package io.github.kitae9999.openlog.auth
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.auth.repository.OauthAccountRepository
@@ -40,6 +41,13 @@ class AuthService(
         val authUrl: String,
     )
 
+    data class GoogleUserInfoResponse(
+        val sub: String,
+        val email: String? = null,
+        val name: String? = null,
+        val picture: String? = null,
+    )
+
     val restClient = restClientBuilder
         .baseUrl("https://oauth2.googleapis.com")
         .build()
@@ -48,18 +56,15 @@ class AuthService(
         .baseUrl("https://openidconnect.googleapis.com")
         .build()
 
+
+    val idTokenVerifier = GoogleIdTokenVerifier.Builder()
     data class  GoogleTokenResponse(
-        val access_token: String,
+        val accessToken: String,
         val scope: String,
-        val id_token: String? = null,
+        val idToken: String? = null,
     )
-//
-    data class GoogleUserInfoResponse(
-        val sub: String,
-        val email: String? = null,
-        val name: String? = null,
-        val picture: String? = null,
-    )
+
+
 
     fun getGoogleUserInfo(accessToken: String): GoogleUserInfoResponse{
         return googleApiClient.get()
@@ -87,6 +92,7 @@ class AuthService(
             .body<GoogleTokenResponse>() // HTTP 응답은 항상 body를 가진다고 보장할 수 없
             ?: throw OAuthAuthenticationException()
     }
+
     /**
      * auth 이벤트 발생 시 state 발행 및 레디스 저장
      */
@@ -117,6 +123,10 @@ class AuthService(
         if (savedState == null || savedState != state ){
             throw InvalidOAuthStateException()
         }
+    }
+
+    fun saveOAuthUser(sub: String, picture: String?, email: String?, name: String?){
+
     }
 
     /**

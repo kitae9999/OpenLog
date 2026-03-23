@@ -29,6 +29,7 @@ dependencies {
     implementation ("org.springframework.boot:spring-boot-starter-restclient")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("tools.jackson.module:jackson-module-kotlin")
+    implementation("com.google.api-client:google-api-client:2.7.0")
     testImplementation("org.springframework.boot:spring-boot-starter-cache-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-redis-test")
