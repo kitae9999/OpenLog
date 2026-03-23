@@ -1,5 +1,6 @@
 package io.github.kitae9999.openlog.auth
 
+import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseCookie
@@ -53,7 +54,13 @@ class AuthController(private val authService: AuthService) {
 
         val (accessToken, _, idToken) = authService.exchangeGoogleCode(code) //
 
+        val verified = authService.verifyGoogleIdToken(idToken);
+
         val (sub, email, name, picture) = authService.getGoogleUserInfo(accessToken)
+
+        if (verified.payload.subject != sub) {
+            throw OAuthAuthenticationException()
+        }
 
         authService.saveOAuthUser(sub,picture,email,name)
 

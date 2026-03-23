@@ -17,7 +17,7 @@ class User(
 
     username: String,
 
-    nickname: String,
+    nickname: String? = null,
 
     profileImageUrl: String? = null,
 
@@ -30,7 +30,7 @@ class User(
         protected set
 
     @Column(nullable = false)
-    var nickname: String = nickname
+    var nickname: String? = nickname
         protected set
 
     @Column(name = "profile_image_url")

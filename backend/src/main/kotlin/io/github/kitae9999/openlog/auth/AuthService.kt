@@ -1,9 +1,13 @@
 package io.github.kitae9999.openlog.auth
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
 import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.auth.repository.OauthAccountRepository
+import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
@@ -57,14 +61,26 @@ class AuthService(
         .build()
 
 
-    val idTokenVerifier = GoogleIdTokenVerifier.Builder()
+    private val idTokenVerifier = GoogleIdTokenVerifier.Builder(
+        NetHttpTransport(),
+        GsonFactory.getDefaultInstance(),
+    )
+        .setAudience(listOf(clientId))
+        .build()
+
+
     data class  GoogleTokenResponse(
         val accessToken: String,
         val scope: String,
         val idToken: String? = null,
     )
 
+    fun verifyGoogleIdToken(idToken: String?): GoogleIdToken {
+        val verified = idTokenVerifier.verify(idToken)
+            ?: throw OAuthAuthenticationException()
 
+        return verified
+    }
 
     fun getGoogleUserInfo(accessToken: String): GoogleUserInfoResponse{
         return googleApiClient.get()
@@ -126,7 +142,7 @@ class AuthService(
     }
 
     fun saveOAuthUser(sub: String, picture: String?, email: String?, name: String?){
-
+        val newUser = User()
     }
 
     /**
