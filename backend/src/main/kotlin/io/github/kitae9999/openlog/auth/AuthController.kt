@@ -23,6 +23,8 @@ class AuthController(
     private val accessTokenCookieName: String,
     @Value("\${auth.jwt.cookie-secure:false}")
     private val accessTokenCookieSecure: Boolean,
+    @Value("\${app.frontend-home-url:http://localhost:3030}")
+    private val frontendHomeUrl: String,
 ) {
 
     @GetMapping("google")
@@ -80,8 +82,9 @@ class AuthController(
             .maxAge(jwtTokenService.accessTokenTtl())
             .build()
 
-        return ResponseEntity.ok()
+        return ResponseEntity.status(HttpStatus.FOUND)
             .header(HttpHeaders.SET_COOKIE, deleteCookie.toString(), authCookie.toString())
+            .location(URI.create(frontendHomeUrl))
             .build()
     }
 

@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
+import java.time.LocalDateTime
 
 
 @Entity
@@ -37,4 +38,12 @@ class OauthAccount(
     @ManyToOne(fetch = FetchType.LAZY, optional = false) // optional은 연관관계 비어있어도 되는지 여부, fetchtype은 처음부터 조인할지, 해당 정보가 실제로 필요할때 가져올지
     @JoinColumn(name = "user_id")
     var user: User = user
+
+    @Column(name = "created_at", nullable = false)
+    var createdAt: LocalDateTime = LocalDateTime.now()
+        protected set
+
+    @Column(name = "updated_at", nullable = false)
+    var updatedAt: LocalDateTime = LocalDateTime.now()
+        protected set
 }
