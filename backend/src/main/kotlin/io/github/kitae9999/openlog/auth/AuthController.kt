@@ -54,7 +54,7 @@ class AuthController(private val authService: AuthService) {
 
         val (accessToken, _, idToken) = authService.exchangeGoogleCode(code) //
 
-        val verified = authService.verifyGoogleIdToken(idToken);
+        val verified = authService.verifyGoogleIdToken(idToken)
 
         val (sub, email, picture) = authService.getGoogleUserInfo(accessToken)
 
@@ -62,7 +62,7 @@ class AuthController(private val authService: AuthService) {
             throw OAuthAuthenticationException()
         }
 
-        authService.saveOAuthUser(sub,picture,email)
+        val currentUser = authService.findOrCreateGoogleUser(sub,picture,email)
 
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())

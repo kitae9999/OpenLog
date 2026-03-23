@@ -4,11 +4,13 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
+import io.github.kitae9999.openlog.auth.entity.OauthAccount
 import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.auth.repository.OauthAccountRepository
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
+import jakarta.transaction.Transactional
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.http.HttpHeaders
@@ -140,11 +142,32 @@ class AuthService(
         }
     }
 
-    fun saveOAuthUser(sub: String, picture: String?, email: String?){
-        val newUser = User(
-        )
-    }
+    @Transactional
+    fun findOrCreateGoogleUser(sub: String, picture: String?, email: String?): User {
+        val existingAccount = oauthAccountRepository
+            .findByProviderAndProviderUserId("google", sub)
 
+        if (existingAccount != null) {
+            return existingAccount.user
+        }
+
+        val user = userRepository.save(
+            User(
+                profileImageUrl = picture,
+                email = email,
+            )
+        )
+
+        oauthAccountRepository.save(
+            OauthAccount(
+                user = user,
+                provider = "google",
+                providerUserId = sub,
+            )
+        )
+
+        return user
+    }
     /**
      * 구글 로그인 페이지 이동 URL 생성
      */
