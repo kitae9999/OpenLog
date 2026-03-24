@@ -1,6 +1,8 @@
 package io.github.kitae9999.openlog.auth
 
+import io.github.kitae9999.openlog.auth.dto.MeResponse
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -26,6 +28,26 @@ class AuthController(
     @Value("\${app.frontend-home-url:http://localhost:3030}")
     private val frontendHomeUrl: String,
 ) {
+    @GetMapping("me")
+    fun getMe(
+        request: HttpServletRequest
+    ): MeResponse {
+        val accessToken = request.cookies
+            ?. firstOrNull { it. name == accessTokenCookieName }
+            ?. value
+            ?: throw OAuthAuthenticationException() // 체인 전체를 보고 처리
+
+        val userId = jwtTokenService.parseUserId(accessToken)
+
+        val meUser = authService.getCurrentUser(userId)
+
+        return MeResponse(
+            id = requireNotNull(meUser.id),
+            nickname = meUser.nickname,
+            email = meUser.email,
+            profileImageUrl = meUser.profileImageUrl
+        )
+    }
 
     @GetMapping("google")
     fun redirectToGoogleOAuth(

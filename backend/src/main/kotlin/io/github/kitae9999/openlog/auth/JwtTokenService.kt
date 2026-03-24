@@ -1,6 +1,8 @@
 package io.github.kitae9999.openlog.auth
 
+import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.user.entity.User
+import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
@@ -22,6 +24,22 @@ class JwtTokenService(
 ) {
     private val signingKey: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray(StandardCharsets.UTF_8))
 
+
+    fun parseUserId(accessToken: String): Long {
+        val claims = try {
+            Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(accessToken)
+                .payload
+        } catch (e: JwtException) {
+            throw OAuthAuthenticationException()
+        }
+
+        return claims.subject
+            ?.toLongOrNull()
+            ?: throw OAuthAuthenticationException()
+    }
     fun createAccessToken(user: User): String {
         val userId = requireNotNull(user.id) { "JWT 발급 대상 사용자는 영속화되어 있어야 합니다." }
         val now = Instant.now()

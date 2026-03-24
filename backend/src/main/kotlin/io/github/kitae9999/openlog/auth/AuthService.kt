@@ -76,6 +76,10 @@ class AuthService(
         val idToken: String,
     )
 
+    fun getCurrentUser(userId: Long): User {
+        val currentUser = userRepository.findById(userId).orElseThrow { OAuthAuthenticationException() }
+        return currentUser
+    }
     fun verifyGoogleIdToken(idToken: String): GoogleIdToken {
         val verified = idTokenVerifier.verify(idToken)
             ?: throw OAuthAuthenticationException()
