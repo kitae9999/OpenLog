@@ -2,6 +2,7 @@ package io.github.kitae9999.openlog.common.exception
 
 import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
+import io.github.kitae9999.openlog.auth.exception.UnauthorizedException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -35,6 +36,16 @@ class GlobalExceptionHandler {
             ErrorResponse(
                 code = "OAUTH_AUTHENTICATION_FAILED",
                 message = e.message ?: "OAuth 인증에 실패했습니다."
+            )
+        )
+    }
+
+    @ExceptionHandler(UnauthorizedException::class)
+    fun handleUnauthorizedException(e: UnauthorizedException): ResponseEntity<ErrorResponse>{
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+            ErrorResponse(
+                code="NOT_LOGGED_ IN",
+                message = e.message ?: "로그인이 필요합니다."
             )
         )
     }
