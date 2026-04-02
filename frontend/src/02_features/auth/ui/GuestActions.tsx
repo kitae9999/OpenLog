@@ -4,7 +4,7 @@ import Image from "next/image";
 import { startTransition, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { AuthMode } from "@/features/auth/model/auth.type";
-import { handleOAuth } from "@/features/auth/lib/handleOAuth";
+import { handleOAuth } from "@/features/auth/api/handleOAuth";
 
 type AuthContent = {
   title: string;
