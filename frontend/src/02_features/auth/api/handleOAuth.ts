@@ -1,4 +1,4 @@
-import { API_CONFIG } from "@/shared/lib/api";
+import { API_CONFIG } from "@/shared/api";
 import type { AuthMode, OAuthProvider } from "@/features/auth/model/auth.type";
 
 const providerPath = {
