@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getUser } from "@/features/auth/api/getUser";
 import { Footer, Header } from "@/widgets/chrome/ui";
 import {
   getPostEntry,
@@ -25,13 +26,14 @@ export default async function PostSuggestionDetailPage({
   const suggestion = getSuggestion(slug, suggestId);
 
   if (!entry || !suggestion) notFound();
+  const viewer = await getUser();
 
   const articleHref = `/posts/${slug}`;
   const suggestsHref = `${articleHref}/suggests`;
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
-      <Header />
+      <Header isLoggedIn={!!viewer} />
 
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <SuggestionDetail

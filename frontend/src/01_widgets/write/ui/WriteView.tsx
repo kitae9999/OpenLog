@@ -40,7 +40,7 @@ const markdownCheatsheet = [
   { syntax: "# Heading", label: "H1" },
 ] as const;
 
-export function WriteView() {
+export function WriteView({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [mode, setMode] = useState<ComposerMode>("edit");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -172,7 +172,7 @@ export function WriteView() {
 
   return (
     <div className="min-h-dvh bg-zinc-50 text-zinc-950">
-      <Header />
+      <Header isLoggedIn={isLoggedIn} />
 
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <section className="flex flex-col gap-6">

@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/demo";
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GuestActions } from "@/features/auth/ui";
@@ -8,10 +7,10 @@ import { logoMarkClassName, logoWordmarkClassName, navLinks } from "./brand";
 import { SearchBar } from "./SearchBar";
 
 export function Header({
-  isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
+  isLoggedIn,
   showWriteAction = true,
 }: {
-  isLoggedIn?: boolean;
+  isLoggedIn: boolean;
   showWriteAction?: boolean;
 }) {
   return (

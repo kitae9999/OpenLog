@@ -3,6 +3,7 @@ import Link from "next/link";
 import { assets } from "@/shared/config/assets";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
 import { Footer, Header } from "@/widgets/chrome/ui";
+import { getUser } from "@/features/auth/api/getUser";
 
 const profile = {
   name: "Sarah Drasner",
@@ -47,10 +48,14 @@ const recentActivity = [
   },
 ] as const;
 
-export function ProfileView() {
+export async function ProfileView() {
+  const data = await getUser();
+
+  const isLoggedIn = !!data;
+
   return (
     <div className="flex min-h-dvh flex-col bg-[#f9fafb] text-zinc-950">
-      <Header showWriteAction={false} />
+      <Header showWriteAction={false} isLoggedIn={isLoggedIn}/>
 
       <main className="mx-auto w-full max-w-[1083px] flex-1 px-4 pb-20 pt-8 sm:px-8">
         <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">

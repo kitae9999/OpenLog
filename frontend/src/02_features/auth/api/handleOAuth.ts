@@ -1,5 +1,5 @@
-import { API_CONFIG } from "@/shared/lib/api";
-import type { AuthMode, OAuthProvider } from "@/features/auth/model/auth.type";
+import { API_CONFIG } from "@/shared/api";
+import type { OAuthProvider } from "@/features/auth/model/auth.type";
 
 const providerPath = {
   GOOGLE: "google",

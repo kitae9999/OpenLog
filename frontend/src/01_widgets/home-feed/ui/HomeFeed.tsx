@@ -1,4 +1,3 @@
-import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/demo";
 import { Footer, Header } from "@/widgets/chrome/ui";
 import { ContributeCard } from "./ContributeCard";
 import { FeedTabs } from "./FeedTabs";
@@ -8,14 +7,17 @@ import { PostRow } from "./PostRow";
 import { RecommendedTopics } from "./RecommendedTopics";
 import { TopContributors } from "./TopContributors";
 import type { TabKey } from "./data";
+import { getUser } from "@/features/auth/api/getUser";
 
-export function HomeFeed({
+export async function HomeFeed({
   activeTab = "trending",
-  isLoggedIn = DEV_DEFAULT_IS_LOGGED_IN,
 }: {
   activeTab?: TabKey;
-  isLoggedIn?: boolean;
 }) {
+  const data = await getUser();
+
+  const isLoggedIn = !!data; // data 있으면 true, 없으면 false
+
   const resolvedActiveTab =
     !isLoggedIn && activeTab === "following" ? "trending" : activeTab;
 
