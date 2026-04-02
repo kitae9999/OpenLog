@@ -1,0 +1,52 @@
+package io.github.kitae9999.openlog.common.exception
+
+import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
+import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
+import io.github.kitae9999.openlog.auth.exception.UnauthorizedException
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.bind.annotation.RestControllerAdvice
+
+@RestControllerAdvice
+class GlobalExceptionHandler {
+    @ExceptionHandler(InvalidOAuthStateException::class) // ::class는 클래스 참조 넘김
+    fun handleInvalidOAuthState(e: InvalidOAuthStateException): ResponseEntity<ErrorResponse>{
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            ErrorResponse(
+                code = "INVALID_OAUTH_STATE",
+                message = e.message ?: "잘못된 OAuth state입니다."
+            )
+        )
+    }
+
+    @ExceptionHandler(BadRequestException::class)
+    fun handleBadRequestException(e: BadRequestException): ResponseEntity<ErrorResponse>{
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            ErrorResponse(
+                code = "BAD_REQUEST",
+                message = e.message ?: "잘못된 요청입니다."
+            )
+        )
+    }
+
+    @ExceptionHandler(OAuthAuthenticationException::class)
+    fun handleOAuthAuthenticationException(e: OAuthAuthenticationException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+            ErrorResponse(
+                code = "OAUTH_AUTHENTICATION_FAILED",
+                message = e.message ?: "OAuth 인증에 실패했습니다."
+            )
+        )
+    }
+
+    @ExceptionHandler(UnauthorizedException::class)
+    fun handleUnauthorizedException(e: UnauthorizedException): ResponseEntity<ErrorResponse>{
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+            ErrorResponse(
+                code="NOT_LOGGED_ IN",
+                message = e.message ?: "로그인이 필요합니다."
+            )
+        )
+    }
+}

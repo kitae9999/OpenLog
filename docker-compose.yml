@@ -4,7 +4,7 @@ services:
     container_name: openlog-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: postgres
+      POSTGRES_DB: openlog_local
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "0000"
     ports:
@@ -12,10 +12,22 @@ services:
     volumes:
       - openlog-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d openlog_local"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: openlog-redis
+    ports:
+      - '6380:6379'
+    environment:
+      - REDIS_ARGS=--protected-mode no --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
+    volumes:
+      - 'openlog-redis-data:/data'
+    restart: unless-stopped
+
 volumes:
   openlog-postgres-data:
+  openlog-redis-data:

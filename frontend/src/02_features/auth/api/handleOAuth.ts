@@ -6,7 +6,7 @@ const providerPath = {
   GITHUB: "github",
 } satisfies Record<OAuthProvider, string>;
 
-export const handleOAuth = (provider: OAuthProvider, action: AuthMode) => {
+export const handleOAuth = (provider: OAuthProvider) => {
   if (typeof window === "undefined") {
     return;
   }
@@ -15,10 +15,6 @@ export const handleOAuth = (provider: OAuthProvider, action: AuthMode) => {
     `/api/auth/${providerPath[provider]}`,
     API_CONFIG.baseURL,
   );
-
-  endpoint.search = new URLSearchParams({
-    intent: action === "signup" ? "register" : "login",
-  }).toString();
 
   window.location.assign(endpoint.toString());
 };
