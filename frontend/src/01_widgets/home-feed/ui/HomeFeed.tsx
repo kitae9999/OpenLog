@@ -8,14 +8,15 @@ import { PostRow } from "./PostRow";
 import { RecommendedTopics } from "./RecommendedTopics";
 import { TopContributors } from "./TopContributors";
 import type { TabKey } from "./data";
+import { getUser } from "@/features/auth/api/getUser";
 
 export async function HomeFeed({
   activeTab = "trending",
 }: {
   activeTab?: TabKey;
 }) {
+  const data = await getUser();
   const isLoggedIn = !!data;
-
   const resolvedActiveTab =
     !isLoggedIn && activeTab === "following" ? "trending" : activeTab;
 
