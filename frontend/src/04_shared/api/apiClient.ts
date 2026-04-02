@@ -11,10 +11,10 @@ type ApiClientOptions = RequestInit & {
  * @param url fetch 요청 주소
  * @param options cache 설정, 갱신 주기 설정
  */
-export async function apiClient<T>(
+export const apiClient = async <T>(
   url: string,
   options?: ApiClientOptions,
-): Promise<T> {
+): Promise<T> => {
   const res = await fetch(url, options);
 
   if (!res.ok) {
@@ -22,4 +22,4 @@ export async function apiClient<T>(
   }
 
   return (await res.json()) as T;
-}
+};

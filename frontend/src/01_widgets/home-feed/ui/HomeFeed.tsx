@@ -1,4 +1,3 @@
-import { DEV_DEFAULT_IS_LOGGED_IN } from "@/shared/config/demo";
 import { Footer, Header } from "@/widgets/chrome/ui";
 import { ContributeCard } from "./ContributeCard";
 import { FeedTabs } from "./FeedTabs";
@@ -17,7 +16,8 @@ export async function HomeFeed({
 }) {
   const data = await getUser();
 
-  const isLoggedIn = !!data;
+  const isLoggedIn = !!data; // data 있으면 true, 없으면 false
+
   const resolvedActiveTab =
     !isLoggedIn && activeTab === "following" ? "trending" : activeTab;
 
