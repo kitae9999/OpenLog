@@ -3,6 +3,9 @@ import { User } from "@/entities/user/model/User";
 import { apiClient } from "@/shared/api/apiClient";
 import { ApiError } from "@/shared/model/ApiError";
 
+/**
+ * 현재 로그인한 유저 정보 반환, 로그인안되어있으면 null 반환
+ */
 export const getUser = async (): Promise<User | null> => {
   try {
     return await apiClient<User>(`${API_CONFIG.baseURL}/auth/me`, {

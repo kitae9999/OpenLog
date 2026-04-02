@@ -6,6 +6,11 @@ type ApiClientOptions = RequestInit & {
   };
 };
 
+/**
+ * 서버 컴포넌트용 JS fetch wrapper
+ * @param url fetch 요청 주소
+ * @param options cache 설정, 갱신 주기 설정
+ */
 export async function apiClient<T>(
   url: string,
   options?: ApiClientOptions,

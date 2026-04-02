@@ -16,6 +16,7 @@ export async function HomeFeed({
   activeTab?: TabKey;
 }) {
   const data = await getUser();
+
   const isLoggedIn = !!data;
   const resolvedActiveTab =
     !isLoggedIn && activeTab === "following" ? "trending" : activeTab;
