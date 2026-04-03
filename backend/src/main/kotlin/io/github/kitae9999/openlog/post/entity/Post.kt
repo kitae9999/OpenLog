@@ -1,5 +1,6 @@
 package io.github.kitae9999.openlog.post.entity
 
+import io.github.kitae9999.openlog.blog.entity.Blog
 import io.github.kitae9999.openlog.user.entity.User
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -21,15 +22,16 @@ class Post(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-    blogId: Long,
+    blog: Blog,
     author: User,
     title: String,
     description: String,
     content: String,
     version: Long = 0L,
 ) {
-    @Column(name = "blog_id", nullable = false)
-    var blogId: Long = blogId
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "blog_id", nullable = false)
+    var blog: Blog = blog
         protected set
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
