@@ -11,7 +11,7 @@ const profile = {
   location: "San Francisco, CA",
   website: "github.com/sarah",
   joinedLabel: "Joined March 2024",
-  avatarSrc: assets.profileAvatar,
+  avatarSrc: assets.defaultAvatar,
 } as const;
 
 const authoredPosts = [

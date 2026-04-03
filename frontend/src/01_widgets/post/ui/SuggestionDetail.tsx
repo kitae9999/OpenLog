@@ -275,7 +275,7 @@ function DiscussionSection({
 
       <div className="mt-6 flex items-start gap-4">
         <Image
-          src={assets.avatarA}
+          src={assets.defaultAvatar}
           alt="Current user avatar"
           width={40}
           height={40}
