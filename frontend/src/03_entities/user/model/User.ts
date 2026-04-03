@@ -1,7 +1,7 @@
 export interface User {
   id: number;
-  nickname?: string;
-  email?: string;
-  profileImageUrl?: string;
-  bio?: string;
+  nickname: string | null;
+  email: string | null;
+  profileImageUrl: string | null;
+  bio: string | null;
 }

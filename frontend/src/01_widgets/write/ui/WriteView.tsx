@@ -45,7 +45,7 @@ export function WriteView({
   profileImageUrl,
 }: {
   isLoggedIn: boolean;
-  profileImageUrl?: string;
+  profileImageUrl?: string | null;
 }) {
   const [mode, setMode] = useState<ComposerMode>("edit");
   const [title, setTitle] = useState("");

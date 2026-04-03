@@ -5,4 +5,5 @@ data class MeResponse(
     val nickname: String?,
     val profileImageUrl: String?,
     val email: String?,
+    val bio: String?,
 )

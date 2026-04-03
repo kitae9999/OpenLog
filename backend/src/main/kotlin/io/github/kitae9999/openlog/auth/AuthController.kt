@@ -45,7 +45,8 @@ class AuthController(
             id = requireNotNull(meUser.id),
             nickname = meUser.nickname,
             email = meUser.email,
-            profileImageUrl = meUser.profileImageUrl
+            profileImageUrl = meUser.profileImageUrl,
+            bio = meUser.bio,
         )
     }
 

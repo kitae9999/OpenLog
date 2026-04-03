@@ -13,7 +13,7 @@ export function Header({
   showWriteAction = true,
 }: {
   isLoggedIn: boolean;
-  profileImageUrl?: string;
+  profileImageUrl?: string | null;
   showWriteAction?: boolean;
 }) {
   const resolvedProfileImageUrl = profileImageUrl ?? assets.defaultAvatar;
