@@ -29,7 +29,7 @@ class Blog (
         protected set
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     var user: User = user
         protected set
 
