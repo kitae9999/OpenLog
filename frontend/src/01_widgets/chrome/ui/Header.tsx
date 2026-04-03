@@ -5,14 +5,19 @@ import { cn } from "@/shared/lib/cn";
 import { GuestActions } from "@/features/auth/ui";
 import { logoMarkClassName, logoWordmarkClassName, navLinks } from "./brand";
 import { SearchBar } from "./SearchBar";
+// import { getUser } from "@/features/auth/api/getUser";
 
 export function Header({
   isLoggedIn,
+  profileImageUrl,
   showWriteAction = true,
 }: {
   isLoggedIn: boolean;
+  profileImageUrl?: string | null;
   showWriteAction?: boolean;
 }) {
+  const resolvedProfileImageUrl = profileImageUrl ?? assets.defaultAvatar;
+
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-[1083px] items-center justify-between gap-4 px-4 sm:px-8">
@@ -88,7 +93,7 @@ export function Header({
                 className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 <Image
-                  src={assets.avatarA}
+                  src={resolvedProfileImageUrl}
                   alt="Profile avatar"
                   width={32}
                   height={32}

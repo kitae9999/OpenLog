@@ -5,6 +5,7 @@ import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.auth.exception.UnauthorizedException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
@@ -30,6 +31,19 @@ class GlobalExceptionHandler {
         )
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    fun handleMethodArgumentNotValidException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
+        val message = e.bindingResult.fieldErrors.firstOrNull()?.defaultMessage
+            ?: "입력값을 다시 확인해주세요."
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            ErrorResponse(
+                code = "VALIDATION_ERROR",
+                message = message,
+            )
+        )
+    }
+
     @ExceptionHandler(OAuthAuthenticationException::class)
     fun handleOAuthAuthenticationException(e: OAuthAuthenticationException): ResponseEntity<ErrorResponse> {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
@@ -46,6 +60,16 @@ class GlobalExceptionHandler {
             ErrorResponse(
                 code="NOT_LOGGED_ IN",
                 message = e.message ?: "로그인이 필요합니다."
+            )
+        )
+    }
+
+    @ExceptionHandler(UsernameAlreadyTakenException::class)
+    fun handleUsernameAlreadyTakenException(e: UsernameAlreadyTakenException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+            ErrorResponse(
+                code = "USERNAME_TAKEN",
+                message = e.message ?: "이미 사용 중인 username입니다.",
             )
         )
     }

@@ -15,6 +15,8 @@ class User(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
 
+    username: String? = null,
+
     nickname: String? = null,
 
     profileImageUrl: String? = null,
@@ -23,6 +25,10 @@ class User(
 
     email: String? = null,
 ){
+    @Column(unique = true)
+    var username: String? = username
+        protected set
+
     @Column()
     var nickname: String? = nickname
         protected set
@@ -46,4 +52,18 @@ class User(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
         protected set
+
+    fun completeOnboarding(
+        nickname: String,
+        username: String,
+        bio: String?,
+    ) {
+        this.nickname = nickname
+        this.username = username
+        this.bio = bio
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    fun isOnboardingComplete(): Boolean =
+        !nickname.isNullOrBlank() && !username.isNullOrBlank()
 }

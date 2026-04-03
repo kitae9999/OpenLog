@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getUser } from "@/features/auth/api/getUser";
+import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 import { WriteView } from "@/widgets/write/ui";
 
 export const metadata: Metadata = {
@@ -8,7 +8,12 @@ export const metadata: Metadata = {
 };
 
 export default async function WritePage() {
-  const data = await getUser();
+  const data = await getUserOrRedirectToOnboarding();
 
-  return <WriteView isLoggedIn={!!data} />;
+  return (
+    <WriteView
+      isLoggedIn={!!data}
+      profileImageUrl={data?.profileImageUrl}
+    />
+  );
 }

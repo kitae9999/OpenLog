@@ -3,7 +3,7 @@ import Link from "next/link";
 import { assets } from "@/shared/config/assets";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
 import { Footer, Header } from "@/widgets/chrome/ui";
-import { getUser } from "@/features/auth/api/getUser";
+import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 
 const profile = {
   name: "Sarah Drasner",
@@ -11,7 +11,7 @@ const profile = {
   location: "San Francisco, CA",
   website: "github.com/sarah",
   joinedLabel: "Joined March 2024",
-  avatarSrc: assets.profileAvatar,
+  avatarSrc: assets.defaultAvatar,
 } as const;
 
 const authoredPosts = [
@@ -49,13 +49,13 @@ const recentActivity = [
 ] as const;
 
 export async function ProfileView() {
-  const data = await getUser();
+  const data = await getUserOrRedirectToOnboarding();
 
   const isLoggedIn = !!data;
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#f9fafb] text-zinc-950">
-      <Header showWriteAction={false} isLoggedIn={isLoggedIn}/>
+      <Header isLoggedIn={isLoggedIn} profileImageUrl={data?.profileImageUrl} />
 
       <main className="mx-auto w-full max-w-[1083px] flex-1 px-4 pb-20 pt-8 sm:px-8">
         <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">
@@ -63,7 +63,7 @@ export async function ProfileView() {
             <div className="mx-auto lg:mx-0">
               <div className="rounded-full border-4 border-zinc-50 bg-white p-1">
                 <Image
-                  src={profile.avatarSrc}
+                  src={data?.profileImageUrl ?? assets.defaultAvatar}
                   alt={`${profile.name} avatar`}
                   width={128}
                   height={128}
@@ -76,11 +76,11 @@ export async function ProfileView() {
             <div className="min-w-0 flex-1">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
-                  <h1 className="[font-family:Georgia,serif] text-[40px] font-bold leading-[1] tracking-[-0.04em] text-zinc-950 sm:text-[48px]">
-                    {profile.name}
+                  <h1 className="font-[Georgia,serif] text-[40px] font-bold leading-none tracking-[-0.04em] text-zinc-950 sm:text-[48px]">
+                    {data?.nickname ?? "openlogger"}
                   </h1>
                   <p className="mt-4 max-w-3xl text-[18px] leading-8 text-zinc-600">
-                    {profile.role}
+                    {data?.bio ?? "Hello, World!"}
                   </p>
                 </div>
 
@@ -169,7 +169,11 @@ export async function ProfileView() {
               {recentActivity.map((activity, index) => (
                 <li
                   key={activity.id}
-                  className={index === recentActivity.length - 1 ? "relative" : "relative pb-8"}
+                  className={
+                    index === recentActivity.length - 1
+                      ? "relative"
+                      : "relative pb-8"
+                  }
                 >
                   <span className="absolute -left-[31px] top-2 size-3 rounded-full border-2 border-[#f9fafb] bg-zinc-300" />
                   <p className="text-[14px] leading-6 text-zinc-600">
@@ -216,13 +220,7 @@ function SectionHeading({
   );
 }
 
-function ProfileMeta({
-  iconSrc,
-  label,
-}: {
-  iconSrc: string;
-  label: string;
-}) {
+function ProfileMeta({ iconSrc, label }: { iconSrc: string; label: string }) {
   return (
     <div className="inline-flex items-center gap-2.5">
       <Image src={iconSrc} alt="" width={16} height={16} aria-hidden="true" />

@@ -1,7 +1,10 @@
 package io.github.kitae9999.openlog.auth
 
+import io.github.kitae9999.openlog.auth.dto.CompleteOnboardingRequest
 import io.github.kitae9999.openlog.auth.dto.MeResponse
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
+import io.github.kitae9999.openlog.user.entity.User
+import jakarta.validation.Valid
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
@@ -10,6 +13,8 @@ import org.springframework.http.ResponseCookie
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.CookieValue
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -32,21 +37,22 @@ class AuthController(
     fun getMe(
         request: HttpServletRequest
     ): MeResponse {
-        val accessToken = request.cookies
-            ?. firstOrNull { it. name == accessTokenCookieName }
-            ?. value
-            ?: throw OAuthAuthenticationException() // 체인 전체를 보고 처리
+        val meUser = authService.getCurrentUser(resolveCurrentUserId(request))
 
-        val userId = jwtTokenService.parseUserId(accessToken)
+        return meUser.toMeResponse() // 코틀린 확장 함수 (메서드 아님)
+    }
 
-        val meUser = authService.getCurrentUser(userId)
-
-        return MeResponse(
-            id = requireNotNull(meUser.id),
-            nickname = meUser.nickname,
-            email = meUser.email,
-            profileImageUrl = meUser.profileImageUrl
+    @PostMapping("onboarding")
+    fun completeOnboarding(
+        request: HttpServletRequest,
+        @Valid @RequestBody onboardingRequest: CompleteOnboardingRequest,
+    ): MeResponse {
+        val currentUser = authService.completeOnboarding(
+            userId = resolveCurrentUserId(request),
+            request = onboardingRequest,
         )
+
+        return currentUser.toMeResponse()
     }
 
     @GetMapping("google")
@@ -94,7 +100,11 @@ class AuthController(
             throw OAuthAuthenticationException()
         }
 
-        val currentUser = authService.findOrCreateGoogleUser(sub,picture,email)
+        val currentUser = authService.findOrCreateGoogleUser(
+            sub = sub,
+            picture = picture,
+            email = email,
+        )
         val issuedJwt = jwtTokenService.createAccessToken(currentUser)
         val authCookie = ResponseCookie.from(accessTokenCookieName, issuedJwt)
             .httpOnly(true)
@@ -106,8 +116,37 @@ class AuthController(
 
         return ResponseEntity.status(HttpStatus.FOUND)
             .header(HttpHeaders.SET_COOKIE, deleteCookie.toString(), authCookie.toString())
-            .location(URI.create(frontendHomeUrl))
+            .location(
+                URI.create(
+                    if (currentUser.isOnboardingComplete()) {
+                        frontendHomeUrl
+                    } else {
+                        URI.create(frontendHomeUrl).resolve("/onboarding").toString()
+                    },
+                )
+            )
             .build()
+    }
+
+    private fun resolveCurrentUserId(request: HttpServletRequest): Long {
+        val accessToken = request.cookies
+            ?.firstOrNull { it.name == accessTokenCookieName }
+            ?.value
+            ?: throw OAuthAuthenticationException()
+
+        return jwtTokenService.parseUserId(accessToken)
+    }
+
+    private fun User.toMeResponse(): MeResponse {
+        return MeResponse(
+            id = requireNotNull(id),
+            username = username,
+            nickname = nickname,
+            email = email,
+            profileImageUrl = profileImageUrl,
+            bio = bio,
+            isOnboardingComplete = isOnboardingComplete(),
+        )
     }
 
 //    @GetMapping("github")
