@@ -10,5 +10,10 @@ export const metadata: Metadata = {
 export default async function WritePage() {
   const data = await getUser();
 
-  return <WriteView isLoggedIn={!!data} />;
+  return (
+    <WriteView
+      isLoggedIn={!!data}
+      profileImageUrl={data?.profileImageUrl}
+    />
+  );
 }

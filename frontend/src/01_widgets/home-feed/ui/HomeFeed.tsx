@@ -23,7 +23,7 @@ export async function HomeFeed({
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
-      <Header isLoggedIn={isLoggedIn} />
+      <Header isLoggedIn={isLoggedIn} profileImageUrl={data?.profileImageUrl} />
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
           <section aria-label="Feed" className="min-w-0">

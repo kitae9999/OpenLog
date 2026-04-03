@@ -55,7 +55,11 @@ export async function ProfileView() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#f9fafb] text-zinc-950">
-      <Header showWriteAction={false} isLoggedIn={isLoggedIn}/>
+      <Header
+        showWriteAction={false}
+        isLoggedIn={isLoggedIn}
+        profileImageUrl={data?.profileImageUrl}
+      />
 
       <main className="mx-auto w-full max-w-[1083px] flex-1 px-4 pb-20 pt-8 sm:px-8">
         <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">

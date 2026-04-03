@@ -9,15 +9,14 @@ import { SearchBar } from "./SearchBar";
 
 export function Header({
   isLoggedIn,
+  profileImageUrl,
   showWriteAction = true,
 }: {
   isLoggedIn: boolean;
+  profileImageUrl?: string;
   showWriteAction?: boolean;
 }) {
-  // const currentUser = await getUser();
-  // const profileImageUrl = currentUser?.profileImageUrl ?? assets.defaultAvatar;
-
-  const profileImageUrl = assets.defaultAvatar;
+  const resolvedProfileImageUrl = profileImageUrl ?? assets.defaultAvatar;
 
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
@@ -94,7 +93,7 @@ export function Header({
                 className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 <Image
-                  src={profileImageUrl}
+                  src={resolvedProfileImageUrl}
                   alt="Profile avatar"
                   width={32}
                   height={32}
