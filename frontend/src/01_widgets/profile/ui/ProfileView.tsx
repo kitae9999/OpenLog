@@ -3,7 +3,7 @@ import Link from "next/link";
 import { assets } from "@/shared/config/assets";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
 import { Footer, Header } from "@/widgets/chrome/ui";
-import { getUser } from "@/features/auth/api/getUser";
+import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 
 const profile = {
   name: "Sarah Drasner",
@@ -49,7 +49,7 @@ const recentActivity = [
 ] as const;
 
 export async function ProfileView() {
-  const data = await getUser();
+  const data = await getUserOrRedirectToOnboarding();
 
   const isLoggedIn = !!data;
 

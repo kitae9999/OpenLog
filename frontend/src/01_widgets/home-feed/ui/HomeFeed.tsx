@@ -7,14 +7,18 @@ import { PostRow } from "./PostRow";
 import { RecommendedTopics } from "./RecommendedTopics";
 import { TopContributors } from "./TopContributors";
 import type { TabKey } from "./data";
-import { getUser } from "@/features/auth/api/getUser";
+import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
+import type { User } from "@/entities/user/model/User";
 
 export async function HomeFeed({
   activeTab = "trending",
+  viewer,
 }: {
   activeTab?: TabKey;
+  viewer?: User | null;
 }) {
-  const data = await getUser();
+  const data =
+    viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
 
   const isLoggedIn = !!data; // data 있으면 true, 없으면 false
 

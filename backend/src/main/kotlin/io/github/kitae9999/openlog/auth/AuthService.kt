@@ -6,9 +6,11 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import io.github.kitae9999.openlog.auth.entity.OauthAccount
+import io.github.kitae9999.openlog.auth.dto.CompleteOnboardingRequest
 import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.auth.repository.OauthAccountRepository
+import io.github.kitae9999.openlog.common.exception.UsernameAlreadyTakenException
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
 import jakarta.transaction.Transactional
@@ -50,7 +52,6 @@ class AuthService(
 
     data class GoogleUserInfoResponse(
         val sub: String,
-        val name: String? = null,
         val email: String? = null,
         val picture: String? = null,
     )
@@ -153,7 +154,6 @@ class AuthService(
     @Transactional
     fun findOrCreateGoogleUser(
         sub: String,
-        name: String?,
         picture: String?,
         email: String?,
     ): User {
@@ -166,7 +166,6 @@ class AuthService(
 
         val user = userRepository.save(
             User(
-                nickname = name,
                 profileImageUrl = picture,
                 email = email,
             )
@@ -178,6 +177,29 @@ class AuthService(
                 provider = "google",
                 providerUserId = sub,
             )
+        )
+
+        return user
+    }
+
+    @Transactional
+    fun completeOnboarding(
+        userId: Long,
+        request: CompleteOnboardingRequest,
+    ): User {
+        val user = getCurrentUser(userId)
+        val normalizedNickname = request.nickname.trim()
+        val normalizedUsername = request.username.trim()
+        val normalizedBio = request.bio?.trim()?.takeIf { it.isNotEmpty() }
+
+        if (user.username != normalizedUsername && userRepository.existsByUsername(normalizedUsername)) {
+            throw UsernameAlreadyTakenException()
+        }
+
+        user.completeOnboarding(
+            nickname = normalizedNickname,
+            username = normalizedUsername,
+            bio = normalizedBio,
         )
 
         return user

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getUser } from "@/features/auth/api/getUser";
+import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 import { Footer, Header } from "@/widgets/chrome/ui";
 import { PostArticle } from "@/widgets/post/ui";
 import {
@@ -19,14 +19,17 @@ export default async function PostPage({
 
   const entry = getPostEntry(slug);
   if (!entry) notFound();
-  const viewer = await getUser();
+  const viewer = await getUserOrRedirectToOnboarding();
 
   const articleHref = `/posts/${slug}`;
   const suggestsHref = `${articleHref}/suggests`;
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
-      <Header isLoggedIn={!!viewer} />
+      <Header
+        isLoggedIn={!!viewer}
+        profileImageUrl={viewer?.profileImageUrl}
+      />
 
       <main className="mx-auto w-full max-w-[1083px] pb-16 pt-6 sm:px-8">
         <PostArticle
