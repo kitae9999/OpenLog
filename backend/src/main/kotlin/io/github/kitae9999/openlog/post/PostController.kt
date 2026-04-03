@@ -1,9 +1,8 @@
 package io.github.kitae9999.openlog.post
 
-import jakarta.servlet.http.HttpServletRequest
+import io.github.kitae9999.openlog.post.dto.CreatePostRequest
 import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.web.bind.annotation.CookieValue
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -19,7 +18,7 @@ class PostController(
 
     @PostMapping()
     fun createPost(
-        @Valid @RequestBody
+        @Valid @RequestBody createPostRequest: CreatePostRequest
     ) {
 
     }
