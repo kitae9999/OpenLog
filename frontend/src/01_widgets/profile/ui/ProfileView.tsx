@@ -56,7 +56,6 @@ export async function ProfileView() {
   return (
     <div className="flex min-h-dvh flex-col bg-[#f9fafb] text-zinc-950">
       <Header
-        showWriteAction={false}
         isLoggedIn={isLoggedIn}
         profileImageUrl={data?.profileImageUrl}
       />

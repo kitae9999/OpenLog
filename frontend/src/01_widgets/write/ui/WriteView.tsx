@@ -178,7 +178,11 @@ export function WriteView({
 
   return (
     <div className="min-h-dvh bg-zinc-50 text-zinc-950">
-      <Header isLoggedIn={isLoggedIn} profileImageUrl={profileImageUrl} />
+      <Header
+        isLoggedIn={isLoggedIn}
+        profileImageUrl={profileImageUrl}
+        showWriteAction={false}
+      />
 
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <section className="flex flex-col gap-6">
