@@ -5,17 +5,19 @@ import { cn } from "@/shared/lib/cn";
 import { GuestActions } from "@/features/auth/ui";
 import { logoMarkClassName, logoWordmarkClassName, navLinks } from "./brand";
 import { SearchBar } from "./SearchBar";
-import { getUser } from "@/features/auth/api/getUser";
+// import { getUser } from "@/features/auth/api/getUser";
 
-export async function Header({
+export function Header({
   isLoggedIn,
   showWriteAction = true,
 }: {
   isLoggedIn: boolean;
   showWriteAction?: boolean;
 }) {
-  const currentUser = await getUser();
-  const profileImageUrl = currentUser?.profileImageUrl ?? assets.defaultAvatar;
+  // const currentUser = await getUser();
+  // const profileImageUrl = currentUser?.profileImageUrl ?? assets.defaultAvatar;
+
+  const profileImageUrl = assets.defaultAvatar;
 
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
