@@ -25,6 +25,7 @@ import java.time.Duration
 @RequestMapping("auth")
 class AuthController(
     private val authService: AuthService,
+    private val currentUserResolver: CurrentUserResolver,
     private val jwtTokenService: JwtTokenService,
     @Value("\${auth.jwt.cookie-name:openlog_access_token}")
     private val accessTokenCookieName: String,
@@ -37,7 +38,7 @@ class AuthController(
     fun getMe(
         request: HttpServletRequest
     ): MeResponse {
-        val meUser = authService.getCurrentUser(resolveCurrentUserId(request))
+        val meUser = authService.getCurrentUser(currentUserResolver.resolveUserId(request))
 
         return meUser.toMeResponse() // 코틀린 확장 함수 (메서드 아님)
     }
@@ -48,7 +49,7 @@ class AuthController(
         @Valid @RequestBody onboardingRequest: CompleteOnboardingRequest,
     ): MeResponse {
         val currentUser = authService.completeOnboarding(
-            userId = resolveCurrentUserId(request),
+            userId = currentUserResolver.resolveUserId(request),
             request = onboardingRequest,
         )
 
@@ -126,15 +127,6 @@ class AuthController(
                 )
             )
             .build()
-    }
-
-    private fun resolveCurrentUserId(request: HttpServletRequest): Long {
-        val accessToken = request.cookies
-            ?.firstOrNull { it.name == accessTokenCookieName }
-            ?.value
-            ?: throw OAuthAuthenticationException()
-
-        return jwtTokenService.parseUserId(accessToken)
     }
 
     private fun User.toMeResponse(): MeResponse {
