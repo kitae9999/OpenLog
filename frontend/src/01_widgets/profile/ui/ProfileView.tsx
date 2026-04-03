@@ -55,10 +55,7 @@ export async function ProfileView() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#f9fafb] text-zinc-950">
-      <Header
-        isLoggedIn={isLoggedIn}
-        profileImageUrl={data?.profileImageUrl}
-      />
+      <Header isLoggedIn={isLoggedIn} profileImageUrl={data?.profileImageUrl} />
 
       <main className="mx-auto w-full max-w-[1083px] flex-1 px-4 pb-20 pt-8 sm:px-8">
         <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">
@@ -66,7 +63,7 @@ export async function ProfileView() {
             <div className="mx-auto lg:mx-0">
               <div className="rounded-full border-4 border-zinc-50 bg-white p-1">
                 <Image
-                  src={profile.avatarSrc}
+                  src={data?.profileImageUrl ?? assets.defaultAvatar}
                   alt={`${profile.name} avatar`}
                   width={128}
                   height={128}
@@ -172,7 +169,11 @@ export async function ProfileView() {
               {recentActivity.map((activity, index) => (
                 <li
                   key={activity.id}
-                  className={index === recentActivity.length - 1 ? "relative" : "relative pb-8"}
+                  className={
+                    index === recentActivity.length - 1
+                      ? "relative"
+                      : "relative pb-8"
+                  }
                 >
                   <span className="absolute -left-[31px] top-2 size-3 rounded-full border-2 border-[#f9fafb] bg-zinc-300" />
                   <p className="text-[14px] leading-6 text-zinc-600">
@@ -219,13 +220,7 @@ function SectionHeading({
   );
 }
 
-function ProfileMeta({
-  iconSrc,
-  label,
-}: {
-  iconSrc: string;
-  label: string;
-}) {
+function ProfileMeta({ iconSrc, label }: { iconSrc: string; label: string }) {
   return (
     <div className="inline-flex items-center gap-2.5">
       <Image src={iconSrc} alt="" width={16} height={16} aria-hidden="true" />
