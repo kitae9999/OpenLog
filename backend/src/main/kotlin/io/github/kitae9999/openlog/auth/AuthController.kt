@@ -89,13 +89,18 @@ class AuthController(
 
         val verified = authService.verifyGoogleIdToken(idToken)
 
-        val (sub, email, picture) = authService.getGoogleUserInfo(accessToken)
+        val (sub, name, email, picture) = authService.getGoogleUserInfo(accessToken)
 
         if (verified.payload.subject != sub) {
             throw OAuthAuthenticationException()
         }
 
-        val currentUser = authService.findOrCreateGoogleUser(sub,picture,email)
+        val currentUser = authService.findOrCreateGoogleUser(
+            sub = sub,
+            name = name,
+            picture = picture,
+            email = email,
+        )
         val issuedJwt = jwtTokenService.createAccessToken(currentUser)
         val authCookie = ResponseCookie.from(accessTokenCookieName, issuedJwt)
             .httpOnly(true)

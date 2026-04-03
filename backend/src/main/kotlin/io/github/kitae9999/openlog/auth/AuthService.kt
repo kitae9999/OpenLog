@@ -50,6 +50,7 @@ class AuthService(
 
     data class GoogleUserInfoResponse(
         val sub: String,
+        val name: String? = null,
         val email: String? = null,
         val picture: String? = null,
     )
@@ -150,7 +151,12 @@ class AuthService(
     }
 
     @Transactional
-    fun findOrCreateGoogleUser(sub: String, picture: String?, email: String?): User {
+    fun findOrCreateGoogleUser(
+        sub: String,
+        name: String?,
+        picture: String?,
+        email: String?,
+    ): User {
         val existingAccount = oauthAccountRepository
             .findByProviderAndProviderUserId("google", sub)
 
@@ -160,6 +166,7 @@ class AuthService(
 
         val user = userRepository.save(
             User(
+                nickname = name,
                 profileImageUrl = picture,
                 email = email,
             )

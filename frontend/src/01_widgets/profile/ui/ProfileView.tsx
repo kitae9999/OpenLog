@@ -77,7 +77,7 @@ export async function ProfileView() {
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <h1 className="font-[Georgia,serif] text-[40px] font-bold leading-none tracking-[-0.04em] text-zinc-950 sm:text-[48px]">
-                    {profile.name}
+                    {data?.nickname ?? "openlogger"}
                   </h1>
                   <p className="mt-4 max-w-3xl text-[18px] leading-8 text-zinc-600">
                     {data?.bio ?? "Hello, World!"}
