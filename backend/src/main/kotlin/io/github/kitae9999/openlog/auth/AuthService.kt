@@ -1,5 +1,6 @@
 package io.github.kitae9999.openlog.auth
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.http.javanet.NetHttpTransport
@@ -71,8 +72,10 @@ class AuthService(
 
 
     data class  GoogleTokenResponse(
+        @JsonProperty("access_token")
         val accessToken: String,
         val scope: String,
+        @JsonProperty("id_token")
         val idToken: String,
     )
 
