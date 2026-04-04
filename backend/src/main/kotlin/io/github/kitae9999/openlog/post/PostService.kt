@@ -1,6 +1,5 @@
 package io.github.kitae9999.openlog.post
 
-import io.github.kitae9999.openlog.blog.repository.BlogRepository
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.dto.CreatePostRequest
 import io.github.kitae9999.openlog.post.dto.CreatePostResponse
@@ -17,7 +16,6 @@ import kotlin.jvm.optionals.getOrNull
 
 @Service
 class PostService(
-    private val blogRepository: BlogRepository,
     private val postRepository: PostRepository,
     private val postTopicRepository: PostTopicRepository,
     private val topicRepository: TopicRepository,
@@ -26,7 +24,6 @@ class PostService(
     @Transactional
     fun createPost(userId: Long, createPostRequest: CreatePostRequest): CreatePostResponse {
         val user = userRepository.findById(userId).getOrNull() ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
-        val blog = blogRepository.findByUserId(userId) ?: throw NotFoundException("블로그를 찾을 수 없습니다.")
         val authorUsername = user.username?.trim().orEmpty()
         if (authorUsername.isBlank()) {
             throw NotFoundException("username이 설정된 사용자를 찾을 수 없습니다.")
@@ -36,7 +33,6 @@ class PostService(
 
         val savedPost = postRepository.save(
             Post(
-                blog = blog,
                 author = user,
                 slug = slug,
                 title = title,
