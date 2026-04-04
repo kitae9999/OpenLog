@@ -2,7 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Contributor, Post } from "@/entities/post/model";
+import { DiscussionComposer } from "@/features/discussion-composer/ui";
+import { assets } from "@/shared/config/assets";
 import { PostTabs } from "./PostTabs";
+
+const COMMENTS_SECTION_ID = "post-comments";
 
 export function PostArticle({
   post,
@@ -10,6 +14,7 @@ export function PostArticle({
   backHref = "/",
   children,
   authorHref,
+  currentUserAvatarSrc,
   articleHref = "#",
   suggestsHref = "/contribute",
   suggestEditsHref = "/contribute",
@@ -21,6 +26,7 @@ export function PostArticle({
   backHref?: string;
   children?: ReactNode;
   authorHref?: string;
+  currentUserAvatarSrc?: string | null;
   articleHref?: string;
   suggestsHref?: string;
   suggestEditsHref?: string;
@@ -203,6 +209,11 @@ export function PostArticle({
               </div>
             </section>
           ) : null}
+
+          <PostCommentsSection
+            comments={post.comments}
+            currentUserAvatarSrc={currentUserAvatarSrc}
+          />
         </article>
       </div>
     </div>
@@ -231,14 +242,14 @@ function PostActionRail({
 
       <div className="h-px w-7 bg-zinc-200" aria-hidden="true" />
 
-      <button
-        type="button"
-        aria-label={`Comments (${comments})`}
+      <a
+        href={`#${COMMENTS_SECTION_ID}`}
+        aria-label={`Jump to comments (${comments})`}
         className="group flex w-full flex-col items-center gap-1 rounded-xl px-1 py-2 text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >
         <IconMessageSquare className="size-5 transition-transform group-hover:scale-[1.03]" />
         <span className="text-[12px] font-medium leading-none">{comments}</span>
-      </button>
+      </a>
 
       <div className="h-px w-7 bg-zinc-200" aria-hidden="true" />
 
@@ -274,13 +285,13 @@ function MobileActionBar({
           <span>{likes}</span>
         </button>
 
-        <button
-          type="button"
+        <a
+          href={`#${COMMENTS_SECTION_ID}`}
           className="inline-flex items-center gap-2 text-[16px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
           <IconMessageSquare className="size-6" />
           <span>{comments}</span>
-        </button>
+        </a>
       </div>
 
       <span className="h-6 w-px bg-zinc-300" aria-hidden="true" />
@@ -293,6 +304,66 @@ function MobileActionBar({
         Suggests
       </Link>
     </div>
+  );
+}
+
+function PostCommentsSection({
+  comments,
+  currentUserAvatarSrc,
+}: {
+  comments: number;
+  currentUserAvatarSrc?: string | null;
+}) {
+  const resolvedAvatarSrc = currentUserAvatarSrc ?? assets.defaultAvatar;
+
+  return (
+    <section
+      id={COMMENTS_SECTION_ID}
+      className="mt-14 scroll-mt-24 rounded-[28px] border border-zinc-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbfa_100%)] p-6 shadow-[0_22px_50px_rgba(24,24,27,0.06)] sm:p-7"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-5">
+        <div>
+          <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">
+            <IconMessageSquare className="size-3.5" />
+            Comments
+          </div>
+          <h2 className="mt-3 font-serif text-[28px] font-semibold tracking-tight text-zinc-950">
+            Join the thread
+          </h2>
+          <p className="mt-2 max-w-[58ch] text-sm leading-6 text-zinc-600">
+            Leave feedback, ask for clarification, or keep a focused discussion
+            attached to this article.
+          </p>
+        </div>
+        <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-500 shadow-sm">
+          {comments} comments
+        </span>
+      </div>
+
+      {comments > 0 ? (
+        <div className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-4 text-sm leading-6 text-zinc-500">
+          Existing comment entries are not wired into this detail view yet. The
+          section is ready for comment-thread data and new replies.
+        </div>
+      ) : (
+        <div className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-4 text-sm leading-6 text-zinc-500">
+          No comments yet. Start the first thread for this article.
+        </div>
+      )}
+
+      <div className="mt-6 flex items-start gap-4">
+        <Image
+          src={resolvedAvatarSrc}
+          alt="Current user avatar"
+          width={40}
+          height={40}
+          className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
+        />
+        <div className="min-w-0 flex-1">
+          <DiscussionComposer />
+        </div>
+      </div>
+    </section>
   );
 }
 

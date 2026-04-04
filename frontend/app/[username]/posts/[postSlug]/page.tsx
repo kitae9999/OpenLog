@@ -71,6 +71,7 @@ export default async function PublicPostPage({
               comments: detail.comments,
             }}
             authorHref={authorHref}
+            currentUserAvatarSrc={viewer?.profileImageUrl}
             backHref="/?tab=trending"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
@@ -111,6 +112,7 @@ export default async function PublicPostPage({
           post={entry.post}
           contributors={contributors}
           authorHref={authorHref}
+          currentUserAvatarSrc={viewer?.profileImageUrl}
           backHref="/?tab=trending"
           articleHref={articleHref}
           suggestsHref={suggestsHref}
