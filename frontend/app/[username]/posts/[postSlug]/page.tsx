@@ -9,6 +9,7 @@ import {
   buildPublicPostPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
+  parsePublicPostSlugParam,
   parsePublicUsernameParam,
 } from "@/shared/lib/publicRoutes";
 import { MarkdownContent } from "@/shared/ui/markdown";
@@ -27,13 +28,14 @@ export default async function PublicPostPage({
   }
 
   const authorUsername = parsePublicUsernameParam(usernameParam);
-  if (!authorUsername) {
+  const canonicalPostSlug = parsePublicPostSlugParam(postSlug);
+  if (!authorUsername || !canonicalPostSlug) {
     notFound();
   }
 
   const [viewer, detail] = await Promise.all([
     getUser(),
-    getPostDetail(authorUsername, postSlug),
+    getPostDetail(authorUsername, canonicalPostSlug),
   ]);
   const profileHref = viewer ? buildViewerProfileHref(viewer.username) : undefined;
 
@@ -84,13 +86,13 @@ export default async function PublicPostPage({
     );
   }
 
-  const entry = getPostEntry(authorUsername, postSlug);
+  const entry = getPostEntry(authorUsername, canonicalPostSlug);
   if (!entry) {
     notFound();
   }
 
-  const articleHref = buildPublicPostPath(authorUsername, postSlug);
-  const suggestsHref = buildPublicSuggestsPath(authorUsername, postSlug);
+  const articleHref = buildPublicPostPath(authorUsername, canonicalPostSlug);
+  const suggestsHref = buildPublicSuggestsPath(authorUsername, canonicalPostSlug);
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">

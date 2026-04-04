@@ -7,6 +7,7 @@ import {
   buildPublicPostPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
+  parsePublicPostSlugParam,
   parsePublicUsernameParam,
 } from "@/shared/lib/publicRoutes";
 
@@ -24,21 +25,22 @@ export default async function PublicPostSuggestsPage({
   }
 
   const authorUsername = parsePublicUsernameParam(usernameParam);
-  if (!authorUsername) {
+  const canonicalPostSlug = parsePublicPostSlugParam(postSlug);
+  if (!authorUsername || !canonicalPostSlug) {
     notFound();
   }
 
   const [viewer, entry] = await Promise.all([
     getUser(),
-    Promise.resolve(getPostEntry(authorUsername, postSlug)),
+    Promise.resolve(getPostEntry(authorUsername, canonicalPostSlug)),
   ]);
 
   if (!entry) {
     notFound();
   }
 
-  const articleHref = buildPublicPostPath(authorUsername, postSlug);
-  const suggestsHref = buildPublicSuggestsPath(authorUsername, postSlug);
+  const articleHref = buildPublicPostPath(authorUsername, canonicalPostSlug);
+  const suggestsHref = buildPublicSuggestsPath(authorUsername, canonicalPostSlug);
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
