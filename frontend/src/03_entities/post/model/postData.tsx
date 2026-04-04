@@ -116,8 +116,9 @@ const tailwindBody = (
   </div>
 );
 
-const postEntries: Record<string, PostEntry> = {
-  "tailwind-v4": {
+const postEntries: Record<string, Record<string, PostEntry>> = {
+  kentcdodds: {
+    "tailwind-v4": {
     post: {
       title: "The Future of CSS: Tailwind v4",
       authorName: "Kent C. Dodds",
@@ -241,180 +242,187 @@ const postEntries: Record<string, PostEntry> = {
         discussionComments: [],
       },
     ],
-  },
-  "understanding-react-server-components": {
-    post: {
-      title: "Understanding React Server Components",
-      authorName: "Sarah Drasner",
-      authorAvatarSrc: assets.avatarB,
-      publishedAtLabel: "2026. 2. 28.",
-      readTimeLabel: "8 min read",
-      tags: ["React", "Web Development", "Performance"],
-      coverSrc: assets.featuredCover,
-      likes: 1240,
-      comments: 24,
     },
-    suggestCount: 1,
-    suggestions: [
-      {
-        id: "pr1",
-        numberLabel: "#pr1",
-        title: "Fix typo and clarify bundle size section",
-        openedAtLabel: "2026. 3. 11.",
-        authorName: "Kent C. Dodds",
-        authorAvatarSrc: assets.avatarA,
-        commentCount: 0,
-        status: "open",
-        targetBranch: "master",
-        sourceBranch: "patch-1",
-        comment: {
+  },
+  sdrasner: {
+    "understanding-react-server-components": {
+      post: {
+        title: "Understanding React Server Components",
+        authorName: "Sarah Drasner",
+        authorAvatarSrc: assets.avatarB,
+        publishedAtLabel: "2026. 2. 28.",
+        readTimeLabel: "8 min read",
+        tags: ["React", "Web Development", "Performance"],
+        coverSrc: assets.featuredCover,
+        likes: 1240,
+        comments: 24,
+      },
+      suggestCount: 1,
+      suggestions: [
+        {
+          id: "pr1",
+          numberLabel: "#pr1",
+          title: "Fix typo and clarify bundle size section",
+          openedAtLabel: "2026. 3. 11.",
           authorName: "Kent C. Dodds",
           authorAvatarSrc: assets.avatarA,
-          commentedAtLabel: "2026. 3. 11.",
-          message:
-            "I clarified the section on bundle size to mention dependencies, and fixed a minor phrasing issue.",
+          commentCount: 0,
+          status: "open",
+          targetBranch: "master",
+          sourceBranch: "patch-1",
+          comment: {
+            authorName: "Kent C. Dodds",
+            authorAvatarSrc: assets.avatarA,
+            commentedAtLabel: "2026. 3. 11.",
+            message:
+              "I clarified the section on bundle size to mention dependencies, and fixed a minor phrasing issue.",
+          },
+          reviewers: [
+            {
+              name: "Sarah Drasner",
+              avatarSrc: assets.avatarB,
+            },
+          ],
+          diffRows: [
+            {
+              oldLine: 1,
+              newLine: 1,
+              kind: "context",
+              content: "## Enter Server Components",
+            },
+            {
+              oldLine: 2,
+              newLine: 2,
+              kind: "context",
+              content: "",
+            },
+            {
+              oldLine: 3,
+              kind: "remove",
+              content:
+                "Server Components allow us to render components exclusively on the server. This means:",
+            },
+            {
+              oldLine: 4,
+              kind: "remove",
+              content:
+                "1. **Zero Bundle Size:** The component's code is never sent to the client.",
+            },
+            {
+              oldLine: 5,
+              kind: "remove",
+              content:
+                "2. **Direct Backend Access:** Server Components can query the database directly.",
+            },
+            {
+              newLine: 3,
+              kind: "add",
+              content:
+                "Server Components allow us to render components exclusively on the server. This brings significant benefits:",
+            },
+            {
+              newLine: 4,
+              kind: "add",
+              content:
+                "1. **Zero Bundle Size:** The component's code (and its dependencies) is never sent to the client.",
+            },
+            {
+              newLine: 5,
+              kind: "add",
+              content:
+                "2. **Direct Backend Access:** Server Components can query the database directly without an API layer.",
+            },
+          ],
+          discussionComments: [],
         },
-        reviewers: [
-          {
-            name: "Sarah Drasner",
-            avatarSrc: assets.avatarB,
-          },
-        ],
-        diffRows: [
-          {
-            oldLine: 1,
-            newLine: 1,
-            kind: "context",
-            content: "## Enter Server Components",
-          },
-          {
-            oldLine: 2,
-            newLine: 2,
-            kind: "context",
-            content: "",
-          },
-          {
-            oldLine: 3,
-            kind: "remove",
-            content:
-              "Server Components allow us to render components exclusively on the server. This means:",
-          },
-          {
-            oldLine: 4,
-            kind: "remove",
-            content:
-              "1. **Zero Bundle Size:** The component's code is never sent to the client.",
-          },
-          {
-            oldLine: 5,
-            kind: "remove",
-            content:
-              "2. **Direct Backend Access:** Server Components can query the database directly.",
-          },
-          {
-            newLine: 3,
-            kind: "add",
-            content:
-              "Server Components allow us to render components exclusively on the server. This brings significant benefits:",
-          },
-          {
-            newLine: 4,
-            kind: "add",
-            content:
-              "1. **Zero Bundle Size:** The component's code (and its dependencies) is never sent to the client.",
-          },
-          {
-            newLine: 5,
-            kind: "add",
-            content:
-              "2. **Direct Backend Access:** Server Components can query the database directly without an API layer.",
-          },
-        ],
-        discussionComments: [],
-      },
-      {
-        id: "pr2",
-        numberLabel: "#pr2",
-        title: "Add comment explaining Server component boundaries",
-        openedAtLabel: "2026. 3. 10.",
-        authorName: "Dan Abramov",
-        authorAvatarSrc: assets.avatarB,
-        commentCount: 0,
-        status: "merged",
-        targetBranch: "master",
-        sourceBranch: "patch-1",
-        comment: {
+        {
+          id: "pr2",
+          numberLabel: "#pr2",
+          title: "Add comment explaining Server component boundaries",
+          openedAtLabel: "2026. 3. 10.",
           authorName: "Dan Abramov",
           authorAvatarSrc: assets.avatarB,
-          commentedAtLabel: "2026. 3. 10.",
-          message:
-            "Added a useful comment above the code block to help beginners understand context.",
+          commentCount: 0,
+          status: "merged",
+          targetBranch: "master",
+          sourceBranch: "patch-1",
+          comment: {
+            authorName: "Dan Abramov",
+            authorAvatarSrc: assets.avatarB,
+            commentedAtLabel: "2026. 3. 10.",
+            message:
+              "Added a useful comment above the code block to help beginners understand context.",
+          },
+          reviewers: [
+            {
+              name: "Sarah Drasner",
+              avatarSrc: assets.avatarB,
+              status: "approved",
+            },
+          ],
+          diffRows: [
+            {
+              oldLine: 1,
+              newLine: 1,
+              kind: "context",
+              content: "### Code Example",
+            },
+            {
+              oldLine: 2,
+              newLine: 2,
+              kind: "context",
+              content: "",
+            },
+            {
+              oldLine: 3,
+              newLine: 3,
+              kind: "context",
+              content: "```jsx",
+            },
+            {
+              oldLine: 4,
+              kind: "remove",
+              content: "// Note: This component runs on the server!",
+            },
+            {
+              newLine: 4,
+              kind: "add",
+              content: "// Note: This component runs entirely on the server!",
+            },
+            {
+              newLine: 5,
+              kind: "add",
+              content: "// It doesn't add any bytes to the client JS bundle.",
+            },
+            {
+              oldLine: 5,
+              newLine: 6,
+              kind: "context",
+              content: "import db from './db';",
+            },
+          ],
+          resolutionNote: {
+            title: "Pull request successfully merged and closed",
+            description:
+              "The author accepted these changes. The original post has been updated.",
+          },
+          discussionComments: [],
         },
-        reviewers: [
-          {
-            name: "Sarah Drasner",
-            avatarSrc: assets.avatarB,
-            status: "approved",
-          },
-        ],
-        diffRows: [
-          {
-            oldLine: 1,
-            newLine: 1,
-            kind: "context",
-            content: "### Code Example",
-          },
-          {
-            oldLine: 2,
-            newLine: 2,
-            kind: "context",
-            content: "",
-          },
-          {
-            oldLine: 3,
-            newLine: 3,
-            kind: "context",
-            content: "```jsx",
-          },
-          {
-            oldLine: 4,
-            kind: "remove",
-            content: "// Note: This component runs on the server!",
-          },
-          {
-            newLine: 4,
-            kind: "add",
-            content: "// Note: This component runs entirely on the server!",
-          },
-          {
-            newLine: 5,
-            kind: "add",
-            content: "// It doesn't add any bytes to the client JS bundle.",
-          },
-          {
-            oldLine: 5,
-            newLine: 6,
-            kind: "context",
-            content: "import db from './db';",
-          },
-        ],
-        resolutionNote: {
-          title: "Pull request successfully merged and closed",
-          description:
-            "The author accepted these changes. The original post has been updated.",
-        },
-        discussionComments: [],
-      },
-    ],
+      ],
+    },
   },
 };
 
-export function getPostEntry(slug: string) {
-  return postEntries[slug];
+export function getPostEntry(authorUsername: string, slug: string) {
+  return postEntries[authorUsername]?.[slug];
 }
 
-export function getSuggestion(slug: string, suggestionId: string) {
-  return postEntries[slug]?.suggestions.find(
+export function getSuggestion(
+  authorUsername: string,
+  slug: string,
+  suggestionId: string,
+) {
+  return postEntries[authorUsername]?.[slug]?.suggestions.find(
     (suggestion) => suggestion.id === suggestionId,
   );
 }

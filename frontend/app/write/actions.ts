@@ -3,7 +3,13 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { API_CONFIG } from "@/shared/api";
+import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import type { WriteActionState } from "./action-state";
+
+type CreatePostResponse = {
+  authorUsername: string;
+  slug: string;
+};
 
 export async function submitPost(
   _prevState: WriteActionState,
@@ -53,8 +59,8 @@ export async function submitPost(
   });
 
   if (response.ok) {
-    const location = response.headers.get("location");
-    redirect(location || "/");
+    const payload = (await response.json()) as CreatePostResponse;
+    redirect(buildPublicPostPath(payload.authorUsername, payload.slug));
   }
 
   if (response.status === 401) {
