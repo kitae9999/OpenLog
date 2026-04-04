@@ -230,7 +230,7 @@ function PostActionRail({
   suggestEditsHref: string;
 }) {
   return (
-    <nav className="flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
+    <nav className="-translate-y-[150px] flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
       <button
         type="button"
         aria-label={`Like (${likes})`}
@@ -323,7 +323,7 @@ function PostCommentsSection({
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-5">
         <div>
-          <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">
+          <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.10em] text-zinc-400">
             <IconMessageSquare className="size-3.5" />
             Comments
           </div>
