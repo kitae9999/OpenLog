@@ -4,86 +4,12 @@ import type { ReactNode } from "react";
 import type { Contributor, Post } from "@/entities/post/model";
 import { PostTabs } from "./PostTabs";
 
-const defaultBody = (
-  <div className="mt-8 space-y-6 text-[14px] leading-[1.65] text-zinc-700">
-    <h2 className="text-[22px] font-semibold tracking-tight text-zinc-950">
-      Understanding React Server Components
-    </h2>
-
-    <p>
-      React Server Components (RSC) represent a paradigm shift in how we think
-      about building React applications. Traditionally, React components have
-      run primarily on the client-side, with optional server-side rendering
-      (SSR) for initial load performance.
-    </p>
-
-    <h3 className="text-[18px] font-semibold tracking-tight text-zinc-950">
-      The Problem with Client-Only Rendering
-    </h3>
-
-    <p>
-      In a typical client-side rendered (CSR) app, the user downloads a large
-      JavaScript bundle. The browser parses and executes this bundle, which then
-      fetches data from an API. Only after the data arrives can the user see the
-      content.
-    </p>
-
-    <h3 className="text-[18px] font-semibold tracking-tight text-zinc-950">
-      Enter Server Components
-    </h3>
-
-    <p>
-      Server Components allow us to render components exclusively on the server.
-      This means:
-    </p>
-
-    <ul className="list-disc space-y-2 pl-6">
-      <li>
-        <span className="font-semibold text-zinc-950">Zero Bundle Size</span>
-        {": "}The component&apos;s code is never sent to the client.
-      </li>
-      <li>
-        <span className="font-semibold text-zinc-950">
-          Direct Backend Access
-        </span>
-        {": "}Server Components can query the database directly.
-      </li>
-    </ul>
-
-    <p className="text-zinc-500">
-      [[React Architecture]] [[Performance Optimization]]
-    </p>
-
-    <p className="font-medium text-zinc-950">Code Example:</p>
-
-    <pre className="overflow-x-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-[12px] leading-5 text-zinc-900">
-      <code>{`// Note: This component runs on the server!
-import db from './db';
-
-async function NoteList({ userId }) {
-  const notes = await db.notes.getAll(userId);
-  return (
-    <ul>
-      {notes.map(note => (
-        <li key={note.id}>{note.title}</li>
-      ))}
-    </ul>
-  );
-}`}</code>
-    </pre>
-
-    <p className="text-[12px] text-zinc-500">
-      This creates a seamless blend of server capabilities with React&apos;s
-      component model.
-    </p>
-  </div>
-);
-
 export function PostArticle({
   post,
   contributors,
   backHref = "/",
   children,
+  authorHref,
   articleHref = "#",
   suggestsHref = "/contribute",
   suggestEditsHref = "/contribute",
@@ -94,6 +20,7 @@ export function PostArticle({
   contributors?: Contributor[];
   backHref?: string;
   children?: ReactNode;
+  authorHref?: string;
   articleHref?: string;
   suggestsHref?: string;
   suggestEditsHref?: string;
@@ -138,20 +65,45 @@ export function PostArticle({
           <header className="mt-8 space-y-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Image
-                    src={post.authorAvatarSrc}
-                    alt={`${post.authorName} avatar`}
-                    width={48}
-                    height={48}
-                    className="size-12 rounded-full border border-zinc-100 object-cover shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.1)]"
-                  />
-                </div>
+                {authorHref ? (
+                  <Link
+                    href={authorHref}
+                    aria-label={`Open ${post.authorName} profile`}
+                    className="relative rounded-full transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                  >
+                    <Image
+                      src={post.authorAvatarSrc}
+                      alt={`${post.authorName} avatar`}
+                      width={48}
+                      height={48}
+                      className="size-12 rounded-full border border-zinc-100 object-cover shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.1)]"
+                    />
+                  </Link>
+                ) : (
+                  <div className="relative">
+                    <Image
+                      src={post.authorAvatarSrc}
+                      alt={`${post.authorName} avatar`}
+                      width={48}
+                      height={48}
+                      className="size-12 rounded-full border border-zinc-100 object-cover shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.1)]"
+                    />
+                  </div>
+                )}
 
                 <div className="min-w-0">
-                  <p className="truncate text-[16px] font-semibold tracking-tight text-zinc-950">
-                    {post.authorName}
-                  </p>
+                  {authorHref ? (
+                    <Link
+                      href={authorHref}
+                      className="truncate text-[16px] font-semibold tracking-tight text-zinc-950 transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                    >
+                      {post.authorName}
+                    </Link>
+                  ) : (
+                    <p className="truncate text-[16px] font-semibold tracking-tight text-zinc-950">
+                      {post.authorName}
+                    </p>
+                  )}
                   <p className="mt-0.5 flex items-center gap-2 text-sm text-zinc-500">
                     <span>{post.publishedAtLabel}</span>
                     <span className="text-zinc-300">·</span>
@@ -206,7 +158,7 @@ export function PostArticle({
             </div>
           </div>
 
-          {children ?? defaultBody}
+          {children}
 
           <div className="mt-10 flex justify-center lg:hidden">
             <MobileActionBar

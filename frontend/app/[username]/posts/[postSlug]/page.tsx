@@ -6,6 +6,7 @@ import { getPostEntry, contributors } from "@/entities/post/model";
 import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
 import {
+  buildPublicProfilePath,
   buildPublicPostPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
@@ -40,6 +41,7 @@ export default async function PublicPostPage({
   const profileHref = viewer ? buildViewerProfileHref(viewer.username) : undefined;
 
   if (detail) {
+    const authorHref = buildPublicProfilePath(detail.authorUsername);
     const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
     const suggestsHref = buildPublicSuggestsPath(
       detail.authorUsername,
@@ -68,6 +70,7 @@ export default async function PublicPostPage({
               likes: detail.likes,
               comments: detail.comments,
             }}
+            authorHref={authorHref}
             backHref="/?tab=trending"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
@@ -92,6 +95,7 @@ export default async function PublicPostPage({
   }
 
   const articleHref = buildPublicPostPath(authorUsername, canonicalPostSlug);
+  const authorHref = buildPublicProfilePath(authorUsername);
   const suggestsHref = buildPublicSuggestsPath(authorUsername, canonicalPostSlug);
 
   return (
@@ -106,6 +110,7 @@ export default async function PublicPostPage({
         <PostArticle
           post={entry.post}
           contributors={contributors}
+          authorHref={authorHref}
           backHref="/?tab=trending"
           articleHref={articleHref}
           suggestsHref={suggestsHref}
