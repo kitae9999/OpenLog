@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
+import { highlightCodeBlock } from "@/shared/lib/markdown/highlightCode";
 
 type MarkdownBlock =
   | { type: "heading"; level: 1 | 2 | 3; text: string }
@@ -103,14 +104,15 @@ export function MarkdownContent({
                 ))}
               </ol>
             );
-          case "code":
+          case "code": {
+            const highlighted = highlightCodeBlock(block.code, block.language);
             return (
               <div
                 key={key}
-                className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-950 text-zinc-100"
+                className="markdown-code overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-950 text-zinc-100 shadow-[0_20px_50px_rgba(9,9,11,0.18)]"
               >
                 <div className="border-b border-white/10 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-zinc-400">
-                  {block.language || "code"}
+                  {highlighted.languageLabel}
                 </div>
                 <pre
                   className={cn(
@@ -118,10 +120,14 @@ export function MarkdownContent({
                     variant === "default" ? "text-[13px] leading-6" : "text-xs leading-5",
                   )}
                 >
-                  <code>{block.code}</code>
+                  <code
+                    className="hljs block bg-transparent p-0"
+                    dangerouslySetInnerHTML={{ __html: highlighted.html }}
+                  />
                 </pre>
               </div>
             );
+          }
         }
       })}
     </div>
