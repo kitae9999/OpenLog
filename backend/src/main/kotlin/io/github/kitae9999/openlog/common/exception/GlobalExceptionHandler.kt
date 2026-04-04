@@ -31,6 +31,16 @@ class GlobalExceptionHandler {
         )
     }
 
+    @ExceptionHandler(NotFoundException::class)
+    fun handleNotFoundException(e: NotFoundException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            ErrorResponse(
+                code = "NOT_FOUND",
+                message = e.message ?: "요청한 리소스를 찾을 수 없습니다.",
+            )
+        )
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleMethodArgumentNotValidException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
         val message = e.bindingResult.fieldErrors.firstOrNull()?.defaultMessage

@@ -88,6 +88,7 @@ export function PostArticle({
   suggestsHref = "/contribute",
   suggestEditsHref = "/contribute",
   suggestCount = 0,
+  showSuggestsTab = true,
 }: {
   post: Post;
   contributors?: Contributor[];
@@ -97,6 +98,7 @@ export function PostArticle({
   suggestsHref?: string;
   suggestEditsHref?: string;
   suggestCount?: number;
+  showSuggestsTab?: boolean;
 }) {
   const list = contributors ?? [];
 
@@ -130,6 +132,7 @@ export function PostArticle({
             articleHref={articleHref}
             suggestsHref={suggestsHref}
             suggestCount={suggestCount}
+            showSuggestsTab={showSuggestsTab}
           />
 
           <header className="mt-8 space-y-5">
@@ -170,16 +173,24 @@ export function PostArticle({
               {post.title}
             </h1>
 
-            <div className="flex flex-wrap gap-2">
-              {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-zinc-600"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+            {post.description ? (
+              <p className="max-w-[60ch] text-[18px] leading-8 text-zinc-600">
+                {post.description}
+              </p>
+            ) : null}
+
+            {post.tags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {post.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-zinc-600"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </header>
 
           <div className="mt-7 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm">
@@ -205,39 +216,41 @@ export function PostArticle({
             />
           </div>
 
-          <section className="mt-12 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold text-zinc-950">
-                <Image
-                  src="/Users.svg"
-                  alt=""
-                  width={16}
-                  height={16}
-                  aria-hidden="true"
-                  className="size-4"
-                />
-                Contributors
+          {list.length > 0 ? (
+            <section className="mt-12 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-950">
+                  <Image
+                    src="/Users.svg"
+                    alt=""
+                    width={16}
+                    height={16}
+                    aria-hidden="true"
+                    className="size-4"
+                  />
+                  Contributors
+                </div>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-medium text-zinc-500">
+                  {list.length} people
+                </span>
               </div>
-              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-medium text-zinc-500">
-                {list.length} people
-              </span>
-            </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {list.slice(0, 2).map((c) => (
-                <ContributorCard key={c.name} contributor={c} />
-              ))}
-            </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {list.slice(0, 2).map((c) => (
+                  <ContributorCard key={c.name} contributor={c} />
+                ))}
+              </div>
 
-            <div className="mt-4 text-center">
-              <Link
-                href="/contribute/history"
-                className="text-xs font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-              >
-                View contribution history
-              </Link>
-            </div>
-          </section>
+              <div className="mt-4 text-center">
+                <Link
+                  href="/contribute/history"
+                  className="text-xs font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                >
+                  View contribution history
+                </Link>
+              </div>
+            </section>
+          ) : null}
         </article>
       </div>
     </div>

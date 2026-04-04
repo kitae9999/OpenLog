@@ -35,7 +35,7 @@ class AuthService(
     @Value("\${oauth.google.client-secret}")
     private val clientSecret: String,
 
-    private val redisTemplate: StringRedisTemplate, // bean 주입
+    private val redisTemplate: StringRedisTemplate, // todo: non-blocking redis로 수정 (Reactive Redis Template)
     restClientBuilder: RestClient.Builder,
     private val userRepository: UserRepository,
     private val oauthAccountRepository: OauthAccountRepository,

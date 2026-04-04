@@ -9,6 +9,7 @@ export type Contributor = {
 
 export type Post = {
   title: string;
+  description?: string;
   authorName: string;
   authorAvatarSrc: string;
   publishedAtLabel: string;
