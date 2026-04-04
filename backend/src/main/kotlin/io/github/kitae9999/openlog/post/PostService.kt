@@ -3,7 +3,7 @@ package io.github.kitae9999.openlog.post
 import io.github.kitae9999.openlog.blog.repository.BlogRepository
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.dto.CreatePostRequest
-import io.github.kitae9999.openlog.post.dto.PostDetailResponse
+import io.github.kitae9999.openlog.post.dto.CreatePostResponse
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.posttopic.entity.PostTopic
@@ -13,7 +13,6 @@ import io.github.kitae9999.openlog.topic.repository.TopicRepository
 import io.github.kitae9999.openlog.user.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
-import java.time.format.DateTimeFormatter
 import kotlin.jvm.optionals.getOrNull
 
 @Service
@@ -25,15 +24,21 @@ class PostService(
     private val userRepository: UserRepository,
 ) {
     @Transactional
-    fun createPost(userId: Long, createPostRequest: CreatePostRequest): Post {
+    fun createPost(userId: Long, createPostRequest: CreatePostRequest): CreatePostResponse {
         val user = userRepository.findById(userId).getOrNull() ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val blog = blogRepository.findByUserId(userId) ?: throw NotFoundException("블로그를 찾을 수 없습니다.")
+        val authorUsername = user.username?.trim().orEmpty()
+        if (authorUsername.isBlank()) {
+            throw NotFoundException("username이 설정된 사용자를 찾을 수 없습니다.")
+        }
         val (title, description, content, topics) = createPostRequest
+        val slug = generateUniqueSlug(userId, title)
 
         val savedPost = postRepository.save(
             Post(
                 blog = blog,
                 author = user,
+                slug = slug,
                 title = title,
                 description = description,
                 content = content,
@@ -42,7 +47,10 @@ class PostService(
 
         val normalizedTopics = normalizeTopics(topics)
         if (normalizedTopics.isEmpty()) {
-            return savedPost
+            return CreatePostResponse(
+                authorUsername = authorUsername,
+                slug = savedPost.slug,
+            )
         }
 
         val existingTopics = topicRepository.findByNameIn(normalizedTopics)
@@ -61,26 +69,9 @@ class PostService(
             }
         )
 
-        return savedPost
-    }
-
-    @Transactional
-    fun getPostDetail(postId: Long): PostDetailResponse {
-        val post = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("글을 찾을 수 없습니다.")
-        val topics = postTopicRepository.findAllByPostId(postId)
-            .map { it.topic.name }
-            .sorted()
-
-        return PostDetailResponse(
-            id = requireNotNull(post.id),
-            title = post.title,
-            description = post.description,
-            content = post.content,
-            authorName = resolveAuthorName(post),
-            authorAvatarSrc = post.author.profileImageUrl,
-            publishedAtLabel = post.createdAt.format(PUBLISHED_AT_FORMATTER),
-            readTimeLabel = estimateReadTimeLabel(post),
-            topics = topics,
+        return CreatePostResponse(
+            authorUsername = authorUsername,
+            slug = savedPost.slug,
         )
     }
 
@@ -92,32 +83,26 @@ class PostService(
             .toList()
     }
 
-    private fun resolveAuthorName(post: Post): String {
-        val author = post.author
-        return when {
-            !author.nickname.isNullOrBlank() -> author.nickname.orEmpty()
-            !author.username.isNullOrBlank() -> author.username.orEmpty()
-            !author.email.isNullOrBlank() -> author.email.orEmpty()
-            else -> "OpenLog member"
-        }
-    }
+    private fun generateUniqueSlug(authorId: Long, title: String): String {
+        val baseSlug = slugify(title)
+        var candidate = baseSlug
+        var suffix = 2
 
-    private fun estimateReadTimeLabel(post: Post): String {
-        val wordCount = countWords("${post.title} ${post.description} ${post.content}")
-        val minutes = if (wordCount == 0) 1 else maxOf(1, kotlin.math.ceil(wordCount / 220.0).toInt())
-        return "$minutes min read"
-    }
-
-    private fun countWords(value: String): Int {
-        val trimmed = value.trim()
-        if (trimmed.isEmpty()) {
-            return 0
+        while (postRepository.existsByAuthorIdAndSlug(authorId, candidate)) {
+            candidate = "$baseSlug-$suffix"
+            suffix += 1
         }
 
-        return trimmed.split(Regex("\\s+")).size
+        return candidate
+    }
+
+    private fun slugify(title: String): String {
+        val slug = NON_SLUG_CHARACTERS.replace(title.trim().lowercase(), "-")
+            .trim('-')
+        return if (slug.isBlank()) "post" else slug
     }
 
     companion object {
-        private val PUBLISHED_AT_FORMATTER = DateTimeFormatter.ofPattern("yyyy. M. d.")
+        private val NON_SLUG_CHARACTERS = Regex("[^\\p{L}\\p{N}]+")
     }
 }

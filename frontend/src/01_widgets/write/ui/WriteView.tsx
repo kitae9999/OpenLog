@@ -48,9 +48,11 @@ const markdownCheatsheet = [
 export function WriteView({
   isLoggedIn,
   profileImageUrl,
+  profileHref,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
+  profileHref?: string;
 }) {
   const [mode, setMode] = useState<ComposerMode>("edit");
   const [title, setTitle] = useState("");
@@ -274,6 +276,7 @@ export function WriteView({
       <Header
         isLoggedIn={isLoggedIn}
         profileImageUrl={profileImageUrl}
+        profileHref={profileHref}
         showWriteAction={false}
       />
 

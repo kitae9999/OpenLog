@@ -1,37 +1,55 @@
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
-import { getPostDetail } from "@/entities/post/api/getPostDetail";
 import { Footer, Header } from "@/widgets/chrome/ui";
 import { PostArticle } from "@/widgets/post/ui";
-import {
-  getPostEntry,
-  contributors,
-} from "@/entities/post/model";
+import { getPostDetail } from "@/entities/post/api/getPostDetail";
+import { getPostEntry, contributors } from "@/entities/post/model";
+import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
+import {
+  buildPublicPostPath,
+  buildPublicSuggestsPath,
+  buildViewerProfileHref,
+  parsePublicUsernameParam,
+} from "@/shared/lib/publicRoutes";
 import { MarkdownContent } from "@/shared/ui/markdown";
 
-export default async function PostPage({
+export default async function PublicPostPage({
   params,
 }: {
-  params?: Promise<{ slug?: string | string[] }>;
+  params?: Promise<{ username?: string; postSlug?: string }>;
 }) {
-  const p = await params;
-  const slugParam = p?.slug;
-  const slug = Array.isArray(slugParam) ? slugParam[0] : slugParam;
-  if (!slug) notFound();
-  const viewer = await getUserOrRedirectToOnboarding();
-  const headerStore = await headers();
+  const resolvedParams = await params;
+  const usernameParam = resolvedParams?.username;
+  const postSlug = resolvedParams?.postSlug;
 
-  if (/^\d+$/.test(slug)) {
-    const detail = await getPostDetail(Number(slug), headerStore.get("cookie") ?? "");
-    if (!detail) notFound();
+  if (!usernameParam || !postSlug) {
+    notFound();
+  }
+
+  const authorUsername = parsePublicUsernameParam(usernameParam);
+  if (!authorUsername) {
+    notFound();
+  }
+
+  const [viewer, detail] = await Promise.all([
+    getUser(),
+    getPostDetail(authorUsername, postSlug),
+  ]);
+  const profileHref = viewer ? buildViewerProfileHref(viewer.username) : undefined;
+
+  if (detail) {
+    const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
+    const suggestsHref = buildPublicSuggestsPath(
+      detail.authorUsername,
+      detail.slug,
+    );
 
     return (
       <div className="min-h-dvh bg-white text-zinc-950">
         <Header
           isLoggedIn={!!viewer}
           profileImageUrl={viewer?.profileImageUrl}
+          profileHref={profileHref}
         />
 
         <main className="mx-auto w-full max-w-[1083px] pb-16 pt-6 sm:px-8">
@@ -49,8 +67,8 @@ export default async function PostPage({
               comments: detail.comments,
             }}
             backHref="/?tab=trending"
-            articleHref={`/posts/${detail.id}`}
-            suggestsHref={`/posts/${detail.id}/suggests`}
+            articleHref={articleHref}
+            suggestsHref={suggestsHref}
             suggestEditsHref="/contribute"
             suggestCount={0}
             showSuggestsTab={false}
@@ -66,17 +84,20 @@ export default async function PostPage({
     );
   }
 
-  const entry = getPostEntry(slug);
-  if (!entry) notFound();
+  const entry = getPostEntry(authorUsername, postSlug);
+  if (!entry) {
+    notFound();
+  }
 
-  const articleHref = `/posts/${slug}`;
-  const suggestsHref = `${articleHref}/suggests`;
+  const articleHref = buildPublicPostPath(authorUsername, postSlug);
+  const suggestsHref = buildPublicSuggestsPath(authorUsername, postSlug);
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
       <Header
         isLoggedIn={!!viewer}
         profileImageUrl={viewer?.profileImageUrl}
+        profileHref={profileHref}
       />
 
       <main className="mx-auto w-full max-w-[1083px] pb-16 pt-6 sm:px-8">

@@ -11,12 +11,16 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import jakarta.persistence.Version
 import java.time.LocalDateTime
 
 @Entity
 @Table(
     name = "posts",
+    uniqueConstraints = [
+        UniqueConstraint(columnNames = ["author_id", "slug"]),
+    ],
 )
 class Post(
     @Id
@@ -24,6 +28,7 @@ class Post(
     val id: Long? = null,
     blog: Blog,
     author: User,
+    slug: String,
     title: String,
     description: String,
     content: String,
@@ -37,6 +42,10 @@ class Post(
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "author_id", nullable = false)
     var author: User = author
+        protected set
+
+    @Column(nullable = false)
+    var slug: String = slug
         protected set
 
     @Column(nullable = false)

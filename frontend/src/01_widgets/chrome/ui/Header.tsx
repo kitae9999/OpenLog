@@ -10,10 +10,12 @@ import { SearchBar } from "./SearchBar";
 export function Header({
   isLoggedIn,
   profileImageUrl,
+  profileHref,
   showWriteAction = true,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
+  profileHref?: string;
   showWriteAction?: boolean;
 }) {
   const resolvedProfileImageUrl = profileImageUrl ?? assets.defaultAvatar;
@@ -88,7 +90,7 @@ export function Header({
               </button>
 
               <Link
-                href="/profile"
+                href={profileHref ?? "/"}
                 aria-label="Your profile"
                 className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >

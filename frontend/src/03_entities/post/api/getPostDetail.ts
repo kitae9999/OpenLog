@@ -1,10 +1,14 @@
 import { API_CONFIG } from "@/shared/api";
+import { ApiError } from "@/shared/model/ApiError";
+import { apiClient } from "@/shared/api/apiClient";
 
 export type ApiPostDetail = {
   id: number;
+  slug: string;
   title: string;
   description: string;
   content: string;
+  authorUsername: string;
   authorName: string;
   authorAvatarSrc: string | null;
   publishedAtLabel: string;
@@ -14,21 +18,18 @@ export type ApiPostDetail = {
   comments: number;
 };
 
-export async function getPostDetail(id: number, cookie: string) {
-  const response = await fetch(`${API_CONFIG.baseURL}/posts/${id}`, {
-    cache: "no-store",
-    headers: {
-      cookie,
-    },
-  });
-
-  if (response.status === 404) {
-    return null;
+export async function getPostDetail(username: string, slug: string) {
+  try {
+    return await apiClient<ApiPostDetail>(
+      `${API_CONFIG.baseURL}/users/${encodeURIComponent(username)}/posts/${encodeURIComponent(slug)}`,
+      {
+        cache: "no-store",
+      },
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
   }
-
-  if (!response.ok) {
-    throw new Error("Failed to load post detail.");
-  }
-
-  return (await response.json()) as ApiPostDetail;
 }

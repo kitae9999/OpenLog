@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { assets } from "@/shared/config/assets";
+import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 
 export function PostRow() {
   return (
@@ -50,7 +51,7 @@ export function PostRow() {
             </div>
 
             <Link
-              href="/posts/tailwind-v4"
+              href={buildPublicPostPath("kentcdodds", "tailwind-v4")}
               className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
             >
               Read more <IconArrowRight className="size-4" />
