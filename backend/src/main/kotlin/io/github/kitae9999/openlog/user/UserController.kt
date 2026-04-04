@@ -27,11 +27,11 @@ class UserController(
         return userService.getPublicPosts(username)
     }
 
-    @GetMapping("{username}/posts/{slug}")
+    @GetMapping("{username}/posts/{titleSlug}")
     fun getPublicPostDetail(
         @PathVariable username: String,
-        @PathVariable slug: String,
+        @PathVariable titleSlug: String,
     ): PostDetailResponse {
-        return userService.getPublicPostDetail(username, slug)
+        return userService.getPublicPostDetail(username, titleSlug)
     }
 }
