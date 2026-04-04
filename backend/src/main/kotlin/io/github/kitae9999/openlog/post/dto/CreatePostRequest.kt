@@ -11,4 +11,6 @@ data class CreatePostRequest(
 
     @field:NotBlank(message = "본문은 필수입니다.")
     val content: String,
+
+    val topics: List<String> = emptyList(),
 )

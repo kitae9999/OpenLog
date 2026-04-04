@@ -4,19 +4,24 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   startTransition,
+  useActionState,
   useDeferredValue,
   useEffect,
   useEffectEvent,
   useRef,
   useState,
+  type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { cn } from "@/shared/lib/cn";
-import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
+import { useFormStatus } from "react-dom";
+import { submitPost } from "@/app/write/actions";
 import {
-  formatSelection,
-  type ToolbarAction,
-} from "@/shared/lib/markdown";
+  initialWriteActionState,
+  type WriteActionState,
+} from "@/app/write/action-state";
+import { cn } from "@/shared/lib/cn";
+import { formatSelection, type ToolbarAction } from "@/shared/lib/markdown";
+import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import { Footer, Header } from "@/widgets/chrome/ui";
 
 type ComposerMode = "edit" | "preview";
@@ -50,15 +55,25 @@ export function WriteView({
   const [mode, setMode] = useState<ComposerMode>("edit");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [topicInput, setTopicInput] = useState("");
+  const [topics, setTopics] = useState<string[]>([]);
   const [body, setBody] = useState("");
   const [statusMessage, setStatusMessage] = useState(
     "Drafts save locally in this browser.",
   );
   const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const [submitErrors, setSubmitErrors] = useState<WriteActionState["errors"]>(
+    () => ({ ...initialWriteActionState.errors }),
+  );
+  const [actionState, formAction] = useActionState(
+    submitPost,
+    initialWriteActionState,
+  );
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const deferredTitle = useDeferredValue(title);
   const deferredDescription = useDeferredValue(description);
+  const deferredTopics = useDeferredValue(topics);
   const deferredBody = useDeferredValue(body);
   const wordCount = countWords(
     `${deferredTitle} ${deferredDescription} ${deferredBody}`,
@@ -66,12 +81,21 @@ export function WriteView({
   const readTimeMinutes =
     wordCount === 0 ? 0 : Math.max(1, Math.ceil(wordCount / 220));
 
+  useEffect(() => {
+    setSubmitErrors(actionState?.errors ?? {});
+  }, [actionState]);
+
   function persistDraft(reason: SaveReason) {
     const trimmedTitle = title.trim();
     const trimmedDescription = description.trim();
     const trimmedBody = body.trim();
 
-    if (!trimmedTitle && !trimmedDescription && !trimmedBody) {
+    if (
+      !trimmedTitle &&
+      !trimmedDescription &&
+      !trimmedBody &&
+      topics.length === 0
+    ) {
       const hasStoredDraft = Boolean(
         window.localStorage.getItem(DRAFT_STORAGE_KEY),
       );
@@ -90,6 +114,7 @@ export function WriteView({
       JSON.stringify({
         title,
         description,
+        topics,
         body,
         updatedAt,
       }),
@@ -112,12 +137,14 @@ export function WriteView({
       const draft = JSON.parse(rawDraft) as Partial<{
         title: string;
         description: string;
+        topics: string[];
         body: string;
         updatedAt: string;
       }>;
 
       setTitle(draft.title ?? "");
       setDescription(draft.description ?? "");
+      setTopics(normalizeTopics(draft.topics ?? []));
       setBody(draft.body ?? "");
       setStatusMessage(statusLabel("restored", draft.updatedAt));
     } catch {
@@ -138,7 +165,14 @@ export function WriteView({
     }, 900);
 
     return () => window.clearTimeout(timeoutId);
-  }, [body, description, hasRestoredDraft, title]);
+  }, [
+    body,
+    description,
+    hasRestoredDraft,
+    persistDraftFromEffect,
+    title,
+    topics,
+  ]);
 
   function handleModeChange(nextMode: ComposerMode) {
     startTransition(() => {
@@ -148,6 +182,64 @@ export function WriteView({
 
   function handleSaveDraft() {
     persistDraft("manual");
+  }
+
+  function clearError(name: keyof WriteActionState["errors"]) {
+    setSubmitErrors((current) => ({
+      ...current,
+      [name]: undefined,
+      form: undefined,
+    }));
+  }
+
+  function handleTitleChange(nextValue: string) {
+    setTitle(nextValue);
+    clearError("title");
+  }
+
+  function handleDescriptionChange(nextValue: string) {
+    setDescription(nextValue);
+    clearError("description");
+  }
+
+  function handleBodyChange(nextValue: string) {
+    setBody(nextValue);
+    clearError("content");
+  }
+
+  function handleTopicInputChange(nextValue: string) {
+    setTopicInput(nextValue);
+    clearError("form");
+  }
+
+  function addTopic(rawValue: string) {
+    const nextTopic = normalizeTopic(rawValue);
+    if (!nextTopic) {
+      setTopicInput("");
+      return;
+    }
+
+    setTopics((current) =>
+      current.includes(nextTopic) ? current : [...current, nextTopic],
+    );
+    setTopicInput("");
+  }
+
+  function removeTopic(targetTopic: string) {
+    setTopics((current) => current.filter((topic) => topic !== targetTopic));
+  }
+
+  function handleTopicKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.nativeEvent.isComposing) {
+      return;
+    }
+
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    addTopic(topicInput);
   }
 
   function insertFormatting(action: ToolbarAction) {
@@ -168,6 +260,7 @@ export function WriteView({
     );
 
     setBody(nextValue);
+    clearError("content");
     handleModeChange("edit");
 
     window.requestAnimationFrame(() => {
@@ -185,7 +278,14 @@ export function WriteView({
       />
 
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
-        <section className="flex flex-col gap-6">
+        <form action={formAction} className="flex flex-col gap-6">
+          {topics.map((topic) => (
+            <input key={topic} type="hidden" name="topics" value={topic} />
+          ))}
+          {mode === "preview" ? (
+            <input type="hidden" name="content" value={body} />
+          ) : null}
+
           <div className="flex flex-col gap-6 border-b border-zinc-200/80 pb-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <Link
@@ -255,7 +355,15 @@ export function WriteView({
                   <IconSave className="size-4" />
                   Save Draft
                 </button>
+
+                <PublishButton />
               </div>
+
+              {submitErrors.form ? (
+                <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {submitErrors.form}
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -268,11 +376,24 @@ export function WriteView({
                       Title
                     </span>
                     <input
+                      name="title"
                       value={title}
-                      onChange={(event) => setTitle(event.target.value)}
+                      onChange={(event) =>
+                        handleTitleChange(event.target.value)
+                      }
                       placeholder="Summarize your idea with a clear title"
-                      className="mt-1 h-[42px] w-full rounded-[10px] border border-zinc-200 px-4 text-[16px] tracking-[-0.02em] text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5"
+                      className={cn(
+                        "mt-1 h-[42px] w-full rounded-[10px] border px-4 text-[16px] tracking-[-0.02em] text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:ring-4 focus:ring-zinc-900/5",
+                        submitErrors.title
+                          ? "border-rose-300 bg-rose-50/40 focus:border-rose-400"
+                          : "border-zinc-200 focus:border-zinc-400",
+                      )}
                     />
+                    {submitErrors.title ? (
+                      <p className="mt-2 text-sm text-rose-600">
+                        {submitErrors.title}
+                      </p>
+                    ) : null}
                   </label>
 
                   <label className="block">
@@ -280,12 +401,52 @@ export function WriteView({
                       Description
                     </span>
                     <textarea
+                      name="description"
                       value={description}
-                      onChange={(event) => setDescription(event.target.value)}
+                      onChange={(event) =>
+                        handleDescriptionChange(event.target.value)
+                      }
                       placeholder="Describe why this story matters and what readers will learn..."
                       rows={4}
-                      className="mt-1 w-full rounded-[10px] border border-zinc-200 px-4 py-3 text-[16px] leading-6 tracking-[-0.02em] text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5"
+                      className={cn(
+                        "mt-1 w-full rounded-[10px] border px-4 py-3 text-[16px] leading-6 tracking-[-0.02em] text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:ring-4 focus:ring-zinc-900/5",
+                        submitErrors.description
+                          ? "border-rose-300 bg-rose-50/40 focus:border-rose-400"
+                          : "border-zinc-200 focus:border-zinc-400",
+                      )}
                     />
+                    {submitErrors.description ? (
+                      <p className="mt-2 text-sm text-rose-600">
+                        {submitErrors.description}
+                      </p>
+                    ) : null}
+                  </label>
+
+                  <label className="block">
+                    <span className="text-sm font-medium text-zinc-700">
+                      Topics
+                    </span>
+                    <input
+                      value={topicInput}
+                      onChange={(event) =>
+                        handleTopicInputChange(event.target.value)
+                      }
+                      onKeyDown={handleTopicKeyDown}
+                      placeholder="Type a topic and press Enter"
+                      className="mt-1 h-[42px] w-full rounded-[10px] border border-zinc-200 px-4 text-[16px] tracking-[-0.02em] text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5"
+                    />
+
+                    {topics.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {topics.map((topic) => (
+                          <TopicChip
+                            key={topic}
+                            topic={topic}
+                            onRemove={() => removeTopic(topic)}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
                   </label>
                 </div>
               </section>
@@ -302,8 +463,9 @@ export function WriteView({
                   {mode === "edit" ? (
                     <textarea
                       ref={editorRef}
+                      name="content"
                       value={body}
-                      onChange={(event) => setBody(event.target.value)}
+                      onChange={(event) => handleBodyChange(event.target.value)}
                       placeholder="Start typing..."
                       className="min-h-[520px] w-full resize-none px-6 py-6 text-[16px] leading-8 tracking-[-0.01em] text-zinc-900 outline-none placeholder:text-zinc-400"
                     />
@@ -311,10 +473,17 @@ export function WriteView({
                     <MarkdownPreview
                       title={deferredTitle}
                       description={deferredDescription}
+                      topics={deferredTopics}
                       body={deferredBody}
                     />
                   )}
                 </div>
+
+                {submitErrors.content ? (
+                  <div className="border-t border-rose-200 bg-rose-50 px-6 py-3 text-sm text-rose-700">
+                    {submitErrors.content}
+                  </div>
+                ) : null}
               </section>
             </div>
 
@@ -355,7 +524,7 @@ export function WriteView({
               </section>
             </aside>
           </div>
-        </section>
+        </form>
       </main>
 
       <Footer />
@@ -392,25 +561,64 @@ function ModeButton({
   );
 }
 
+function PublishButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-900 bg-zinc-950 px-5 text-sm font-semibold text-white shadow-[0_1px_3px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.1)] transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 disabled:cursor-not-allowed disabled:bg-zinc-400"
+    >
+      {pending ? "Publishing..." : "Publish"}
+    </button>
+  );
+}
+
+function TopicChip({
+  topic,
+  onRemove,
+}: {
+  topic: string;
+  onRemove: () => void;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-[12px] font-medium tracking-wide text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+      <span>{topic}</span>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${topic}`}
+        className="grid size-4 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-200 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+      >
+        <IconClose className="size-3" />
+      </button>
+    </span>
+  );
+}
+
 function MarkdownPreview({
   title,
   description,
+  topics,
   body,
 }: {
   title: string;
   description: string;
+  topics: string[];
   body: string;
 }) {
-  const hasContent = title.trim() || description.trim() || body.trim();
+  const hasContent =
+    title.trim() || description.trim() || body.trim() || topics.length > 0;
 
   if (!hasContent) {
     return (
-      <div className="flex min-h-[520px] items-center justify-center px-6 py-10">
-        <div className="max-w-[360px] text-center">
+      <div className="flex min-h-130 items-center justify-center px-6 py-10">
+        <div className="max-w-90 text-center">
           <p className="text-sm font-medium text-zinc-500">Preview is empty</p>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            Add a title, description, or markdown content to see the article
-            preview here.
+            Add a title, description, topics, or markdown content to see the
+            article preview here.
           </p>
         </div>
       </div>
@@ -418,18 +626,30 @@ function MarkdownPreview({
   }
 
   return (
-    <article className="min-h-[520px] px-6 py-8">
+    <article className="min-h-130 px-6 py-8">
       <header className="border-b border-zinc-200 pb-8">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">
           Live Preview
         </p>
-        <h2 className="mt-4 [font-family:Georgia,serif] text-[34px] font-bold leading-tight tracking-[-0.03em] text-zinc-950">
+        <h2 className="mt-4 font-[Georgia,serif] text-[34px] font-bold leading-tight tracking-[-0.03em] text-zinc-950">
           {title.trim() || "Untitled story"}
         </h2>
         {description.trim() ? (
           <p className="mt-4 max-w-[60ch] text-[17px] leading-8 text-zinc-600">
             {description}
           </p>
+        ) : null}
+        {topics.length > 0 ? (
+          <div className="mt-5 flex flex-wrap gap-2">
+            {topics.map((topic) => (
+              <span
+                key={topic}
+                className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-zinc-600"
+              >
+                {topic}
+              </span>
+            ))}
+          </div>
         ) : null}
       </header>
 
@@ -445,6 +665,18 @@ function MarkdownPreview({
       </div>
     </article>
   );
+}
+
+function normalizeTopic(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function normalizeTopics(values: string[]) {
+  return values
+    .map(normalizeTopic)
+    .filter(
+      (value, index, list) => Boolean(value) && list.indexOf(value) === index,
+    );
 }
 
 function countWords(value: string) {
@@ -489,7 +721,12 @@ function formatTimeLabel(isoDate?: string) {
 
 function IconArrowLeft({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M15 18l-6-6 6-6"
         stroke="currentColor"
@@ -509,7 +746,12 @@ function IconArrowLeft({ className }: { className?: string }) {
 
 function IconEdit({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M12 20h9"
         stroke="currentColor"
@@ -529,7 +771,12 @@ function IconEdit({ className }: { className?: string }) {
 
 function IconSave({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
         d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"
         stroke="currentColor"
@@ -550,6 +797,30 @@ function IconSave({ className }: { className?: string }) {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconClose({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M4 4l8 8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 4L4 12"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
     </svg>
   );

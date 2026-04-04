@@ -9,11 +9,13 @@ export function PostTabs({
   articleHref,
   suggestsHref,
   suggestCount = 0,
+  showSuggestsTab = true,
 }: {
   activeTab: PostTabKey;
   articleHref: string;
   suggestsHref: string;
   suggestCount?: number;
+  showSuggestsTab?: boolean;
 }) {
   return (
     <nav aria-label="Post sections" className="mt-6 border-b border-zinc-200">
@@ -32,24 +34,26 @@ export function PostTabs({
           <span>Article</span>
         </Link>
 
-        <Link
-          href={suggestsHref}
-          aria-current={activeTab === "suggests" ? "page" : undefined}
-          className={cn(
-            "relative -mb-px inline-flex h-[34px] items-center gap-2 border-b-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-            activeTab === "suggests"
-              ? "border-zinc-950 text-zinc-950"
-              : "border-transparent text-zinc-500 hover:text-zinc-950",
-          )}
-        >
-          <GitPullRequestIcon className="size-4" />
-          <span>Suggests</span>
-          {suggestCount > 0 ? (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-100 px-1.5 text-[11px] font-bold leading-none text-zinc-950">
-              {suggestCount}
-            </span>
-          ) : null}
-        </Link>
+        {showSuggestsTab ? (
+          <Link
+            href={suggestsHref}
+            aria-current={activeTab === "suggests" ? "page" : undefined}
+            className={cn(
+              "relative -mb-px inline-flex h-[34px] items-center gap-2 border-b-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+              activeTab === "suggests"
+                ? "border-zinc-950 text-zinc-950"
+                : "border-transparent text-zinc-500 hover:text-zinc-950",
+            )}
+          >
+            <GitPullRequestIcon className="size-4" />
+            <span>Suggests</span>
+            {suggestCount > 0 ? (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-100 px-1.5 text-[11px] font-bold leading-none text-zinc-950">
+                {suggestCount}
+              </span>
+            ) : null}
+          </Link>
+        ) : null}
       </div>
     </nav>
   );
