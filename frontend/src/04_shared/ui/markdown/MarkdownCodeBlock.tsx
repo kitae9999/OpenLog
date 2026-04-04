@@ -49,21 +49,21 @@ export function MarkdownCodeBlock({
   const isCopied = copyState === "copied";
 
   return (
-    <div className="markdown-code overflow-hidden rounded-xl border border-zinc-200 bg-zinc-950 text-zinc-100 shadow-[0_20px_50px_rgba(9,9,11,0.18)]">
-      <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-1.5">
-        <span className="truncate text-[10px] uppercase tracking-[0.18em] text-zinc-400">
+    <div className="markdown-code overflow-hidden rounded-xl border border-zinc-200 bg-[linear-gradient(180deg,#fdfdfc_0%,#fafaf8_100%)] text-zinc-900 shadow-[0_20px_50px_rgba(113,113,122,0.14)]">
+      <div className="flex items-center justify-between gap-2 border-b border-zinc-200/90 bg-[rgba(244,244,245,0.75)] px-4 py-1.5 backdrop-blur-sm">
+        <span className="truncate text-[10px] uppercase tracking-[0.18em] text-zinc-500">
           {languageLabel}
         </span>
         <button
           type="button"
           onClick={handleCopy}
           className={cn(
-            "inline-flex size-7 shrink-0 items-center justify-center rounded-md border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60",
+            "inline-flex size-7 shrink-0 items-center justify-center rounded-md border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40",
             isCopied
-              ? "border-emerald-400/40 bg-emerald-400/12 text-emerald-200"
+              ? "border-emerald-300 bg-emerald-50 text-emerald-700"
               : copyState === "error"
-                ? "border-rose-400/40 bg-rose-400/12 text-rose-200 hover:border-rose-300/60 hover:bg-rose-400/16"
-                : "border-white/12 bg-white/5 text-zinc-300 hover:border-sky-300/30 hover:bg-sky-400/10 hover:text-sky-100",
+                ? "border-rose-300 bg-rose-50 text-rose-700 hover:border-rose-400 hover:bg-rose-100"
+                : "border-zinc-200 bg-white/90 text-zinc-500 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700",
           )}
           aria-label={getCopyAriaLabel(copyState, languageLabel)}
           title={getCopyTooltip(copyState)}
