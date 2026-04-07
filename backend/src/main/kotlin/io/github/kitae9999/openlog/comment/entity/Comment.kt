@@ -30,7 +30,7 @@ class Comment (
     var post : Post = post
         protected set
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     var user : User = user
         protected set
