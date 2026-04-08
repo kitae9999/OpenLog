@@ -26,4 +26,14 @@ class CommentService (
             )
         )
     }
+
+    /**
+     * 포스트에는 댓글이 없을 수도 있음
+     */
+    fun getPostComments(postId: Long): List<Comment>{
+        if (!commentRepository.existsById(postId)) {
+            throw NotFoundException("포스트를 찾을 수 없습니다.")
+        }
+        return commentRepository.findAllByPostId(postId)
+    }
 }
