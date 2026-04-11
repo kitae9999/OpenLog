@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Footer, Header } from "@/widgets/chrome/ui";
 import { PostArticle } from "@/widgets/post/ui";
+import { getPostComments } from "@/entities/comment/api/getPostComments";
 import { getPostDetail } from "@/entities/post/api/getPostDetail";
 import { getPostEntry, contributors } from "@/entities/post/model";
 import { getUser } from "@/features/auth/api/getUser";
@@ -43,6 +44,7 @@ export default async function PublicPostPage({
     : undefined;
 
   if (detail) {
+    const commentItems = await getPostComments(detail.id);
     const authorHref = buildPublicProfilePath(detail.authorUsername);
     const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
     const suggestsHref = buildPublicSuggestsPath(
@@ -70,8 +72,10 @@ export default async function PublicPostPage({
               tags: detail.topics,
               coverSrc: assets.postCover,
               likes: detail.likes,
-              comments: detail.comments,
+              comments: commentItems.length,
             }}
+            commentItems={commentItems}
+            postId={detail.id}
             authorHref={authorHref}
             currentUserAvatarSrc={viewer?.profileImageUrl}
             backHref="/?tab=trending"

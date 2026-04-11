@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { Comment } from "@/entities/comment/api/getPostComments";
 import type { Contributor, Post } from "@/entities/post/model";
-import { DiscussionComposer } from "@/features/discussion-composer/ui";
-import { assets } from "@/shared/config/assets";
+import { PostCommentsSection } from "./PostCommentsSection";
 import { PostTabs } from "./PostTabs";
 
 const COMMENTS_SECTION_ID = "post-comments";
@@ -20,6 +20,8 @@ export function PostArticle({
   suggestEditsHref = "/contribute",
   suggestCount = 0,
   showSuggestsTab = true,
+  commentItems,
+  postId,
 }: {
   post: Post;
   contributors?: Contributor[];
@@ -32,6 +34,8 @@ export function PostArticle({
   suggestEditsHref?: string;
   suggestCount?: number;
   showSuggestsTab?: boolean;
+  commentItems?: Comment[];
+  postId?: number;
 }) {
   const list = contributors ?? [];
 
@@ -39,16 +43,14 @@ export function PostArticle({
     <div className="mx-auto w-full max-w-[950px] pb-12">
       <div className="flex items-start gap-15">
         <aside
-          className="sticky top-16 hidden w-[60px] shrink-0 lg:block"
+          className="sticky top-[clamp(7rem,calc(50dvh-9rem),15rem)] hidden w-[60px] shrink-0 self-start lg:block"
           aria-label="Post actions"
         >
-          <div className="flex h-[calc(100dvh-4rem)] items-center">
-            <PostActionRail
-              likes={post.likes}
-              comments={post.comments}
-              suggestEditsHref={suggestEditsHref}
-            />
-          </div>
+          <PostActionRail
+            likes={post.likes}
+            comments={post.comments}
+            suggestEditsHref={suggestEditsHref}
+          />
         </aside>
 
         <article className="w-full max-w-[768px]">
@@ -212,7 +214,9 @@ export function PostArticle({
 
           <PostCommentsSection
             comments={post.comments}
+            initialComments={commentItems}
             currentUserAvatarSrc={currentUserAvatarSrc}
+            postId={postId}
           />
         </article>
       </div>
@@ -230,7 +234,7 @@ function PostActionRail({
   suggestEditsHref: string;
 }) {
   return (
-    <nav className="-translate-y-[150px] flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
+    <nav className="flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
       <button
         type="button"
         aria-label={`Like (${likes})`}
@@ -304,66 +308,6 @@ function MobileActionBar({
         Suggests
       </Link>
     </div>
-  );
-}
-
-function PostCommentsSection({
-  comments,
-  currentUserAvatarSrc,
-}: {
-  comments: number;
-  currentUserAvatarSrc?: string | null;
-}) {
-  const resolvedAvatarSrc = currentUserAvatarSrc ?? assets.defaultAvatar;
-
-  return (
-    <section
-      id={COMMENTS_SECTION_ID}
-      className="mt-14 scroll-mt-24 rounded-[28px] border border-zinc-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbfa_100%)] p-6 shadow-[0_22px_50px_rgba(24,24,27,0.06)] sm:p-7"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-5">
-        <div>
-          <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.10em] text-zinc-400">
-            <IconMessageSquare className="size-3.5" />
-            Comments
-          </div>
-          <h2 className="mt-3 font-serif text-[28px] font-semibold tracking-tight text-zinc-950">
-            Join the thread
-          </h2>
-          <p className="mt-2 max-w-[58ch] text-sm leading-6 text-zinc-600">
-            Leave feedback, ask for clarification, or keep a focused discussion
-            attached to this article.
-          </p>
-        </div>
-        <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-500 shadow-sm">
-          {comments} comments
-        </span>
-      </div>
-
-      {comments > 0 ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-4 text-sm leading-6 text-zinc-500">
-          Existing comment entries are not wired into this detail view yet. The
-          section is ready for comment-thread data and new replies.
-        </div>
-      ) : (
-        <div className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-4 text-sm leading-6 text-zinc-500">
-          No comments yet. Start the first thread for this article.
-        </div>
-      )}
-
-      <div className="mt-6 flex items-start gap-4">
-        <Image
-          src={resolvedAvatarSrc}
-          alt="Current user avatar"
-          width={40}
-          height={40}
-          className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
-        />
-        <div className="min-w-0 flex-1">
-          <DiscussionComposer />
-        </div>
-      </div>
-    </section>
   );
 }
 

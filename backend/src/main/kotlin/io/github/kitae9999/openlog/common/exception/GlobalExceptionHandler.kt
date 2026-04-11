@@ -83,4 +83,14 @@ class GlobalExceptionHandler {
             )
         )
     }
+
+    @ExceptionHandler(ForbiddenException::class)
+    fun handleForbiddenException(e: ForbiddenException): ResponseEntity<ErrorResponse>{
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+            ErrorResponse(
+                code = "FORBIDDEN",
+                message = e.message ?: "권한이 없는 요청입니다."
+            )
+        )
+    }
 }
