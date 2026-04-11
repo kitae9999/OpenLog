@@ -6,6 +6,7 @@ import { getPostEntry, contributors } from "@/entities/post/model";
 import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
 import {
+  buildPublicProfilePath,
   buildPublicPostPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
@@ -37,9 +38,12 @@ export default async function PublicPostPage({
     getUser(),
     getPostDetail(authorUsername, canonicalPostSlug),
   ]);
-  const profileHref = viewer ? buildViewerProfileHref(viewer.username) : undefined;
+  const profileHref = viewer
+    ? buildViewerProfileHref(viewer.username)
+    : undefined;
 
   if (detail) {
+    const authorHref = buildPublicProfilePath(detail.authorUsername);
     const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
     const suggestsHref = buildPublicSuggestsPath(
       detail.authorUsername,
@@ -68,12 +72,13 @@ export default async function PublicPostPage({
               likes: detail.likes,
               comments: detail.comments,
             }}
+            authorHref={authorHref}
+            currentUserAvatarSrc={viewer?.profileImageUrl}
             backHref="/?tab=trending"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
             suggestEditsHref="/contribute"
             suggestCount={0}
-            showSuggestsTab={false}
           >
             <div className="mt-8 space-y-6 text-[16px] leading-8 text-zinc-700">
               <MarkdownContent markdown={detail.content} />
@@ -92,7 +97,11 @@ export default async function PublicPostPage({
   }
 
   const articleHref = buildPublicPostPath(authorUsername, canonicalPostSlug);
-  const suggestsHref = buildPublicSuggestsPath(authorUsername, canonicalPostSlug);
+  const authorHref = buildPublicProfilePath(authorUsername);
+  const suggestsHref = buildPublicSuggestsPath(
+    authorUsername,
+    canonicalPostSlug,
+  );
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
@@ -106,6 +115,8 @@ export default async function PublicPostPage({
         <PostArticle
           post={entry.post}
           contributors={contributors}
+          authorHref={authorHref}
+          currentUserAvatarSrc={viewer?.profileImageUrl}
           backHref="/?tab=trending"
           articleHref={articleHref}
           suggestsHref={suggestsHref}
