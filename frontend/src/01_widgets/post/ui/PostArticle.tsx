@@ -1,12 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { Comment } from "@/entities/comment/api/getPostComments";
 import type { Contributor, Post } from "@/entities/post/model";
 import { DiscussionComposer } from "@/features/discussion-composer/ui";
 import { assets } from "@/shared/config/assets";
+import { MarkdownContent } from "@/shared/ui/markdown";
 import { PostTabs } from "./PostTabs";
 
 const COMMENTS_SECTION_ID = "post-comments";
+const COMMENT_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
 
 export function PostArticle({
   post,
@@ -20,6 +27,7 @@ export function PostArticle({
   suggestEditsHref = "/contribute",
   suggestCount = 0,
   showSuggestsTab = true,
+  commentItems,
 }: {
   post: Post;
   contributors?: Contributor[];
@@ -32,6 +40,7 @@ export function PostArticle({
   suggestEditsHref?: string;
   suggestCount?: number;
   showSuggestsTab?: boolean;
+  commentItems?: Comment[];
 }) {
   const list = contributors ?? [];
 
@@ -212,6 +221,7 @@ export function PostArticle({
 
           <PostCommentsSection
             comments={post.comments}
+            commentItems={commentItems}
             currentUserAvatarSrc={currentUserAvatarSrc}
           />
         </article>
@@ -309,12 +319,16 @@ function MobileActionBar({
 
 function PostCommentsSection({
   comments,
+  commentItems,
   currentUserAvatarSrc,
 }: {
   comments: number;
+  commentItems?: Comment[];
   currentUserAvatarSrc?: string | null;
 }) {
   const resolvedAvatarSrc = currentUserAvatarSrc ?? assets.defaultAvatar;
+  const hasFetchedComments = commentItems !== undefined;
+  const list = commentItems ?? [];
 
   return (
     <section
@@ -340,7 +354,13 @@ function PostCommentsSection({
         </span>
       </div>
 
-      {comments > 0 ? (
+      {list.length > 0 ? (
+        <div className="mt-5 space-y-4">
+          {list.map((comment) => (
+            <CommentCard key={comment.id} comment={comment} />
+          ))}
+        </div>
+      ) : !hasFetchedComments && comments > 0 ? (
         <div className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-4 text-sm leading-6 text-zinc-500">
           Existing comment entries are not wired into this detail view yet. The
           section is ready for comment-thread data and new replies.
@@ -365,6 +385,42 @@ function PostCommentsSection({
       </div>
     </section>
   );
+}
+
+function CommentCard({ comment }: { comment: Comment }) {
+  const authorAvatarSrc = comment.authorProfileImageUrl || assets.defaultAvatar;
+
+  return (
+    <div className="flex items-start gap-4">
+      <Image
+        src={authorAvatarSrc}
+        alt={`${comment.authorName} avatar`}
+        width={40}
+        height={40}
+        className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
+      />
+      <section className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-500">
+          <span className="font-semibold text-zinc-950">
+            {comment.authorName}
+          </span>
+          <span>commented on {formatCommentedAtLabel(comment.createdAt)}.</span>
+        </div>
+        <div className="px-4 py-5">
+          <MarkdownContent markdown={comment.content} variant="compact" />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function formatCommentedAtLabel(createdAt: string) {
+  const parsed = new Date(createdAt);
+  if (Number.isNaN(parsed.getTime())) {
+    return createdAt || "recently";
+  }
+
+  return COMMENT_DATE_FORMATTER.format(parsed);
 }
 
 function ContributorCard({ contributor }: { contributor: Contributor }) {
