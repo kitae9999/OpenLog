@@ -18,17 +18,19 @@ class CommentService(
     private val userRepository: UserRepository
 ) {
     @Transactional
-    fun createComment(userId: Long, postId: Long, content: String) {
+    fun createComment(userId: Long, postId: Long, content: String): CommentResponse {
         val author = userRepository.findById(userId).getOrNull() ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val post = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("포스트를 찾을 수 없습니다.")
 
-        commentRepository.save(
+        val savedComment = commentRepository.save(
             Comment(
                 user = author,
                 post = post,
                 content = content,
             )
         )
+
+        return toCommentResponse(savedComment)
     }
 
     /**

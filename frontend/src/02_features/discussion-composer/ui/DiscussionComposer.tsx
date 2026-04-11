@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { cn } from "@/shared/lib/cn";
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import {
@@ -8,12 +8,28 @@ import {
   type ToolbarAction,
 } from "@/shared/lib/markdown";
 
-export function DiscussionComposer() {
+type SubmitResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
+export function DiscussionComposer({
+  onSubmit,
+}: {
+  onSubmit?: (content: string) => Promise<SubmitResult>;
+}) {
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const isEmpty = value.trim().length === 0;
+  const canSubmit = Boolean(onSubmit) && !isEmpty && !isPending;
 
   function insertFormatting(action: ToolbarAction) {
     const textarea = editorRef.current;
@@ -37,6 +53,30 @@ export function DiscussionComposer() {
     window.requestAnimationFrame(() => {
       textarea.focus();
       textarea.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    });
+  }
+
+  function submitComment() {
+    if (!onSubmit || isEmpty || isPending) {
+      return;
+    }
+
+    const nextContent = value.trim();
+    setError(null);
+
+    startTransition(async () => {
+      try {
+        const result = await onSubmit(nextContent);
+        if (result.ok) {
+          setValue("");
+          setMode("write");
+          return;
+        }
+
+        setError(result.message);
+      } catch {
+        setError("댓글을 작성하는 중 문제가 발생했습니다.");
+      }
     });
   }
 
@@ -113,17 +153,23 @@ export function DiscussionComposer() {
         </span>
         <button
           type="button"
-          disabled={isEmpty}
+          onClick={submitComment}
+          disabled={!canSubmit}
           className={cn(
             "inline-flex h-8 items-center rounded-xl px-4 text-sm font-bold text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30",
-            isEmpty
+            !canSubmit
               ? "cursor-not-allowed bg-emerald-600/50"
               : "bg-emerald-600 hover:bg-emerald-700",
           )}
         >
-          Comment
+          {isPending ? "Posting..." : "Comment"}
         </button>
       </div>
+      {error ? (
+        <p className="border-t border-rose-100 bg-rose-50 px-4 py-2 text-xs font-medium text-rose-700">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
