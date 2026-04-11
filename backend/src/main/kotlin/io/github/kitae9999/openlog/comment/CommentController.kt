@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.comment
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
+import io.github.kitae9999.openlog.comment.dto.CommentResponse
 import io.github.kitae9999.openlog.comment.dto.CreateCommentRequest
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
@@ -21,11 +22,11 @@ class CommentController(
     fun createComment(
         @PathVariable postId: Long, // @PathVariable("postId") postId: Long 축약형
         @RequestBody createCommentRequest: CreateCommentRequest,
-        request: HttpServletRequest
-    ): ResponseEntity<Unit>{
+        request: HttpServletRequest,
+    ): ResponseEntity<Void> {
         val currentUserId = currentUserResolver.resolveUserId(request)
         val content = createCommentRequest.content
-        commentService.createComment(currentUserId,postId,content)
+        commentService.createComment(currentUserId, postId, content)
 
         return ResponseEntity.status(201).build()
     }
@@ -33,7 +34,7 @@ class CommentController(
     @GetMapping()
     fun getPostComments(
         @PathVariable postId: Long,
-    ){
-        val comments = commentService.getPostComments(postId)
+    ): List<CommentResponse> {
+        return commentService.getPostComments(postId)
     }
 }
