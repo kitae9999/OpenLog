@@ -47,5 +47,9 @@ class Comment (
     var updatedAt: LocalDateTime = LocalDateTime.now()
         protected set
 
+    fun updateComment(content: String) {
+        this.content = content
+        this.updatedAt = LocalDateTime.now()
+    }
 
 }

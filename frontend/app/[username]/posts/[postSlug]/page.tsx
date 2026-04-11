@@ -15,7 +15,6 @@ import {
   parsePublicUsernameParam,
 } from "@/shared/lib/publicRoutes";
 import { MarkdownContent } from "@/shared/ui/markdown";
-import { submitPostComment } from "./actions";
 
 export default async function PublicPostPage({
   params,
@@ -76,7 +75,7 @@ export default async function PublicPostPage({
               comments: commentItems.length,
             }}
             commentItems={commentItems}
-            submitCommentAction={submitPostComment.bind(null, detail.id)}
+            postId={detail.id}
             authorHref={authorHref}
             currentUserAvatarSrc={viewer?.profileImageUrl}
             backHref="/?tab=trending"

@@ -4,10 +4,13 @@ import io.github.kitae9999.openlog.auth.CurrentUserResolver
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.comment.dto.CommentResponse
 import io.github.kitae9999.openlog.comment.dto.CreateCommentRequest
+import io.github.kitae9999.openlog.comment.dto.UpdateCommentRequest
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -47,5 +50,34 @@ class CommentController(
         } catch (e: OAuthAuthenticationException) {
             null
         }
+    }
+
+    @DeleteMapping("{commentId}")
+    fun deleteComment(
+        @PathVariable commentId: Long,
+        @PathVariable postId: Long,
+        request: HttpServletRequest,
+    ): ResponseEntity<Void> {
+        val userId = currentUserResolver.resolveUserId(request)
+        commentService.deleteComment(userId, postId, commentId)
+        return ResponseEntity.noContent().build()
+    }
+
+    @PatchMapping("{commentId}")
+    fun updateComment(
+        @PathVariable commentId: Long,
+        @PathVariable postId: Long,
+        @Valid @RequestBody updateCommentRequest: UpdateCommentRequest,
+        request: HttpServletRequest,
+    ): ResponseEntity<CommentResponse> {
+        val userId = currentUserResolver.resolveUserId(request)
+        val updatedComment = commentService.updateComment(
+            userId,
+            postId,
+            commentId,
+            updateCommentRequest.content,
+        )
+
+        return ResponseEntity.ok(updatedComment)
     }
 }

@@ -11,7 +11,7 @@ export type Comment = {
   canManage: boolean;
 };
 
-export type SubmitCommentResult =
+export type CommentMutationResult =
   | {
       ok: true;
       comment: Comment;
@@ -21,9 +21,14 @@ export type SubmitCommentResult =
       message: string;
     };
 
-export type SubmitCommentAction = (
-  content: string,
-) => Promise<SubmitCommentResult>;
+export type DeleteCommentResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
 
 export async function getPostComments(postId: number) {
   const headerStore = await headers();

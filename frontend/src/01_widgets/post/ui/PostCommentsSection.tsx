@@ -2,11 +2,13 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import type { Comment } from "@/entities/comment/api/getPostComments";
 import {
-  type Comment,
-  type SubmitCommentAction,
-} from "@/entities/comment/api/getPostComments";
+  deletePostComment,
+  submitPostComment,
+  updatePostComment,
+} from "@/features/comment/api/commentActions";
 import { DiscussionComposer } from "@/features/discussion-composer/ui";
 import { assets } from "@/shared/config/assets";
 import { MarkdownContent } from "@/shared/ui/markdown";
@@ -22,30 +24,34 @@ export function PostCommentsSection({
   comments,
   initialComments,
   currentUserAvatarSrc,
-  submitCommentAction,
+  postId,
 }: {
   comments: number;
   initialComments?: Comment[];
   currentUserAvatarSrc?: string | null;
-  submitCommentAction?: SubmitCommentAction;
+  postId?: number;
 }) {
   const router = useRouter();
   const resolvedAvatarSrc = currentUserAvatarSrc ?? assets.defaultAvatar;
   const hasFetchedComments = initialComments !== undefined;
   const [commentItems, setCommentItems] = useState(initialComments ?? []);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [, startDeleteTransition] = useTransition();
   const displayCommentCount = hasFetchedComments
     ? commentItems.length
     : comments;
 
   async function submitComment(content: string) {
-    if (!submitCommentAction) {
+    if (!postId) {
       return {
         ok: false as const,
         message: "댓글 작성 기능을 사용할 수 없습니다.",
       };
     }
 
-    const result = await submitCommentAction(content);
+    const result = await submitPostComment(postId, content);
     if (!result.ok) {
       return result;
     }
@@ -58,6 +64,65 @@ export function PostCommentsSection({
     router.refresh();
 
     return { ok: true as const };
+  }
+
+  async function updateComment(commentId: number, content: string) {
+    if (!postId) {
+      return {
+        ok: false as const,
+        message: "댓글 수정 기능을 사용할 수 없습니다.",
+      };
+    }
+
+    const result = await updatePostComment(postId, commentId, content);
+    if (!result.ok) {
+      return result;
+    }
+
+    setCommentItems((current) =>
+      current.map((comment) =>
+        comment.id === result.comment.id ? result.comment : comment,
+      ),
+    );
+    setEditingCommentId(null);
+    router.refresh();
+
+    return { ok: true as const };
+  }
+
+  function deleteComment(commentId: number) {
+    if (!postId || deletingCommentId !== null) {
+      return;
+    }
+
+    if (!window.confirm("댓글을 삭제할까요?")) {
+      return;
+    }
+
+    setActionError(null);
+    setDeletingCommentId(commentId);
+
+    startDeleteTransition(async () => {
+      try {
+        const result = await deletePostComment(postId, commentId);
+        if (!result.ok) {
+          setActionError(result.message);
+          return;
+        }
+
+        setCommentItems((current) =>
+          current.filter((comment) => comment.id !== commentId),
+        );
+        setEditingCommentId((current) =>
+          current === commentId ? null : current,
+        );
+        router.refresh();
+      } catch {
+        setActionError("댓글을 삭제하는 중 문제가 발생했습니다.");
+      } finally {
+        setDeletingCommentId(null);
+      }
+    });
   }
 
   return (
@@ -91,6 +156,15 @@ export function PostCommentsSection({
               key={comment.id}
               comment={comment}
               canManage={comment.canManage}
+              isEditing={editingCommentId === comment.id}
+              isDeleting={deletingCommentId === comment.id}
+              onEdit={() => {
+                setActionError(null);
+                setEditingCommentId(comment.id);
+              }}
+              onCancelEdit={() => setEditingCommentId(null)}
+              onSubmitEdit={(content) => updateComment(comment.id, content)}
+              onDelete={() => deleteComment(comment.id)}
             />
           ))}
         </div>
@@ -105,6 +179,12 @@ export function PostCommentsSection({
         </div>
       )}
 
+      {actionError ? (
+        <p className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+          {actionError}
+        </p>
+      ) : null}
+
       <div className="mt-6 flex items-start gap-4">
         <Image
           src={resolvedAvatarSrc}
@@ -114,7 +194,9 @@ export function PostCommentsSection({
           className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
         />
         <div className="min-w-0 flex-1">
-          <DiscussionComposer onSubmit={submitComment} />
+          <DiscussionComposer
+            onSubmit={postId ? submitComment : undefined}
+          />
         </div>
       </div>
     </section>
@@ -124,9 +206,29 @@ export function PostCommentsSection({
 function CommentCard({
   comment,
   canManage,
+  isEditing,
+  isDeleting,
+  onEdit,
+  onCancelEdit,
+  onSubmitEdit,
+  onDelete,
 }: {
   comment: Comment;
   canManage: boolean;
+  isEditing: boolean;
+  isDeleting: boolean;
+  onEdit: () => void;
+  onCancelEdit: () => void;
+  onSubmitEdit: (content: string) => Promise<
+    | {
+        ok: true;
+      }
+    | {
+        ok: false;
+        message: string;
+      }
+  >;
+  onDelete: () => void;
 }) {
   const authorAvatarSrc = comment.authorProfileImageUrl || assets.defaultAvatar;
 
@@ -153,28 +255,42 @@ function CommentCard({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                disabled
+                onClick={onEdit}
+                disabled={isEditing || isDeleting}
                 aria-label="Edit your comment"
-                title="Edit API is not connected yet."
-                className="text-xs font-semibold text-zinc-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
               >
                 Edit
               </button>
               <button
                 type="button"
-                disabled
+                onClick={onDelete}
+                disabled={isDeleting}
                 aria-label="Delete your comment"
-                title="Delete API is not connected yet."
-                className="text-xs font-semibold text-rose-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20"
+                className="text-xs font-semibold text-rose-500 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:text-rose-300"
               >
-                Delete
+                {isDeleting ? "Deleting..." : "Delete"}
               </button>
             </div>
           ) : null}
         </div>
-        <div className="px-4 py-5">
-          <MarkdownContent markdown={comment.content} variant="compact" />
-        </div>
+        {isEditing ? (
+          <div className="p-4">
+            <DiscussionComposer
+              key={comment.id}
+              initialValue={comment.content}
+              submitLabel="Save"
+              pendingLabel="Saving..."
+              errorFallback="댓글을 수정하는 중 문제가 발생했습니다."
+              onCancel={onCancelEdit}
+              onSubmit={onSubmitEdit}
+            />
+          </div>
+        ) : (
+          <div className="px-4 py-5">
+            <MarkdownContent markdown={comment.content} variant="compact" />
+          </div>
+        )}
       </section>
     </div>
   );

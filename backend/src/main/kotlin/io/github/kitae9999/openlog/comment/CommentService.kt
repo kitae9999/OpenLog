@@ -3,6 +3,8 @@ package io.github.kitae9999.openlog.comment
 import io.github.kitae9999.openlog.comment.dto.CommentResponse
 import io.github.kitae9999.openlog.comment.entity.Comment
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
+import io.github.kitae9999.openlog.common.exception.BadRequestException
+import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.user.entity.User
@@ -30,23 +32,23 @@ class CommentService(
             )
         )
 
-        return toCommentResponse(savedComment, currentUserId = userId)
+        return toCommentResponse(savedComment, userId = userId)
     }
 
     /**
      * 포스트에는 댓글이 없을 수도 있음
      */
     @Transactional(readOnly = true)
-    fun getPostComments(postId: Long, currentUserId: Long?): List<CommentResponse> {
+    fun getPostComments(postId: Long, userId: Long?): List<CommentResponse> {
         if (!postRepository.existsById(postId)) {
             throw NotFoundException("포스트를 찾을 수 없습니다.")
         }
 
         return commentRepository.findAllByPostIdWithUser(postId)
-            .map { comment -> toCommentResponse(comment, currentUserId) }
+            .map { comment -> toCommentResponse(comment, userId) }
     }
 
-    private fun toCommentResponse(comment: Comment, currentUserId: Long?): CommentResponse {
+    private fun toCommentResponse(comment: Comment, userId: Long?): CommentResponse {
         val author = comment.user
         val authorId = requireNotNull(author.id)
 
@@ -56,7 +58,7 @@ class CommentService(
             authorProfileImageUrl = author.profileImageUrl,
             content = comment.content,
             createdAt = comment.createdAt.toString(),
-            canManage = currentUserId == authorId,
+            canManage = userId == authorId,
         )
     }
 
@@ -67,5 +69,34 @@ class CommentService(
             !user.email.isNullOrBlank() -> user.email.orEmpty()
             else -> "OpenLog member"
         }
+    }
+
+    @Transactional
+    fun deleteComment(userId: Long, postId: Long, commentId: Long) {
+        val comment = getManageableComment(userId, postId, commentId)
+        commentRepository.delete(comment)
+    }
+
+    @Transactional
+    fun updateComment(userId: Long, postId: Long, commentId: Long, content: String): CommentResponse {
+        val comment = getManageableComment(userId, postId, commentId)
+        comment.updateComment(content)
+
+        return toCommentResponse(comment, userId = userId)
+    }
+
+    private fun getManageableComment(userId: Long, postId: Long, commentId: Long): Comment {
+        val comment = commentRepository.findById(commentId).getOrNull()
+            ?: throw NotFoundException("댓글을 찾을 수 없습니다.")
+
+        if (comment.post.id != postId) {
+            throw BadRequestException("잘못된 접근입니다.")
+        }
+
+        if (comment.user.id != userId) {
+            throw ForbiddenException()
+        }
+
+        return comment
     }
 }

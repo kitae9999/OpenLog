@@ -18,12 +18,22 @@ type SubmitResult =
     };
 
 export function DiscussionComposer({
+  initialValue = "",
+  submitLabel = "Comment",
+  pendingLabel = "Posting...",
+  errorFallback = "댓글을 작성하는 중 문제가 발생했습니다.",
+  onCancel,
   onSubmit,
 }: {
+  initialValue?: string;
+  submitLabel?: string;
+  pendingLabel?: string;
+  errorFallback?: string;
+  onCancel?: () => void;
   onSubmit?: (content: string) => Promise<SubmitResult>;
 }) {
   const [mode, setMode] = useState<"write" | "preview">("write");
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -75,7 +85,7 @@ export function DiscussionComposer({
 
         setError(result.message);
       } catch {
-        setError("댓글을 작성하는 중 문제가 발생했습니다.");
+        setError(errorFallback);
       }
     });
   }
@@ -151,19 +161,31 @@ export function DiscussionComposer({
         <span className="text-xs text-zinc-500">
           Styling with Markdown is supported
         </span>
-        <button
-          type="button"
-          onClick={submitComment}
-          disabled={!canSubmit}
-          className={cn(
-            "inline-flex h-8 items-center rounded-xl px-4 text-sm font-bold text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30",
-            !canSubmit
-              ? "cursor-not-allowed bg-emerald-600/50"
-              : "bg-emerald-600 hover:bg-emerald-700",
-          )}
-        >
-          {isPending ? "Posting..." : "Comment"}
-        </button>
+        <div className="flex items-center gap-2">
+          {onCancel ? (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isPending}
+              className="inline-flex h-8 items-center rounded-xl px-3 text-sm font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+            >
+              Cancel
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={submitComment}
+            disabled={!canSubmit}
+            className={cn(
+              "inline-flex h-8 items-center rounded-xl px-4 text-sm font-bold text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30",
+              !canSubmit
+                ? "cursor-not-allowed bg-emerald-600/50"
+                : "bg-emerald-600 hover:bg-emerald-700",
+            )}
+          >
+            {isPending ? pendingLabel : submitLabel}
+          </button>
+        </div>
       </div>
       {error ? (
         <p className="border-t border-rose-100 bg-rose-50 px-4 py-2 text-xs font-medium text-rose-700">

@@ -1,10 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type {
-  Comment,
-  SubmitCommentAction,
-} from "@/entities/comment/api/getPostComments";
+import type { Comment } from "@/entities/comment/api/getPostComments";
 import type { Contributor, Post } from "@/entities/post/model";
 import { PostCommentsSection } from "./PostCommentsSection";
 import { PostTabs } from "./PostTabs";
@@ -24,7 +21,7 @@ export function PostArticle({
   suggestCount = 0,
   showSuggestsTab = true,
   commentItems,
-  submitCommentAction,
+  postId,
 }: {
   post: Post;
   contributors?: Contributor[];
@@ -38,7 +35,7 @@ export function PostArticle({
   suggestCount?: number;
   showSuggestsTab?: boolean;
   commentItems?: Comment[];
-  submitCommentAction?: SubmitCommentAction;
+  postId?: number;
 }) {
   const list = contributors ?? [];
 
@@ -221,7 +218,7 @@ export function PostArticle({
             comments={post.comments}
             initialComments={commentItems}
             currentUserAvatarSrc={currentUserAvatarSrc}
-            submitCommentAction={submitCommentAction}
+            postId={postId}
           />
         </article>
       </div>
