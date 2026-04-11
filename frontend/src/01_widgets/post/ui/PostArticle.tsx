@@ -2,88 +2,19 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Contributor, Post } from "@/entities/post/model";
+import { DiscussionComposer } from "@/features/discussion-composer/ui";
+import { assets } from "@/shared/config/assets";
 import { PostTabs } from "./PostTabs";
 
-const defaultBody = (
-  <div className="mt-8 space-y-6 text-[14px] leading-[1.65] text-zinc-700">
-    <h2 className="text-[22px] font-semibold tracking-tight text-zinc-950">
-      Understanding React Server Components
-    </h2>
-
-    <p>
-      React Server Components (RSC) represent a paradigm shift in how we think
-      about building React applications. Traditionally, React components have
-      run primarily on the client-side, with optional server-side rendering
-      (SSR) for initial load performance.
-    </p>
-
-    <h3 className="text-[18px] font-semibold tracking-tight text-zinc-950">
-      The Problem with Client-Only Rendering
-    </h3>
-
-    <p>
-      In a typical client-side rendered (CSR) app, the user downloads a large
-      JavaScript bundle. The browser parses and executes this bundle, which then
-      fetches data from an API. Only after the data arrives can the user see the
-      content.
-    </p>
-
-    <h3 className="text-[18px] font-semibold tracking-tight text-zinc-950">
-      Enter Server Components
-    </h3>
-
-    <p>
-      Server Components allow us to render components exclusively on the server.
-      This means:
-    </p>
-
-    <ul className="list-disc space-y-2 pl-6">
-      <li>
-        <span className="font-semibold text-zinc-950">Zero Bundle Size</span>
-        {": "}The component&apos;s code is never sent to the client.
-      </li>
-      <li>
-        <span className="font-semibold text-zinc-950">
-          Direct Backend Access
-        </span>
-        {": "}Server Components can query the database directly.
-      </li>
-    </ul>
-
-    <p className="text-zinc-500">
-      [[React Architecture]] [[Performance Optimization]]
-    </p>
-
-    <p className="font-medium text-zinc-950">Code Example:</p>
-
-    <pre className="overflow-x-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-[12px] leading-5 text-zinc-900">
-      <code>{`// Note: This component runs on the server!
-import db from './db';
-
-async function NoteList({ userId }) {
-  const notes = await db.notes.getAll(userId);
-  return (
-    <ul>
-      {notes.map(note => (
-        <li key={note.id}>{note.title}</li>
-      ))}
-    </ul>
-  );
-}`}</code>
-    </pre>
-
-    <p className="text-[12px] text-zinc-500">
-      This creates a seamless blend of server capabilities with React&apos;s
-      component model.
-    </p>
-  </div>
-);
+const COMMENTS_SECTION_ID = "post-comments";
 
 export function PostArticle({
   post,
   contributors,
   backHref = "/",
   children,
+  authorHref,
+  currentUserAvatarSrc,
   articleHref = "#",
   suggestsHref = "/contribute",
   suggestEditsHref = "/contribute",
@@ -94,6 +25,8 @@ export function PostArticle({
   contributors?: Contributor[];
   backHref?: string;
   children?: ReactNode;
+  authorHref?: string;
+  currentUserAvatarSrc?: string | null;
   articleHref?: string;
   suggestsHref?: string;
   suggestEditsHref?: string;
@@ -138,20 +71,45 @@ export function PostArticle({
           <header className="mt-8 space-y-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Image
-                    src={post.authorAvatarSrc}
-                    alt={`${post.authorName} avatar`}
-                    width={48}
-                    height={48}
-                    className="size-12 rounded-full border border-zinc-100 object-cover shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.1)]"
-                  />
-                </div>
+                {authorHref ? (
+                  <Link
+                    href={authorHref}
+                    aria-label={`Open ${post.authorName} profile`}
+                    className="relative rounded-full transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                  >
+                    <Image
+                      src={post.authorAvatarSrc}
+                      alt={`${post.authorName} avatar`}
+                      width={48}
+                      height={48}
+                      className="size-12 rounded-full border border-zinc-100 object-cover shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.1)]"
+                    />
+                  </Link>
+                ) : (
+                  <div className="relative">
+                    <Image
+                      src={post.authorAvatarSrc}
+                      alt={`${post.authorName} avatar`}
+                      width={48}
+                      height={48}
+                      className="size-12 rounded-full border border-zinc-100 object-cover shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.1)]"
+                    />
+                  </div>
+                )}
 
                 <div className="min-w-0">
-                  <p className="truncate text-[16px] font-semibold tracking-tight text-zinc-950">
-                    {post.authorName}
-                  </p>
+                  {authorHref ? (
+                    <Link
+                      href={authorHref}
+                      className="truncate text-[16px] font-semibold tracking-tight text-zinc-950 transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                    >
+                      {post.authorName}
+                    </Link>
+                  ) : (
+                    <p className="truncate text-[16px] font-semibold tracking-tight text-zinc-950">
+                      {post.authorName}
+                    </p>
+                  )}
                   <p className="mt-0.5 flex items-center gap-2 text-sm text-zinc-500">
                     <span>{post.publishedAtLabel}</span>
                     <span className="text-zinc-300">·</span>
@@ -206,7 +164,7 @@ export function PostArticle({
             </div>
           </div>
 
-          {children ?? defaultBody}
+          {children}
 
           <div className="mt-10 flex justify-center lg:hidden">
             <MobileActionBar
@@ -251,6 +209,11 @@ export function PostArticle({
               </div>
             </section>
           ) : null}
+
+          <PostCommentsSection
+            comments={post.comments}
+            currentUserAvatarSrc={currentUserAvatarSrc}
+          />
         </article>
       </div>
     </div>
@@ -267,7 +230,7 @@ function PostActionRail({
   suggestEditsHref: string;
 }) {
   return (
-    <nav className="flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
+    <nav className="-translate-y-[150px] flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
       <button
         type="button"
         aria-label={`Like (${likes})`}
@@ -279,14 +242,14 @@ function PostActionRail({
 
       <div className="h-px w-7 bg-zinc-200" aria-hidden="true" />
 
-      <button
-        type="button"
-        aria-label={`Comments (${comments})`}
+      <a
+        href={`#${COMMENTS_SECTION_ID}`}
+        aria-label={`Jump to comments (${comments})`}
         className="group flex w-full flex-col items-center gap-1 rounded-xl px-1 py-2 text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >
         <IconMessageSquare className="size-5 transition-transform group-hover:scale-[1.03]" />
         <span className="text-[12px] font-medium leading-none">{comments}</span>
-      </button>
+      </a>
 
       <div className="h-px w-7 bg-zinc-200" aria-hidden="true" />
 
@@ -322,13 +285,13 @@ function MobileActionBar({
           <span>{likes}</span>
         </button>
 
-        <button
-          type="button"
+        <a
+          href={`#${COMMENTS_SECTION_ID}`}
           className="inline-flex items-center gap-2 text-[16px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
           <IconMessageSquare className="size-6" />
           <span>{comments}</span>
-        </button>
+        </a>
       </div>
 
       <span className="h-6 w-px bg-zinc-300" aria-hidden="true" />
@@ -341,6 +304,66 @@ function MobileActionBar({
         Suggests
       </Link>
     </div>
+  );
+}
+
+function PostCommentsSection({
+  comments,
+  currentUserAvatarSrc,
+}: {
+  comments: number;
+  currentUserAvatarSrc?: string | null;
+}) {
+  const resolvedAvatarSrc = currentUserAvatarSrc ?? assets.defaultAvatar;
+
+  return (
+    <section
+      id={COMMENTS_SECTION_ID}
+      className="mt-14 scroll-mt-24 rounded-[28px] border border-zinc-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbfa_100%)] p-6 shadow-[0_22px_50px_rgba(24,24,27,0.06)] sm:p-7"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-5">
+        <div>
+          <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.10em] text-zinc-400">
+            <IconMessageSquare className="size-3.5" />
+            Comments
+          </div>
+          <h2 className="mt-3 font-serif text-[28px] font-semibold tracking-tight text-zinc-950">
+            Join the thread
+          </h2>
+          <p className="mt-2 max-w-[58ch] text-sm leading-6 text-zinc-600">
+            Leave feedback, ask for clarification, or keep a focused discussion
+            attached to this article.
+          </p>
+        </div>
+        <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-500 shadow-sm">
+          {comments} comments
+        </span>
+      </div>
+
+      {comments > 0 ? (
+        <div className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-4 text-sm leading-6 text-zinc-500">
+          Existing comment entries are not wired into this detail view yet. The
+          section is ready for comment-thread data and new replies.
+        </div>
+      ) : (
+        <div className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-4 text-sm leading-6 text-zinc-500">
+          No comments yet. Start the first thread for this article.
+        </div>
+      )}
+
+      <div className="mt-6 flex items-start gap-4">
+        <Image
+          src={resolvedAvatarSrc}
+          alt="Current user avatar"
+          width={40}
+          height={40}
+          className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
+        />
+        <div className="min-w-0 flex-1">
+          <DiscussionComposer />
+        </div>
+      </div>
+    </section>
   );
 }
 

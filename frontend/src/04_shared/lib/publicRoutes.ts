@@ -23,6 +23,11 @@ export function parsePublicUsernameParam(usernameParam: string) {
   return normalized;
 }
 
+export function parsePublicPostSlugParam(postSlugParam: string) {
+  const normalized = decodeRouteSegment(postSlugParam).trim();
+  return normalized || null;
+}
+
 export function buildPublicProfilePath(username: string) {
   return `/${HANDLE_PREFIX}${encodeURIComponent(normalizeUsername(username))}`;
 }
