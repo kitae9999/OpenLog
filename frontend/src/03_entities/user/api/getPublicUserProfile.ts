@@ -7,6 +7,8 @@ export type PublicUserProfile = {
   nickname: string | null;
   profileImageUrl: string | null;
   bio: string | null;
+  location: string | null;
+  websiteUrl: string | null;
   joinedAt: string;
 };
 

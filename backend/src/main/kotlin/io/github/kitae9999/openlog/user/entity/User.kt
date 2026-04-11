@@ -65,6 +65,18 @@ class User(
     var updatedAt: LocalDateTime = LocalDateTime.now()
         protected set
 
+    fun updateProfile(
+        nickname: String,
+        bio: String?,
+        location: String?,
+        websiteUrl: String?,
+    ) {
+        this.nickname = nickname
+        this.bio = bio
+        this.location = location
+        this.websiteUrl = websiteUrl
+        this.updatedAt = LocalDateTime.now()
+    }
 
     fun completeOnboarding(
         nickname: String,

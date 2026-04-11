@@ -1,14 +1,11 @@
 package io.github.kitae9999.openlog.user
 
 import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.post.estimateReadTimeLabel
-import io.github.kitae9999.openlog.post.formatPublishedAtLabel
 import io.github.kitae9999.openlog.post.repository.PostRepository
-import io.github.kitae9999.openlog.post.dto.PostDetailResponse
+import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.resolveAuthorName
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
-import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
-import io.github.kitae9999.openlog.user.dto.PublicUserProfileResponse
+import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
@@ -20,55 +17,62 @@ class UserService(
     private val postTopicRepository: PostTopicRepository,
 ) {
     @Transactional
-    fun getPublicProfile(username: String): PublicUserProfileResponse {
-        val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
-
-        return PublicUserProfileResponse(
-            username = requireNotNull(user.username),
-            nickname = user.nickname,
-            profileImageUrl = user.profileImageUrl,
-            bio = user.bio,
-            joinedAt = user.createdAt.toString(),
-        )
-    }
+    fun getPublicProfile(username: String): User =
+        userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
 
     @Transactional
-    fun getPublicPosts(username: String): List<PublicUserPostSummaryResponse> {
+    fun getPublicPosts(username: String): List<Post> {
         val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val authorId = requireNotNull(user.id)
 
-        return postRepository.findAllByAuthorIdOrderByCreatedAtDesc(authorId).map { post ->
-            PublicUserPostSummaryResponse(
-                slug = post.slug,
-                title = post.title,
-                description = post.description,
-                publishedAtLabel = formatPublishedAtLabel(post),
-                readTimeLabel = estimateReadTimeLabel(post),
-            )
-        }
+        return postRepository.findAllByAuthorIdOrderByCreatedAtDesc(authorId)
     }
 
     @Transactional
-    fun getPublicPostDetail(username: String, slug: String): PostDetailResponse {
+    fun getPublicPostDetail(username: String, slug: String): PublicPostDetail {
         val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val post = postRepository.findByAuthorIdAndSlug(requireNotNull(user.id), slug)
             ?: throw NotFoundException("글을 찾을 수 없습니다.")
+        val author = post.author
         val topics = postTopicRepository.findAllByPostId(requireNotNull(post.id))
             .map { it.topic.name }
             .sorted()
 
-        return PostDetailResponse(
-            id = requireNotNull(post.id),
-            slug = post.slug,
-            title = post.title,
-            description = post.description,
-            content = post.content,
-            authorUsername = requireNotNull(post.author.username),
+        return PublicPostDetail(
+            post = post,
+            authorUsername = requireNotNull(author.username),
             authorName = resolveAuthorName(post),
-            authorAvatarSrc = post.author.profileImageUrl,
-            publishedAtLabel = formatPublishedAtLabel(post),
-            readTimeLabel = estimateReadTimeLabel(post),
+            authorAvatarSrc = author.profileImageUrl,
             topics = topics,
         )
     }
+
+    @Transactional
+    fun updateProfile(
+        username: String,
+        nickname: String,
+        bio: String?,
+        location: String?,
+        websiteUrl: String?,
+    ): User {
+        val user = userRepository.findByUsername(username)
+            ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
+
+        user.updateProfile(
+            nickname = nickname.trim(),
+            bio = bio?.trim()?.takeIf { it.isNotEmpty() },
+            location = location?.trim()?.takeIf { it.isNotEmpty() },
+            websiteUrl = websiteUrl?.trim()?.takeIf { it.isNotEmpty() },
+        )
+
+        return user
+    }
 }
+
+data class PublicPostDetail(
+    val post: Post,
+    val authorUsername: String,
+    val authorName: String,
+    val authorAvatarSrc: String?,
+    val topics: List<String>,
+)
