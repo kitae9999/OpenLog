@@ -43,16 +43,14 @@ export function PostArticle({
     <div className="mx-auto w-full max-w-[950px] pb-12">
       <div className="flex items-start gap-15">
         <aside
-          className="sticky top-16 hidden w-[60px] shrink-0 lg:block"
+          className="sticky top-[clamp(7rem,calc(50dvh-9rem),15rem)] hidden w-[60px] shrink-0 self-start lg:block"
           aria-label="Post actions"
         >
-          <div className="flex h-[calc(100dvh-4rem)] items-center">
-            <PostActionRail
-              likes={post.likes}
-              comments={post.comments}
-              suggestEditsHref={suggestEditsHref}
-            />
-          </div>
+          <PostActionRail
+            likes={post.likes}
+            comments={post.comments}
+            suggestEditsHref={suggestEditsHref}
+          />
         </aside>
 
         <article className="w-full max-w-[768px]">
@@ -236,7 +234,7 @@ function PostActionRail({
   suggestEditsHref: string;
 }) {
   return (
-    <nav className="-translate-y-[150px] flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
+    <nav className="flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
       <button
         type="button"
         aria-label={`Like (${likes})`}
