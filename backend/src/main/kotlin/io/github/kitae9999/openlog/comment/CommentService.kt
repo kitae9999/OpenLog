@@ -30,24 +30,25 @@ class CommentService(
             )
         )
 
-        return toCommentResponse(savedComment)
+        return toCommentResponse(savedComment, currentUserId = userId)
     }
 
     /**
      * 포스트에는 댓글이 없을 수도 있음
      */
     @Transactional(readOnly = true)
-    fun getPostComments(postId: Long): List<CommentResponse> {
+    fun getPostComments(postId: Long, currentUserId: Long?): List<CommentResponse> {
         if (!postRepository.existsById(postId)) {
             throw NotFoundException("포스트를 찾을 수 없습니다.")
         }
 
         return commentRepository.findAllByPostIdWithUser(postId)
-            .map(::toCommentResponse) // 함수 참조 전달
+            .map { comment -> toCommentResponse(comment, currentUserId) }
     }
 
-    private fun toCommentResponse(comment: Comment): CommentResponse {
+    private fun toCommentResponse(comment: Comment, currentUserId: Long?): CommentResponse {
         val author = comment.user
+        val authorId = requireNotNull(author.id)
 
         return CommentResponse(
             id = requireNotNull(comment.id),
@@ -55,6 +56,7 @@ class CommentService(
             authorProfileImageUrl = author.profileImageUrl,
             content = comment.content,
             createdAt = comment.createdAt.toString(),
+            canManage = currentUserId == authorId,
         )
     }
 

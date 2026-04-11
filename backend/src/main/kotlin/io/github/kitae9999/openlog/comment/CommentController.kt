@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.comment
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
+import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.comment.dto.CommentResponse
 import io.github.kitae9999.openlog.comment.dto.CreateCommentRequest
 import jakarta.servlet.http.HttpServletRequest
@@ -35,7 +36,16 @@ class CommentController(
     @GetMapping()
     fun getPostComments(
         @PathVariable postId: Long,
+        request: HttpServletRequest,
     ): List<CommentResponse> {
-        return commentService.getPostComments(postId)
+        return commentService.getPostComments(postId, resolveUserIdOrNull(request))
+    }
+
+    private fun resolveUserIdOrNull(request: HttpServletRequest): Long? {
+        return try {
+            currentUserResolver.resolveUserId(request)
+        } catch (e: OAuthAuthenticationException) {
+            null
+        }
     }
 }

@@ -87,7 +87,11 @@ export function PostCommentsSection({
       {commentItems.length > 0 ? (
         <div className="mt-5 space-y-4">
           {commentItems.map((comment) => (
-            <CommentCard key={comment.id} comment={comment} />
+            <CommentCard
+              key={comment.id}
+              comment={comment}
+              canManage={comment.canManage}
+            />
           ))}
         </div>
       ) : !hasFetchedComments && comments > 0 ? (
@@ -117,7 +121,13 @@ export function PostCommentsSection({
   );
 }
 
-function CommentCard({ comment }: { comment: Comment }) {
+function CommentCard({
+  comment,
+  canManage,
+}: {
+  comment: Comment;
+  canManage: boolean;
+}) {
   const authorAvatarSrc = comment.authorProfileImageUrl || assets.defaultAvatar;
 
   return (
@@ -130,11 +140,37 @@ function CommentCard({ comment }: { comment: Comment }) {
         className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
       />
       <section className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-500">
-          <span className="font-semibold text-zinc-950">
-            {comment.authorName}
-          </span>
-          <span>commented on {formatCommentedAtLabel(comment.createdAt)}.</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-500">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-zinc-950">
+              {comment.authorName}
+            </span>
+            <span>
+              commented on {formatCommentedAtLabel(comment.createdAt)}.
+            </span>
+          </div>
+          {canManage ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled
+                aria-label="Edit your comment"
+                title="Edit API is not connected yet."
+                className="text-xs font-semibold text-zinc-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                disabled
+                aria-label="Delete your comment"
+                title="Delete API is not connected yet."
+                className="text-xs font-semibold text-rose-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20"
+              >
+                Delete
+              </button>
+            </div>
+          ) : null}
         </div>
         <div className="px-4 py-5">
           <MarkdownContent markdown={comment.content} variant="compact" />

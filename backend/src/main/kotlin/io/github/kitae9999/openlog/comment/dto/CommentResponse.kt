@@ -6,4 +6,5 @@ data class CommentResponse(
     val authorProfileImageUrl: String?,
     val content: String,
     val createdAt: String,
+    val canManage: Boolean,
 )

@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { API_CONFIG } from "@/shared/api";
 import { apiClient } from "@/shared/api/apiClient";
 
@@ -7,6 +8,7 @@ export type Comment = {
   authorProfileImageUrl: string | null;
   content: string;
   createdAt: string;
+  canManage: boolean;
 };
 
 export type SubmitCommentResult =
@@ -24,10 +26,15 @@ export type SubmitCommentAction = (
 ) => Promise<SubmitCommentResult>;
 
 export async function getPostComments(postId: number) {
+  const headerStore = await headers();
+
   return apiClient<Comment[]>(
     `${API_CONFIG.baseURL}/posts/${postId}/comments`,
     {
       cache: "no-store",
+      headers: {
+        cookie: headerStore.get("cookie") ?? "",
+      },
     },
   );
 }
