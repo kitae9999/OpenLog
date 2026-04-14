@@ -48,6 +48,9 @@ class Comment (
         protected set
 
     fun updateComment(content: String) {
+        if (this.content == content){
+            return
+        }
         this.content = content
         this.updatedAt = LocalDateTime.now()
     }

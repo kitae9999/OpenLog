@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE public.users
+    ADD COLUMN IF NOT EXISTS location VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS website_url VARCHAR(2048);
+
+COMMIT;

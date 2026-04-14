@@ -10,6 +10,7 @@ import {
   buildViewerProfileHref,
 } from "@/shared/lib/publicRoutes";
 import { Footer, Header } from "@/widgets/chrome/ui";
+import { EditableProfileHeader } from "./EditableProfileHeader";
 
 export async function ProfileView({ username }: { username: string }) {
   const [viewer, profile, posts] = await Promise.all([
@@ -38,62 +39,11 @@ export async function ProfileView({ username }: { username: string }) {
       />
 
       <main className="mx-auto w-full max-w-[1083px] flex-1 px-4 pb-20 pt-8 sm:px-8">
-        <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-            <div className="mx-auto lg:mx-0">
-              <div className="rounded-full border-4 border-zinc-50 bg-white p-1">
-                <Image
-                  src={profile.profileImageUrl ?? assets.defaultAvatar}
-                  alt={`${profileName} avatar`}
-                  width={128}
-                  height={128}
-                  className="size-28 rounded-full object-cover sm:size-32"
-                  priority
-                />
-              </div>
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <h1 className="font-[Georgia,serif] text-[40px] font-bold leading-none tracking-[-0.04em] text-zinc-950 sm:text-[48px]">
-                    {profileName}
-                  </h1>
-                  <p className="mt-3 text-sm font-medium text-zinc-500">
-                    @{profile.username}
-                  </p>
-                  <p className="mt-4 max-w-3xl text-[18px] leading-8 text-zinc-600">
-                    {profile.bio ?? "No bio added yet."}
-                  </p>
-                </div>
-
-                {isViewer ? (
-                  <button
-                    type="button"
-                    className="inline-flex h-11 items-center gap-2 self-start rounded-full border border-zinc-300 bg-white px-5 text-sm font-medium text-zinc-900 transition hover:border-zinc-400 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10"
-                  >
-                    <IconPencil className="size-4" />
-                    Edit Profile
-                  </button>
-                ) : null}
-              </div>
-
-              <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm text-zinc-500">
-                <ProfileMeta iconSrc="/Calendar.svg" label={joinedLabel} />
-                <ProfileMeta
-                  iconSrc="/MapPin.svg"
-                  label="No location added yet."
-                  muted
-                />
-                <ProfileMeta
-                  iconSrc="/LinkIcon.svg"
-                  label="No website added yet."
-                  muted
-                />
-              </div>
-            </div>
-          </div>
-        </section>
+        <EditableProfileHeader
+          profile={profile}
+          isViewer={isViewer}
+          joinedLabel={joinedLabel}
+        />
 
         <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
           <section className="min-w-0">
@@ -192,23 +142,6 @@ function SectionHeading({
   );
 }
 
-function ProfileMeta({
-  iconSrc,
-  label,
-  muted = false,
-}: {
-  iconSrc: string;
-  label: string;
-  muted?: boolean;
-}) {
-  return (
-    <div className="inline-flex items-center gap-2.5">
-      <Image src={iconSrc} alt="" width={16} height={16} aria-hidden="true" />
-      <span className={muted ? "text-zinc-400" : undefined}>{label}</span>
-    </div>
-  );
-}
-
 function EmptyStateCard({
   title,
   description,
@@ -238,30 +171,4 @@ function formatJoinedLabel(joinedAt: string) {
     month: "long",
     year: "numeric",
   }).format(parsed)}`;
-}
-
-function IconPencil({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M12 20h9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M16.5 3.5a2.12 2.12 0 113 3L7 19l-4 1 1-4 12.5-12.5z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }

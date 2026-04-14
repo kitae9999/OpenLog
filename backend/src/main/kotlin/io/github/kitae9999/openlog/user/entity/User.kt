@@ -24,6 +24,10 @@ class User(
     bio: String? = null,
 
     email: String? = null,
+
+    location: String? = null,
+
+    websiteUrl : String? = null,
 ){
     @Column(unique = true)
     var username: String? = username
@@ -45,6 +49,14 @@ class User(
     var email: String? = email
         protected set
 
+    @Column()
+    var location: String? = location
+        protected set
+
+    @Column(name = "website_url")
+    var websiteUrl: String? = websiteUrl
+        protected set
+
     @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
         protected set
@@ -52,6 +64,28 @@ class User(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
         protected set
+
+    fun updateProfile(
+        nickname: String,
+        bio: String?,
+        location: String?,
+        websiteUrl: String?,
+    ) {
+        if (
+            this.nickname == nickname &&
+            this.bio == bio &&
+            this.location == location &&
+            this.websiteUrl == websiteUrl
+        ) {
+            return
+        }
+
+        this.nickname = nickname
+        this.bio = bio
+        this.location = location
+        this.websiteUrl = websiteUrl
+        this.updatedAt = LocalDateTime.now()
+    }
 
     fun completeOnboarding(
         nickname: String,

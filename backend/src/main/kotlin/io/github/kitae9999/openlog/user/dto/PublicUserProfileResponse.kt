@@ -5,5 +5,7 @@ data class PublicUserProfileResponse(
     val nickname: String?,
     val profileImageUrl: String?,
     val bio: String?,
+    val location: String?,
+    val websiteUrl: String?,
     val joinedAt: String,
 )

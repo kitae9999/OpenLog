@@ -1,14 +1,16 @@
 package io.github.kitae9999.openlog.user
 
+import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.post.dto.PostDetailResponse
 import io.github.kitae9999.openlog.post.estimateReadTimeLabel
 import io.github.kitae9999.openlog.post.formatPublishedAtLabel
 import io.github.kitae9999.openlog.post.repository.PostRepository
-import io.github.kitae9999.openlog.post.dto.PostDetailResponse
 import io.github.kitae9999.openlog.post.resolveAuthorName
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
 import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserProfileResponse
+import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
@@ -23,13 +25,7 @@ class UserService(
     fun getPublicProfile(username: String): PublicUserProfileResponse {
         val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
 
-        return PublicUserProfileResponse(
-            username = requireNotNull(user.username),
-            nickname = user.nickname,
-            profileImageUrl = user.profileImageUrl,
-            bio = user.bio,
-            joinedAt = user.createdAt.toString(),
-        )
+        return toPublicUserProfileResponse(user)
     }
 
     @Transactional
@@ -69,6 +65,44 @@ class UserService(
             publishedAtLabel = formatPublishedAtLabel(post),
             readTimeLabel = estimateReadTimeLabel(post),
             topics = topics,
+        )
+    }
+
+    @Transactional
+    fun updateProfile(
+        userId: Long,
+        username: String,
+        nickname: String,
+        bio: String?,
+        location: String?,
+        websiteUrl: String?,
+    ): PublicUserProfileResponse {
+        val user = userRepository.findByUsername(username)
+            ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
+
+        if (user.id != userId) {
+            throw ForbiddenException()
+        }
+
+        user.updateProfile(
+            nickname = nickname.trim(),
+            bio = bio?.trim()?.takeIf { it.isNotEmpty() },
+            location = location?.trim()?.takeIf { it.isNotEmpty() },
+            websiteUrl = websiteUrl?.trim()?.takeIf { it.isNotEmpty() },
+        )
+
+        return toPublicUserProfileResponse(user)
+    }
+
+    private fun toPublicUserProfileResponse(user: User): PublicUserProfileResponse {
+        return PublicUserProfileResponse(
+            username = requireNotNull(user.username),
+            nickname = user.nickname,
+            profileImageUrl = user.profileImageUrl,
+            bio = user.bio,
+            location = user.location,
+            websiteUrl = user.websiteUrl,
+            joinedAt = user.createdAt.toString(),
         )
     }
 }
