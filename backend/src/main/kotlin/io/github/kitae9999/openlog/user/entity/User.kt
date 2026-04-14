@@ -71,6 +71,15 @@ class User(
         location: String?,
         websiteUrl: String?,
     ) {
+        if (
+            this.nickname == nickname &&
+            this.bio == bio &&
+            this.location == location &&
+            this.websiteUrl == websiteUrl
+        ) {
+            return
+        }
+
         this.nickname = nickname
         this.bio = bio
         this.location = location
