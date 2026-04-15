@@ -13,5 +13,6 @@ data class PostDetailResponse(
     val readTimeLabel: String,
     val topics: List<String>,
     val likes: Int = 0,
+    val liked: Boolean = false,
     val comments: Int = 0,
 )

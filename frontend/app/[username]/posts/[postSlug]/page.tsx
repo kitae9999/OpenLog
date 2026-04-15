@@ -72,6 +72,7 @@ export default async function PublicPostPage({
               tags: detail.topics,
               coverSrc: assets.postCover,
               likes: detail.likes,
+              liked: detail.liked,
               comments: commentItems.length,
             }}
             commentItems={commentItems}
