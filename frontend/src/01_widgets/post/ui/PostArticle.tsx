@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Comment } from "@/entities/comment/api/getPostComments";
 import type { Contributor, Post } from "@/entities/post/model";
 import { PostCommentsSection } from "./PostCommentsSection";
+import { PostLikeButton } from "./PostLikeButton";
 import { PostTabs } from "./PostTabs";
 
 const COMMENTS_SECTION_ID = "post-comments";
@@ -47,7 +48,9 @@ export function PostArticle({
           aria-label="Post actions"
         >
           <PostActionRail
+            postId={postId}
             likes={post.likes}
+            liked={post.liked}
             comments={post.comments}
             suggestEditsHref={suggestEditsHref}
           />
@@ -170,7 +173,9 @@ export function PostArticle({
 
           <div className="mt-10 flex justify-center lg:hidden">
             <MobileActionBar
+              postId={postId}
               likes={post.likes}
+              liked={post.liked}
               comments={post.comments}
               suggestEditsHref={suggestEditsHref}
             />
@@ -225,24 +230,26 @@ export function PostArticle({
 }
 
 function PostActionRail({
+  postId,
   likes,
+  liked,
   comments,
   suggestEditsHref,
 }: {
+  postId?: number;
   likes: number;
+  liked?: boolean;
   comments: number;
   suggestEditsHref: string;
 }) {
   return (
     <nav className="flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
-      <button
-        type="button"
-        aria-label={`Like (${likes})`}
-        className="group flex w-full flex-col items-center gap-1 rounded-xl px-1 py-2 text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-      >
-        <IconHeart className="size-5 transition-transform group-hover:scale-[1.03]" />
-        <span className="text-[12px] font-medium leading-none">{likes}</span>
-      </button>
+      <PostLikeButton
+        postId={postId}
+        initialLikes={likes}
+        initialLiked={liked}
+        variant="rail"
+      />
 
       <div className="h-px w-7 bg-zinc-200" aria-hidden="true" />
 
@@ -270,24 +277,27 @@ function PostActionRail({
 }
 
 function MobileActionBar({
+  postId,
   likes,
+  liked,
   comments,
   suggestEditsHref,
 }: {
+  postId?: number;
   likes: number;
+  liked?: boolean;
   comments: number;
   suggestEditsHref: string;
 }) {
   return (
     <div className="flex h-[62px] w-full max-w-[450px] items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-6 shadow-[0_20px_25px_rgba(0,0,0,0.1),0_8px_10px_rgba(0,0,0,0.1)] backdrop-blur">
       <div className="flex items-center gap-6">
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 text-[16px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-        >
-          <IconHeart className="size-6" />
-          <span>{likes}</span>
-        </button>
+        <PostLikeButton
+          postId={postId}
+          initialLikes={likes}
+          initialLiked={liked}
+          variant="mobile"
+        />
 
         <a
           href={`#${COMMENTS_SECTION_ID}`}
@@ -396,25 +406,6 @@ function IconShare({ className }: { className?: string }) {
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function IconHeart({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );

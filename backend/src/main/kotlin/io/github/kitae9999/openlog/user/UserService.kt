@@ -7,6 +7,7 @@ import io.github.kitae9999.openlog.post.estimateReadTimeLabel
 import io.github.kitae9999.openlog.post.formatPublishedAtLabel
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.post.resolveAuthorName
+import io.github.kitae9999.openlog.postlike.PostLikeRepository
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
 import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserProfileResponse
@@ -20,6 +21,7 @@ class UserService(
     private val userRepository: UserRepository,
     private val postRepository: PostRepository,
     private val postTopicRepository: PostTopicRepository,
+    private val postLikeRepository: PostLikeRepository,
 ) {
     @Transactional
     fun getPublicProfile(username: String): PublicUserProfileResponse {
@@ -45,16 +47,17 @@ class UserService(
     }
 
     @Transactional
-    fun getPublicPostDetail(username: String, slug: String): PostDetailResponse {
+    fun getPublicPostDetail(username: String, slug: String, viewerId: Long?): PostDetailResponse {
         val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val post = postRepository.findByAuthorIdAndSlug(requireNotNull(user.id), slug)
             ?: throw NotFoundException("글을 찾을 수 없습니다.")
-        val topics = postTopicRepository.findAllByPostId(requireNotNull(post.id))
+        val postId = requireNotNull(post.id)
+        val topics = postTopicRepository.findAllByPostId(postId)
             .map { it.topic.name }
             .sorted()
 
         return PostDetailResponse(
-            id = requireNotNull(post.id),
+            id = postId,
             slug = post.slug,
             title = post.title,
             description = post.description,
@@ -65,6 +68,8 @@ class UserService(
             publishedAtLabel = formatPublishedAtLabel(post),
             readTimeLabel = estimateReadTimeLabel(post),
             topics = topics,
+            likes = postLikeRepository.countByPostId(postId).toInt(),
+            liked = viewerId?.let { postLikeRepository.existsByPostIdAndUserId(postId, it) } ?: false,
         )
     }
 

@@ -15,11 +15,12 @@ class PostLikeService(
 ) {
 
     @Transactional
-    fun toggleLike(userId: Long, postId: Long){
+    fun toggleLike(userId: Long, postId: Long): Boolean {
         val postLike = postLikeRepository.findByPostIdAndUserId(postId, userId)
 
         if (postLike != null) {
             postLikeRepository.delete(postLike)
+            return false
         } else {
             if (!postRepository.existsById(postId)) {
                 throw NotFoundException("포스트를 찾을 수 없습니다.")
@@ -34,6 +35,7 @@ class PostLikeService(
                     post = post
                 )
             )
+            return true
         }
     }
 }

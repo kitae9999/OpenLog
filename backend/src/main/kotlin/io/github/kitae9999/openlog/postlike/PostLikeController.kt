@@ -18,8 +18,8 @@ class PostLikeController(
     fun toggleLike(
         @PathVariable postId: Long,
         request: HttpServletRequest
-    ){
+    ): Boolean {
         val userId = currentUserResolver.resolveUserId(request)
-        postLikeService.toggleLike(userId,postId)
+        return postLikeService.toggleLike(userId, postId)
     }
 }

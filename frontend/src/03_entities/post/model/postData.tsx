@@ -17,6 +17,7 @@ export type Post = {
   tags: string[];
   coverSrc: string;
   likes: number;
+  liked?: boolean;
   comments: number;
 };
 

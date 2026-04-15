@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.user
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
+import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserProfileResponse
@@ -38,8 +39,9 @@ class UserController(
     fun getPublicPostDetail(
         @PathVariable username: String,
         @PathVariable titleSlug: String,
+        request: HttpServletRequest,
     ): PostDetailResponse {
-        return userService.getPublicPostDetail(username, titleSlug)
+        return userService.getPublicPostDetail(username, titleSlug, resolveUserIdOrNull(request))
     }
 
     @PatchMapping("{username}")
@@ -58,5 +60,13 @@ class UserController(
             location = request.location,
             websiteUrl = request.websiteUrl,
         )
+    }
+
+    private fun resolveUserIdOrNull(request: HttpServletRequest): Long? {
+        return try {
+            currentUserResolver.resolveUserId(request)
+        } catch (e: OAuthAuthenticationException) {
+            null
+        }
     }
 }
