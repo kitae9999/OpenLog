@@ -1,14 +1,13 @@
 package io.github.kitae9999.openlog.post
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
-import io.github.kitae9999.openlog.post.command.CreatePostCommand
+import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.dto.CreatePostResponse
 import io.github.kitae9999.openlog.post.dto.PostWriteRequest
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -29,7 +28,7 @@ class PostController(
     ): ResponseEntity<CreatePostResponse> {
         val userId = currentUserResolver.resolveUserId(request)
         val (title, description, content, topics) = postWriteRequest
-        val createdPost = postService.createPost(userId, CreatePostCommand(
+        val createdPost = postService.createPost(userId, PostWriteCommand(
             title = title,
             description = description,
             content = content,
@@ -57,5 +56,20 @@ class PostController(
         @PathVariable postId: Long,
         request: HttpServletRequest,
         @Valid @RequestBody postWriteRequest: PostWriteRequest,
-    ){}
+    ): ResponseEntity<Void> {
+        val userId = currentUserResolver.resolveUserId(request)
+        val (title, description, content, topics) = postWriteRequest
+        postService.updatePost(
+            userId,
+            postId,
+            PostWriteCommand(
+                title = title,
+                description = description,
+                content = content,
+                topics = topics,
+            )
+        )
+
+        return ResponseEntity.noContent().build()
+    }
 }

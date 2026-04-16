@@ -2,7 +2,7 @@ package io.github.kitae9999.openlog.post
 
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.post.command.CreatePostCommand
+import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.dto.CreatePostResponse
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostRepository
@@ -23,13 +23,13 @@ class PostService(
     private val userRepository: UserRepository,
 ) {
     @Transactional
-    fun createPost(userId: Long, createPostCommand: CreatePostCommand): CreatePostResponse {
+    fun createPost(userId: Long, postWriteCommand: PostWriteCommand): CreatePostResponse {
         val user = userRepository.findById(userId).getOrNull() ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val authorUsername = user.username?.trim().orEmpty()
         if (authorUsername.isBlank()) {
             throw NotFoundException("username이 설정된 사용자를 찾을 수 없습니다.")
         }
-        val (title, description, content, topics) = createPostCommand
+        val (title, description, content, topics) = postWriteCommand
         val slug = generateUniqueSlug(userId, title)
 
         val savedPost = postRepository.save(
@@ -81,8 +81,65 @@ class PostService(
         postRepository.delete(postToDelete)
     }
 
+    @Transactional
+    fun updatePost(userId: Long, postId: Long, postWriteCommand: PostWriteCommand) {
+        val post = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("존재하지 않는 포스트입니다.")
+        if (userId != post.author.id) {
+            throw ForbiddenException("권한이 없습니다.")
+        }
+        val (title, description, content, topics) = postWriteCommand
+
+        val postChanged = post.updatePost(title, description, content)
+        val topicsChanged = replacePostTopics(post, topics)
+
+        if (!postChanged && topicsChanged) {
+            post.touchUpdatedAt()
+        }
+    }
+
+    private fun replacePostTopics(post: Post, rawTopics: List<String>): Boolean {
+        val postId = requireNotNull(post.id)
+        val currentPostTopics = postTopicRepository.findAllByPostId(postId)
+        val currentTopicNames = currentPostTopics.map { it.topic.name }.toSet()
+        val nextTopicNames = normalizeTopics(rawTopics)
+        val nextTopicNameSet = nextTopicNames.toSet()
+
+        val postTopicsToDelete = currentPostTopics.filter { it.topic.name !in nextTopicNameSet }
+        if (postTopicsToDelete.isNotEmpty()) {
+            postTopicRepository.deleteAll(postTopicsToDelete)
+        }
+
+        val topicNamesToAdd = nextTopicNames.filterNot(currentTopicNames::contains)
+        if (topicNamesToAdd.isEmpty()) {
+            return postTopicsToDelete.isNotEmpty()
+        }
+
+        val existingTopics = topicRepository.findByNameIn(topicNamesToAdd)
+        val existingNames = existingTopics.mapTo(mutableSetOf()) { it.name }
+        val newTopics = topicNamesToAdd
+            .filterNot(existingNames::contains) // 인스턴스 메서드 참조 넘김
+            .map { Topic(name = it) } // 람다의 파라미터가 하나면 it 사용
+        val savedNewTopics = if (newTopics.isEmpty()) {
+            emptyList()
+        } else {
+            topicRepository.saveAll(newTopics).toList()
+        }
+        val topicsByName = (existingTopics + savedNewTopics).associateBy { it.name }
+
+        postTopicRepository.saveAll(
+            topicNamesToAdd.map { topicName ->
+                PostTopic(
+                    post = post,
+                    topic = requireNotNull(topicsByName[topicName]),
+                )
+            }
+        )
+
+        return true
+    }
+
     private fun normalizeTopics(rawTopics: List<String>): List<String> {
-        return rawTopics.asSequence()
+        return rawTopics.asSequence() // map, filter등의 다음 단계가 중간과정에서 리스트를 반환하지않고 하나의 요소에 대해 전부 실행
             .map { it.trim().lowercase() }
             .filter(String::isNotBlank)
             .distinct()

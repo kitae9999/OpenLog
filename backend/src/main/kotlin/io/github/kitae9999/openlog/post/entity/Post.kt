@@ -65,4 +65,25 @@ class Post(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
         protected set
+
+    fun updatePost(title: String, description: String, content: String): Boolean {
+        if (
+            this.title == title &&
+            this.description == description &&
+            this.content == content
+        ) {
+            return false
+        }
+
+        this.title = title
+        this.description = description
+        this.content = content
+
+        this.updatedAt = LocalDateTime.now()
+        return true
+    }
+
+    fun touchUpdatedAt() {
+        this.updatedAt = LocalDateTime.now()
+    }
 }

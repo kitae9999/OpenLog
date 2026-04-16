@@ -1,6 +1,6 @@
 package io.github.kitae9999.openlog.post.command
 
-data class CreatePostCommand(
+data class PostWriteCommand(
     val title: String,
     val description: String,
     val content: String,
