@@ -1,7 +1,7 @@
 package io.github.kitae9999.openlog.post
 
 import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.post.dto.CreatePostRequest
+import io.github.kitae9999.openlog.post.command.CreatePostCommand
 import io.github.kitae9999.openlog.post.dto.CreatePostResponse
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostRepository
@@ -22,13 +22,13 @@ class PostService(
     private val userRepository: UserRepository,
 ) {
     @Transactional
-    fun createPost(userId: Long, createPostRequest: CreatePostRequest): CreatePostResponse {
+    fun createPost(userId: Long, createPostCommand: CreatePostCommand): CreatePostResponse {
         val user = userRepository.findById(userId).getOrNull() ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val authorUsername = user.username?.trim().orEmpty()
         if (authorUsername.isBlank()) {
             throw NotFoundException("username이 설정된 사용자를 찾을 수 없습니다.")
         }
-        val (title, description, content, topics) = createPostRequest
+        val (title, description, content, topics) = createPostCommand
         val slug = generateUniqueSlug(userId, title)
 
         val savedPost = postRepository.save(
