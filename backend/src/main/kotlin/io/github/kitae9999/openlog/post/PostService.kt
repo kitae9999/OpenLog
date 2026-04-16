@@ -89,10 +89,10 @@ class PostService(
         }
         val (title, description, content, topics) = postWriteCommand
 
-        val postChanged = post.updatePost(title, description, content)
-        val topicsChanged = replacePostTopics(post, topics)
+        val isPostChanged = post.updatePost(title, description, content)
+        val isTopicsChanged = replacePostTopics(post, topics)
 
-        if (!postChanged && topicsChanged) {
+        if (!isPostChanged && isTopicsChanged) {
             post.touchUpdatedAt()
         }
     }
