@@ -2,7 +2,7 @@ package io.github.kitae9999.openlog.post.dto
 
 import jakarta.validation.constraints.NotBlank
 
-data class CreatePostRequest(
+data class PostWriteRequest(
     @field:NotBlank(message = "제목은 필수입니다.")
     val title: String,
 
