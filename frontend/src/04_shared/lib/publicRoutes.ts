@@ -40,6 +40,10 @@ export function buildPublicSuggestsPath(username: string, slug: string) {
   return `${buildPublicPostPath(username, slug)}/suggests`;
 }
 
+export function buildPublicPostEditPath(username: string, slug: string) {
+  return `${buildPublicPostPath(username, slug)}/edit`;
+}
+
 export function buildPublicSuggestDetailPath(
   username: string,
   slug: string,

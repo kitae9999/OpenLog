@@ -25,9 +25,27 @@ import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import { Footer, Header } from "@/widgets/chrome/ui";
 
 type ComposerMode = "edit" | "preview";
+type WriteViewMode = "create" | "edit";
 type SaveReason = "auto" | "manual" | "restored" | "cleared";
+type WriteAction = (
+  prevState: WriteActionState,
+  formData: FormData,
+) => Promise<WriteActionState>;
+
+export type WriteViewInitialValues = {
+  title: string;
+  description: string;
+  topics: string[];
+  content: string;
+};
 
 const DRAFT_STORAGE_KEY = "openlog.write.draft";
+const EMPTY_WRITE_VALUES: WriteViewInitialValues = {
+  title: "",
+  description: "",
+  topics: [],
+  content: "",
+};
 
 const writingGuidelines = [
   "Open with the problem, then state the insight in the first two paragraphs.",
@@ -49,26 +67,48 @@ export function WriteView({
   isLoggedIn,
   profileImageUrl,
   profileHref,
+  mode: writeMode = "create",
+  action = submitPost,
+  initialValues = EMPTY_WRITE_VALUES,
+  draftStorageKey = DRAFT_STORAGE_KEY,
+  heading = "New Story",
+  badgeLabel = "draft",
+  backHref = "/?tab=trending",
+  backLabel = "Back to feed",
+  submitLabel = "Publish",
+  pendingSubmitLabel = "Publishing...",
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
+  mode?: WriteViewMode;
+  action?: WriteAction;
+  initialValues?: WriteViewInitialValues;
+  draftStorageKey?: string;
+  heading?: string;
+  badgeLabel?: string;
+  backHref?: string;
+  backLabel?: string;
+  submitLabel?: string;
+  pendingSubmitLabel?: string;
 }) {
-  const [mode, setMode] = useState<ComposerMode>("edit");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [composerMode, setComposerMode] = useState<ComposerMode>("edit");
+  const [title, setTitle] = useState(initialValues.title);
+  const [description, setDescription] = useState(initialValues.description);
   const [topicInput, setTopicInput] = useState("");
-  const [topics, setTopics] = useState<string[]>([]);
-  const [body, setBody] = useState("");
+  const [topics, setTopics] = useState<string[]>(() =>
+    normalizeTopics(initialValues.topics),
+  );
+  const [body, setBody] = useState(initialValues.content);
   const [statusMessage, setStatusMessage] = useState(
-    "Drafts save locally in this browser.",
+    defaultStatusMessage(writeMode),
   );
   const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
   const [submitErrors, setSubmitErrors] = useState<WriteActionState["errors"]>(
     () => ({ ...initialWriteActionState.errors }),
   );
   const [actionState, formAction] = useActionState(
-    submitPost,
+    action,
     initialWriteActionState,
   );
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -99,20 +139,20 @@ export function WriteView({
       topics.length === 0
     ) {
       const hasStoredDraft = Boolean(
-        window.localStorage.getItem(DRAFT_STORAGE_KEY),
+        window.localStorage.getItem(draftStorageKey),
       );
-      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+      window.localStorage.removeItem(draftStorageKey);
       setStatusMessage(
         hasStoredDraft
           ? statusLabel("cleared")
-          : "Drafts save locally in this browser.",
+          : defaultStatusMessage(writeMode),
       );
       return;
     }
 
     const updatedAt = new Date().toISOString();
     window.localStorage.setItem(
-      DRAFT_STORAGE_KEY,
+      draftStorageKey,
       JSON.stringify({
         title,
         description,
@@ -129,7 +169,7 @@ export function WriteView({
   });
 
   useEffect(() => {
-    const rawDraft = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    const rawDraft = window.localStorage.getItem(draftStorageKey);
     if (!rawDraft) {
       setHasRestoredDraft(true);
       return;
@@ -150,12 +190,12 @@ export function WriteView({
       setBody(draft.body ?? "");
       setStatusMessage(statusLabel("restored", draft.updatedAt));
     } catch {
-      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+      window.localStorage.removeItem(draftStorageKey);
       setStatusMessage("Corrupted local draft was discarded.");
     } finally {
       setHasRestoredDraft(true);
     }
-  }, []);
+  }, [draftStorageKey]);
 
   useEffect(() => {
     if (!hasRestoredDraft) {
@@ -171,14 +211,13 @@ export function WriteView({
     body,
     description,
     hasRestoredDraft,
-    persistDraftFromEffect,
     title,
     topics,
   ]);
 
   function handleModeChange(nextMode: ComposerMode) {
     startTransition(() => {
-      setMode(nextMode);
+      setComposerMode(nextMode);
     });
   }
 
@@ -285,30 +324,30 @@ export function WriteView({
           {topics.map((topic) => (
             <input key={topic} type="hidden" name="topics" value={topic} />
           ))}
-          {mode === "preview" ? (
+          {composerMode === "preview" ? (
             <input type="hidden" name="content" value={body} />
           ) : null}
 
           <div className="flex flex-col gap-6 border-b border-zinc-200/80 pb-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <Link
-                href="/?tab=trending"
+                href={backHref}
                 className="inline-flex items-center gap-2 rounded-full px-1 py-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 <IconArrowLeft className="size-4" />
-                Back to feed
+                {backLabel}
               </Link>
 
               <div className="mt-3">
                 <h1 className="[font-family:Georgia,serif] text-[34px] font-bold leading-tight tracking-[-0.03em] text-zinc-950 sm:text-[40px]">
-                  New Story
+                  {heading}
                 </h1>
 
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
                   <span>For OpenLog knowledge feed</span>
                   <span className="text-zinc-300">|</span>
                   <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[12px] [font-family:Menlo,Monaco,monospace] text-zinc-600">
-                    draft
+                    {badgeLabel}
                   </span>
                 </div>
 
@@ -327,13 +366,13 @@ export function WriteView({
                 <div className="rounded-xl bg-zinc-100 p-1">
                   <div className="flex items-center gap-1">
                     <ModeButton
-                      active={mode === "edit"}
+                      active={composerMode === "edit"}
                       icon={<IconEdit className="size-4" />}
                       label="Edit"
                       onClick={() => handleModeChange("edit")}
                     />
                     <ModeButton
-                      active={mode === "preview"}
+                      active={composerMode === "preview"}
                       icon={
                         <Image
                           src="/Eye.svg"
@@ -359,7 +398,10 @@ export function WriteView({
                   Save Draft
                 </button>
 
-                <PublishButton />
+                <PublishButton
+                  label={submitLabel}
+                  pendingLabel={pendingSubmitLabel}
+                />
               </div>
 
               {submitErrors.form ? (
@@ -457,13 +499,13 @@ export function WriteView({
               <section className="overflow-hidden rounded-[14px] border border-zinc-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]">
                 <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2">
                   <MarkdownToolbar
-                    disabled={mode === "preview"}
+                    disabled={composerMode === "preview"}
                     onAction={insertFormatting}
                   />
                 </div>
 
                 <div className="min-h-[520px] bg-white">
-                  {mode === "edit" ? (
+                  {composerMode === "edit" ? (
                     <textarea
                       ref={editorRef}
                       name="content"
@@ -564,7 +606,13 @@ function ModeButton({
   );
 }
 
-function PublishButton() {
+function PublishButton({
+  label,
+  pendingLabel,
+}: {
+  label: string;
+  pendingLabel: string;
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -573,7 +621,7 @@ function PublishButton() {
       disabled={pending}
       className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-900 bg-zinc-950 px-5 text-sm font-semibold text-white shadow-[0_1px_3px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.1)] transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 disabled:cursor-not-allowed disabled:bg-zinc-400"
     >
-      {pending ? "Publishing..." : "Publish"}
+      {pending ? pendingLabel : label}
     </button>
   );
 }
@@ -689,6 +737,12 @@ function countWords(value: string) {
   }
 
   return trimmed.split(/\s+/).length;
+}
+
+function defaultStatusMessage(mode: WriteViewMode) {
+  return mode === "edit"
+    ? "Edits save locally in this browser."
+    : "Drafts save locally in this browser.";
 }
 
 function statusLabel(reason: SaveReason, isoDate?: string) {

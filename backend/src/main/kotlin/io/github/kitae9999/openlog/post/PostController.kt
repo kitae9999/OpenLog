@@ -2,7 +2,7 @@ package io.github.kitae9999.openlog.post
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
-import io.github.kitae9999.openlog.post.dto.CreatePostResponse
+import io.github.kitae9999.openlog.post.dto.PostWriteResponse
 import io.github.kitae9999.openlog.post.dto.PostWriteRequest
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
@@ -25,7 +25,7 @@ class PostController(
     fun createPost(
         request: HttpServletRequest,
         @Valid @RequestBody postWriteRequest: PostWriteRequest
-    ): ResponseEntity<CreatePostResponse> {
+    ): ResponseEntity<PostWriteResponse> {
         val userId = currentUserResolver.resolveUserId(request)
         val (title, description, content, topics) = postWriteRequest
         val createdPost = postService.createPost(userId, PostWriteCommand(
@@ -52,14 +52,14 @@ class PostController(
 
 
     @PutMapping("{postId}")
-    fun editPost(
+    fun updatePost(
         @PathVariable postId: Long,
         request: HttpServletRequest,
         @Valid @RequestBody postWriteRequest: PostWriteRequest,
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<PostWriteResponse> {
         val userId = currentUserResolver.resolveUserId(request)
         val (title, description, content, topics) = postWriteRequest
-        postService.updatePost(
+        val updatedPost = postService.updatePost(
             userId,
             postId,
             PostWriteCommand(
@@ -70,6 +70,6 @@ class PostController(
             )
         )
 
-        return ResponseEntity.noContent().build()
+        return ResponseEntity.ok(updatedPost)
     }
 }

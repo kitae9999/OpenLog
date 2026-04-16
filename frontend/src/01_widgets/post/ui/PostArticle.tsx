@@ -5,9 +5,16 @@ import type { Comment } from "@/entities/comment/api/getPostComments";
 import type { Contributor, Post } from "@/entities/post/model";
 import { PostCommentsSection } from "./PostCommentsSection";
 import { PostLikeButton } from "./PostLikeButton";
+import { PostOwnerActions } from "./PostOwnerActions";
 import { PostTabs } from "./PostTabs";
 
 const COMMENTS_SECTION_ID = "post-comments";
+
+type OwnerActions = {
+  postId: number;
+  editHref: string;
+  profileHref: string;
+};
 
 export function PostArticle({
   post,
@@ -23,6 +30,7 @@ export function PostArticle({
   showSuggestsTab = true,
   commentItems,
   postId,
+  ownerActions,
 }: {
   post: Post;
   contributors?: Contributor[];
@@ -37,6 +45,7 @@ export function PostArticle({
   showSuggestsTab?: boolean;
   commentItems?: Comment[];
   postId?: number;
+  ownerActions?: OwnerActions;
 }) {
   const list = contributors ?? [];
 
@@ -123,13 +132,22 @@ export function PostArticle({
                 </div>
               </div>
 
-              <button
-                type="button"
-                aria-label="Share"
-                className="grid size-9 place-items-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-              >
-                <IconShare className="size-5" />
-              </button>
+              <div className="flex flex-wrap items-start justify-end gap-3">
+                {ownerActions ? (
+                  <PostOwnerActions
+                    postId={ownerActions.postId}
+                    editHref={ownerActions.editHref}
+                    profileHref={ownerActions.profileHref}
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  aria-label="Share"
+                  className="grid size-9 place-items-center rounded-full text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                >
+                  <IconShare className="size-5" />
+                </button>
+              </div>
             </div>
 
             <h1 className="font-serif text-[42px] font-semibold leading-[1.1] tracking-tight text-zinc-950">

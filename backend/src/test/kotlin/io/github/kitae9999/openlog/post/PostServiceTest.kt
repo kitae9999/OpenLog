@@ -1,5 +1,6 @@
 package io.github.kitae9999.openlog.post
 
+import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.entity.Post
@@ -148,10 +149,146 @@ class PostServiceTest {
         assertThat(post.updatedAt).isEqualTo(originalUpdatedAt)
     }
 
-    private fun createRequest() = PostWriteCommand(
-        title = "Hello OpenLog",
-        description = "Removing blog ownership from posts",
-        content = "content",
-        topics = emptyList(),
+    @Test
+    fun `updatePost regenerates slug when title changes`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+        given(postRepository.existsByAuthorIdAndSlugAndIdNot(1L, "updated-title", 10L)).willReturn(false)
+        given(postTopicRepository.findAllByPostId(10L)).willReturn(emptyList())
+
+        val response = postService.updatePost(
+            1L,
+            10L,
+            createRequest(title = "Updated Title"),
+        )
+
+        assertThat(response.authorUsername).isEqualTo("alice")
+        assertThat(response.slug).isEqualTo("updated-title")
+        assertThat(post.slug).isEqualTo("updated-title")
+    }
+
+    @Test
+    fun `updatePost appends slug suffix excluding current post`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+        given(postRepository.existsByAuthorIdAndSlugAndIdNot(1L, "updated-title", 10L)).willReturn(true)
+        given(postRepository.existsByAuthorIdAndSlugAndIdNot(1L, "updated-title-2", 10L)).willReturn(false)
+        given(postTopicRepository.findAllByPostId(10L)).willReturn(emptyList())
+
+        val response = postService.updatePost(
+            1L,
+            10L,
+            createRequest(title = "Updated Title"),
+        )
+
+        assertThat(response.slug).isEqualTo("updated-title-2")
+        assertThat(post.slug).isEqualTo("updated-title-2")
+    }
+
+    @Test
+    fun `updatePost keeps slug when title is unchanged`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+        given(postTopicRepository.findAllByPostId(10L)).willReturn(emptyList())
+
+        val response = postService.updatePost(1L, 10L, createRequest())
+
+        verify(postRepository, never()).existsByAuthorIdAndSlugAndIdNot(1L, "hello-openlog", 10L)
+        assertThat(response.slug).isEqualTo("hello-openlog")
+        assertThat(post.slug).isEqualTo("hello-openlog")
+    }
+
+    @Test
+    fun `updatePost rejects non-author`() {
+        val user = User(id = 2L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+
+        assertThrows(ForbiddenException::class.java) {
+            postService.updatePost(1L, 10L, createRequest())
+        }
+
+        verifyNoInteractions(topicRepository, postTopicRepository)
+    }
+
+    @Test
+    fun `deletePost rejects non-author`() {
+        val user = User(id = 2L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+
+        assertThrows(ForbiddenException::class.java) {
+            postService.deletePost(1L, 10L)
+        }
+
+        verify(postRepository, never()).delete(post)
+    }
+
+    @Test
+    fun `deletePost deletes authorized post`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+
+        postService.deletePost(1L, 10L)
+
+        verify(postRepository).delete(post)
+    }
+
+    private fun createRequest(
+        title: String = "Hello OpenLog",
+        description: String = "Removing blog ownership from posts",
+        content: String = "content",
+        topics: List<String> = emptyList(),
+    ) = PostWriteCommand(
+        title = title,
+        description = description,
+        content = content,
+        topics = topics,
     )
 }

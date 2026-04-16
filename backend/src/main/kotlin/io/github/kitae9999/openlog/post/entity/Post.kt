@@ -66,8 +66,9 @@ class Post(
     var updatedAt: LocalDateTime = LocalDateTime.now()
         protected set
 
-    fun updatePost(title: String, description: String, content: String): Boolean {
+    fun updatePost(slug: String, title: String, description: String, content: String): Boolean {
         if (
+            this.slug == slug &&
             this.title == title &&
             this.description == description &&
             this.content == content
@@ -75,6 +76,7 @@ class Post(
             return false
         }
 
+        this.slug = slug
         this.title = title
         this.description = description
         this.content = content

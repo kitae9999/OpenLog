@@ -6,7 +6,7 @@ import { API_CONFIG } from "@/shared/api";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import type { WriteActionState } from "./action-state";
 
-type CreatePostResponse = {
+type PostWriteResponse = {
   authorUsername: string;
   slug: string;
 };
@@ -59,7 +59,7 @@ export async function submitPost(
   });
 
   if (response.ok) {
-    const payload = (await response.json()) as CreatePostResponse;
+    const payload = (await response.json()) as PostWriteResponse;
     redirect(buildPublicPostPath(payload.authorUsername, payload.slug));
   }
 

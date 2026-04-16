@@ -8,6 +8,7 @@ import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
 import {
   buildPublicProfilePath,
+  buildPublicPostEditPath,
   buildPublicPostPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
@@ -47,10 +48,12 @@ export default async function PublicPostPage({
     const commentItems = await getPostComments(detail.id);
     const authorHref = buildPublicProfilePath(detail.authorUsername);
     const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
+    const editHref = buildPublicPostEditPath(detail.authorUsername, detail.slug);
     const suggestsHref = buildPublicSuggestsPath(
       detail.authorUsername,
       detail.slug,
     );
+    const isOwner = viewer?.username === detail.authorUsername;
 
     return (
       <div className="min-h-dvh bg-white text-zinc-950">
@@ -77,6 +80,15 @@ export default async function PublicPostPage({
             }}
             commentItems={commentItems}
             postId={detail.id}
+            ownerActions={
+              isOwner
+                ? {
+                    postId: detail.id,
+                    editHref,
+                    profileHref: authorHref,
+                  }
+                : undefined
+            }
             authorHref={authorHref}
             currentUserAvatarSrc={viewer?.profileImageUrl}
             backHref="/?tab=trending"
