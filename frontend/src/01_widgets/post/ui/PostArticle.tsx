@@ -127,7 +127,6 @@ export function PostArticle({
                   <p className="mt-0.5 flex items-center gap-2 text-sm text-zinc-500">
                     <span>{post.publishedAtLabel}</span>
                     <span className="text-zinc-300">·</span>
-                    <span>{post.readTimeLabel}</span>
                   </p>
                 </div>
               </div>

@@ -13,7 +13,6 @@ export type Post = {
   authorName: string;
   authorAvatarSrc: string;
   publishedAtLabel: string;
-  readTimeLabel: string;
   tags: string[];
   coverSrc: string;
   likes: number;
@@ -120,129 +119,130 @@ const tailwindBody = (
 const postEntries: Record<string, Record<string, PostEntry>> = {
   kentcdodds: {
     "tailwind-v4": {
-    post: {
-      title: "The Future of CSS: Tailwind v4",
-      authorName: "Kent C. Dodds",
-      authorAvatarSrc: assets.avatarA,
-      publishedAtLabel: "2026. 2. 25.",
-      readTimeLabel: "5 min read",
-      tags: ["CSS", "Tooling"],
-      coverSrc: assets.postCover,
-      likes: 890,
-      comments: 12,
-    },
-    body: tailwindBody,
-    suggestCount: 1,
-    suggestions: [
-      {
-        id: "pr1",
-        numberLabel: "#pr1",
-        title: "Clarify zero-config theme token migration",
-        openedAtLabel: "2026. 3. 11.",
+      post: {
+        title: "The Future of CSS: Tailwind v4",
         authorName: "Kent C. Dodds",
         authorAvatarSrc: assets.avatarA,
-        commentCount: 2,
-        status: "open",
-        targetBranch: "master",
-        sourceBranch: "patch-1",
-        comment: {
+        publishedAtLabel: "2026. 2. 25.",
+        readTimeLabel: "5 min read",
+        tags: ["CSS", "Tooling"],
+        coverSrc: assets.postCover,
+        likes: 890,
+        comments: 12,
+      },
+      body: tailwindBody,
+      suggestCount: 1,
+      suggestions: [
+        {
+          id: "pr1",
+          numberLabel: "#pr1",
+          title: "Clarify zero-config theme token migration",
+          openedAtLabel: "2026. 3. 11.",
           authorName: "Kent C. Dodds",
           authorAvatarSrc: assets.avatarA,
-          commentedAtLabel: "2026. 3. 11.",
-          message:
-            "I rewrote the upgrade note so the token migration reads as truly zero-config in the common case, while keeping the edge-case caveat.",
+          commentCount: 2,
+          status: "open",
+          targetBranch: "master",
+          sourceBranch: "patch-1",
+          comment: {
+            authorName: "Kent C. Dodds",
+            authorAvatarSrc: assets.avatarA,
+            commentedAtLabel: "2026. 3. 11.",
+            message:
+              "I rewrote the upgrade note so the token migration reads as truly zero-config in the common case, while keeping the edge-case caveat.",
+          },
+          reviewers: [
+            {
+              name: "Sarah Drasner",
+              avatarSrc: assets.avatarB,
+            },
+          ],
+          diffRows: [
+            {
+              oldLine: 12,
+              newLine: 12,
+              kind: "context",
+              content: "## Migrating design tokens",
+            },
+            {
+              oldLine: 13,
+              newLine: 13,
+              kind: "context",
+              content: "",
+            },
+            {
+              oldLine: 14,
+              kind: "remove",
+              content:
+                "Tailwind v4 still requires a manual theme migration for most projects.",
+            },
+            {
+              oldLine: 15,
+              kind: "remove",
+              content:
+                "Plan to map every token by hand before you enable the new engine.",
+            },
+            {
+              newLine: 14,
+              kind: "add",
+              content:
+                "Tailwind v4 can infer most theme tokens automatically when your config already follows common conventions.",
+            },
+            {
+              newLine: 15,
+              kind: "add",
+              content:
+                "Only projects with heavily customized token pipelines need a manual mapping step.",
+            },
+          ],
+          discussionComments: [],
         },
-        reviewers: [
-          {
-            name: "Sarah Drasner",
-            avatarSrc: assets.avatarB,
-          },
-        ],
-        diffRows: [
-          {
-            oldLine: 12,
-            newLine: 12,
-            kind: "context",
-            content: "## Migrating design tokens",
-          },
-          {
-            oldLine: 13,
-            newLine: 13,
-            kind: "context",
-            content: "",
-          },
-          {
-            oldLine: 14,
-            kind: "remove",
-            content:
-              "Tailwind v4 still requires a manual theme migration for most projects.",
-          },
-          {
-            oldLine: 15,
-            kind: "remove",
-            content:
-              "Plan to map every token by hand before you enable the new engine.",
-          },
-          {
-            newLine: 14,
-            kind: "add",
-            content:
-              "Tailwind v4 can infer most theme tokens automatically when your config already follows common conventions.",
-          },
-          {
-            newLine: 15,
-            kind: "add",
-            content:
-              "Only projects with heavily customized token pipelines need a manual mapping step.",
-          },
-        ],
-        discussionComments: [],
-      },
-      {
-        id: "pr2",
-        numberLabel: "#pr2",
-        title: "Close outdated note about PostCSS setup",
-        openedAtLabel: "2026. 3. 9.",
-        authorName: "Dan Abramov",
-        authorAvatarSrc: assets.avatarB,
-        commentCount: 1,
-        status: "closed",
-        targetBranch: "master",
-        sourceBranch: "cleanup-postcss-note",
-        comment: {
+        {
+          id: "pr2",
+          numberLabel: "#pr2",
+          title: "Close outdated note about PostCSS setup",
+          openedAtLabel: "2026. 3. 9.",
           authorName: "Dan Abramov",
           authorAvatarSrc: assets.avatarB,
-          commentedAtLabel: "2026. 3. 9.",
-          message:
-            "This removes the old PostCSS warning and keeps the setup guide aligned with the current default toolchain.",
+          commentCount: 1,
+          status: "closed",
+          targetBranch: "master",
+          sourceBranch: "cleanup-postcss-note",
+          comment: {
+            authorName: "Dan Abramov",
+            authorAvatarSrc: assets.avatarB,
+            commentedAtLabel: "2026. 3. 9.",
+            message:
+              "This removes the old PostCSS warning and keeps the setup guide aligned with the current default toolchain.",
+          },
+          reviewers: [
+            {
+              name: "Kent C. Dodds",
+              avatarSrc: assets.avatarA,
+            },
+          ],
+          diffRows: [
+            {
+              oldLine: 21,
+              newLine: 21,
+              kind: "context",
+              content: "## Tooling updates",
+            },
+            {
+              oldLine: 22,
+              kind: "remove",
+              content:
+                "Projects must install a custom PostCSS bridge to compile.",
+            },
+            {
+              newLine: 22,
+              kind: "add",
+              content: "The default PostCSS integration is already included.",
+            },
+          ],
+          discussionComments: [],
         },
-        reviewers: [
-          {
-            name: "Kent C. Dodds",
-            avatarSrc: assets.avatarA,
-          },
-        ],
-        diffRows: [
-          {
-            oldLine: 21,
-            newLine: 21,
-            kind: "context",
-            content: "## Tooling updates",
-          },
-          {
-            oldLine: 22,
-            kind: "remove",
-            content: "Projects must install a custom PostCSS bridge to compile.",
-          },
-          {
-            newLine: 22,
-            kind: "add",
-            content: "The default PostCSS integration is already included.",
-          },
-        ],
-        discussionComments: [],
-      },
-    ],
+      ],
     },
   },
   sdrasner: {

@@ -7,7 +7,6 @@ export type PublicUserPostSummary = {
   title: string;
   description: string;
   publishedAtLabel: string;
-  readTimeLabel: string;
 };
 
 export async function getPublicUserPosts(username: string) {

@@ -48,7 +48,10 @@ export default async function PublicPostPage({
     const commentItems = await getPostComments(detail.id);
     const authorHref = buildPublicProfilePath(detail.authorUsername);
     const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
-    const editHref = buildPublicPostEditPath(detail.authorUsername, detail.slug);
+    const editHref = buildPublicPostEditPath(
+      detail.authorUsername,
+      detail.slug,
+    );
     const suggestsHref = buildPublicSuggestsPath(
       detail.authorUsername,
       detail.slug,
@@ -71,7 +74,6 @@ export default async function PublicPostPage({
               authorName: detail.authorName,
               authorAvatarSrc: detail.authorAvatarSrc ?? assets.defaultAvatar,
               publishedAtLabel: detail.publishedAtLabel,
-              readTimeLabel: detail.readTimeLabel,
               tags: detail.topics,
               coverSrc: assets.postCover,
               likes: detail.likes,

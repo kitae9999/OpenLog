@@ -98,13 +98,16 @@ export async function ProfileView({ username }: { username: string }) {
 
                       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
                         <span>{post.publishedAtLabel}</span>
-                        <span>{post.readTimeLabel}</span>
                       </div>
                     </div>
 
                     <div className="relative size-16 overflow-hidden rounded-[4px] bg-zinc-200">
                       <Image
-                        src={index % 2 === 0 ? assets.featuredCover : assets.postCover}
+                        src={
+                          index % 2 === 0
+                            ? assets.featuredCover
+                            : assets.postCover
+                        }
                         alt={`${post.title} thumbnail`}
                         fill
                         sizes="64px"
