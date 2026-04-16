@@ -47,22 +47,7 @@ const EMPTY_WRITE_VALUES: WriteViewInitialValues = {
   topics: [],
   content: "",
 };
-
-const writingGuidelines = [
-  "Open with the problem, then state the insight in the first two paragraphs.",
-  "Keep each section anchored to one technical idea or experiment.",
-  "Verify technical accuracy and add references before publishing.",
-  "Respect the original author's tone when drafting a collaborative piece.",
-] as const;
-
-const markdownCheatsheet = [
-  { syntax: "**Bold**", label: "Bold" },
-  { syntax: "*Italic*", label: "Italic" },
-  { syntax: "[Link](url)", label: "Link" },
-  { syntax: "`Code`", label: "Inline code" },
-  { syntax: "```\\nCode block\\n```", label: "Code block" },
-  { syntax: "# Heading", label: "H1" },
-] as const;
+const DESCRIPTION_MAX_LENGTH = 50;
 
 export function WriteView({
   isLoggedIn,
@@ -72,8 +57,6 @@ export function WriteView({
   action = submitPost,
   initialValues = EMPTY_WRITE_VALUES,
   draftStorageKey = DRAFT_STORAGE_KEY,
-  heading = "New Story",
-  badgeLabel = "draft",
   backHref = "/?tab=trending",
   backLabel = "Back to feed",
   submitLabel = "Publish",
@@ -86,8 +69,6 @@ export function WriteView({
   action?: WriteAction;
   initialValues?: WriteViewInitialValues;
   draftStorageKey?: string;
-  heading?: string;
-  badgeLabel?: string;
   backHref?: string;
   backLabel?: string;
   submitLabel?: string;
@@ -96,7 +77,9 @@ export function WriteView({
   const router = useRouter();
   const [composerMode, setComposerMode] = useState<ComposerMode>("edit");
   const [title, setTitle] = useState(initialValues.title);
-  const [description, setDescription] = useState(initialValues.description);
+  const [description, setDescription] = useState(
+    normalizeDescription(initialValues.description),
+  );
   const [topicInput, setTopicInput] = useState("");
   const [topics, setTopics] = useState<string[]>(() =>
     normalizeTopics(initialValues.topics),
@@ -119,11 +102,6 @@ export function WriteView({
   const deferredDescription = useDeferredValue(description);
   const deferredTopics = useDeferredValue(topics);
   const deferredBody = useDeferredValue(body);
-  const wordCount = countWords(
-    `${deferredTitle} ${deferredDescription} ${deferredBody}`,
-  );
-  const readTimeMinutes =
-    wordCount === 0 ? 0 : Math.max(1, Math.ceil(wordCount / 220));
 
   useEffect(() => {
     setSubmitErrors(actionState?.errors ?? {});
@@ -196,7 +174,7 @@ export function WriteView({
       }>;
 
       setTitle(draft.title ?? "");
-      setDescription(draft.description ?? "");
+      setDescription(normalizeDescription(draft.description ?? ""));
       setTopics(normalizeTopics(draft.topics ?? []));
       setBody(draft.body ?? "");
       setStatusMessage(statusLabel("restored", draft.updatedAt));
@@ -250,7 +228,7 @@ export function WriteView({
   }
 
   function handleDescriptionChange(nextValue: string) {
-    setDescription(nextValue);
+    setDescription(normalizeDescription(nextValue));
     clearError("description");
   }
 
@@ -339,8 +317,8 @@ export function WriteView({
             <input type="hidden" name="content" value={body} />
           ) : null}
 
-          <div className="flex flex-col gap-6 border-b border-zinc-200/80 pb-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
+          <div className="flex flex-col gap-6 border-b border-zinc-200/80 pb-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1">
               <Link
                 href={backHref}
                 className="inline-flex items-center gap-2 rounded-full px-1 py-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
@@ -349,26 +327,51 @@ export function WriteView({
                 {backLabel}
               </Link>
 
-              <div className="mt-3">
-                <h1 className="[font-family:Georgia,serif] text-[34px] font-bold leading-tight tracking-[-0.03em] text-zinc-950 sm:text-[40px]">
-                  {heading}
-                </h1>
+              <div className="mt-3 space-y-1">
+                <label className="block">
+                  <span className="sr-only">Title</span>
+                  <input
+                    name="title"
+                    value={title}
+                    onChange={(event) => handleTitleChange(event.target.value)}
+                    placeholder="제목을 입력하세요"
+                    className={cn(
+                      "w-full bg-transparent text-[36px] font-bold leading-tight tracking-normal text-zinc-950 outline-none placeholder:text-zinc-400 sm:text-[44px]",
+                      title ? "[font-family:Georgia,serif]" : "",
+                      submitErrors.title ? "placeholder:text-rose-300" : "",
+                    )}
+                  />
+                  {submitErrors.title ? (
+                    <p className="mt-2 text-sm text-rose-600">
+                      {submitErrors.title}
+                    </p>
+                  ) : null}
+                </label>
 
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
-                  <span>For OpenLog knowledge feed</span>
-                  <span className="text-zinc-300">|</span>
-                  <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[12px] [font-family:Menlo,Monaco,monospace] text-zinc-600">
-                    {badgeLabel}
-                  </span>
-                </div>
+                <label className="block">
+                  <span className="sr-only">Description</span>
+                  <input
+                    name="description"
+                    value={description}
+                    onChange={(event) =>
+                      handleDescriptionChange(event.target.value)
+                    }
+                    placeholder="요약을 입력하세요"
+                    maxLength={DESCRIPTION_MAX_LENGTH}
+                    className={cn(
+                      "h-7 w-full bg-transparent text-[16px] leading-7 tracking-normal text-zinc-700 outline-none placeholder:text-zinc-400",
+                      submitErrors.description
+                        ? "placeholder:text-rose-300"
+                        : "",
+                    )}
+                  />
+                  {submitErrors.description ? (
+                    <p className="mt-1 text-sm text-rose-600">
+                      {submitErrors.description}
+                    </p>
+                  ) : null}
+                </label>
 
-                <p className="mt-3 text-sm text-zinc-500">
-                  {wordCount} words
-                  <span className="mx-2 text-zinc-300">|</span>
-                  {readTimeMinutes} min read
-                  <span className="mx-2 text-zinc-300">|</span>
-                  {statusMessage}
-                </p>
               </div>
             </div>
 
@@ -415,6 +418,13 @@ export function WriteView({
                 />
               </div>
 
+              <p
+                className="text-xs font-medium text-zinc-400 sm:text-right"
+                aria-live="polite"
+              >
+                {statusMessage}
+              </p>
+
               {submitErrors.form ? (
                 <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                   {submitErrors.form}
@@ -423,162 +433,65 @@ export function WriteView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_240px]">
-            <div className="space-y-6">
-              <section className="rounded-[14px] border border-zinc-200 bg-white px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]">
-                <div className="space-y-4">
-                  <label className="block">
-                    <span className="text-sm font-medium text-zinc-700">
-                      Title
-                    </span>
-                    <input
-                      name="title"
-                      value={title}
-                      onChange={(event) =>
-                        handleTitleChange(event.target.value)
-                      }
-                      placeholder="Summarize your idea with a clear title"
-                      className={cn(
-                        "mt-1 h-[42px] w-full rounded-[10px] border px-4 text-[16px] tracking-[-0.02em] text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:ring-4 focus:ring-zinc-900/5",
-                        submitErrors.title
-                          ? "border-rose-300 bg-rose-50/40 focus:border-rose-400"
-                          : "border-zinc-200 focus:border-zinc-400",
-                      )}
-                    />
-                    {submitErrors.title ? (
-                      <p className="mt-2 text-sm text-rose-600">
-                        {submitErrors.title}
-                      </p>
-                    ) : null}
-                  </label>
+          <div>
+            <section className="overflow-hidden rounded-[8px] border border-zinc-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]">
+              <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2">
+                <MarkdownToolbar
+                  disabled={composerMode === "preview"}
+                  onAction={insertFormatting}
+                />
+              </div>
 
-                  <label className="block">
-                    <span className="text-sm font-medium text-zinc-700">
-                      Description
-                    </span>
-                    <textarea
-                      name="description"
-                      value={description}
-                      onChange={(event) =>
-                        handleDescriptionChange(event.target.value)
-                      }
-                      placeholder="Describe why this story matters and what readers will learn..."
-                      rows={4}
-                      className={cn(
-                        "mt-1 w-full rounded-[10px] border px-4 py-3 text-[16px] leading-6 tracking-[-0.02em] text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:ring-4 focus:ring-zinc-900/5",
-                        submitErrors.description
-                          ? "border-rose-300 bg-rose-50/40 focus:border-rose-400"
-                          : "border-zinc-200 focus:border-zinc-400",
-                      )}
-                    />
-                    {submitErrors.description ? (
-                      <p className="mt-2 text-sm text-rose-600">
-                        {submitErrors.description}
-                      </p>
-                    ) : null}
-                  </label>
+              <div className="min-h-[520px] bg-white">
+                {composerMode === "edit" ? (
+                  <textarea
+                    ref={editorRef}
+                    name="content"
+                    value={body}
+                    onChange={(event) => handleBodyChange(event.target.value)}
+                    placeholder="당신의 이야기를 적어보세요..."
+                    className="min-h-[520px] w-full resize-none px-6 py-6 text-[16px] leading-8 tracking-normal text-zinc-900 outline-none placeholder:text-zinc-400"
+                  />
+                ) : (
+                  <MarkdownPreview
+                    title={deferredTitle}
+                    description={deferredDescription}
+                    topics={deferredTopics}
+                    body={deferredBody}
+                  />
+                )}
+              </div>
 
-                  <label className="block">
-                    <span className="text-sm font-medium text-zinc-700">
-                      Topics
-                    </span>
+              <div className="border-t border-zinc-200 px-6 py-3">
+                <div className="flex min-h-8 flex-wrap items-center gap-2">
+                  {topics.map((topic) => (
+                    <TopicChip
+                      key={topic}
+                      topic={topic}
+                      onRemove={() => removeTopic(topic)}
+                    />
+                  ))}
+                  <label className="min-w-[140px] flex-1">
+                    <span className="sr-only">Topics</span>
                     <input
                       value={topicInput}
                       onChange={(event) =>
                         handleTopicInputChange(event.target.value)
                       }
                       onKeyDown={handleTopicKeyDown}
-                      placeholder="Type a topic and press Enter"
-                      className="mt-1 h-[42px] w-full rounded-[10px] border border-zinc-200 px-4 text-[16px] tracking-[-0.02em] text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5"
+                      placeholder="태그 추가"
+                      className="h-7 w-full bg-transparent text-[14px] tracking-normal text-zinc-700 outline-none placeholder:text-zinc-400"
                     />
-
-                    {topics.length > 0 ? (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {topics.map((topic) => (
-                          <TopicChip
-                            key={topic}
-                            topic={topic}
-                            onRemove={() => removeTopic(topic)}
-                          />
-                        ))}
-                      </div>
-                    ) : null}
                   </label>
                 </div>
-              </section>
+              </div>
 
-              <section className="overflow-hidden rounded-[14px] border border-zinc-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]">
-                <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2">
-                  <MarkdownToolbar
-                    disabled={composerMode === "preview"}
-                    onAction={insertFormatting}
-                  />
+              {submitErrors.content ? (
+                <div className="border-t border-rose-200 bg-rose-50 px-6 py-3 text-sm text-rose-700">
+                  {submitErrors.content}
                 </div>
-
-                <div className="min-h-[520px] bg-white">
-                  {composerMode === "edit" ? (
-                    <textarea
-                      ref={editorRef}
-                      name="content"
-                      value={body}
-                      onChange={(event) => handleBodyChange(event.target.value)}
-                      placeholder="Start typing..."
-                      className="min-h-[520px] w-full resize-none px-6 py-6 text-[16px] leading-8 tracking-[-0.01em] text-zinc-900 outline-none placeholder:text-zinc-400"
-                    />
-                  ) : (
-                    <MarkdownPreview
-                      title={deferredTitle}
-                      description={deferredDescription}
-                      topics={deferredTopics}
-                      body={deferredBody}
-                    />
-                  )}
-                </div>
-
-                {submitErrors.content ? (
-                  <div className="border-t border-rose-200 bg-rose-50 px-6 py-3 text-sm text-rose-700">
-                    {submitErrors.content}
-                  </div>
-                ) : null}
-              </section>
-            </div>
-
-            <aside className="space-y-4">
-              <section className="rounded-[14px] border border-[#d8e3ff] bg-[linear-gradient(180deg,#eef4ff_0%,#f7faff_100%)] p-5 shadow-sm">
-                <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-[#1f3f9f]">
-                  Writing Guidelines
-                </h2>
-                <ul className="mt-4 space-y-3 text-sm leading-5 text-[rgba(25,60,184,0.84)]">
-                  {writingGuidelines.map((item) => (
-                    <li key={item} className="flex gap-2">
-                      <span className="font-bold">-</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <section className="rounded-[14px] border border-zinc-200 bg-zinc-50 p-5">
-                <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-zinc-700">
-                  Markdown Cheatsheet
-                </h2>
-                <div className="mt-4 space-y-3">
-                  {markdownCheatsheet.map((item) => (
-                    <div
-                      key={item.syntax}
-                      className="flex items-center justify-between gap-4"
-                    >
-                      <code className="[font-family:Menlo,Monaco,monospace] text-[12px] text-zinc-600">
-                        {item.syntax}
-                      </code>
-                      <span className="text-[12px] text-zinc-400">
-                        {item.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </aside>
+              ) : null}
+            </section>
           </div>
         </form>
       </main>
@@ -645,7 +558,7 @@ function TopicChip({
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-[12px] font-medium tracking-wide text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+    <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-zinc-100 px-2 text-[12px] font-medium tracking-normal text-zinc-600">
       <span>{topic}</span>
       <button
         type="button"
@@ -690,10 +603,10 @@ function MarkdownPreview({
   return (
     <article className="min-h-130 px-6 py-8">
       <header className="border-b border-zinc-200 pb-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">
+        <p className="text-[11px] font-semibold uppercase tracking-normal text-zinc-400">
           Live Preview
         </p>
-        <h2 className="mt-4 font-[Georgia,serif] text-[34px] font-bold leading-tight tracking-[-0.03em] text-zinc-950">
+        <h2 className="mt-4 font-[Georgia,serif] text-[34px] font-bold leading-tight tracking-normal text-zinc-950">
           {title.trim() || "Untitled story"}
         </h2>
         {description.trim() ? (
@@ -706,7 +619,7 @@ function MarkdownPreview({
             {topics.map((topic) => (
               <span
                 key={topic}
-                className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-zinc-600"
+                className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-medium uppercase tracking-normal text-zinc-600"
               >
                 {topic}
               </span>
@@ -733,21 +646,16 @@ function normalizeTopic(value: string) {
   return value.trim().toLowerCase();
 }
 
+function normalizeDescription(value: string) {
+  return value.slice(0, DESCRIPTION_MAX_LENGTH);
+}
+
 function normalizeTopics(values: string[]) {
   return values
     .map(normalizeTopic)
     .filter(
       (value, index, list) => Boolean(value) && list.indexOf(value) === index,
     );
-}
-
-function countWords(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return 0;
-  }
-
-  return trimmed.split(/\s+/).length;
 }
 
 function defaultStatusMessage(mode: WriteViewMode) {

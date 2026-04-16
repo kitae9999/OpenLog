@@ -62,8 +62,6 @@ export default async function EditPostPage({
         content: detail.content,
       }}
       draftStorageKey={`openlog.write.edit.${detail.id}`}
-      heading="Edit Story"
-      badgeLabel="editing"
       backHref={articleHref}
       backLabel="Back to story"
       submitLabel="Save Changes"

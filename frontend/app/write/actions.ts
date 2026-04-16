@@ -11,6 +11,8 @@ type PostWriteResponse = {
   slug: string;
 };
 
+const DESCRIPTION_MAX_LENGTH = 50;
+
 export async function submitPost(
   _prevState: WriteActionState,
   formData: FormData,
@@ -32,6 +34,8 @@ export async function submitPost(
 
   if (!description) {
     errors.description = "설명은 필수입니다.";
+  } else if (description.length > DESCRIPTION_MAX_LENGTH) {
+    errors.description = `설명은 ${DESCRIPTION_MAX_LENGTH}자 이하여야 합니다.`;
   }
 
   if (!content) {

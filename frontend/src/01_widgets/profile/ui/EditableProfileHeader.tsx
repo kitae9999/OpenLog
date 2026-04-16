@@ -344,9 +344,9 @@ function Field({
           name={name}
           value={value}
           placeholder={placeholder}
-          rows={4}
+          rows={3}
           maxLength={maxLength}
-          className={`${className} min-h-[132px] resize-none leading-6`}
+          className={`${className} min-h-[88px] resize-none leading-6`}
           onChange={(event) => onChange(name, event.target.value)}
           onBlur={() => onBlur(name)}
         />

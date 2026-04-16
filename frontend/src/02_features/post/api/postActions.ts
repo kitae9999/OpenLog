@@ -11,6 +11,8 @@ type PostWriteResponse = {
   slug: string;
 };
 
+const DESCRIPTION_MAX_LENGTH = 50;
+
 export type DeletePostResult =
   | {
       ok: true;
@@ -117,6 +119,8 @@ function parsePostWriteForm(formData: FormData) {
 
   if (!description) {
     errors.description = "설명은 필수입니다.";
+  } else if (description.length > DESCRIPTION_MAX_LENGTH) {
+    errors.description = `설명은 ${DESCRIPTION_MAX_LENGTH}자 이하여야 합니다.`;
   }
 
   if (!content) {
