@@ -4,5 +4,5 @@ data class CreatePostCommand(
     val title: String,
     val description: String,
     val content: String,
-    val topics : List<String> = emptyList()
+    val topics : List<String>,
 )

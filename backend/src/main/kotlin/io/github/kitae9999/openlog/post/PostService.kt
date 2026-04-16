@@ -1,5 +1,6 @@
 package io.github.kitae9999.openlog.post
 
+import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.command.CreatePostCommand
 import io.github.kitae9999.openlog.post.dto.CreatePostResponse
@@ -69,6 +70,15 @@ class PostService(
             authorUsername = authorUsername,
             slug = savedPost.slug,
         )
+    }
+
+    fun deletePost(userId: Long, postId: Long) {
+        val postToDelete = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("존재하지 않는 포스트입니다.")
+        if (userId != postToDelete.author.id){
+            throw ForbiddenException("권한이 없습니다.")
+        }
+
+        postRepository.delete(postToDelete)
     }
 
     private fun normalizeTopics(rawTopics: List<String>): List<String> {

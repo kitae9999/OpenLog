@@ -41,9 +41,13 @@ class PostController(
     fun deletePost(
         @PathVariable postId: Long,
         request: HttpServletRequest,
-    ){
+    ): ResponseEntity<Void>{
         val userId = currentUserResolver.resolveUserId(request)
 
+        postService.deletePost(userId, postId)
 
+        return ResponseEntity.noContent().build()
     }
+
+
 }
