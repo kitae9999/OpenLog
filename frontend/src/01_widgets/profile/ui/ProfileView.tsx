@@ -39,14 +39,31 @@ export async function ProfileView({ username }: { username: string }) {
       />
 
       <main className="mx-auto w-full max-w-[1083px] flex-1 px-4 pb-20 pt-8 sm:px-8">
-        <EditableProfileHeader
-          profile={profile}
-          isViewer={isViewer}
-          joinedLabel={joinedLabel}
-        />
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+          <div className="min-w-0 lg:col-start-1">
+            <EditableProfileHeader
+              profile={profile}
+              isViewer={isViewer}
+              joinedLabel={joinedLabel}
+            />
+          </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <section className="min-w-0">
+          <aside
+            className="min-w-0 lg:col-start-2 lg:row-span-2"
+            aria-label="Recent activity"
+          >
+            <SectionHeading
+              iconSrc="/GitPullRequest.svg"
+              title="Recent Activity"
+            />
+            <EmptyStateCard
+              className="mt-6"
+              title="Recent activity is not available yet"
+              description="Merged PRs, comments, and contribution history will appear here once the activity API is implemented."
+            />
+          </aside>
+
+          <section className="min-w-0 lg:col-start-1">
             <SectionHeading iconSrc="/FileText.svg" title="Authored Posts" />
 
             {posts.length > 0 ? (
@@ -104,18 +121,6 @@ export async function ProfileView({ username }: { username: string }) {
                 description="This profile has not published any posts."
               />
             )}
-          </section>
-
-          <section>
-            <SectionHeading
-              iconSrc="/GitPullRequest.svg"
-              title="Recent Activity"
-            />
-            <EmptyStateCard
-              className="mt-6"
-              title="Recent activity is not available yet"
-              description="Merged PRs, comments, and contribution history will appear here once the activity API is implemented."
-            />
           </section>
         </div>
       </main>

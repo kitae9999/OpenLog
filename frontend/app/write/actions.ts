@@ -60,7 +60,10 @@ export async function submitPost(
 
   if (response.ok) {
     const payload = (await response.json()) as PostWriteResponse;
-    redirect(buildPublicPostPath(payload.authorUsername, payload.slug));
+    return {
+      errors: {},
+      redirectTo: buildPublicPostPath(payload.authorUsername, payload.slug),
+    };
   }
 
   if (response.status === 401) {

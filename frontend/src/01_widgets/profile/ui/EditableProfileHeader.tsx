@@ -182,15 +182,6 @@ export function EditableProfileHeader({
                 onBlur={handleFieldBlur}
               />
 
-              <div>
-                <span className="text-sm font-semibold text-zinc-900">
-                  Username
-                </span>
-                <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-500">
-                  @{currentProfile.username}
-                </div>
-              </div>
-
               <Field
                 name="bio"
                 label="Bio"
@@ -202,24 +193,7 @@ export function EditableProfileHeader({
                 onChange={handleFieldChange}
                 onBlur={handleFieldBlur}
               />
-            </div>
 
-            <div className="mt-5 grid gap-4 text-sm text-zinc-500 lg:grid-cols-3">
-              <div>
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                  <Image
-                    src="/Calendar.svg"
-                    alt=""
-                    width={16}
-                    height={16}
-                    aria-hidden="true"
-                  />
-                  Joined
-                </span>
-                <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-500">
-                  {joinedLabel}
-                </div>
-              </div>
               <Field
                 name="location"
                 label="Location"
@@ -261,29 +235,30 @@ export function EditableProfileHeader({
         <ProfileAvatar profile={currentProfile} profileName={profileName} />
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <h1 className="font-[Georgia,serif] text-[40px] font-bold leading-none tracking-[-0.04em] text-zinc-950 sm:text-[48px]">
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center justify-between gap-4">
+              <h1 className="min-w-0 break-words font-[Georgia,serif] text-[40px] font-bold leading-none tracking-[-0.04em] text-zinc-950 sm:text-[48px]">
                 {profileName}
               </h1>
-              <p className="mt-3 text-sm font-medium text-zinc-500">
-                @{currentProfile.username}
-              </p>
-              <p className="mt-4 max-w-3xl text-[18px] leading-8 text-zinc-600">
-                {currentProfile.bio ?? "No bio added yet."}
-              </p>
+
+              {isViewer ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-semibold text-zinc-600 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                >
+                  <IconPencil className="size-4" />
+                  Edit
+                </button>
+              ) : null}
             </div>
 
-            {isViewer ? (
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="inline-flex h-11 items-center gap-2 self-start rounded-full border border-zinc-300 bg-white px-5 text-sm font-medium text-zinc-900 transition hover:border-zinc-400 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10"
-              >
-                <IconPencil className="size-4" />
-                Edit Profile
-              </button>
-            ) : null}
+            <p className="mt-3 text-sm font-medium text-zinc-500">
+              @{currentProfile.username}
+            </p>
+            <p className="mt-4 max-w-3xl text-[18px] leading-8 text-zinc-600">
+              {currentProfile.bio ?? "No bio added yet."}
+            </p>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm text-zinc-500">
@@ -357,7 +332,7 @@ function Field({
   const className = `mt-2 w-full rounded-xl border px-4 py-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:ring-4 ${inputClassName}`;
 
   return (
-    <label className={iconSrc ? "block md:col-span-1" : "block"}>
+    <label className="block">
       <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
         {iconSrc ? (
           <Image src={iconSrc} alt="" width={16} height={16} aria-hidden="true" />

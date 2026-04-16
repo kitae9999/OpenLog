@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   startTransition,
   useActionState,
@@ -92,6 +93,7 @@ export function WriteView({
   submitLabel?: string;
   pendingSubmitLabel?: string;
 }) {
+  const router = useRouter();
   const [composerMode, setComposerMode] = useState<ComposerMode>("edit");
   const [title, setTitle] = useState(initialValues.title);
   const [description, setDescription] = useState(initialValues.description);
@@ -126,6 +128,15 @@ export function WriteView({
   useEffect(() => {
     setSubmitErrors(actionState?.errors ?? {});
   }, [actionState]);
+
+  useEffect(() => {
+    if (!actionState.redirectTo) {
+      return;
+    }
+
+    window.localStorage.removeItem(draftStorageKey);
+    router.replace(actionState.redirectTo);
+  }, [actionState.redirectTo, draftStorageKey, router]);
 
   function persistDraft(reason: SaveReason) {
     const trimmedTitle = title.trim();
