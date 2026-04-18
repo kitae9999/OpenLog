@@ -4,6 +4,8 @@ import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.user.entity.User
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
@@ -26,7 +28,7 @@ class Suggestion (
     user: User,
     content: String,
     description: String,
-    status: String,
+    status: SuggestionStatus = SuggestionStatus.OPEN,
     postBaseVersion: Long,
 ) {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -47,8 +49,9 @@ class Suggestion (
     var description: String = description
         protected set
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var status: String = status
+    var status: SuggestionStatus = status
         protected set
 
     @Column(name = "post_base_version", nullable = false)
