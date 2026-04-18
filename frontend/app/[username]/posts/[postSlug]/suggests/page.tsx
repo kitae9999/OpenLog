@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 import { Footer, Header } from "@/widgets/chrome/ui";
-import { PostSuggests, type SuggestionListItem } from "@/widgets/post/ui";
+import {
+  PostSuggests,
+  type SuggestionListItem,
+  type SuggestionStatusFilter,
+} from "@/widgets/post/ui";
 import {
   type ApiSuggestionStatus,
   type ApiSuggestionSummary,
@@ -20,12 +24,18 @@ import {
 
 export default async function PublicPostSuggestsPage({
   params,
+  searchParams,
 }: {
   params?: Promise<{ username?: string; postSlug?: string }>;
+  searchParams?: Promise<{ status?: string | string[] }>;
 }) {
   const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
   const usernameParam = resolvedParams?.username;
   const postSlug = resolvedParams?.postSlug;
+  const activeStatus = parseSuggestionStatusFilter(
+    resolvedSearchParams?.status,
+  );
 
   if (!usernameParam || !postSlug) {
     notFound();
@@ -74,7 +84,9 @@ export default async function PublicPostSuggestsPage({
             backHref="/?tab=trending"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
+            suggestEditHref="/contribute"
             suggestCount={suggestions.length}
+            activeStatus={activeStatus}
           />
         </main>
 
@@ -103,13 +115,22 @@ export default async function PublicPostSuggestsPage({
           backHref="/?tab=trending"
           articleHref={articleHref}
           suggestsHref={suggestsHref}
+          suggestEditHref="/contribute"
           suggestCount={entry.suggestCount}
+          activeStatus={activeStatus}
         />
       </main>
 
       <Footer />
     </div>
   );
+}
+
+function parseSuggestionStatusFilter(
+  status?: string | string[],
+): SuggestionStatusFilter {
+  const value = Array.isArray(status) ? status[0] : status;
+  return value === "closed" ? "closed" : "open";
 }
 
 function toSuggestionListItem(

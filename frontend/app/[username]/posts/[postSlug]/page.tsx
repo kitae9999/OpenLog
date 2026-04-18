@@ -100,7 +100,6 @@ export default async function PublicPostPage({
             backHref="/?tab=trending"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
-            suggestEditsHref="/contribute"
             suggestCount={suggestions.length}
           >
             <div className="mt-8 space-y-6 text-[16px] leading-8 text-zinc-700">
@@ -143,7 +142,6 @@ export default async function PublicPostPage({
           backHref="/?tab=trending"
           articleHref={articleHref}
           suggestsHref={suggestsHref}
-          suggestEditsHref="/contribute"
           suggestCount={entry.suggestCount}
         >
           {entry.body}

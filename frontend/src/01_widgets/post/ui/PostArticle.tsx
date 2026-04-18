@@ -25,7 +25,6 @@ export function PostArticle({
   currentUserAvatarSrc,
   articleHref = "#",
   suggestsHref = "/contribute",
-  suggestEditsHref = "/contribute",
   suggestCount = 0,
   showSuggestsTab = true,
   commentItems,
@@ -40,7 +39,6 @@ export function PostArticle({
   currentUserAvatarSrc?: string | null;
   articleHref?: string;
   suggestsHref?: string;
-  suggestEditsHref?: string;
   suggestCount?: number;
   showSuggestsTab?: boolean;
   commentItems?: Comment[];
@@ -61,7 +59,6 @@ export function PostArticle({
             likes={post.likes}
             liked={post.liked}
             comments={post.comments}
-            suggestEditsHref={suggestEditsHref}
           />
         </aside>
 
@@ -194,7 +191,6 @@ export function PostArticle({
               likes={post.likes}
               liked={post.liked}
               comments={post.comments}
-              suggestEditsHref={suggestEditsHref}
             />
           </div>
 
@@ -251,13 +247,11 @@ function PostActionRail({
   likes,
   liked,
   comments,
-  suggestEditsHref,
 }: {
   postId?: number;
   likes: number;
   liked?: boolean;
   comments: number;
-  suggestEditsHref: string;
 }) {
   return (
     <nav className="flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
@@ -278,17 +272,6 @@ function PostActionRail({
         <IconMessageSquare className="size-5 transition-transform group-hover:scale-[1.03]" />
         <span className="text-[12px] font-medium leading-none">{comments}</span>
       </a>
-
-      <div className="h-px w-7 bg-zinc-200" aria-hidden="true" />
-
-      <Link
-        href={suggestEditsHref}
-        aria-label="Suggests"
-        className="group flex w-full flex-col items-center gap-1 rounded-xl bg-black px-1 py-2 text-white transition hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30"
-      >
-        <IconEdit className="size-5 transition-transform group-hover:scale-[1.03]" />
-        <span className="text-[10px] font-semibold leading-none">Suggests</span>
-      </Link>
     </nav>
   );
 }
@@ -298,42 +281,30 @@ function MobileActionBar({
   likes,
   liked,
   comments,
-  suggestEditsHref,
 }: {
   postId?: number;
   likes: number;
   liked?: boolean;
   comments: number;
-  suggestEditsHref: string;
 }) {
   return (
-    <div className="flex h-[62px] w-full max-w-[450px] items-center justify-between rounded-2xl border border-zinc-200 bg-white/80 px-6 shadow-[0_20px_25px_rgba(0,0,0,0.1),0_8px_10px_rgba(0,0,0,0.1)] backdrop-blur">
-      <div className="flex items-center gap-6">
-        <PostLikeButton
-          postId={postId}
-          initialLikes={likes}
-          initialLiked={liked}
-          variant="mobile"
-        />
-
-        <a
-          href={`#${COMMENTS_SECTION_ID}`}
-          className="inline-flex items-center gap-2 text-[16px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-        >
-          <IconMessageSquare className="size-6" />
-          <span>{comments}</span>
-        </a>
-      </div>
+    <div className="flex h-[62px] w-full max-w-[260px] items-center justify-center gap-6 rounded-2xl border border-zinc-200 bg-white/80 px-6 shadow-[0_20px_25px_rgba(0,0,0,0.1),0_8px_10px_rgba(0,0,0,0.1)] backdrop-blur">
+      <PostLikeButton
+        postId={postId}
+        initialLikes={likes}
+        initialLiked={liked}
+        variant="mobile"
+      />
 
       <span className="h-6 w-px bg-zinc-300" aria-hidden="true" />
 
-      <Link
-        href={suggestEditsHref}
-        className="inline-flex h-9 items-center gap-2 rounded-full bg-black pl-5 pr-4 text-sm font-medium text-white transition hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30"
+      <a
+        href={`#${COMMENTS_SECTION_ID}`}
+        className="inline-flex items-center gap-2 text-[16px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >
-        <IconEdit className="size-4" />
-        Suggests
-      </Link>
+        <IconMessageSquare className="size-6" />
+        <span>{comments}</span>
+      </a>
     </div>
   );
 }
@@ -438,31 +409,6 @@ function IconMessageSquare({ className }: { className?: string }) {
     >
       <path
         d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconEdit({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M12 20h9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"

@@ -14,23 +14,36 @@ export type SuggestionListItem = {
   status: "open" | "closed" | "merged";
 };
 
+export type SuggestionStatusFilter = "open" | "closed";
+
 export function PostSuggests({
   post,
   suggestions,
   backHref = "/",
   articleHref,
   suggestsHref,
+  suggestEditHref = "/contribute",
   suggestCount = 0,
+  activeStatus = "open",
 }: {
   post: Post;
   suggestions: SuggestionListItem[];
   backHref?: string;
   articleHref: string;
   suggestsHref: string;
+  suggestEditHref?: string;
   suggestCount?: number;
+  activeStatus?: SuggestionStatusFilter;
 }) {
   const openCount = suggestions.filter((item) => item.status === "open").length;
   const closedCount = suggestions.length - openCount;
+  const visibleSuggestions = suggestions.filter((item) =>
+    activeStatus === "open" ? item.status === "open" : item.status !== "open",
+  );
+  const emptyMessage =
+    activeStatus === "open"
+      ? "No open suggestions yet."
+      : "No closed suggestions yet.";
 
   return (
     <div className="mx-auto w-full max-w-[950px] pb-12">
@@ -54,33 +67,55 @@ export function PostSuggests({
           />
 
           <header className="mt-8">
-            <h1 className="font-serif text-[24px] font-bold leading-[1.25] tracking-tight text-zinc-950">
-              Suggests for &quot;{post.title}&quot;
-            </h1>
-            <p className="mt-3 text-sm text-zinc-500">
-              Review community contributions to this article.
-            </p>
+            <div className="min-w-0">
+              <h1 className="font-serif text-[24px] font-bold leading-[1.25] tracking-tight text-zinc-950">
+                Suggests for &quot;{post.title}&quot;
+              </h1>
+              <p className="mt-3 text-sm text-zinc-500">
+                Review community contributions to this article.
+              </p>
+            </div>
           </header>
 
           <section className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-            <div className="flex items-center gap-6 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3">
-              <StatusSummary count={openCount} label="Open" active />
-              <StatusSummary count={closedCount} label="Closed" />
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3">
+              <div className="flex items-center gap-6">
+                <StatusSummary
+                  count={openCount}
+                  href={`${suggestsHref}?status=open`}
+                  label="Open"
+                  active={activeStatus === "open"}
+                />
+                <StatusSummary
+                  count={closedCount}
+                  href={`${suggestsHref}?status=closed`}
+                  label="Closed"
+                  active={activeStatus === "closed"}
+                />
+              </div>
+
+              <Link
+                href={suggestEditHref}
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-zinc-950 px-3 text-xs font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30"
+              >
+                <IconWrite className="size-3.5" />
+                New Suggest
+              </Link>
             </div>
 
             <div>
-              {suggestions.length === 0 ? (
+              {visibleSuggestions.length === 0 ? (
                 <div className="px-4 py-10 text-center text-sm font-medium text-zinc-500">
-                  No suggestions yet.
+                  {emptyMessage}
                 </div>
               ) : (
-                suggestions.map((suggestion, index) => (
+                visibleSuggestions.map((suggestion, index) => (
                   <Link
                     key={suggestion.id}
                     href={`${suggestsHref}/${suggestion.id}`}
                     className={cn(
                       "flex items-start justify-between gap-4 px-4 py-5 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/10",
-                      index < suggestions.length - 1 &&
+                      index < visibleSuggestions.length - 1 &&
                         "border-b border-zinc-200",
                     )}
                   >
@@ -130,25 +165,56 @@ export function PostSuggests({
 
 function StatusSummary({
   count,
+  href,
   label,
   active = false,
 }: {
   count: number;
+  href: string;
   label: string;
   active?: boolean;
 }) {
   return (
-    <div
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "inline-flex items-center gap-2 text-[16px] leading-6",
-        active ? "font-semibold text-zinc-950" : "font-medium text-zinc-500",
+        "inline-flex items-center gap-2 rounded-lg text-[16px] leading-6 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active
+          ? "font-semibold text-zinc-950"
+          : "font-medium text-zinc-500 hover:text-zinc-950",
       )}
     >
       <GitPullRequestIcon className="size-4" />
       <span>
         {count} {label}
       </span>
-    </div>
+    </Link>
+  );
+}
+
+function IconWrite({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 20h9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -176,7 +242,6 @@ function IconArrowLeft({ className }: { className?: string }) {
     </svg>
   );
 }
-
 
 function IconComment({ className }: { className?: string }) {
   return (
