@@ -3,7 +3,6 @@ package io.github.kitae9999.openlog.user
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
-import io.github.kitae9999.openlog.post.estimateReadTimeLabel
 import io.github.kitae9999.openlog.post.formatPublishedAtLabel
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.post.resolveAuthorName

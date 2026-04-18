@@ -15,5 +15,5 @@ interface CommentRepository : JpaRepository<Comment, Long> {
         order by c.createdAt asc
         """
     )
-    fun findAllByPostIdWithUser(@Param("postId") postId: Long): List<Comment>
+    fun findAllWithUserByPostId(@Param("postId") postId: Long): List<Comment>
 }

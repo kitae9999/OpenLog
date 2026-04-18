@@ -26,6 +26,7 @@ class Suggestion (
 
     post: Post,
     user: User,
+    title: String,
     content: String,
     description: String,
     status: SuggestionStatus = SuggestionStatus.OPEN,
@@ -39,6 +40,10 @@ class Suggestion (
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id")
     var user: User = user
+        protected set
+
+    @Column(nullable = false)
+    var title: String = title
         protected set
 
     @Column(nullable = false)
