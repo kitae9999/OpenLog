@@ -3,6 +3,7 @@ import { Footer, Header } from "@/widgets/chrome/ui";
 import { PostArticle } from "@/widgets/post/ui";
 import { getPostComments } from "@/entities/comment/api/getPostComments";
 import { getPostDetail } from "@/entities/post/api/getPostDetail";
+import { getPostSuggestions } from "@/entities/post/api/getPostSuggestions";
 import { getPostEntry, contributors } from "@/entities/post/model";
 import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
@@ -45,7 +46,10 @@ export default async function PublicPostPage({
     : undefined;
 
   if (detail) {
-    const commentItems = await getPostComments(detail.id);
+    const [commentItems, suggestions] = await Promise.all([
+      getPostComments(detail.id),
+      getPostSuggestions(detail.id),
+    ]);
     const authorHref = buildPublicProfilePath(detail.authorUsername);
     const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
     const editHref = buildPublicPostEditPath(
@@ -97,7 +101,7 @@ export default async function PublicPostPage({
             articleHref={articleHref}
             suggestsHref={suggestsHref}
             suggestEditsHref="/contribute"
-            suggestCount={0}
+            suggestCount={suggestions.length}
           >
             <div className="mt-8 space-y-6 text-[16px] leading-8 text-zinc-700">
               <MarkdownContent markdown={detail.content} />
