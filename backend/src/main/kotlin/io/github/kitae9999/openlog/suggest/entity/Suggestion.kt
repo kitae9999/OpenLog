@@ -17,7 +17,7 @@ import java.time.LocalDateTime
 @Table(
     name = "suggestions"
 )
-class Suggestions (
+class Suggestion (
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id : Long? = null,
@@ -51,13 +51,16 @@ class Suggestions (
     var status: String = status
         protected set
 
-    @Column(nullable = false)
+    @Column(name = "post_base_version", nullable = false)
     var postBaseVersion: Long = postBaseVersion
         protected set
 
     @Column(name = "created_at" ,nullable = false)
     var createdAt : LocalDateTime = LocalDateTime.now()
+        protected set
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt : LocalDateTime = LocalDateTime.now()
+        protected set
+
 }
