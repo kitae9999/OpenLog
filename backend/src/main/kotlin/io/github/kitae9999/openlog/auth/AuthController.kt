@@ -31,6 +31,8 @@ class AuthController(
     private val accessTokenCookieName: String,
     @Value("\${auth.jwt.cookie-secure:false}")
     private val accessTokenCookieSecure: Boolean,
+    @Value("\${auth.jwt.cookie-domain:}")
+    private val accessTokenCookieDomain: String,
     @Value("\${app.frontend-home-url:http://localhost:3030}")
     private val frontendHomeUrl: String,
 ) {
@@ -63,11 +65,11 @@ class AuthController(
 
         val flowCookie = ResponseCookie.from("oauth_flow_id",authRequest.flowId)
             .httpOnly(true)
-            .secure(false) // TODO:HTTPS 환경에서는 true로
+            .secure(accessTokenCookieSecure)
             .sameSite("Lax")
             .path("/")
             .maxAge(Duration.ofMinutes(5))
-            .build() // 최종 ResponseCookie 객체 생성
+            .build()
 
         return ResponseEntity.status(HttpStatus.FOUND)
             .header(HttpHeaders.SET_COOKIE, flowCookie.toString())
@@ -85,7 +87,7 @@ class AuthController(
 
         val deleteCookie = ResponseCookie.from("oauth_flow_id", "")
             .httpOnly(true)
-            .secure(false)
+            .secure(accessTokenCookieSecure)
             .sameSite("Lax")
             .path("/")
             .maxAge(Duration.ZERO)
@@ -107,7 +109,7 @@ class AuthController(
             email = email,
         )
         val issuedJwt = jwtTokenService.createAccessToken(currentUser)
-        val authCookie = ResponseCookie.from(accessTokenCookieName, issuedJwt)
+        val authCookie = withCookieDomain(ResponseCookie.from(accessTokenCookieName, issuedJwt))
             .httpOnly(true)
             .secure(accessTokenCookieSecure)
             .sameSite("Lax")
@@ -139,6 +141,16 @@ class AuthController(
             bio = bio,
             isOnboardingComplete = isOnboardingComplete(),
         )
+    }
+
+    private fun withCookieDomain(
+        builder: ResponseCookie.ResponseCookieBuilder
+    ): ResponseCookie.ResponseCookieBuilder {
+        return if (accessTokenCookieDomain.isBlank()) {
+            builder
+        } else {
+            builder.domain(accessTokenCookieDomain)
+        }
     }
 
 //    @GetMapping("github")
