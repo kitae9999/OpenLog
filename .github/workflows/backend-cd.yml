@@ -108,11 +108,11 @@ jobs:
       - name: Ensure remote deploy path exists
         run: |
           ssh "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}" \
-            "mkdir -p '${{ secrets.PRODUCTION_DEPLOY_PATH }}/nginx'"
+            "mkdir -p '${{ secrets.PRODUCTION_DEPLOY_PATH }}/nginx' '${{ secrets.PRODUCTION_DEPLOY_PATH }}/nginx/certs'"
 
       - name: Sync production deploy assets
         run: |
-          rsync -avz --delete deploy/production/ \
+          rsync -avz --delete --exclude 'nginx/certs/' deploy/production/ \
             "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}:${{ secrets.PRODUCTION_DEPLOY_PATH }}/"
 
       - name: Update remote production env
