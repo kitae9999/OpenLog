@@ -16,18 +16,3 @@ fun resolveAuthorName(post: Post): String {
         else -> "OpenLog member"
     }
 }
-
-fun estimateReadTimeLabel(post: Post): String {
-    val wordCount = countWords("${post.title} ${post.description} ${post.content}")
-    val minutes = if (wordCount == 0) 1 else maxOf(1, kotlin.math.ceil(wordCount / 220.0).toInt())
-    return "$minutes min read"
-}
-
-private fun countWords(value: String): Int {
-    val trimmed = value.trim()
-    if (trimmed.isEmpty()) {
-        return 0
-    }
-
-    return trimmed.split(Regex("\\s+")).size
-}

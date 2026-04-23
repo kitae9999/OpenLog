@@ -36,7 +36,9 @@ export function PostCommentsSection({
   const hasFetchedComments = initialComments !== undefined;
   const [commentItems, setCommentItems] = useState(initialComments ?? []);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
-  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(
+    null,
+  );
   const [actionError, setActionError] = useState<string | null>(null);
   const [, startDeleteTransition] = useTransition();
   const displayCommentCount = hasFetchedComments
@@ -194,9 +196,7 @@ export function PostCommentsSection({
           className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
         />
         <div className="min-w-0 flex-1">
-          <DiscussionComposer
-            onSubmit={postId ? submitComment : undefined}
-          />
+          <DiscussionComposer onSubmit={postId ? submitComment : undefined} />
         </div>
       </div>
     </section>
@@ -267,7 +267,7 @@ function CommentCard({
                 onClick={onDelete}
                 disabled={isDeleting}
                 aria-label="Delete your comment"
-                className="text-xs font-semibold text-rose-500 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:text-rose-300"
+                className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:text-rose-300"
               >
                 {isDeleting ? "Deleting..." : "Delete"}
               </button>

@@ -6,10 +6,12 @@ import { API_CONFIG } from "@/shared/api";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import type { WriteActionState } from "./action-state";
 
-type CreatePostResponse = {
+type PostWriteResponse = {
   authorUsername: string;
   slug: string;
 };
+
+const DESCRIPTION_MAX_LENGTH = 50;
 
 export async function submitPost(
   _prevState: WriteActionState,
@@ -32,6 +34,8 @@ export async function submitPost(
 
   if (!description) {
     errors.description = "설명은 필수입니다.";
+  } else if (description.length > DESCRIPTION_MAX_LENGTH) {
+    errors.description = `설명은 ${DESCRIPTION_MAX_LENGTH}자 이하여야 합니다.`;
   }
 
   if (!content) {
@@ -59,8 +63,11 @@ export async function submitPost(
   });
 
   if (response.ok) {
-    const payload = (await response.json()) as CreatePostResponse;
-    redirect(buildPublicPostPath(payload.authorUsername, payload.slug));
+    const payload = (await response.json()) as PostWriteResponse;
+    return {
+      errors: {},
+      redirectTo: buildPublicPostPath(payload.authorUsername, payload.slug),
+    };
   }
 
   if (response.status === 401) {

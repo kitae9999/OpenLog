@@ -3,7 +3,6 @@ package io.github.kitae9999.openlog.user
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
-import io.github.kitae9999.openlog.post.estimateReadTimeLabel
 import io.github.kitae9999.openlog.post.formatPublishedAtLabel
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.post.resolveAuthorName
@@ -41,7 +40,6 @@ class UserService(
                 title = post.title,
                 description = post.description,
                 publishedAtLabel = formatPublishedAtLabel(post),
-                readTimeLabel = estimateReadTimeLabel(post),
             )
         }
     }
@@ -66,7 +64,6 @@ class UserService(
             authorName = resolveAuthorName(post),
             authorAvatarSrc = post.author.profileImageUrl,
             publishedAtLabel = formatPublishedAtLabel(post),
-            readTimeLabel = estimateReadTimeLabel(post),
             topics = topics,
             likes = postLikeRepository.countByPostId(postId).toInt(),
             liked = viewerId?.let { postLikeRepository.existsByPostIdAndUserId(postId, it) } ?: false,

@@ -1,0 +1,9 @@
+.git
+.github
+_docs
+build
+frontend
+backend/build
+**/.DS_Store
+**/.idea
+**/.next
