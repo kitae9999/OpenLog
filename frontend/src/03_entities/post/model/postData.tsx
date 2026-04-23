@@ -13,6 +13,7 @@ export type Post = {
   authorName: string;
   authorAvatarSrc: string;
   publishedAtLabel: string;
+  readTimeLabel?: string;
   tags: string[];
   coverSrc: string;
   likes: number;

@@ -16,6 +16,7 @@ import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
 import {
   buildPublicPostPath,
+  buildPublicSuggestNewPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
   parsePublicPostSlugParam,
@@ -54,6 +55,10 @@ export default async function PublicPostSuggestsPage({
 
   const articleHref = buildPublicPostPath(authorUsername, canonicalPostSlug);
   const suggestsHref = buildPublicSuggestsPath(authorUsername, canonicalPostSlug);
+  const suggestEditHref = buildPublicSuggestNewPath(
+    authorUsername,
+    canonicalPostSlug,
+  );
 
   if (detail) {
     const suggestions = await getPostSuggestions(detail.id);
@@ -84,7 +89,7 @@ export default async function PublicPostSuggestsPage({
             backHref="/?tab=trending"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
-            suggestEditHref="/contribute"
+            suggestEditHref={suggestEditHref}
             suggestCount={suggestions.length}
             activeStatus={activeStatus}
           />
@@ -115,7 +120,7 @@ export default async function PublicPostSuggestsPage({
           backHref="/?tab=trending"
           articleHref={articleHref}
           suggestsHref={suggestsHref}
-          suggestEditHref="/contribute"
+          suggestEditHref={suggestEditHref}
           suggestCount={entry.suggestCount}
           activeStatus={activeStatus}
         />
