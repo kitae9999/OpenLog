@@ -1,0 +1,146 @@
+name: Backend CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "gradle/**"
+      - "gradlew"
+      - "gradlew.bat"
+      - "settings.gradle.kts"
+      - "deploy/production/**"
+      - ".github/workflows/backend-cd.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: backend-production-deploy
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      nginx_changed: ${{ steps.filter.outputs.nginx }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changed deployment assets
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            nginx:
+              - "deploy/production/nginx/**"
+              - "deploy/production/docker-compose.production.yml"
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: changes
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Run backend tests
+        run: ./gradlew :backend:test
+
+      - name: Compute image name
+        id: meta
+        run: |
+          IMAGE_NAME="ghcr.io/${GITHUB_REPOSITORY,,}/backend"
+          echo "image=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+            ${{ steps.meta.outputs.image }}:production
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+      - build-and-push
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+      - name: Add VM to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.PRODUCTION_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Ensure remote deploy path exists
+        run: |
+          ssh "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}" \
+            "mkdir -p '${{ secrets.PRODUCTION_DEPLOY_PATH }}/nginx'"
+
+      - name: Sync production deploy assets
+        run: |
+          rsync -avz --delete deploy/production/ \
+            "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}:${{ secrets.PRODUCTION_DEPLOY_PATH }}/"
+
+      - name: Update remote production env
+        env:
+          PRODUCTION_BACKEND_ENV: ${{ secrets.PRODUCTION_BACKEND_ENV }}
+        run: |
+          {
+            printf '%s\n' "$PRODUCTION_BACKEND_ENV"
+            printf 'BACKEND_IMAGE=%s\n' "${{ needs.build-and-push.outputs.image }}:${{ github.sha }}"
+          } | ssh "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}" \
+            "cat > '${{ secrets.PRODUCTION_DEPLOY_PATH }}/production.env' && \
+             chmod 600 '${{ secrets.PRODUCTION_DEPLOY_PATH }}/production.env' && \
+             chmod +x '${{ secrets.PRODUCTION_DEPLOY_PATH }}/redeploy.sh'"
+
+      - name: Deploy backend stack
+        env:
+          PRODUCTION_GHCR_TOKEN: ${{ secrets.PRODUCTION_GHCR_TOKEN }}
+          PRODUCTION_GHCR_USERNAME: ${{ secrets.PRODUCTION_GHCR_USERNAME }}
+        run: |
+          if [[ "${{ needs.changes.outputs.nginx_changed }}" == "true" ]]; then
+            SERVICES="backend nginx"
+          else
+            SERVICES="backend"
+          fi
+
+          ssh "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}" "
+            set -euo pipefail
+            cd '${{ secrets.PRODUCTION_DEPLOY_PATH }}'
+            docker login ghcr.io -u '${PRODUCTION_GHCR_USERNAME}' --password-stdin
+            ./redeploy.sh ${SERVICES}
+          " <<<"${PRODUCTION_GHCR_TOKEN}"
