@@ -44,7 +44,7 @@ class CommentService(
             throw NotFoundException("포스트를 찾을 수 없습니다.")
         }
 
-        return commentRepository.findAllByPostIdWithUser(postId)
+        return commentRepository.findAllWithUserByPostId(postId)
             .map { comment -> toCommentResponse(comment, userId) }
     }
 

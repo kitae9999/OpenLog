@@ -1,8 +1,9 @@
 package io.github.kitae9999.openlog.post
 
+import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.post.dto.CreatePostRequest
-import io.github.kitae9999.openlog.post.dto.CreatePostResponse
+import io.github.kitae9999.openlog.post.command.PostWriteCommand
+import io.github.kitae9999.openlog.post.dto.PostWriteResponse
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.posttopic.entity.PostTopic
@@ -22,13 +23,13 @@ class PostService(
     private val userRepository: UserRepository,
 ) {
     @Transactional
-    fun createPost(userId: Long, createPostRequest: CreatePostRequest): CreatePostResponse {
+    fun createPost(userId: Long, postWriteCommand: PostWriteCommand): PostWriteResponse {
         val user = userRepository.findById(userId).getOrNull() ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val authorUsername = user.username?.trim().orEmpty()
         if (authorUsername.isBlank()) {
             throw NotFoundException("username이 설정된 사용자를 찾을 수 없습니다.")
         }
-        val (title, description, content, topics) = createPostRequest
+        val (title, description, content, topics) = postWriteCommand
         val slug = generateUniqueSlug(userId, title)
 
         val savedPost = postRepository.save(
@@ -43,7 +44,7 @@ class PostService(
 
         val normalizedTopics = normalizeTopics(topics)
         if (normalizedTopics.isEmpty()) {
-            return CreatePostResponse(
+            return PostWriteResponse(
                 authorUsername = authorUsername,
                 slug = savedPost.slug,
             )
@@ -65,31 +66,123 @@ class PostService(
             }
         )
 
-        return CreatePostResponse(
+        return PostWriteResponse(
             authorUsername = authorUsername,
             slug = savedPost.slug,
         )
     }
 
+    @Transactional
+    fun deletePost(userId: Long, postId: Long) {
+        val postToDelete = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("존재하지 않는 포스트입니다.")
+        if (userId != postToDelete.author.id){
+            throw ForbiddenException("권한이 없습니다.")
+        }
+
+        postRepository.delete(postToDelete)
+    }
+
+    @Transactional
+    fun updatePost(userId: Long, postId: Long, postWriteCommand: PostWriteCommand): PostWriteResponse {
+        val post = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("존재하지 않는 포스트입니다.")
+        if (userId != post.author.id) {
+            throw ForbiddenException("권한이 없습니다.")
+        }
+        val authorUsername = post.author.username?.trim().orEmpty()
+        if (authorUsername.isBlank()) {
+            throw NotFoundException("username이 설정된 사용자를 찾을 수 없습니다.")
+        }
+        val (title, description, content, topics) = postWriteCommand
+        val nextSlug = if (title == post.title) {
+            post.slug
+        } else {
+            generateUniqueSlug(userId, title, postId)
+        }
+
+        val isPostChanged = post.updatePost(nextSlug, title, description, content)
+        val isTopicsChanged = replacePostTopics(post, topics)
+
+        if (!isPostChanged && isTopicsChanged) { // Post의 제목, 설명, 본문이 바뀌지 않고 Topic 만 바뀌었다면 Post 엔티티의 updatedAt만 최신화
+            post.touchUpdatedAt()
+        }
+
+        return PostWriteResponse(
+            authorUsername = authorUsername,
+            slug = post.slug,
+        )
+    }
+
+    /**
+     * 수정된 Topic 목록으로 교체
+     */
+    private fun replacePostTopics(post: Post, rawTopics: List<String>): Boolean {
+        val postId = requireNotNull(post.id)
+        val currentPostTopics = postTopicRepository.findAllByPostId(postId)
+        val currentTopicNames = currentPostTopics.map { it.topic.name }.toSet()
+        val nextTopicNames = normalizeTopics(rawTopics)
+        val nextTopicNameSet = nextTopicNames.toSet()
+
+        val postTopicsToDelete = currentPostTopics.filter { it.topic.name !in nextTopicNameSet }
+        if (postTopicsToDelete.isNotEmpty()) {
+            postTopicRepository.deleteAll(postTopicsToDelete)
+        }
+
+        val topicNamesToAdd = nextTopicNames.filterNot(currentTopicNames::contains)
+        if (topicNamesToAdd.isEmpty()) {
+            return postTopicsToDelete.isNotEmpty()
+        }
+
+        val existingTopics = topicRepository.findByNameIn(topicNamesToAdd)
+        val existingNames = existingTopics.mapTo(mutableSetOf()) { it.name }
+        val newTopics = topicNamesToAdd
+            .filterNot(existingNames::contains) // 인스턴스 메서드 참조 넘김
+            .map { Topic(name = it) } // 람다의 파라미터가 하나면 it 사용
+        val savedNewTopics = if (newTopics.isEmpty()) {
+            emptyList()
+        } else {
+            topicRepository.saveAll(newTopics).toList()
+        }
+        val topicsByName = (existingTopics + savedNewTopics).associateBy { it.name }
+
+        postTopicRepository.saveAll(
+            topicNamesToAdd.map { topicName ->
+                PostTopic(
+                    post = post,
+                    topic = requireNotNull(topicsByName[topicName]),
+                )
+            }
+        )
+
+        return true
+    }
+
     private fun normalizeTopics(rawTopics: List<String>): List<String> {
-        return rawTopics.asSequence()
+        return rawTopics.asSequence() // map, filter등의 다음 단계가 중간과정에서 리스트를 반환하지않고 하나의 요소에 대해 전부 실행
             .map { it.trim().lowercase() }
             .filter(String::isNotBlank)
             .distinct()
             .toList()
     }
 
-    private fun generateUniqueSlug(authorId: Long, title: String): String {
+    private fun generateUniqueSlug(authorId: Long, title: String, excludedPostId: Long? = null): String {
         val baseSlug = slugify(title)
         var candidate = baseSlug
         var suffix = 2
 
-        while (postRepository.existsByAuthorIdAndSlug(authorId, candidate)) {
+        while (existsSlug(authorId, candidate, excludedPostId)) {
             candidate = "$baseSlug-$suffix"
             suffix += 1
         }
 
         return candidate
+    }
+
+    private fun existsSlug(authorId: Long, slug: String, excludedPostId: Long?): Boolean {
+        return if (excludedPostId == null) {
+            postRepository.existsByAuthorIdAndSlug(authorId, slug)
+        } else {
+            postRepository.existsByAuthorIdAndSlugAndIdNot(authorId, slug, excludedPostId)
+        }
     }
 
     private fun slugify(title: String): String {

@@ -3,11 +3,13 @@ import { Footer, Header } from "@/widgets/chrome/ui";
 import { PostArticle } from "@/widgets/post/ui";
 import { getPostComments } from "@/entities/comment/api/getPostComments";
 import { getPostDetail } from "@/entities/post/api/getPostDetail";
+import { getPostSuggestions } from "@/entities/post/api/getPostSuggestions";
 import { getPostEntry, contributors } from "@/entities/post/model";
 import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
 import {
   buildPublicProfilePath,
+  buildPublicPostEditPath,
   buildPublicPostPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
@@ -44,13 +46,21 @@ export default async function PublicPostPage({
     : undefined;
 
   if (detail) {
-    const commentItems = await getPostComments(detail.id);
+    const [commentItems, suggestions] = await Promise.all([
+      getPostComments(detail.id),
+      getPostSuggestions(detail.id),
+    ]);
     const authorHref = buildPublicProfilePath(detail.authorUsername);
     const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
+    const editHref = buildPublicPostEditPath(
+      detail.authorUsername,
+      detail.slug,
+    );
     const suggestsHref = buildPublicSuggestsPath(
       detail.authorUsername,
       detail.slug,
     );
+    const isOwner = viewer?.username === detail.authorUsername;
 
     return (
       <div className="min-h-dvh bg-white text-zinc-950">
@@ -68,7 +78,6 @@ export default async function PublicPostPage({
               authorName: detail.authorName,
               authorAvatarSrc: detail.authorAvatarSrc ?? assets.defaultAvatar,
               publishedAtLabel: detail.publishedAtLabel,
-              readTimeLabel: detail.readTimeLabel,
               tags: detail.topics,
               coverSrc: assets.postCover,
               likes: detail.likes,
@@ -77,13 +86,21 @@ export default async function PublicPostPage({
             }}
             commentItems={commentItems}
             postId={detail.id}
+            ownerActions={
+              isOwner
+                ? {
+                    postId: detail.id,
+                    editHref,
+                    profileHref: authorHref,
+                  }
+                : undefined
+            }
             authorHref={authorHref}
             currentUserAvatarSrc={viewer?.profileImageUrl}
             backHref="/?tab=trending"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
-            suggestEditsHref="/contribute"
-            suggestCount={0}
+            suggestCount={suggestions.length}
           >
             <div className="mt-8 space-y-6 text-[16px] leading-8 text-zinc-700">
               <MarkdownContent markdown={detail.content} />
@@ -125,7 +142,6 @@ export default async function PublicPostPage({
           backHref="/?tab=trending"
           articleHref={articleHref}
           suggestsHref={suggestsHref}
-          suggestEditsHref="/contribute"
           suggestCount={entry.suggestCount}
         >
           {entry.body}

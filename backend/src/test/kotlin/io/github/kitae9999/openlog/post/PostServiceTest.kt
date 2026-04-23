@@ -1,10 +1,13 @@
 package io.github.kitae9999.openlog.post
 
+import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.post.dto.CreatePostRequest
+import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostRepository
+import io.github.kitae9999.openlog.posttopic.entity.PostTopic
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
+import io.github.kitae9999.openlog.topic.entity.Topic
 import io.github.kitae9999.openlog.topic.repository.TopicRepository
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
@@ -20,6 +23,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
+import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.junit.jupiter.MockitoExtension
 import java.util.Optional
 
@@ -96,10 +100,195 @@ class PostServiceTest {
         assertThat(exception.message).isEqualTo("username이 설정된 사용자를 찾을 수 없습니다.")
     }
 
-    private fun createRequest() = CreatePostRequest(
-        title = "Hello OpenLog",
-        description = "Removing blog ownership from posts",
-        content = "content",
-        topics = emptyList(),
+    @Test
+    fun `updatePost deletes existing topics when request sends empty topic list`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        val existingPostTopics = listOf(
+            PostTopic(
+                post = post,
+                topic = Topic(id = 20L, name = "kotlin"),
+            )
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+        given(postTopicRepository.findAllByPostId(10L)).willReturn(existingPostTopics)
+
+        postService.updatePost(1L, 10L, createRequest())
+
+        verify(postTopicRepository).deleteAll(existingPostTopics)
+        verifyNoInteractions(topicRepository)
+    }
+
+    @Test
+    fun `updatePost keeps topics unchanged when existing and request topics are both empty`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        val originalUpdatedAt = post.updatedAt
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+        given(postTopicRepository.findAllByPostId(10L)).willReturn(emptyList())
+
+        postService.updatePost(1L, 10L, createRequest())
+
+        verify(postTopicRepository).findAllByPostId(10L)
+        verifyNoMoreInteractions(postTopicRepository)
+        verifyNoInteractions(topicRepository)
+        assertThat(post.updatedAt).isEqualTo(originalUpdatedAt)
+    }
+
+    @Test
+    fun `updatePost regenerates slug when title changes`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+        given(postRepository.existsByAuthorIdAndSlugAndIdNot(1L, "updated-title", 10L)).willReturn(false)
+        given(postTopicRepository.findAllByPostId(10L)).willReturn(emptyList())
+
+        val response = postService.updatePost(
+            1L,
+            10L,
+            createRequest(title = "Updated Title"),
+        )
+
+        assertThat(response.authorUsername).isEqualTo("alice")
+        assertThat(response.slug).isEqualTo("updated-title")
+        assertThat(post.slug).isEqualTo("updated-title")
+    }
+
+    @Test
+    fun `updatePost appends slug suffix excluding current post`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+        given(postRepository.existsByAuthorIdAndSlugAndIdNot(1L, "updated-title", 10L)).willReturn(true)
+        given(postRepository.existsByAuthorIdAndSlugAndIdNot(1L, "updated-title-2", 10L)).willReturn(false)
+        given(postTopicRepository.findAllByPostId(10L)).willReturn(emptyList())
+
+        val response = postService.updatePost(
+            1L,
+            10L,
+            createRequest(title = "Updated Title"),
+        )
+
+        assertThat(response.slug).isEqualTo("updated-title-2")
+        assertThat(post.slug).isEqualTo("updated-title-2")
+    }
+
+    @Test
+    fun `updatePost keeps slug when title is unchanged`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+        given(postTopicRepository.findAllByPostId(10L)).willReturn(emptyList())
+
+        val response = postService.updatePost(1L, 10L, createRequest())
+
+        verify(postRepository, never()).existsByAuthorIdAndSlugAndIdNot(1L, "hello-openlog", 10L)
+        assertThat(response.slug).isEqualTo("hello-openlog")
+        assertThat(post.slug).isEqualTo("hello-openlog")
+    }
+
+    @Test
+    fun `updatePost rejects non-author`() {
+        val user = User(id = 2L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+
+        assertThrows(ForbiddenException::class.java) {
+            postService.updatePost(1L, 10L, createRequest())
+        }
+
+        verifyNoInteractions(topicRepository, postTopicRepository)
+    }
+
+    @Test
+    fun `deletePost rejects non-author`() {
+        val user = User(id = 2L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+
+        assertThrows(ForbiddenException::class.java) {
+            postService.deletePost(1L, 10L)
+        }
+
+        verify(postRepository, never()).delete(post)
+    }
+
+    @Test
+    fun `deletePost deletes authorized post`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Removing blog ownership from posts",
+            content = "content",
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+
+        postService.deletePost(1L, 10L)
+
+        verify(postRepository).delete(post)
+    }
+
+    private fun createRequest(
+        title: String = "Hello OpenLog",
+        description: String = "Removing blog ownership from posts",
+        content: String = "content",
+        topics: List<String> = emptyList(),
+    ) = PostWriteCommand(
+        title = title,
+        description = description,
+        content = content,
+        topics = topics,
     )
 }
