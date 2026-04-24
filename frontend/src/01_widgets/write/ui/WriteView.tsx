@@ -92,11 +92,15 @@ export function WriteView({
   const [submitErrors, setSubmitErrors] = useState<WriteActionState["errors"]>(
     () => ({ ...initialWriteActionState.errors }),
   );
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [titleCaretLeft, setTitleCaretLeft] = useState(0);
+  const [isTitleCaretVisible, setIsTitleCaretVisible] = useState(false);
   const [actionState, formAction] = useActionState(
     action,
     initialWriteActionState,
   );
   const editorRef = useRef<HTMLTextAreaElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const deferredTitle = useDeferredValue(title);
   const deferredDescription = useDeferredValue(description);
@@ -196,13 +200,15 @@ export function WriteView({
     }, 900);
 
     return () => window.clearTimeout(timeoutId);
-  }, [
-    body,
-    description,
-    hasRestoredDraft,
-    title,
-    topics,
-  ]);
+  }, [body, description, hasRestoredDraft, title, topics]);
+
+  useEffect(() => {
+    if (!isTitleFocused) {
+      return;
+    }
+
+    syncTitleCaret();
+  }, [isTitleFocused, title]);
 
   function handleModeChange(nextMode: ComposerMode) {
     startTransition(() => {
@@ -225,6 +231,47 @@ export function WriteView({
   function handleTitleChange(nextValue: string) {
     setTitle(nextValue);
     clearError("title");
+  }
+
+  function syncTitleCaret(input = titleInputRef.current) {
+    if (!input) {
+      return;
+    }
+
+    const selectionStart = input.selectionStart ?? input.value.length;
+    const selectionEnd = input.selectionEnd ?? selectionStart;
+    setIsTitleCaretVisible(
+      document.activeElement === input && selectionStart === selectionEnd,
+    );
+
+    const textBeforeCaret = input.value.slice(0, selectionStart);
+    if (!textBeforeCaret) {
+      setTitleCaretLeft(0);
+      return;
+    }
+
+    const styles = window.getComputedStyle(input);
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return;
+    }
+
+    context.font = [
+      styles.fontStyle,
+      styles.fontVariant,
+      styles.fontWeight,
+      styles.fontSize,
+      styles.fontFamily,
+    ].join(" ");
+
+    const metrics = context.measureText(textBeforeCaret);
+    const textRight = Math.max(metrics.width, metrics.actualBoundingBoxRight);
+    setTitleCaretLeft(textRight - input.scrollLeft + 1);
+  }
+
+  function scheduleTitleCaretSync(input = titleInputRef.current) {
+    window.requestAnimationFrame(() => syncTitleCaret(input));
   }
 
   function handleDescriptionChange(nextValue: string) {
@@ -328,19 +375,46 @@ export function WriteView({
               </Link>
 
               <div className="mt-3 space-y-1">
-                <label className="block">
+                <label className="relative block">
                   <span className="sr-only">Title</span>
                   <input
+                    ref={titleInputRef}
                     name="title"
                     value={title}
-                    onChange={(event) => handleTitleChange(event.target.value)}
-                    placeholder="제목을 입력하세요"
+                    onChange={(event) => {
+                      handleTitleChange(event.target.value);
+                      scheduleTitleCaretSync(event.currentTarget);
+                    }}
+                    onFocus={(event) => {
+                      setIsTitleFocused(true);
+                      scheduleTitleCaretSync(event.currentTarget);
+                    }}
+                    onBlur={() => {
+                      setIsTitleFocused(false);
+                      setIsTitleCaretVisible(false);
+                    }}
+                    onClick={(event) =>
+                      scheduleTitleCaretSync(event.currentTarget)
+                    }
+                    onKeyUp={(event) =>
+                      scheduleTitleCaretSync(event.currentTarget)
+                    }
+                    onSelect={(event) =>
+                      scheduleTitleCaretSync(event.currentTarget)
+                    }
+                    placeholder="add title"
                     className={cn(
-                      "w-full bg-transparent text-[36px] font-bold leading-tight tracking-normal text-zinc-950 outline-none placeholder:text-zinc-400 sm:text-[44px]",
-                      title ? "[font-family:Georgia,serif]" : "",
+                      "w-full bg-transparent text-[36px] font-bold leading-tight tracking-normal text-zinc-950 caret-transparent outline-none placeholder:text-zinc-400 sm:text-[44px] [font-family:Georgia,serif]",
                       submitErrors.title ? "placeholder:text-rose-300" : "",
                     )}
                   />
+                  {isTitleFocused && isTitleCaretVisible ? (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-0 top-0 h-[1.18em] w-px bg-zinc-950 text-[36px] sm:text-[44px] [animation:openlog-caret-blink_1s_steps(1,end)_infinite]"
+                      style={{ transform: `translateX(${titleCaretLeft}px)` }}
+                    />
+                  ) : null}
                   {submitErrors.title ? (
                     <p className="mt-2 text-sm text-rose-600">
                       {submitErrors.title}
@@ -356,7 +430,7 @@ export function WriteView({
                     onChange={(event) =>
                       handleDescriptionChange(event.target.value)
                     }
-                    placeholder="요약을 입력하세요"
+                    placeholder="add summary"
                     maxLength={DESCRIPTION_MAX_LENGTH}
                     className={cn(
                       "h-7 w-full bg-transparent text-[16px] leading-7 tracking-normal text-zinc-700 outline-none placeholder:text-zinc-400",
@@ -371,7 +445,6 @@ export function WriteView({
                     </p>
                   ) : null}
                 </label>
-
               </div>
             </div>
 
@@ -449,7 +522,7 @@ export function WriteView({
                     name="content"
                     value={body}
                     onChange={(event) => handleBodyChange(event.target.value)}
-                    placeholder="당신의 이야기를 적어보세요..."
+                    placeholder="Share your ideas, code, and insights…"
                     className="min-h-[520px] w-full resize-none px-6 py-6 text-[16px] leading-8 tracking-normal text-zinc-900 outline-none placeholder:text-zinc-400"
                   />
                 ) : (
@@ -479,7 +552,7 @@ export function WriteView({
                         handleTopicInputChange(event.target.value)
                       }
                       onKeyDown={handleTopicKeyDown}
-                      placeholder="태그 추가"
+                      placeholder="add tags"
                       className="h-7 w-full bg-transparent text-[14px] tracking-normal text-zinc-700 outline-none placeholder:text-zinc-400"
                     />
                   </label>
