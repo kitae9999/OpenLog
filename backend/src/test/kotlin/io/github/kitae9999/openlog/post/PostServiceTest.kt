@@ -7,6 +7,7 @@ import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.posttopic.entity.PostTopic
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
+import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.topic.entity.Topic
 import io.github.kitae9999.openlog.topic.repository.TopicRepository
 import io.github.kitae9999.openlog.user.entity.User
@@ -36,6 +37,9 @@ class PostServiceTest {
     private lateinit var postTopicRepository: PostTopicRepository
 
     @Mock
+    private lateinit var suggestionRepository: SuggestionRepository
+
+    @Mock
     private lateinit var topicRepository: TopicRepository
 
     @Mock
@@ -48,6 +52,7 @@ class PostServiceTest {
         postService = PostService(
             postRepository = postRepository,
             postTopicRepository = postTopicRepository,
+            suggestionRepository = suggestionRepository,
             topicRepository = topicRepository,
             userRepository = userRepository,
         )
@@ -124,6 +129,7 @@ class PostServiceTest {
 
         verify(postTopicRepository).deleteAll(existingPostTopics)
         verifyNoInteractions(topicRepository)
+        assertThat(post.version).isEqualTo(1L)
     }
 
     @Test
@@ -147,6 +153,7 @@ class PostServiceTest {
         verifyNoMoreInteractions(postTopicRepository)
         verifyNoInteractions(topicRepository)
         assertThat(post.updatedAt).isEqualTo(originalUpdatedAt)
+        assertThat(post.version).isEqualTo(0L)
     }
 
     @Test
@@ -173,6 +180,7 @@ class PostServiceTest {
         assertThat(response.authorUsername).isEqualTo("alice")
         assertThat(response.slug).isEqualTo("updated-title")
         assertThat(post.slug).isEqualTo("updated-title")
+        assertThat(post.version).isEqualTo(1L)
     }
 
     @Test
@@ -220,6 +228,7 @@ class PostServiceTest {
         verify(postRepository, never()).existsByAuthorIdAndSlugAndIdNot(1L, "hello-openlog", 10L)
         assertThat(response.slug).isEqualTo("hello-openlog")
         assertThat(post.slug).isEqualTo("hello-openlog")
+        assertThat(post.version).isEqualTo(0L)
     }
 
     @Test

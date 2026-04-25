@@ -5,27 +5,53 @@ import type { Post, Suggestion } from "@/entities/post/model";
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
+import { MarkdownContent } from "@/shared/ui/markdown";
 import { DiscussionComposer } from "@/features/discussion-composer/ui";
+
+type SuggestionManageAction = (formData: FormData) => void | Promise<void>;
 
 export function SuggestionDetail({
   post,
   suggestion,
   articleHref,
   suggestsHref,
+  editHref,
+  closeAction,
+  mergeAction,
+  rejectAction,
 }: {
   post: Post;
   suggestion: Suggestion;
   articleHref: string;
   suggestsHref: string;
+  editHref?: string;
+  closeAction?: SuggestionManageAction;
+  mergeAction?: SuggestionManageAction;
+  rejectAction?: SuggestionManageAction;
 }) {
   const isOpen = suggestion.status === "open";
+  const isOutdated = suggestion.status === "outdated";
   const isMerged = suggestion.status === "merged";
+  const isRejected = suggestion.status === "rejected";
   const statusClassName = isOpen
     ? "bg-emerald-600"
-    : isMerged
-      ? "bg-violet-600"
-      : "bg-zinc-500";
-  const statusLabel = isOpen ? "Open" : isMerged ? "Merged" : "Closed";
+    : isOutdated
+      ? "bg-amber-600"
+      : isMerged
+        ? "bg-violet-600"
+        : isRejected
+          ? "bg-rose-600"
+          : "bg-zinc-500";
+  const statusLabel = isOpen
+    ? "Open"
+    : isOutdated
+      ? "Outdated"
+      : isMerged
+        ? "Merged"
+        : isRejected
+          ? "Rejected"
+          : "Closed";
+  const hasActions = isOpen && (closeAction || mergeAction || rejectAction);
 
   return (
     <div className="mx-auto w-full max-w-[1024px] pb-12">
@@ -60,20 +86,21 @@ export function SuggestionDetail({
           <span className="font-semibold text-zinc-950">
             {suggestion.authorName}
           </span>
-          <span>wants to merge changes into</span>
-          <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-800">
-            {suggestion.targetBranch}
-          </span>
-          <span>from</span>
-          <span className="rounded bg-blue-50 px-1.5 py-0.5 font-mono text-xs text-blue-700">
-            {suggestion.sourceBranch}
+          <span>
+            suggested an edit
+            {suggestion.baseVersionLabel ? " based on " : ""}
+            {suggestion.baseVersionLabel ? (
+              <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-800">
+                {suggestion.baseVersionLabel}
+              </span>
+            ) : null}
           </span>
         </div>
       </header>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,736px)_224px]">
         <div className="space-y-8">
-          <SuggestionLeadComment suggestion={suggestion} />
+          <SuggestionLeadComment suggestion={suggestion} editHref={editHref} />
 
           <SuggestionDiff suggestion={suggestion} />
 
@@ -84,21 +111,39 @@ export function SuggestionDetail({
             />
           ) : null}
 
-          {isOpen ? (
+          {hasActions ? (
             <div className="flex flex-wrap justify-end gap-3">
-              <button
-                type="button"
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 px-5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-              >
-                Close without merging
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
-              >
-                <GitPullRequestIcon className="size-4" />
-                Accept Suggests
-              </button>
+              {closeAction ? (
+                <form action={closeAction}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 px-5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                  >
+                    Close suggestion
+                  </button>
+                </form>
+              ) : null}
+              {rejectAction ? (
+                <form action={rejectAction}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-10 items-center justify-center rounded-xl border border-rose-200 px-5 text-sm font-medium text-rose-700 transition hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20"
+                  >
+                    Reject
+                  </button>
+                </form>
+              ) : null}
+              {mergeAction ? (
+                <form action={mergeAction}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
+                  >
+                    <GitPullRequestIcon className="size-4" />
+                    Accept Suggestion
+                  </button>
+                </form>
+              ) : null}
             </div>
           ) : null}
 
@@ -106,34 +151,10 @@ export function SuggestionDetail({
         </div>
 
         <aside className="space-y-6">
-          <InfoCard title="Reviewers">
-            <div className="space-y-3">
-              {suggestion.reviewers.map((reviewer) => (
-                <div key={reviewer.name} className="flex items-center gap-2">
-                  <Image
-                    src={reviewer.avatarSrc}
-                    alt={`${reviewer.name} avatar`}
-                    width={20}
-                    height={20}
-                    className="size-5 rounded-full border border-zinc-200 object-cover"
-                  />
-                  <span className="min-w-0 flex-1 text-sm text-zinc-600">
-                    {reviewer.name}
-                  </span>
-                  {reviewer.status === "approved" ? (
-                    <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-600">
-                      Approved
-                    </span>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </InfoCard>
-
           <InfoCard title="Target Article">
             <Link
               href={articleHref}
-              className="text-sm leading-6 text-blue-600 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/20"
+              className="text-sm leading-6 text-blue-600 underline underline-offset-4 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/20"
             >
               {post.title}
             </Link>
@@ -146,8 +167,10 @@ export function SuggestionDetail({
 
 function SuggestionLeadComment({
   suggestion,
+  editHref,
 }: {
   suggestion: Suggestion;
+  editHref?: string;
 }) {
   return (
     <div className="flex items-start gap-4">
@@ -160,15 +183,29 @@ function SuggestionLeadComment({
       />
 
       <section className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="flex items-center gap-2 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-500">
-          <span className="font-semibold text-zinc-950">
-            {suggestion.comment.authorName}
-          </span>
-          <span>commented on {suggestion.comment.commentedAtLabel}.</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-500">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-zinc-950">
+              {suggestion.comment.authorName}
+            </span>
+            <span>commented on {suggestion.comment.commentedAtLabel}</span>
+          </div>
+          {editHref ? (
+            <Link
+              href={editHref}
+              className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              <IconEdit className="size-3.5" />
+              Edit
+            </Link>
+          ) : null}
         </div>
 
-        <div className="px-4 py-5 text-sm leading-6 text-zinc-800">
-          {suggestion.comment.message}
+        <div className="px-4 py-5">
+          <MarkdownContent
+            markdown={suggestion.comment.message}
+            variant="compact"
+          />
         </div>
       </section>
     </div>
@@ -448,6 +485,31 @@ function IconComment({ className }: { className?: string }) {
         d="M13 10a2.5 2.5 0 01-2.5 2.5H5.25L2 14.5v-9A2.5 2.5 0 014.5 3h6A2.5 2.5 0 0113 5.5V10z"
         stroke="currentColor"
         strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconEdit({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 20h9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M16.5 3.5a2.12 2.12 0 113 3L7 19l-4 1 1-4L16.5 3.5z"
+        stroke="currentColor"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

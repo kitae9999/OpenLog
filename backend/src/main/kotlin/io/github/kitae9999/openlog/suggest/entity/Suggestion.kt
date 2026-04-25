@@ -28,6 +28,7 @@ class Suggestion (
     user: User,
     title: String,
     content: String,
+    baseContent: String,
     description: String,
     status: SuggestionStatus = SuggestionStatus.OPEN,
     postBaseVersion: Long,
@@ -48,6 +49,10 @@ class Suggestion (
 
     @Column(nullable = false)
     var content: String = content
+        protected set
+
+    @Column(name = "base_content", columnDefinition = "TEXT", nullable = false)
+    var baseContent: String = baseContent
         protected set
 
     @Column(nullable = false)
@@ -71,4 +76,40 @@ class Suggestion (
     var updatedAt : LocalDateTime = LocalDateTime.now()
         protected set
 
+    fun markMerged() {
+        status = SuggestionStatus.MERGED
+        updatedAt = LocalDateTime.now()
+    }
+
+    fun markClosed() {
+        status = SuggestionStatus.CLOSED
+        updatedAt = LocalDateTime.now()
+    }
+
+    fun markRejected() {
+        status = SuggestionStatus.REJECTED
+        updatedAt = LocalDateTime.now()
+    }
+
+    fun updateSuggestion(
+        title: String,
+        description: String,
+        content: String
+    ): Boolean {
+        if (
+            this.title == title &&
+            this.description == description &&
+            this.content == content
+        ){
+            return false
+        }
+
+        this.title = title
+        this.description = description
+        this.content = content
+
+        this.updatedAt = LocalDateTime.now()
+
+        return true
+    }
 }

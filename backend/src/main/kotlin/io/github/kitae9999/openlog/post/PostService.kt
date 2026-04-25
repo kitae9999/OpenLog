@@ -8,17 +8,19 @@ import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.posttopic.entity.PostTopic
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
+import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.topic.entity.Topic
 import io.github.kitae9999.openlog.topic.repository.TopicRepository
 import io.github.kitae9999.openlog.user.repository.UserRepository
-import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import kotlin.jvm.optionals.getOrNull
 
 @Service
 class PostService(
     private val postRepository: PostRepository,
     private val postTopicRepository: PostTopicRepository,
+    private val suggestionRepository: SuggestionRepository,
     private val topicRepository: TopicRepository,
     private val userRepository: UserRepository,
 ) {
@@ -104,6 +106,10 @@ class PostService(
 
         if (!isPostChanged && isTopicsChanged) { // Post의 제목, 설명, 본문이 바뀌지 않고 Topic 만 바뀌었다면 Post 엔티티의 updatedAt만 최신화
             post.touchUpdatedAt()
+        }
+
+        if (isPostChanged || isTopicsChanged) {
+            suggestionRepository.markOpenSuggestionsOutdated(postId)
         }
 
         return PostWriteResponse(

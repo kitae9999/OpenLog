@@ -9,7 +9,6 @@ export type {
   DiscussionComment,
   Post,
   PostEntry,
-  Reviewer,
   Suggestion,
   SuggestionComment,
 } from "./postData";

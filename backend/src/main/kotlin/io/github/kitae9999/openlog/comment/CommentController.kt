@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+//todo: commentsid가 전역 pk니까 posts/postId/comments/commentsid 구조는 변경해야될듯
+
 @RestController
 @RequestMapping("/posts/{postId}/comments")
 class CommentController(
@@ -29,7 +31,7 @@ class CommentController(
         @Valid @RequestBody createCommentRequest: CreateCommentRequest,
         request: HttpServletRequest,
     ): ResponseEntity<CommentResponse> {
-        val currentUserId = currentUserResolver.resolveUserId(request)
+        val currentUserId = currentUserResolver.resolveUserIdFromJwt(request)
         val content = createCommentRequest.content
         val createdComment = commentService.createComment(currentUserId, postId, content)
 
@@ -46,7 +48,7 @@ class CommentController(
 
     private fun resolveUserIdOrNull(request: HttpServletRequest): Long? {
         return try {
-            currentUserResolver.resolveUserId(request)
+            currentUserResolver.resolveUserIdFromJwt(request)
         } catch (e: OAuthAuthenticationException) {
             null
         }
@@ -58,7 +60,7 @@ class CommentController(
         @PathVariable postId: Long,
         request: HttpServletRequest,
     ): ResponseEntity<Void> {
-        val userId = currentUserResolver.resolveUserId(request)
+        val userId = currentUserResolver.resolveUserIdFromJwt(request)
         commentService.deleteComment(userId, postId, commentId)
         return ResponseEntity.noContent().build()
     }
@@ -70,7 +72,7 @@ class CommentController(
         @Valid @RequestBody updateCommentRequest: UpdateCommentRequest,
         request: HttpServletRequest,
     ): ResponseEntity<CommentResponse> {
-        val userId = currentUserResolver.resolveUserId(request)
+        val userId = currentUserResolver.resolveUserIdFromJwt(request)
         val updatedComment = commentService.updateComment(
             userId,
             postId,

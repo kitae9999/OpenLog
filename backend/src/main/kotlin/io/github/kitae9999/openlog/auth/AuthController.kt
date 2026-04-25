@@ -40,7 +40,7 @@ class AuthController(
     fun getMe(
         request: HttpServletRequest
     ): MeResponse {
-        val meUser = authService.getCurrentUser(currentUserResolver.resolveUserId(request))
+        val meUser = authService.getCurrentUser(currentUserResolver.resolveUserIdFromJwt(request))
 
         return meUser.toMeResponse() // 코틀린 확장 함수 (메서드 아님)
     }
@@ -51,7 +51,7 @@ class AuthController(
         @Valid @RequestBody onboardingRequest: CompleteOnboardingRequest,
     ): MeResponse {
         val currentUser = authService.completeOnboarding(
-            userId = currentUserResolver.resolveUserId(request),
+            userId = currentUserResolver.resolveUserIdFromJwt(request),
             request = onboardingRequest,
         )
 

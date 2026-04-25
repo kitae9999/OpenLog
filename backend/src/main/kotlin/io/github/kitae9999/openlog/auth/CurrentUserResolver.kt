@@ -11,7 +11,7 @@ class CurrentUserResolver(
     @Value("\${auth.jwt.cookie-name:openlog_access_token}")
     private val accessTokenCookieName: String,
 ) {
-    fun resolveUserId(request: HttpServletRequest): Long {
+    fun resolveUserIdFromJwt(request: HttpServletRequest): Long {
         val accessToken = request.cookies
             ?.firstOrNull { it.name == accessTokenCookieName }
             ?.value
@@ -19,4 +19,6 @@ class CurrentUserResolver(
 
         return jwtTokenService.parseUserId(accessToken)
     }
+
+
 }

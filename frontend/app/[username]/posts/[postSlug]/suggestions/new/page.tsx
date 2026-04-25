@@ -5,6 +5,7 @@ import { NewSuggestionView } from "@/widgets/post/ui";
 import { getPostDetail } from "@/entities/post/api/getPostDetail";
 import { getPostEntry } from "@/entities/post/model";
 import { getUser } from "@/features/auth/api/getUser";
+import { createPostSuggestionAction } from "@/features/suggest/api/suggestionActions";
 import {
   buildPublicPostPath,
   buildPublicSuggestsPath,
@@ -41,6 +42,12 @@ export default async function NewSuggestionPage({
   const suggestsHref = buildPublicSuggestsPath(authorUsername, canonicalPostSlug);
 
   if (detail) {
+    const action = createPostSuggestionAction.bind(
+      null,
+      detail.id,
+      suggestsHref,
+    );
+
     return (
       <div className="min-h-dvh bg-zinc-50 text-zinc-950">
         <Header
@@ -53,10 +60,11 @@ export default async function NewSuggestionPage({
           <NewSuggestionView
             initialValues={{
               postTitle: detail.title,
-              originalContent: detail.content,
+              baseContent: detail.content,
             }}
             backHref={suggestsHref}
             articleHref={articleHref}
+            action={action}
           />
         </main>
 
@@ -82,7 +90,7 @@ export default async function NewSuggestionPage({
         <NewSuggestionView
           initialValues={{
             postTitle: entry.post.title,
-            originalContent: extractMarkdownText(entry.body),
+            baseContent: extractMarkdownText(entry.body),
           }}
           backHref={suggestsHref}
           articleHref={articleHref}

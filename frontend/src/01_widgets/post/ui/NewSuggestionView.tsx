@@ -1,45 +1,79 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   startTransition,
+  useActionState,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useFormStatus } from "react-dom";
+import type { SuggestionActionState } from "@/features/suggest/api/suggestionActions";
 import { cn } from "@/shared/lib/cn";
+import { buildDiffRows, type DiffRow } from "@/shared/lib/diffRows";
 import { formatSelection, type ToolbarAction } from "@/shared/lib/markdown";
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 
 type ComposerMode = "edit" | "preview";
 
-type DiffRow = {
-  oldLine?: number;
-  newLine?: number;
-  kind: "context" | "remove" | "add";
-  content: string;
-};
-
 export type NewSuggestionInitialValues = {
   postTitle: string;
-  originalContent: string;
+  baseContent: string;
+  title?: string;
+  description?: string;
+  content?: string;
+};
+
+type SubmitSuggestionAction = (
+  prevState: SuggestionActionState,
+  formData: FormData,
+) => Promise<SuggestionActionState>;
+
+const initialSuggestionActionState: SuggestionActionState = {
+  errors: {},
 };
 
 export function NewSuggestionView({
   initialValues,
   backHref,
   articleHref,
+  action = unavailableSuggestionAction,
+  mode = "create",
+  eyebrow = "New Suggest",
+  heading,
+  submitLabel,
+  pendingSubmitLabel,
+  cancelLabel = "Cancel",
 }: {
   initialValues: NewSuggestionInitialValues;
   backHref: string;
   articleHref: string;
+  action?: SubmitSuggestionAction;
+  mode?: "create" | "edit";
+  eyebrow?: string;
+  heading?: string;
+  submitLabel?: string;
+  pendingSubmitLabel?: string;
+  cancelLabel?: string;
 }) {
+  const router = useRouter();
+  const [actionState, formAction] = useActionState(
+    action,
+    initialSuggestionActionState,
+  );
   const [composerMode, setComposerMode] = useState<ComposerMode>("edit");
   const [descriptionMode, setDescriptionMode] = useState<ComposerMode>("edit");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
-  const [body, setBody] = useState(initialValues.originalContent);
+  const [title, setTitle] = useState(initialValues.title ?? "");
+  const [description, setDescription] = useState(
+    initialValues.description ?? DEFAULT_DESCRIPTION,
+  );
+  const [body, setBody] = useState(
+    initialValues.content ?? initialValues.baseContent,
+  );
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
@@ -56,12 +90,33 @@ export function NewSuggestionView({
     fitTextareaToContent(textarea);
   }, [description, descriptionMode]);
 
-  const diffRows = buildDiffRows(initialValues.originalContent, body);
+  const diffRows = buildDiffRows(initialValues.baseContent, body);
   const hasChanges = diffRows.some((row) => row.kind !== "context");
+  const hasEditedFields =
+    title.trim() !== (initialValues.title ?? "").trim() ||
+    description.trim() !== (initialValues.description ?? DEFAULT_DESCRIPTION).trim() ||
+    body.trim() !== (initialValues.content ?? initialValues.baseContent).trim();
   const canSubmit =
     title.trim().length > 0 &&
     description.trim().length > 0 &&
-    body.trim() !== initialValues.originalContent.trim();
+    body.trim().length > 0 &&
+    (mode === "edit"
+      ? hasEditedFields
+      : body.trim() !== initialValues.baseContent.trim());
+  const resolvedHeading =
+    heading ?? `Suggest edit for "${initialValues.postTitle}"`;
+  const resolvedSubmitLabel =
+    submitLabel ?? (mode === "edit" ? "Save suggestion" : "Submit suggestion");
+  const resolvedPendingSubmitLabel =
+    pendingSubmitLabel ?? (mode === "edit" ? "Saving..." : "Submitting...");
+
+  useEffect(() => {
+    if (!actionState.redirectTo) {
+      return;
+    }
+
+    router.replace(actionState.redirectTo);
+  }, [actionState.redirectTo, router]);
 
   function handleModeChange(nextMode: ComposerMode) {
     startTransition(() => {
@@ -135,7 +190,7 @@ export function NewSuggestionView({
 
         <form
           className="w-full max-w-[768px]"
-          onSubmit={(event) => event.preventDefault()}
+          action={formAction}
         >
           <Link
             href={backHref}
@@ -147,10 +202,10 @@ export function NewSuggestionView({
 
           <header className="mt-7 border-b border-zinc-200 pb-6">
             <p className="text-[11px] font-semibold uppercase tracking-normal text-zinc-400">
-              New Suggest
+              {eyebrow}
             </p>
             <h1 className="mt-3 font-serif text-[32px] font-bold leading-[1.15] tracking-tight text-zinc-950">
-              Suggest edit for &quot;{initialValues.postTitle}&quot;
+              {resolvedHeading}
             </h1>
           </header>
 
@@ -170,6 +225,11 @@ export function NewSuggestionView({
                 placeholder="add title"
                 className="h-12 w-full rounded-lg border border-zinc-200 bg-white px-4 text-[16px] font-medium text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-2 focus:ring-zinc-900/10"
               />
+              {actionState.errors.title ? (
+                <p className="text-sm text-rose-700">
+                  {actionState.errors.title}
+                </p>
+              ) : null}
             </section>
 
             <section className="space-y-3">
@@ -233,6 +293,11 @@ export function NewSuggestionView({
                   )}
                 </div>
               </div>
+              {actionState.errors.description ? (
+                <p className="text-sm text-rose-700">
+                  {actionState.errors.description}
+                </p>
+              ) : null}
             </section>
 
             <section className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
@@ -285,27 +350,45 @@ export function NewSuggestionView({
 
             <FilesChanged rows={diffRows} hasChanges={hasChanges} />
 
+            {actionState.errors.content ? (
+              <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {actionState.errors.content}
+              </p>
+            ) : null}
+
+            {actionState.errors.form ? (
+              <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {actionState.errors.form}
+              </p>
+            ) : null}
+
             <div className="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
               <Link
                 href={articleHref}
                 className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-5 text-sm font-semibold text-zinc-700 transition hover:border-zinc-950 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
-                Cancel
+                {cancelLabel}
               </Link>
 
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 disabled:cursor-not-allowed disabled:bg-zinc-400"
-              >
-                Submit suggestion
-              </button>
+              <SubmitSuggestionButton
+                canSubmit={canSubmit}
+                submitLabel={resolvedSubmitLabel}
+                pendingSubmitLabel={resolvedPendingSubmitLabel}
+              />
             </div>
           </div>
         </form>
       </div>
     </div>
   );
+}
+
+async function unavailableSuggestionAction(): Promise<SuggestionActionState> {
+  return {
+    errors: {
+      form: "이 글은 아직 제안을 제출할 수 없습니다.",
+    },
+  };
 }
 
 const DEFAULT_DESCRIPTION = `## Summary
@@ -354,6 +437,28 @@ function ModeButton({
     >
       {icon}
       {label}
+    </button>
+  );
+}
+
+function SubmitSuggestionButton({
+  canSubmit,
+  submitLabel,
+  pendingSubmitLabel,
+}: {
+  canSubmit: boolean;
+  submitLabel: string;
+  pendingSubmitLabel: string;
+}) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={!canSubmit || pending}
+      className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 disabled:cursor-not-allowed disabled:bg-zinc-400"
+    >
+      {pending ? pendingSubmitLabel : submitLabel}
     </button>
   );
 }
@@ -450,119 +555,6 @@ function DiffRowView({ row }: { row: DiffRow }) {
       </pre>
     </div>
   );
-}
-
-function buildDiffRows(
-  originalContent: string,
-  nextContent: string,
-): DiffRow[] {
-  const originalLines = splitLines(originalContent);
-  const nextLines = splitLines(nextContent);
-
-  if (
-    originalLines.length === nextLines.length &&
-    originalLines.every((line, index) => line === nextLines[index])
-  ) {
-    return [];
-  }
-
-  const commonLengths = buildCommonSubsequenceLengths(originalLines, nextLines);
-  const rows: DiffRow[] = [];
-  let originalIndex = 0;
-  let nextIndex = 0;
-
-  while (originalIndex < originalLines.length || nextIndex < nextLines.length) {
-    if (
-      originalIndex < originalLines.length &&
-      nextIndex < nextLines.length &&
-      originalLines[originalIndex] === nextLines[nextIndex]
-    ) {
-      rows.push({
-        oldLine: originalIndex + 1,
-        newLine: nextIndex + 1,
-        kind: "context",
-        content: originalLines[originalIndex],
-      });
-      originalIndex += 1;
-      nextIndex += 1;
-      continue;
-    }
-
-    const shouldAdd =
-      nextIndex < nextLines.length &&
-      (originalIndex === originalLines.length ||
-        commonLengths[originalIndex][nextIndex + 1] >
-          commonLengths[originalIndex + 1][nextIndex]);
-
-    if (shouldAdd) {
-      rows.push({
-        newLine: nextIndex + 1,
-        kind: "add",
-        content: nextLines[nextIndex],
-      });
-      nextIndex += 1;
-      continue;
-    }
-
-    rows.push({
-      oldLine: originalIndex + 1,
-      kind: "remove",
-      content: originalLines[originalIndex],
-    });
-    originalIndex += 1;
-  }
-
-  return trimUnchangedContext(rows);
-}
-
-function splitLines(value: string) {
-  return value.replace(/\r\n/g, "\n").split("\n");
-}
-
-function buildCommonSubsequenceLengths(
-  originalLines: string[],
-  nextLines: string[],
-) {
-  const commonLengths = Array.from({ length: originalLines.length + 1 }, () =>
-    Array.from({ length: nextLines.length + 1 }, () => 0),
-  );
-
-  for (
-    let originalIndex = originalLines.length - 1;
-    originalIndex >= 0;
-    originalIndex -= 1
-  ) {
-    for (let nextIndex = nextLines.length - 1; nextIndex >= 0; nextIndex -= 1) {
-      commonLengths[originalIndex][nextIndex] =
-        originalLines[originalIndex] === nextLines[nextIndex]
-          ? commonLengths[originalIndex + 1][nextIndex + 1] + 1
-          : Math.max(
-              commonLengths[originalIndex + 1][nextIndex],
-              commonLengths[originalIndex][nextIndex + 1],
-            );
-    }
-  }
-
-  return commonLengths;
-}
-
-function trimUnchangedContext(rows: DiffRow[]) {
-  const firstChangedIndex = rows.findIndex((row) => row.kind !== "context");
-  let lastChangedIndex = -1;
-  for (let index = rows.length - 1; index >= 0; index -= 1) {
-    if (rows[index].kind !== "context") {
-      lastChangedIndex = index;
-      break;
-    }
-  }
-
-  if (firstChangedIndex === -1 || lastChangedIndex === -1) {
-    return [];
-  }
-
-  const startIndex = Math.max(0, firstChangedIndex - 2);
-  const endIndex = Math.min(rows.length, lastChangedIndex + 3);
-  return rows.slice(startIndex, endIndex);
 }
 
 function IconArrowLeft({ className }: { className?: string }) {

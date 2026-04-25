@@ -6,12 +6,13 @@ import { PostTabs } from "./PostTabs";
 
 export type SuggestionListItem = {
   id: string;
+  detailHref?: string;
   numberLabel: string;
   title: string;
-  openedAtLabel: string;
+  activityLabel: string;
   authorName: string;
   commentCount: number;
-  status: "open" | "closed" | "merged";
+  status: "open" | "outdated" | "closed" | "merged" | "rejected";
 };
 
 export type SuggestionStatusFilter = "open" | "closed";
@@ -112,7 +113,7 @@ export function PostSuggests({
                 visibleSuggestions.map((suggestion, index) => (
                   <Link
                     key={suggestion.id}
-                    href={`${suggestsHref}/${suggestion.id}`}
+                    href={suggestion.detailHref ?? `${suggestsHref}/${suggestion.id}`}
                     className={cn(
                       "flex items-start justify-between gap-4 px-4 py-5 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/10",
                       index < visibleSuggestions.length - 1 &&
@@ -125,7 +126,11 @@ export function PostSuggests({
                           "mt-0.5 shrink-0",
                           suggestion.status === "open"
                             ? "text-emerald-500"
-                            : "text-violet-500",
+                            : suggestion.status === "outdated"
+                              ? "text-amber-500"
+                              : suggestion.status === "rejected"
+                                ? "text-rose-500"
+                                : "text-violet-500",
                         )}
                       >
                         <GitPullRequestIcon className="size-5" />
@@ -140,7 +145,7 @@ export function PostSuggests({
                           <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] leading-none text-zinc-500">
                             {suggestion.numberLabel}
                           </span>
-                          <span>opened {suggestion.openedAtLabel} by</span>
+                          <span>{suggestion.activityLabel} by</span>
                           <span className="font-medium text-zinc-700">
                             {suggestion.authorName}
                           </span>

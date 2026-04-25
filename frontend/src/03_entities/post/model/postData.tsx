@@ -13,18 +13,13 @@ export type Post = {
   authorName: string;
   authorAvatarSrc: string;
   publishedAtLabel: string;
+  versionLabel?: string;
   readTimeLabel?: string;
   tags: string[];
   coverSrc: string;
   likes: number;
   liked?: boolean;
   comments: number;
-};
-
-export type Reviewer = {
-  name: string;
-  avatarSrc: string;
-  status?: "approved";
 };
 
 export type SuggestionComment = {
@@ -53,15 +48,13 @@ export type Suggestion = {
   id: string;
   numberLabel: string;
   title: string;
-  openedAtLabel: string;
+  activityLabel: string;
   authorName: string;
   authorAvatarSrc: string;
   commentCount: number;
-  status: "open" | "closed" | "merged";
-  targetBranch: string;
-  sourceBranch: string;
+  status: "open" | "outdated" | "closed" | "merged" | "rejected";
+  baseVersionLabel?: string;
   comment: SuggestionComment;
-  reviewers: Reviewer[];
   diffRows: DiffRow[];
   resolutionNote?: {
     title: string;
@@ -138,13 +131,12 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           id: "pr1",
           numberLabel: "#pr1",
           title: "Clarify zero-config theme token migration",
-          openedAtLabel: "2026. 3. 11.",
+          activityLabel: "opened 2026. 3. 11.",
           authorName: "Kent C. Dodds",
           authorAvatarSrc: assets.avatarA,
           commentCount: 2,
           status: "open",
-          targetBranch: "master",
-          sourceBranch: "patch-1",
+          baseVersionLabel: "v1",
           comment: {
             authorName: "Kent C. Dodds",
             authorAvatarSrc: assets.avatarA,
@@ -152,12 +144,6 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
             message:
               "I rewrote the upgrade note so the token migration reads as truly zero-config in the common case, while keeping the edge-case caveat.",
           },
-          reviewers: [
-            {
-              name: "Sarah Drasner",
-              avatarSrc: assets.avatarB,
-            },
-          ],
           diffRows: [
             {
               oldLine: 12,
@@ -202,13 +188,12 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           id: "pr2",
           numberLabel: "#pr2",
           title: "Close outdated note about PostCSS setup",
-          openedAtLabel: "2026. 3. 9.",
+          activityLabel: "closed 2026. 3. 9.",
           authorName: "Dan Abramov",
           authorAvatarSrc: assets.avatarB,
           commentCount: 1,
           status: "closed",
-          targetBranch: "master",
-          sourceBranch: "cleanup-postcss-note",
+          baseVersionLabel: "v2",
           comment: {
             authorName: "Dan Abramov",
             authorAvatarSrc: assets.avatarB,
@@ -216,12 +201,6 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
             message:
               "This removes the old PostCSS warning and keeps the setup guide aligned with the current default toolchain.",
           },
-          reviewers: [
-            {
-              name: "Kent C. Dodds",
-              avatarSrc: assets.avatarA,
-            },
-          ],
           diffRows: [
             {
               oldLine: 21,
@@ -265,13 +244,12 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           id: "pr1",
           numberLabel: "#pr1",
           title: "Fix typo and clarify bundle size section",
-          openedAtLabel: "2026. 3. 11.",
+          activityLabel: "opened 2026. 3. 11.",
           authorName: "Kent C. Dodds",
           authorAvatarSrc: assets.avatarA,
           commentCount: 0,
           status: "open",
-          targetBranch: "master",
-          sourceBranch: "patch-1",
+          baseVersionLabel: "v1",
           comment: {
             authorName: "Kent C. Dodds",
             authorAvatarSrc: assets.avatarA,
@@ -279,12 +257,6 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
             message:
               "I clarified the section on bundle size to mention dependencies, and fixed a minor phrasing issue.",
           },
-          reviewers: [
-            {
-              name: "Sarah Drasner",
-              avatarSrc: assets.avatarB,
-            },
-          ],
           diffRows: [
             {
               oldLine: 1,
@@ -341,13 +313,12 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           id: "pr2",
           numberLabel: "#pr2",
           title: "Add comment explaining Server component boundaries",
-          openedAtLabel: "2026. 3. 10.",
+          activityLabel: "accepted 2026. 3. 10.",
           authorName: "Dan Abramov",
           authorAvatarSrc: assets.avatarB,
           commentCount: 0,
           status: "merged",
-          targetBranch: "master",
-          sourceBranch: "patch-1",
+          baseVersionLabel: "v2",
           comment: {
             authorName: "Dan Abramov",
             authorAvatarSrc: assets.avatarB,
@@ -355,13 +326,6 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
             message:
               "Added a useful comment above the code block to help beginners understand context.",
           },
-          reviewers: [
-            {
-              name: "Sarah Drasner",
-              avatarSrc: assets.avatarB,
-              status: "approved",
-            },
-          ],
           diffRows: [
             {
               oldLine: 1,

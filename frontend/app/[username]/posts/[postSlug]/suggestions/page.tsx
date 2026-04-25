@@ -14,8 +14,10 @@ import { getPostDetail } from "@/entities/post/api/getPostDetail";
 import { getPostEntry } from "@/entities/post/model";
 import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
+import { formatPostVersionLabel } from "@/shared/lib/postVersion";
 import {
   buildPublicPostPath,
+  buildPublicSuggestDetailPath,
   buildPublicSuggestNewPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
@@ -79,13 +81,22 @@ export default async function PublicPostSuggestsPage({
               authorName: detail.authorName,
               authorAvatarSrc: detail.authorAvatarSrc ?? assets.defaultAvatar,
               publishedAtLabel: detail.publishedAtLabel,
+              versionLabel: formatPostVersionLabel(detail.version),
               tags: detail.topics,
               coverSrc: assets.postCover,
               likes: detail.likes,
               liked: detail.liked,
               comments: detail.comments,
             }}
-            suggestions={suggestions.map(toSuggestionListItem)}
+            suggestions={suggestions.map((suggestion, index, list) =>
+              toSuggestionListItem(
+                authorUsername,
+                canonicalPostSlug,
+                suggestion,
+                index,
+                list,
+              ),
+            )}
             backHref="/?tab=trending"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
@@ -139,17 +150,58 @@ function parseSuggestionStatusFilter(
 }
 
 function toSuggestionListItem(
+  authorUsername: string,
+  canonicalPostSlug: string,
   suggestion: ApiSuggestionSummary,
+  index: number,
+  list: ApiSuggestionSummary[],
 ): SuggestionListItem {
+  const displayNumber = String(list.length - index);
+
   return {
     id: String(suggestion.id),
-    numberLabel: `#${suggestion.id}`,
+    detailHref: buildPublicSuggestDetailPath(
+      authorUsername,
+      canonicalPostSlug,
+      displayNumber,
+    ),
+    numberLabel: `#${displayNumber}`,
     title: suggestion.title,
-    openedAtLabel: formatDateLabel(suggestion.createdAt),
+    activityLabel: buildSuggestionActivityLabel(
+      suggestion.status,
+      formatDateLabel(
+        suggestion.status === "OPEN"
+          ? suggestion.createdAt
+          : suggestion.updatedAt,
+      ),
+    ),
     authorName: suggestion.authorName,
     commentCount: suggestion.commentCount,
     status: toSuggestionListStatus(suggestion.status),
   };
+}
+
+function buildSuggestionActivityLabel(
+  status: ApiSuggestionStatus,
+  dateLabel: string,
+) {
+  if (status === "OPEN") {
+    return `opened ${dateLabel}`;
+  }
+
+  if (status === "OUTDATED") {
+    return `marked outdated ${dateLabel}`;
+  }
+
+  if (status === "MERGED") {
+    return `accepted ${dateLabel}`;
+  }
+
+  if (status === "REJECTED") {
+    return `rejected ${dateLabel}`;
+  }
+
+  return `closed ${dateLabel}`;
 }
 
 function toSuggestionListStatus(
@@ -159,8 +211,16 @@ function toSuggestionListStatus(
     return "open";
   }
 
+  if (status === "OUTDATED") {
+    return "outdated";
+  }
+
   if (status === "MERGED") {
     return "merged";
+  }
+
+  if (status === "REJECTED") {
+    return "rejected";
   }
 
   return "closed";

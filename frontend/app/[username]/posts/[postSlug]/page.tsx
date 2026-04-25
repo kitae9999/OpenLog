@@ -7,6 +7,7 @@ import { getPostSuggestions } from "@/entities/post/api/getPostSuggestions";
 import { getPostEntry, contributors } from "@/entities/post/model";
 import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
+import { formatPostVersionLabel } from "@/shared/lib/postVersion";
 import {
   buildPublicProfilePath,
   buildPublicPostEditPath,
@@ -78,6 +79,7 @@ export default async function PublicPostPage({
               authorName: detail.authorName,
               authorAvatarSrc: detail.authorAvatarSrc ?? assets.defaultAvatar,
               publishedAtLabel: detail.publishedAtLabel,
+              versionLabel: formatPostVersionLabel(detail.version),
               tags: detail.topics,
               coverSrc: assets.postCover,
               likes: detail.likes,

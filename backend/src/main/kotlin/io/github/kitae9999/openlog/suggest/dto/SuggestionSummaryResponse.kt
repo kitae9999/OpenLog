@@ -10,5 +10,6 @@ data class SuggestionSummaryResponse(
     val authorName: String,
     val authorProfileImageUrl: String?,
     val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
     val commentCount: Int = 0,
 )
