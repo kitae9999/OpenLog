@@ -2,6 +2,7 @@ package io.github.kitae9999.openlog.suggest
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
 import io.github.kitae9999.openlog.suggest.dto.CreateSuggestionRequest
+import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
 import io.github.kitae9999.openlog.suggest.dto.SuggestionSummaryResponse
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.web.bind.annotation.GetMapping
@@ -39,7 +40,7 @@ class SuggestController(
     fun getSuggestionDetail(
         @PathVariable postId: Long,
         @PathVariable suggestionId: Long,
-        ){
-        return suggestService.getSuggestionDetail(postId,suggestionId)
+    ): SuggestionDetailResponse {
+        return suggestService.getSuggestionDetail(postId, suggestionId)
     }
 }

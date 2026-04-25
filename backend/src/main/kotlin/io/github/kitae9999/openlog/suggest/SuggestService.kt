@@ -1,8 +1,8 @@
 package io.github.kitae9999.openlog.suggest
 
-import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.repository.PostRepository
+import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
 import io.github.kitae9999.openlog.suggest.dto.SuggestionSummaryResponse
 import io.github.kitae9999.openlog.suggest.entity.Suggestion
 import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
@@ -53,7 +53,23 @@ class SuggestService(
         )
     }
 
-    fun getSuggestionDetail(postId: Long, suggestionId: Long){
+    fun getSuggestionDetail(postId: Long, suggestionId: Long): SuggestionDetailResponse {
+        val suggestion = suggestionRepository.findByIdAndPostId(suggestionId, postId)
+            ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
 
+        return SuggestionDetailResponse(
+            id = requireNotNull(suggestion.id),
+            title = suggestion.title,
+            content = suggestion.content,
+            baseContent = suggestion.baseContent,
+            description = suggestion.description,
+            status = suggestion.status,
+            authorName = suggestion.user.nickname
+                ?: suggestion.user.username
+                ?: "Unknown",
+            authorProfileImageUrl = suggestion.user.profileImageUrl,
+            createdAt = suggestion.createdAt,
+            postBaseVersion = suggestion.postBaseVersion,
+        )
     }
 }

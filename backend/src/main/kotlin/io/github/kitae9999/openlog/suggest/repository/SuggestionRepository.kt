@@ -17,4 +17,18 @@ interface SuggestionRepository: JpaRepository<Suggestion, Long> {
         """
     )
     fun findAllWithUserByPostId(@Param("postId") postId: Long) : List<Suggestion>
+
+    @Query(
+        """
+        select s
+        from Suggestion s
+        join fetch s.user
+        where s.id = :suggestionId
+          and s.post.id = :postId
+        """
+    )
+    fun findByIdAndPostId(
+        @Param("suggestionId") suggestionId: Long,
+        @Param("postId") postId: Long,
+    ): Suggestion?
 }
