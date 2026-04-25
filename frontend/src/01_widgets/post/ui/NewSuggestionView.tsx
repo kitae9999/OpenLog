@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   startTransition,
-  useDeferredValue,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -36,13 +36,27 @@ export function NewSuggestionView({
   articleHref: string;
 }) {
   const [composerMode, setComposerMode] = useState<ComposerMode>("edit");
+  const [descriptionMode, setDescriptionMode] = useState<ComposerMode>("edit");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
   const [body, setBody] = useState(initialValues.originalContent);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
-  const deferredBody = useDeferredValue(body);
-  const diffRows = buildDiffRows(initialValues.originalContent, deferredBody);
+  useLayoutEffect(() => {
+    if (descriptionMode !== "edit") {
+      return;
+    }
+
+    const textarea = descriptionRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    fitTextareaToContent(textarea);
+  }, [description, descriptionMode]);
+
+  const diffRows = buildDiffRows(initialValues.originalContent, body);
   const hasChanges = diffRows.some((row) => row.kind !== "context");
   const canSubmit =
     title.trim().length > 0 &&
@@ -52,6 +66,12 @@ export function NewSuggestionView({
   function handleModeChange(nextMode: ComposerMode) {
     startTransition(() => {
       setComposerMode(nextMode);
+    });
+  }
+
+  function handleDescriptionModeChange(nextMode: ComposerMode) {
+    startTransition(() => {
+      setDescriptionMode(nextMode);
     });
   }
 
@@ -81,6 +101,33 @@ export function NewSuggestionView({
     });
   }
 
+  function insertDescriptionFormatting(action: ToolbarAction) {
+    const textarea = descriptionRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const selectedText = description.slice(selectionStart, selectionEnd);
+    const { nextValue, nextSelectionStart, nextSelectionEnd } = formatSelection(
+      action,
+      description,
+      selectedText,
+      selectionStart,
+      selectionEnd,
+    );
+
+    setDescription(nextValue);
+    handleDescriptionModeChange("edit");
+
+    window.requestAnimationFrame(() => {
+      fitTextareaToContent(textarea);
+      textarea.focus();
+      textarea.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    });
+  }
+
   return (
     <div className="mx-auto w-full max-w-[950px] pb-12">
       <div className="flex items-start gap-15">
@@ -105,10 +152,6 @@ export function NewSuggestionView({
             <h1 className="mt-3 font-serif text-[32px] font-bold leading-[1.15] tracking-tight text-zinc-950">
               Suggest edit for &quot;{initialValues.postTitle}&quot;
             </h1>
-            <p className="mt-3 max-w-[62ch] text-sm leading-6 text-zinc-500">
-              Write the review context first, edit the article body, then check
-              the generated file diff before submitting.
-            </p>
           </header>
 
           <div className="mt-8 space-y-8">
@@ -124,7 +167,7 @@ export function NewSuggestionView({
                 name="title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Clarify enum persistence behavior"
+                placeholder="add title"
                 className="h-12 w-full rounded-lg border border-zinc-200 bg-white px-4 text-[16px] font-medium text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-2 focus:ring-zinc-900/10"
               />
             </section>
@@ -137,18 +180,59 @@ export function NewSuggestionView({
                 >
                   Description
                 </label>
-                <p className="mt-1 text-sm leading-6 text-zinc-500">
-                  Use this like a pull request description. Explain what changed
-                  and why it should be accepted.
-                </p>
               </div>
-              <textarea
-                id="suggestion-description"
-                name="description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                className="min-h-[220px] w-full resize-y rounded-lg border border-zinc-200 bg-white px-4 py-4 font-mono text-[14px] leading-7 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-2 focus:ring-zinc-900/10"
-              />
+
+              <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-2">
+                  <MarkdownToolbar
+                    disabled={descriptionMode === "preview"}
+                    onAction={insertDescriptionFormatting}
+                  />
+                  <div className="rounded-lg bg-zinc-100 p-1">
+                    <div className="flex items-center gap-1">
+                      <ModeButton
+                        active={descriptionMode === "edit"}
+                        icon={<IconEdit className="size-4" />}
+                        label="Edit"
+                        onClick={() => handleDescriptionModeChange("edit")}
+                      />
+                      <ModeButton
+                        active={descriptionMode === "preview"}
+                        icon={<IconEye className="size-4" />}
+                        label="Preview"
+                        onClick={() => handleDescriptionModeChange("preview")}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="min-h-[220px] bg-white">
+                  {descriptionMode === "edit" ? (
+                    <textarea
+                      ref={descriptionRef}
+                      id="suggestion-description"
+                      name="description"
+                      value={description}
+                      onChange={(event) => {
+                        setDescription(event.target.value);
+                        fitTextareaToContent(event.currentTarget);
+                      }}
+                      className="min-h-[220px] w-full resize-none overflow-hidden px-4 py-4 font-mono text-[14px] leading-7 text-zinc-900 outline-none transition placeholder:text-zinc-400"
+                    />
+                  ) : (
+                    <article className="min-h-[220px] px-4 py-4">
+                      <MarkdownContent
+                        markdown={description}
+                        emptyFallback={
+                          <p className="text-zinc-400">
+                            Description preview will render here.
+                          </p>
+                        }
+                      />
+                    </article>
+                  )}
+                </div>
+              </div>
             </section>
 
             <section className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
@@ -226,11 +310,24 @@ export function NewSuggestionView({
 
 const DEFAULT_DESCRIPTION = `## Summary
 
--
 
 ## Reason
+`;
 
--`;
+const DESCRIPTION_MIN_HEIGHT = 220;
+const DESCRIPTION_MAX_HEIGHT = 520;
+
+function fitTextareaToContent(textarea: HTMLTextAreaElement) {
+  textarea.style.height = "auto";
+  const nextHeight = Math.min(
+    Math.max(textarea.scrollHeight, DESCRIPTION_MIN_HEIGHT),
+    DESCRIPTION_MAX_HEIGHT,
+  );
+
+  textarea.style.height = `${nextHeight}px`;
+  textarea.style.overflowY =
+    textarea.scrollHeight > DESCRIPTION_MAX_HEIGHT ? "auto" : "hidden";
+}
 
 function ModeButton({
   active,
@@ -268,9 +365,6 @@ function FilesChanged({
   rows: DiffRow[];
   hasChanges: boolean;
 }) {
-  const additions = rows.filter((row) => row.kind === "add").length;
-  const deletions = rows.filter((row) => row.kind === "remove").length;
-
   return (
     <section className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3">
@@ -279,14 +373,7 @@ function FilesChanged({
             <IconFileDiff className="size-4" />
             Files changed
           </h2>
-          <p className="mt-1 font-mono text-xs text-zinc-500">
-            post.md
-            {hasChanges ? ` · +${additions} -${deletions}` : ""}
-          </p>
         </div>
-        <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 font-mono text-[11px] font-medium text-zinc-500">
-          Unified view
-        </span>
       </div>
 
       {hasChanges ? (
@@ -354,10 +441,7 @@ function DiffRowView({ row }: { row: DiffRow }) {
         {row.newLine ?? ""}
       </div>
       <div
-        className={cn(
-          "px-2 py-1.5 text-center font-mono text-xs",
-          markerColor,
-        )}
+        className={cn("px-2 py-1.5 text-center font-mono text-xs", markerColor)}
       >
         {marker}
       </div>
@@ -368,7 +452,10 @@ function DiffRowView({ row }: { row: DiffRow }) {
   );
 }
 
-function buildDiffRows(originalContent: string, nextContent: string): DiffRow[] {
+function buildDiffRows(
+  originalContent: string,
+  nextContent: string,
+): DiffRow[] {
   const originalLines = splitLines(originalContent);
   const nextLines = splitLines(nextContent);
 
@@ -384,10 +471,7 @@ function buildDiffRows(originalContent: string, nextContent: string): DiffRow[] 
   let originalIndex = 0;
   let nextIndex = 0;
 
-  while (
-    originalIndex < originalLines.length ||
-    nextIndex < nextLines.length
-  ) {
+  while (originalIndex < originalLines.length || nextIndex < nextLines.length) {
     if (
       originalIndex < originalLines.length &&
       nextIndex < nextLines.length &&
@@ -443,7 +527,11 @@ function buildCommonSubsequenceLengths(
     Array.from({ length: nextLines.length + 1 }, () => 0),
   );
 
-  for (let originalIndex = originalLines.length - 1; originalIndex >= 0; originalIndex -= 1) {
+  for (
+    let originalIndex = originalLines.length - 1;
+    originalIndex >= 0;
+    originalIndex -= 1
+  ) {
     for (let nextIndex = nextLines.length - 1; nextIndex >= 0; nextIndex -= 1) {
       commonLengths[originalIndex][nextIndex] =
         originalLines[originalIndex] === nextLines[nextIndex]
@@ -569,9 +657,24 @@ function IconFileDiff({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M9 13h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 10v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M9 18h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M9 13h6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 10v6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9 18h6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
