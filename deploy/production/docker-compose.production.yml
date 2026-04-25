@@ -13,6 +13,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    ports:
+      - "127.0.0.1:5432:5432"
     networks:
       - openlog
 
@@ -23,6 +25,8 @@ services:
       REDIS_ARGS: --protected-mode no --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
     volumes:
       - openlog-redis-data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
     networks:
       - openlog
 
