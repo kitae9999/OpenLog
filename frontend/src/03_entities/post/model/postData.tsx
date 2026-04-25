@@ -47,7 +47,7 @@ export type Suggestion = {
   id: string;
   numberLabel: string;
   title: string;
-  openedAtLabel: string;
+  activityLabel: string;
   authorName: string;
   authorAvatarSrc: string;
   commentCount: number;
@@ -130,7 +130,7 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           id: "pr1",
           numberLabel: "#pr1",
           title: "Clarify zero-config theme token migration",
-          openedAtLabel: "2026. 3. 11.",
+          activityLabel: "opened 2026. 3. 11.",
           authorName: "Kent C. Dodds",
           authorAvatarSrc: assets.avatarA,
           commentCount: 2,
@@ -187,7 +187,7 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           id: "pr2",
           numberLabel: "#pr2",
           title: "Close outdated note about PostCSS setup",
-          openedAtLabel: "2026. 3. 9.",
+          activityLabel: "closed 2026. 3. 9.",
           authorName: "Dan Abramov",
           authorAvatarSrc: assets.avatarB,
           commentCount: 1,
@@ -243,7 +243,7 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           id: "pr1",
           numberLabel: "#pr1",
           title: "Fix typo and clarify bundle size section",
-          openedAtLabel: "2026. 3. 11.",
+          activityLabel: "opened 2026. 3. 11.",
           authorName: "Kent C. Dodds",
           authorAvatarSrc: assets.avatarA,
           commentCount: 0,
@@ -312,7 +312,7 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           id: "pr2",
           numberLabel: "#pr2",
           title: "Add comment explaining Server component boundaries",
-          openedAtLabel: "2026. 3. 10.",
+          activityLabel: "accepted 2026. 3. 10.",
           authorName: "Dan Abramov",
           authorAvatarSrc: assets.avatarB,
           commentCount: 0,

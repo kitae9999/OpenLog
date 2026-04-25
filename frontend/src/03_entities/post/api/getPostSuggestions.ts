@@ -16,6 +16,7 @@ export type ApiSuggestionSummary = {
   authorName: string;
   authorProfileImageUrl: string | null;
   createdAt: string;
+  updatedAt: string;
   commentCount: number;
 };
 

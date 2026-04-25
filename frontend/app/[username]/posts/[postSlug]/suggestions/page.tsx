@@ -165,11 +165,41 @@ function toSuggestionListItem(
     ),
     numberLabel: `#${displayNumber}`,
     title: suggestion.title,
-    openedAtLabel: formatDateLabel(suggestion.createdAt),
+    activityLabel: buildSuggestionActivityLabel(
+      suggestion.status,
+      formatDateLabel(
+        suggestion.status === "OPEN"
+          ? suggestion.createdAt
+          : suggestion.updatedAt,
+      ),
+    ),
     authorName: suggestion.authorName,
     commentCount: suggestion.commentCount,
     status: toSuggestionListStatus(suggestion.status),
   };
+}
+
+function buildSuggestionActivityLabel(
+  status: ApiSuggestionStatus,
+  dateLabel: string,
+) {
+  if (status === "OPEN") {
+    return `opened ${dateLabel}`;
+  }
+
+  if (status === "OUTDATED") {
+    return `marked outdated ${dateLabel}`;
+  }
+
+  if (status === "MERGED") {
+    return `accepted ${dateLabel}`;
+  }
+
+  if (status === "REJECTED") {
+    return `rejected ${dateLabel}`;
+  }
+
+  return `closed ${dateLabel}`;
 }
 
 function toSuggestionListStatus(

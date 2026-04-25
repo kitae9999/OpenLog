@@ -128,7 +128,7 @@ function toSuggestion(
     id: String(detail.id),
     numberLabel: `#${displayNumber}`,
     title: detail.title,
-    openedAtLabel: formatDateLabel(detail.createdAt),
+    activityLabel: `opened ${formatDateLabel(detail.createdAt)}`,
     authorName: detail.authorName,
     authorAvatarSrc: detail.authorProfileImageUrl ?? assets.defaultAvatar,
     commentCount,

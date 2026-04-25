@@ -9,7 +9,7 @@ export type SuggestionListItem = {
   detailHref?: string;
   numberLabel: string;
   title: string;
-  openedAtLabel: string;
+  activityLabel: string;
   authorName: string;
   commentCount: number;
   status: "open" | "outdated" | "closed" | "merged";
@@ -143,7 +143,7 @@ export function PostSuggests({
                           <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] leading-none text-zinc-500">
                             {suggestion.numberLabel}
                           </span>
-                          <span>opened {suggestion.openedAtLabel} by</span>
+                          <span>{suggestion.activityLabel} by</span>
                           <span className="font-medium text-zinc-700">
                             {suggestion.authorName}
                           </span>

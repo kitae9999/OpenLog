@@ -31,6 +31,7 @@ class SuggestService(
                     ?: "Unknown",
                 authorProfileImageUrl = suggestion.user.profileImageUrl,
                 createdAt = suggestion.createdAt,
+                updatedAt = suggestion.updatedAt,
                 commentCount = 0,
             )
         }

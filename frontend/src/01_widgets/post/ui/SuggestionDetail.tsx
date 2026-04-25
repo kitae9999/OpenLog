@@ -120,7 +120,7 @@ export function SuggestionDetail({
           <InfoCard title="Target Article">
             <Link
               href={articleHref}
-              className="text-sm leading-6 text-blue-600 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/20"
+              className="text-sm leading-6 text-blue-600 underline underline-offset-4 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/20"
             >
               {post.title}
             </Link>
