@@ -2,11 +2,11 @@ package io.github.kitae9999.openlog.suggest
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
 import io.github.kitae9999.openlog.suggest.dto.CreateSuggestionRequest
+import io.github.kitae9999.openlog.suggest.dto.ManageSuggestionRequest
 import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
 import io.github.kitae9999.openlog.suggest.dto.SuggestionSummaryResponse
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -45,5 +45,17 @@ class SuggestController(
         return suggestService.getSuggestionDetail(postId, suggestionId)
     }
 
-    @PatchMapping()
+    @PostMapping("/posts/{postId}/suggestions/{suggestionId}/resolutions")
+    fun manageSuggestion(
+        @PathVariable postId: Long,
+        @PathVariable suggestionId: Long,
+        request: HttpServletRequest,
+        @RequestBody manageSuggestionRequest: ManageSuggestionRequest,
+    ){
+        val userId = currentUserResolver.resolveUserIdFromJwt(request)
+        val action = manageSuggestionRequest.action
+
+        suggestService.manageSuggestion(userId,postId,suggestionId,action)
+    }
+
 }

@@ -81,6 +81,7 @@ class AuthService(
         val idToken: String,
     )
 
+    @Transactional
     fun getCurrentUser(userId: Long): User {
         val currentUser = userRepository.findById(userId).orElseThrow { OAuthAuthenticationException() }
         return currentUser

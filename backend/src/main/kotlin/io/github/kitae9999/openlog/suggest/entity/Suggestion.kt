@@ -76,4 +76,18 @@ class Suggestion (
     var updatedAt : LocalDateTime = LocalDateTime.now()
         protected set
 
+    fun markMerged() {
+        status = SuggestionStatus.MERGED
+        updatedAt = LocalDateTime.now()
+    }
+
+    fun markClosed() {
+        status = SuggestionStatus.CLOSED
+        updatedAt = LocalDateTime.now()
+    }
+
+    fun markRejected() {
+        status = SuggestionStatus.REJECTED
+        updatedAt = LocalDateTime.now()
+    }
 }

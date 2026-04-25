@@ -29,7 +29,24 @@ interface SuggestionRepository: JpaRepository<Suggestion, Long> {
           and s.post.id = :postId
         """
     )
-    fun findByIdAndPostId(
+    fun findDetailWithUserByIdAndPostId(
+        @Param("suggestionId") suggestionId: Long,
+        @Param("postId") postId: Long,
+    ): Suggestion?
+
+    fun findByIdAndPostId(suggestionId: Long, postId: Long): Suggestion?
+
+    @Query(
+        """
+        select s
+        from Suggestion s
+        join fetch s.post p
+        join fetch p.author
+        where s.id = :suggestionId
+          and p.id = :postId
+        """
+    )
+    fun findManageableWithPostAuthorByIdAndPostId(
         @Param("suggestionId") suggestionId: Long,
         @Param("postId") postId: Long,
     ): Suggestion?
@@ -38,13 +55,32 @@ interface SuggestionRepository: JpaRepository<Suggestion, Long> {
     @Query(
         """
         update Suggestion s
-        set s.status = :outdatedStatus
+        set s.status = :outdatedStatus,
+            s.updatedAt = CURRENT_TIMESTAMP
         where s.post.id = :postId
           and s.status = :openStatus
         """
     )
     fun markOpenSuggestionsOutdated(
         @Param("postId") postId: Long,
+        @Param("openStatus") openStatus: SuggestionStatus = SuggestionStatus.OPEN,
+        @Param("outdatedStatus") outdatedStatus: SuggestionStatus = SuggestionStatus.OUTDATED,
+    ): Int
+
+    @Modifying
+    @Query(
+        """
+        update Suggestion s
+        set s.status = :outdatedStatus,
+            s.updatedAt = CURRENT_TIMESTAMP
+        where s.post.id = :postId
+          and s.id <> :excludedSuggestionId
+          and s.status = :openStatus
+        """
+    )
+    fun markOtherOpenSuggestionsOutdated(
+        @Param("postId") postId: Long,
+        @Param("excludedSuggestionId") excludedSuggestionId: Long,
         @Param("openStatus") openStatus: SuggestionStatus = SuggestionStatus.OPEN,
         @Param("outdatedStatus") outdatedStatus: SuggestionStatus = SuggestionStatus.OUTDATED,
     ): Int
