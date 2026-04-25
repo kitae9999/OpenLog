@@ -179,6 +179,10 @@ function toSuggestionListStatus(
     return "open";
   }
 
+  if (status === "OUTDATED") {
+    return "outdated";
+  }
+
   if (status === "MERGED") {
     return "merged";
   }

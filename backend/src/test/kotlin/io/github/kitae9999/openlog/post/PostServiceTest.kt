@@ -7,6 +7,7 @@ import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.posttopic.entity.PostTopic
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
+import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.topic.entity.Topic
 import io.github.kitae9999.openlog.topic.repository.TopicRepository
 import io.github.kitae9999.openlog.user.entity.User
@@ -36,6 +37,9 @@ class PostServiceTest {
     private lateinit var postTopicRepository: PostTopicRepository
 
     @Mock
+    private lateinit var suggestionRepository: SuggestionRepository
+
+    @Mock
     private lateinit var topicRepository: TopicRepository
 
     @Mock
@@ -48,6 +52,7 @@ class PostServiceTest {
         postService = PostService(
             postRepository = postRepository,
             postTopicRepository = postTopicRepository,
+            suggestionRepository = suggestionRepository,
             topicRepository = topicRepository,
             userRepository = userRepository,
         )

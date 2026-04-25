@@ -12,7 +12,7 @@ export type SuggestionListItem = {
   openedAtLabel: string;
   authorName: string;
   commentCount: number;
-  status: "open" | "closed" | "merged";
+  status: "open" | "outdated" | "closed" | "merged";
 };
 
 export type SuggestionStatusFilter = "open" | "closed";
@@ -126,7 +126,9 @@ export function PostSuggests({
                           "mt-0.5 shrink-0",
                           suggestion.status === "open"
                             ? "text-emerald-500"
-                            : "text-violet-500",
+                            : suggestion.status === "outdated"
+                              ? "text-amber-500"
+                              : "text-violet-500",
                         )}
                       >
                         <GitPullRequestIcon className="size-5" />

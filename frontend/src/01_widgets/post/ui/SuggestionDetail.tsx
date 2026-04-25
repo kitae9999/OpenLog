@@ -20,13 +20,22 @@ export function SuggestionDetail({
   suggestsHref: string;
 }) {
   const isOpen = suggestion.status === "open";
+  const isOutdated = suggestion.status === "outdated";
   const isMerged = suggestion.status === "merged";
   const statusClassName = isOpen
     ? "bg-emerald-600"
-    : isMerged
-      ? "bg-violet-600"
-      : "bg-zinc-500";
-  const statusLabel = isOpen ? "Open" : isMerged ? "Merged" : "Closed";
+    : isOutdated
+      ? "bg-amber-600"
+      : isMerged
+        ? "bg-violet-600"
+        : "bg-zinc-500";
+  const statusLabel = isOpen
+    ? "Open"
+    : isOutdated
+      ? "Outdated"
+      : isMerged
+        ? "Merged"
+        : "Closed";
 
   return (
     <div className="mx-auto w-full max-w-[1024px] pb-12">

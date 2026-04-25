@@ -150,6 +150,10 @@ function toSuggestionStatus(status: ApiSuggestionStatus): Suggestion["status"] {
     return "open";
   }
 
+  if (status === "OUTDATED") {
+    return "outdated";
+  }
+
   if (status === "MERGED") {
     return "merged";
   }

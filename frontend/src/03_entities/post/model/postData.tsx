@@ -51,7 +51,7 @@ export type Suggestion = {
   authorName: string;
   authorAvatarSrc: string;
   commentCount: number;
-  status: "open" | "closed" | "merged";
+  status: "open" | "outdated" | "closed" | "merged";
   baseVersionLabel?: string;
   comment: SuggestionComment;
   diffRows: DiffRow[];

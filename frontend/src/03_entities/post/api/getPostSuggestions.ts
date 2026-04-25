@@ -2,7 +2,12 @@ import { headers } from "next/headers";
 import { API_CONFIG } from "@/shared/api";
 import { apiClient } from "@/shared/api/apiClient";
 
-export type ApiSuggestionStatus = "OPEN" | "CLOSED" | "MERGED" | "REJECTED";
+export type ApiSuggestionStatus =
+  | "OPEN"
+  | "OUTDATED"
+  | "CLOSED"
+  | "MERGED"
+  | "REJECTED";
 
 export type ApiSuggestionSummary = {
   id: number;
