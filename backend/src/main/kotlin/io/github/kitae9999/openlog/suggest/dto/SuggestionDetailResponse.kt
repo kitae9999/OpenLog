@@ -7,6 +7,7 @@ data class SuggestionDetailResponse(
     val id: Long,
     val title: String,
     val content: String,
+    val baseContent: String,
     val description: String,
     val status: SuggestionStatus,
     val authorName: String,

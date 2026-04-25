@@ -53,7 +53,7 @@ class SuggestService(
         )
     }
 
-//    fun getSuggestionDetail(postId: Long, suggestionId: Long){
-//
-//    }
+    fun getSuggestionDetail(postId: Long, suggestionId: Long){
+
+    }
 }
