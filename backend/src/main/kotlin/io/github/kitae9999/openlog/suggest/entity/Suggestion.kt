@@ -90,4 +90,26 @@ class Suggestion (
         status = SuggestionStatus.REJECTED
         updatedAt = LocalDateTime.now()
     }
+
+    fun updateSuggestion(
+        title: String,
+        description: String,
+        content: String
+    ): Boolean {
+        if (
+            this.title == title &&
+            this.description == description &&
+            this.content == content
+        ){
+            return false
+        }
+
+        this.title = title
+        this.description = description
+        this.content = content
+
+        this.updatedAt = LocalDateTime.now()
+
+        return true
+    }
 }

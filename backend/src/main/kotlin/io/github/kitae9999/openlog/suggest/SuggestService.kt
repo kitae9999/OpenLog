@@ -103,7 +103,11 @@ class SuggestService(
         }
     }
 
-    private fun mergeSuggestion(userId: Long, postId: Long, suggestionId: Long) {
+    private fun mergeSuggestion(
+        userId: Long,
+        postId: Long,
+        suggestionId: Long
+    ) {
         val suggestion = getManageableSuggestion(userId, postId, suggestionId)
         val post = suggestion.post
 
@@ -124,17 +128,29 @@ class SuggestService(
         )
     }
 
-    private fun closeSuggestion(userId: Long, postId: Long, suggestionId: Long) {
+    private fun closeSuggestion(
+        userId: Long,
+        postId: Long,
+        suggestionId: Long
+    ) {
         val suggestion = getManageableSuggestion(userId, postId, suggestionId)
         suggestion.markClosed()
     }
 
-    private fun rejectSuggestion(userId: Long, postId: Long, suggestionId: Long) {
+    private fun rejectSuggestion(
+        userId: Long,
+        postId: Long,
+        suggestionId: Long
+    ) {
         val suggestion = getManageableSuggestion(userId, postId, suggestionId)
         suggestion.markRejected()
     }
 
-    private fun getManageableSuggestion(userId: Long, postId: Long, suggestionId: Long): Suggestion {
+    private fun getManageableSuggestion(
+        userId: Long,
+        postId: Long,
+        suggestionId: Long
+    ): Suggestion {
         val suggestion = suggestionRepository.findManageableWithPostAuthorByIdAndPostId(suggestionId, postId)
             ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
 
@@ -150,8 +166,20 @@ class SuggestService(
     }
 
     @Transactional
-    fun checkValidSuggestion(postId: Long, suggestionId: Long): Suggestion {
-        return suggestionRepository.findByIdAndPostId(suggestionId, postId)
-            ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
+    fun updateSuggestion(
+        userId: Long,
+        postId: Long,
+        suggestionId: Long,
+        title: String,
+        description: String,
+        content: String,
+    ){
+        val suggestion = getManageableSuggestion(userId,postId,suggestionId)
+
+        suggestion.updateSuggestion(
+            title = title,
+            description = description,
+            content = content
+        )
     }
 }
