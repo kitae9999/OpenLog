@@ -70,15 +70,15 @@ export function SuggestionDetail({
           <span className="font-semibold text-zinc-950">
             {suggestion.authorName}
           </span>
-          <span>suggested an edit</span>
-          {suggestion.baseVersionLabel ? (
-            <>
-              <span>based on</span>
+          <span>
+            suggested an edit
+            {suggestion.baseVersionLabel ? " based on " : ""}
+            {suggestion.baseVersionLabel ? (
               <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-800">
                 {suggestion.baseVersionLabel}
               </span>
-            </>
-          ) : null}
+            ) : null}
+          </span>
         </div>
       </header>
 
@@ -151,7 +151,7 @@ function SuggestionLeadComment({
           <span className="font-semibold text-zinc-950">
             {suggestion.comment.authorName}
           </span>
-          <span>commented on {suggestion.comment.commentedAtLabel}.</span>
+          <span>commented on {suggestion.comment.commentedAtLabel}</span>
         </div>
 
         <div className="px-4 py-5">
