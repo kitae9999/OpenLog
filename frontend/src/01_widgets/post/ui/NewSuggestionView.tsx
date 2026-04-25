@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   startTransition,
+  useActionState,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useFormStatus } from "react-dom";
+import type { SuggestionActionState } from "@/features/suggest/api/suggestionActions";
 import { cn } from "@/shared/lib/cn";
 import { formatSelection, type ToolbarAction } from "@/shared/lib/markdown";
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
@@ -26,15 +31,31 @@ export type NewSuggestionInitialValues = {
   originalContent: string;
 };
 
+type SubmitSuggestionAction = (
+  prevState: SuggestionActionState,
+  formData: FormData,
+) => Promise<SuggestionActionState>;
+
+const initialSuggestionActionState: SuggestionActionState = {
+  errors: {},
+};
+
 export function NewSuggestionView({
   initialValues,
   backHref,
   articleHref,
+  action = unavailableSuggestionAction,
 }: {
   initialValues: NewSuggestionInitialValues;
   backHref: string;
   articleHref: string;
+  action?: SubmitSuggestionAction;
 }) {
+  const router = useRouter();
+  const [actionState, formAction] = useActionState(
+    action,
+    initialSuggestionActionState,
+  );
   const [composerMode, setComposerMode] = useState<ComposerMode>("edit");
   const [descriptionMode, setDescriptionMode] = useState<ComposerMode>("edit");
   const [title, setTitle] = useState("");
@@ -62,6 +83,14 @@ export function NewSuggestionView({
     title.trim().length > 0 &&
     description.trim().length > 0 &&
     body.trim() !== initialValues.originalContent.trim();
+
+  useEffect(() => {
+    if (!actionState.redirectTo) {
+      return;
+    }
+
+    router.replace(actionState.redirectTo);
+  }, [actionState.redirectTo, router]);
 
   function handleModeChange(nextMode: ComposerMode) {
     startTransition(() => {
@@ -135,7 +164,7 @@ export function NewSuggestionView({
 
         <form
           className="w-full max-w-[768px]"
-          onSubmit={(event) => event.preventDefault()}
+          action={formAction}
         >
           <Link
             href={backHref}
@@ -170,6 +199,11 @@ export function NewSuggestionView({
                 placeholder="add title"
                 className="h-12 w-full rounded-lg border border-zinc-200 bg-white px-4 text-[16px] font-medium text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-2 focus:ring-zinc-900/10"
               />
+              {actionState.errors.title ? (
+                <p className="text-sm text-rose-700">
+                  {actionState.errors.title}
+                </p>
+              ) : null}
             </section>
 
             <section className="space-y-3">
@@ -233,6 +267,11 @@ export function NewSuggestionView({
                   )}
                 </div>
               </div>
+              {actionState.errors.description ? (
+                <p className="text-sm text-rose-700">
+                  {actionState.errors.description}
+                </p>
+              ) : null}
             </section>
 
             <section className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
@@ -285,6 +324,18 @@ export function NewSuggestionView({
 
             <FilesChanged rows={diffRows} hasChanges={hasChanges} />
 
+            {actionState.errors.content ? (
+              <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {actionState.errors.content}
+              </p>
+            ) : null}
+
+            {actionState.errors.form ? (
+              <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {actionState.errors.form}
+              </p>
+            ) : null}
+
             <div className="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
               <Link
                 href={articleHref}
@@ -293,19 +344,21 @@ export function NewSuggestionView({
                 Cancel
               </Link>
 
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 disabled:cursor-not-allowed disabled:bg-zinc-400"
-              >
-                Submit suggestion
-              </button>
+              <SubmitSuggestionButton canSubmit={canSubmit} />
             </div>
           </div>
         </form>
       </div>
     </div>
   );
+}
+
+async function unavailableSuggestionAction(): Promise<SuggestionActionState> {
+  return {
+    errors: {
+      form: "이 글은 아직 제안을 제출할 수 없습니다.",
+    },
+  };
 }
 
 const DEFAULT_DESCRIPTION = `## Summary
@@ -354,6 +407,20 @@ function ModeButton({
     >
       {icon}
       {label}
+    </button>
+  );
+}
+
+function SubmitSuggestionButton({ canSubmit }: { canSubmit: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={!canSubmit || pending}
+      className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 disabled:cursor-not-allowed disabled:bg-zinc-400"
+    >
+      {pending ? "Submitting..." : "Submit suggestion"}
     </button>
   );
 }
