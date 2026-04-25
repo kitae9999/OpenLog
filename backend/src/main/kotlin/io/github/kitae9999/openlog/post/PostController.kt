@@ -26,7 +26,7 @@ class PostController(
         request: HttpServletRequest,
         @Valid @RequestBody postWriteRequest: PostWriteRequest
     ): ResponseEntity<PostWriteResponse> {
-        val userId = currentUserResolver.resolveUserId(request)
+        val userId = currentUserResolver.resolveUserIdFromJwt(request)
         val (title, description, content, topics) = postWriteRequest
         val createdPost = postService.createPost(userId, PostWriteCommand(
             title = title,
@@ -43,7 +43,7 @@ class PostController(
         @PathVariable postId: Long,
         request: HttpServletRequest,
     ): ResponseEntity<Void>{
-        val userId = currentUserResolver.resolveUserId(request)
+        val userId = currentUserResolver.resolveUserIdFromJwt(request)
 
         postService.deletePost(userId, postId)
 
@@ -57,7 +57,7 @@ class PostController(
         request: HttpServletRequest,
         @Valid @RequestBody postWriteRequest: PostWriteRequest,
     ): ResponseEntity<PostWriteResponse> {
-        val userId = currentUserResolver.resolveUserId(request)
+        val userId = currentUserResolver.resolveUserIdFromJwt(request)
         val (title, description, content, topics) = postWriteRequest
         val updatedPost = postService.updatePost(
             userId,

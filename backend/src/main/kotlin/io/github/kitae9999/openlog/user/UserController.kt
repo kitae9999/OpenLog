@@ -50,7 +50,7 @@ class UserController(
         @Valid @RequestBody request: UpdateProfileRequest,
         httpRequest: HttpServletRequest,
     ): PublicUserProfileResponse {
-        val currentUserId = currentUserResolver.resolveUserId(httpRequest)
+        val currentUserId = currentUserResolver.resolveUserIdFromJwt(httpRequest)
 
         return userService.updateProfile(
             userId = currentUserId,
@@ -64,7 +64,7 @@ class UserController(
 
     private fun resolveUserIdOrNull(request: HttpServletRequest): Long? {
         return try {
-            currentUserResolver.resolveUserId(request)
+            currentUserResolver.resolveUserIdFromJwt(request)
         } catch (e: OAuthAuthenticationException) {
             null
         }
