@@ -46,9 +46,14 @@ class SuggestService(
                 user = author,
                 title = title,
                 content = content,
+                baseContent = postToSuggest.content,
                 description = description,
                 postBaseVersion = postToSuggest.version
             )
         )
     }
+
+//    fun getSuggestionDetail(postId: Long, suggestionId: Long){
+//
+//    }
 }

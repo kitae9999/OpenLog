@@ -28,6 +28,7 @@ class Suggestion (
     user: User,
     title: String,
     content: String,
+    baseContent: String,
     description: String,
     status: SuggestionStatus = SuggestionStatus.OPEN,
     postBaseVersion: Long,
@@ -48,6 +49,10 @@ class Suggestion (
 
     @Column(nullable = false)
     var content: String = content
+        protected set
+
+    @Column(name = "base_content", columnDefinition = "TEXT", nullable = false)
+    var baseContent: String = baseContent
         protected set
 
     @Column(nullable = false)

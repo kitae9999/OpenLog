@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+//todo: commentsid가 전역 pk니까 posts/postId/comments/commentsid 구조는 변경해야될듯
+
 @RestController
 @RequestMapping("/posts/{postId}/comments")
 class CommentController(

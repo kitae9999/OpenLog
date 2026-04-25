@@ -34,4 +34,12 @@ class SuggestController(
         val (title, description, content) = createSuggestionRequest
         suggestService.createPostSuggestion(userId, postId, title, description, content)
     }
+
+//    @GetMapping("/posts/{postId}/suggestions/{suggestionId}")
+//    fun getSuggestionDetail(
+//        @PathVariable postId: Long,
+//        @PathVariable suggestionId: Long,
+//        ){
+//        return suggestService.getSuggestionDetail(postId,suggestionId)
+//    }
 }

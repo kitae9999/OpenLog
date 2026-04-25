@@ -140,10 +140,12 @@ function parseSuggestionStatusFilter(
 
 function toSuggestionListItem(
   suggestion: ApiSuggestionSummary,
+  index: number,
+  list: ApiSuggestionSummary[],
 ): SuggestionListItem {
   return {
     id: String(suggestion.id),
-    numberLabel: `#${suggestion.id}`,
+    numberLabel: `#${list.length - index}`,
     title: suggestion.title,
     openedAtLabel: formatDateLabel(suggestion.createdAt),
     authorName: suggestion.authorName,
