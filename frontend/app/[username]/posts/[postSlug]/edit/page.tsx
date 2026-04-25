@@ -61,7 +61,7 @@ export default async function EditPostPage({
         topics: detail.topics,
         content: detail.content,
       }}
-      draftStorageKey={`openlog.write.edit.${detail.id}`}
+      draftStorageKey={`openlog.write.edit.${detail.id}.${detail.version}`}
       backHref={articleHref}
       backLabel="Back to story"
       submitLabel="Save Changes"
