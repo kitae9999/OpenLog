@@ -11,8 +11,8 @@ import io.github.kitae9999.openlog.suggest.entity.SuggestionAction
 import io.github.kitae9999.openlog.suggest.entity.SuggestionStatus
 import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.user.repository.UserRepository
-import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import kotlin.jvm.optionals.getOrNull
 
 @Service

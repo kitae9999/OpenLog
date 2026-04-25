@@ -6,6 +6,7 @@ import io.github.kitae9999.openlog.suggest.dto.ManageSuggestionRequest
 import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
 import io.github.kitae9999.openlog.suggest.dto.SuggestionSummaryResponse
 import jakarta.servlet.http.HttpServletRequest
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -51,11 +52,13 @@ class SuggestController(
         @PathVariable suggestionId: Long,
         request: HttpServletRequest,
         @RequestBody manageSuggestionRequest: ManageSuggestionRequest,
-    ){
+    ): ResponseEntity<Void> {
         val userId = currentUserResolver.resolveUserIdFromJwt(request)
         val action = manageSuggestionRequest.action
 
         suggestService.manageSuggestion(userId,postId,suggestionId,action)
+
+        return ResponseEntity.noContent().build()
     }
 
 }
