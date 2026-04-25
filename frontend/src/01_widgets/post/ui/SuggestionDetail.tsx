@@ -5,6 +5,7 @@ import type { Post, Suggestion } from "@/entities/post/model";
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
+import { MarkdownContent } from "@/shared/ui/markdown";
 import { DiscussionComposer } from "@/features/discussion-composer/ui";
 
 export function SuggestionDetail({
@@ -168,8 +169,11 @@ function SuggestionLeadComment({
           <span>commented on {suggestion.comment.commentedAtLabel}.</span>
         </div>
 
-        <div className="px-4 py-5 text-sm leading-6 text-zinc-800">
-          {suggestion.comment.message}
+        <div className="px-4 py-5">
+          <MarkdownContent
+            markdown={suggestion.comment.message}
+            variant="compact"
+          />
         </div>
       </section>
     </div>
