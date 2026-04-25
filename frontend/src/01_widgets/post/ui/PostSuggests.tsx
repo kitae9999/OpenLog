@@ -6,6 +6,7 @@ import { PostTabs } from "./PostTabs";
 
 export type SuggestionListItem = {
   id: string;
+  detailHref?: string;
   numberLabel: string;
   title: string;
   openedAtLabel: string;
@@ -112,7 +113,7 @@ export function PostSuggests({
                 visibleSuggestions.map((suggestion, index) => (
                   <Link
                     key={suggestion.id}
-                    href={`${suggestsHref}/${suggestion.id}`}
+                    href={suggestion.detailHref ?? `${suggestsHref}/${suggestion.id}`}
                     className={cn(
                       "flex items-start justify-between gap-4 px-4 py-5 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/10",
                       index < visibleSuggestions.length - 1 &&

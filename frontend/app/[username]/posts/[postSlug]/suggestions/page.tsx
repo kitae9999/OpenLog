@@ -16,6 +16,7 @@ import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
 import {
   buildPublicPostPath,
+  buildPublicSuggestDetailPath,
   buildPublicSuggestNewPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
@@ -85,7 +86,15 @@ export default async function PublicPostSuggestsPage({
               liked: detail.liked,
               comments: detail.comments,
             }}
-            suggestions={suggestions.map(toSuggestionListItem)}
+            suggestions={suggestions.map((suggestion, index, list) =>
+              toSuggestionListItem(
+                authorUsername,
+                canonicalPostSlug,
+                suggestion,
+                index,
+                list,
+              ),
+            )}
             backHref="/?tab=trending"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
@@ -139,13 +148,22 @@ function parseSuggestionStatusFilter(
 }
 
 function toSuggestionListItem(
+  authorUsername: string,
+  canonicalPostSlug: string,
   suggestion: ApiSuggestionSummary,
   index: number,
   list: ApiSuggestionSummary[],
 ): SuggestionListItem {
+  const displayNumber = String(list.length - index);
+
   return {
     id: String(suggestion.id),
-    numberLabel: `#${list.length - index}`,
+    detailHref: buildPublicSuggestDetailPath(
+      authorUsername,
+      canonicalPostSlug,
+      displayNumber,
+    ),
+    numberLabel: `#${displayNumber}`,
     title: suggestion.title,
     openedAtLabel: formatDateLabel(suggestion.createdAt),
     authorName: suggestion.authorName,

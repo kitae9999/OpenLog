@@ -60,14 +60,15 @@ export function SuggestionDetail({
           <span className="font-semibold text-zinc-950">
             {suggestion.authorName}
           </span>
-          <span>wants to merge changes into</span>
-          <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-800">
-            {suggestion.targetBranch}
-          </span>
-          <span>from</span>
-          <span className="rounded bg-blue-50 px-1.5 py-0.5 font-mono text-xs text-blue-700">
-            {suggestion.sourceBranch}
-          </span>
+          <span>suggested an edit</span>
+          {suggestion.baseVersionLabel ? (
+            <>
+              <span>based on</span>
+              <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-800">
+                {suggestion.baseVersionLabel}
+              </span>
+            </>
+          ) : null}
         </div>
       </header>
 

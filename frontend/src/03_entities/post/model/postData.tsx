@@ -58,8 +58,7 @@ export type Suggestion = {
   authorAvatarSrc: string;
   commentCount: number;
   status: "open" | "closed" | "merged";
-  targetBranch: string;
-  sourceBranch: string;
+  baseVersionLabel?: string;
   comment: SuggestionComment;
   reviewers: Reviewer[];
   diffRows: DiffRow[];
@@ -143,8 +142,7 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           authorAvatarSrc: assets.avatarA,
           commentCount: 2,
           status: "open",
-          targetBranch: "master",
-          sourceBranch: "patch-1",
+          baseVersionLabel: "v1",
           comment: {
             authorName: "Kent C. Dodds",
             authorAvatarSrc: assets.avatarA,
@@ -207,8 +205,7 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           authorAvatarSrc: assets.avatarB,
           commentCount: 1,
           status: "closed",
-          targetBranch: "master",
-          sourceBranch: "cleanup-postcss-note",
+          baseVersionLabel: "v2",
           comment: {
             authorName: "Dan Abramov",
             authorAvatarSrc: assets.avatarB,
@@ -270,8 +267,7 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           authorAvatarSrc: assets.avatarA,
           commentCount: 0,
           status: "open",
-          targetBranch: "master",
-          sourceBranch: "patch-1",
+          baseVersionLabel: "v1",
           comment: {
             authorName: "Kent C. Dodds",
             authorAvatarSrc: assets.avatarA,
@@ -346,8 +342,7 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           authorAvatarSrc: assets.avatarB,
           commentCount: 0,
           status: "merged",
-          targetBranch: "master",
-          sourceBranch: "patch-1",
+          baseVersionLabel: "v2",
           comment: {
             authorName: "Dan Abramov",
             authorAvatarSrc: assets.avatarB,

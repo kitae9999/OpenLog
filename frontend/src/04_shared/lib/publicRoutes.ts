@@ -37,7 +37,7 @@ export function buildPublicPostPath(username: string, slug: string) {
 }
 
 export function buildPublicSuggestsPath(username: string, slug: string) {
-  return `${buildPublicPostPath(username, slug)}/suggests`;
+  return `${buildPublicPostPath(username, slug)}/suggestions`;
 }
 
 export function buildPublicSuggestNewPath(username: string, slug: string) {
@@ -51,9 +51,9 @@ export function buildPublicPostEditPath(username: string, slug: string) {
 export function buildPublicSuggestDetailPath(
   username: string,
   slug: string,
-  suggestionId: string,
+  suggestionNumber: string,
 ) {
-  return `${buildPublicSuggestsPath(username, slug)}/${encodeURIComponent(suggestionId)}`;
+  return `${buildPublicSuggestsPath(username, slug)}/${encodeURIComponent(suggestionNumber)}`;
 }
 
 export function buildViewerProfileHref(username?: string | null) {
