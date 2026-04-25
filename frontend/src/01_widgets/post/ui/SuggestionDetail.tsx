@@ -108,30 +108,6 @@ export function SuggestionDetail({
         </div>
 
         <aside className="space-y-6">
-          <InfoCard title="Reviewers">
-            <div className="space-y-3">
-              {suggestion.reviewers.map((reviewer) => (
-                <div key={reviewer.name} className="flex items-center gap-2">
-                  <Image
-                    src={reviewer.avatarSrc}
-                    alt={`${reviewer.name} avatar`}
-                    width={20}
-                    height={20}
-                    className="size-5 rounded-full border border-zinc-200 object-cover"
-                  />
-                  <span className="min-w-0 flex-1 text-sm text-zinc-600">
-                    {reviewer.name}
-                  </span>
-                  {reviewer.status === "approved" ? (
-                    <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-600">
-                      Approved
-                    </span>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </InfoCard>
-
           <InfoCard title="Target Article">
             <Link
               href={articleHref}

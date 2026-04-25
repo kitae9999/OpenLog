@@ -21,12 +21,6 @@ export type Post = {
   comments: number;
 };
 
-export type Reviewer = {
-  name: string;
-  avatarSrc: string;
-  status?: "approved";
-};
-
 export type SuggestionComment = {
   authorName: string;
   authorAvatarSrc: string;
@@ -60,7 +54,6 @@ export type Suggestion = {
   status: "open" | "closed" | "merged";
   baseVersionLabel?: string;
   comment: SuggestionComment;
-  reviewers: Reviewer[];
   diffRows: DiffRow[];
   resolutionNote?: {
     title: string;
@@ -150,12 +143,6 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
             message:
               "I rewrote the upgrade note so the token migration reads as truly zero-config in the common case, while keeping the edge-case caveat.",
           },
-          reviewers: [
-            {
-              name: "Sarah Drasner",
-              avatarSrc: assets.avatarB,
-            },
-          ],
           diffRows: [
             {
               oldLine: 12,
@@ -213,12 +200,6 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
             message:
               "This removes the old PostCSS warning and keeps the setup guide aligned with the current default toolchain.",
           },
-          reviewers: [
-            {
-              name: "Kent C. Dodds",
-              avatarSrc: assets.avatarA,
-            },
-          ],
           diffRows: [
             {
               oldLine: 21,
@@ -275,12 +256,6 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
             message:
               "I clarified the section on bundle size to mention dependencies, and fixed a minor phrasing issue.",
           },
-          reviewers: [
-            {
-              name: "Sarah Drasner",
-              avatarSrc: assets.avatarB,
-            },
-          ],
           diffRows: [
             {
               oldLine: 1,
@@ -350,13 +325,6 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
             message:
               "Added a useful comment above the code block to help beginners understand context.",
           },
-          reviewers: [
-            {
-              name: "Sarah Drasner",
-              avatarSrc: assets.avatarB,
-              status: "approved",
-            },
-          ],
           diffRows: [
             {
               oldLine: 1,

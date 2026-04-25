@@ -140,7 +140,6 @@ function toSuggestion(
       commentedAtLabel: formatDateLabel(detail.createdAt),
       message: detail.description,
     },
-    reviewers: [],
     diffRows: buildDiffRows(detail.baseContent, detail.content),
     discussionComments: [],
   };
