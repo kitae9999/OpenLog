@@ -129,6 +129,7 @@ class PostServiceTest {
 
         verify(postTopicRepository).deleteAll(existingPostTopics)
         verifyNoInteractions(topicRepository)
+        assertThat(post.version).isEqualTo(1L)
     }
 
     @Test
@@ -152,6 +153,7 @@ class PostServiceTest {
         verifyNoMoreInteractions(postTopicRepository)
         verifyNoInteractions(topicRepository)
         assertThat(post.updatedAt).isEqualTo(originalUpdatedAt)
+        assertThat(post.version).isEqualTo(0L)
     }
 
     @Test
@@ -178,6 +180,7 @@ class PostServiceTest {
         assertThat(response.authorUsername).isEqualTo("alice")
         assertThat(response.slug).isEqualTo("updated-title")
         assertThat(post.slug).isEqualTo("updated-title")
+        assertThat(post.version).isEqualTo(1L)
     }
 
     @Test
@@ -225,6 +228,7 @@ class PostServiceTest {
         verify(postRepository, never()).existsByAuthorIdAndSlugAndIdNot(1L, "hello-openlog", 10L)
         assertThat(response.slug).isEqualTo("hello-openlog")
         assertThat(post.slug).isEqualTo("hello-openlog")
+        assertThat(post.version).isEqualTo(0L)
     }
 
     @Test

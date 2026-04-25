@@ -56,6 +56,14 @@ export function buildPublicSuggestDetailPath(
   return `${buildPublicSuggestsPath(username, slug)}/${encodeURIComponent(suggestionNumber)}`;
 }
 
+export function buildPublicSuggestEditPath(
+  username: string,
+  slug: string,
+  suggestionNumber: string,
+) {
+  return `${buildPublicSuggestDetailPath(username, slug, suggestionNumber)}/edit`;
+}
+
 export function buildViewerProfileHref(username?: string | null) {
   return username ? buildPublicProfilePath(username) : "/onboarding";
 }

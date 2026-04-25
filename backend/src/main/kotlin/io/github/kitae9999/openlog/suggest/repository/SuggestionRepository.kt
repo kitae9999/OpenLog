@@ -41,6 +41,7 @@ interface SuggestionRepository: JpaRepository<Suggestion, Long> {
         select s
         from Suggestion s
         join fetch s.post p
+        join fetch s.user
         join fetch p.author
         where s.id = :suggestionId
           and p.id = :postId

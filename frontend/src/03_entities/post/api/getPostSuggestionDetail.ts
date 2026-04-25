@@ -11,6 +11,7 @@ export type ApiSuggestionDetail = {
   baseContent: string;
   description: string;
   status: ApiSuggestionStatus;
+  authorId: number;
   authorName: string;
   authorProfileImageUrl: string | null;
   createdAt: string;

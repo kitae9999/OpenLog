@@ -10,6 +10,7 @@ data class PostDetailResponse(
     val authorName: String,
     val authorAvatarSrc: String?,
     val publishedAtLabel: String,
+    val version: Long,
     val topics: List<String>,
     val likes: Int = 0,
     val liked: Boolean = false,

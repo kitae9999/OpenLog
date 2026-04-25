@@ -13,6 +13,7 @@ export type Post = {
   authorName: string;
   authorAvatarSrc: string;
   publishedAtLabel: string;
+  versionLabel?: string;
   readTimeLabel?: string;
   tags: string[];
   coverSrc: string;
@@ -51,7 +52,7 @@ export type Suggestion = {
   authorName: string;
   authorAvatarSrc: string;
   commentCount: number;
-  status: "open" | "outdated" | "closed" | "merged";
+  status: "open" | "outdated" | "closed" | "merged" | "rejected";
   baseVersionLabel?: string;
   comment: SuggestionComment;
   diffRows: DiffRow[];

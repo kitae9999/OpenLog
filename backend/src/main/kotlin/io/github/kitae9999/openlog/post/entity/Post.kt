@@ -11,7 +11,6 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
-import jakarta.persistence.Version
 import java.time.LocalDateTime
 
 @Entity
@@ -53,7 +52,6 @@ class Post(
     var content: String = content
         protected set
 
-    @Version
     @Column(nullable = false)
     var version: Long = version
         protected set
@@ -82,10 +80,12 @@ class Post(
         this.content = content
 
         this.updatedAt = LocalDateTime.now()
+        this.version += 1
         return true
     }
 
     fun touchUpdatedAt() {
         this.updatedAt = LocalDateTime.now()
+        this.version += 1
     }
 }

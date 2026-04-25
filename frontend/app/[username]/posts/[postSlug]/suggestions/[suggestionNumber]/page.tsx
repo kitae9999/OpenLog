@@ -9,9 +9,13 @@ import {
 import { getPostDetail, type ApiPostDetail } from "@/entities/post/api/getPostDetail";
 import type { Post, Suggestion } from "@/entities/post/model";
 import { getUser } from "@/features/auth/api/getUser";
+import { manageSuggestionAction } from "@/features/suggest/api/suggestionActions";
 import { assets } from "@/shared/config/assets";
 import { buildDiffRows } from "@/shared/lib/diffRows";
+import { formatPostVersionLabel } from "@/shared/lib/postVersion";
 import {
+  buildPublicSuggestDetailPath,
+  buildPublicSuggestEditPath,
   buildPublicPostPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
@@ -66,12 +70,56 @@ export default async function PublicPostSuggestionDetailPage({
 
   const articleHref = buildPublicPostPath(authorUsername, canonicalPostSlug);
   const suggestsHref = buildPublicSuggestsPath(authorUsername, canonicalPostSlug);
+  const suggestionNumberPath = String(suggestionNumber);
+  const suggestionHref = buildPublicSuggestDetailPath(
+    authorUsername,
+    canonicalPostSlug,
+    suggestionNumberPath,
+  );
+  const suggestionEditHref = buildPublicSuggestEditPath(
+    authorUsername,
+    canonicalPostSlug,
+    suggestionNumberPath,
+  );
   const post = toPost(detail);
   const suggestion = toSuggestion(
     suggestionDetail,
     suggestionNumber,
     summary.commentCount,
   );
+  const isOpen = suggestionDetail.status === "OPEN";
+  const isSuggestionAuthor = viewer?.id === suggestionDetail.authorId;
+  const isPostAuthor = viewer?.username === detail.authorUsername;
+  const closeAction =
+    isOpen && isSuggestionAuthor
+      ? manageSuggestionAction.bind(
+          null,
+          detail.id,
+          suggestionDetail.id,
+          "CLOSE",
+          suggestionHref,
+        )
+      : undefined;
+  const mergeAction =
+    isOpen && isPostAuthor
+      ? manageSuggestionAction.bind(
+          null,
+          detail.id,
+          suggestionDetail.id,
+          "MERGE",
+          suggestionHref,
+        )
+      : undefined;
+  const rejectAction =
+    isOpen && isPostAuthor
+      ? manageSuggestionAction.bind(
+          null,
+          detail.id,
+          suggestionDetail.id,
+          "REJECT",
+          suggestionHref,
+        )
+      : undefined;
 
   return (
     <div className="min-h-dvh bg-white text-zinc-950">
@@ -87,6 +135,10 @@ export default async function PublicPostSuggestionDetailPage({
           suggestion={suggestion}
           articleHref={articleHref}
           suggestsHref={suggestsHref}
+          editHref={isOpen && isSuggestionAuthor ? suggestionEditHref : undefined}
+          closeAction={closeAction}
+          mergeAction={mergeAction}
+          rejectAction={rejectAction}
         />
       </main>
 
@@ -111,6 +163,7 @@ function toPost(detail: ApiPostDetail): Post {
     authorName: detail.authorName,
     authorAvatarSrc: detail.authorAvatarSrc ?? assets.defaultAvatar,
     publishedAtLabel: detail.publishedAtLabel,
+    versionLabel: formatPostVersionLabel(detail.version),
     tags: detail.topics,
     coverSrc: assets.postCover,
     likes: detail.likes,
@@ -133,7 +186,7 @@ function toSuggestion(
     authorAvatarSrc: detail.authorProfileImageUrl ?? assets.defaultAvatar,
     commentCount,
     status: toSuggestionStatus(detail.status),
-    baseVersionLabel: `v${detail.postBaseVersion}`,
+    baseVersionLabel: formatPostVersionLabel(detail.postBaseVersion),
     comment: {
       authorName: detail.authorName,
       authorAvatarSrc: detail.authorProfileImageUrl ?? assets.defaultAvatar,
@@ -156,6 +209,10 @@ function toSuggestionStatus(status: ApiSuggestionStatus): Suggestion["status"] {
 
   if (status === "MERGED") {
     return "merged";
+  }
+
+  if (status === "REJECTED") {
+    return "rejected";
   }
 
   return "closed";

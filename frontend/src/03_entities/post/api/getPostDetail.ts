@@ -13,6 +13,7 @@ export type ApiPostDetail = {
   authorName: string;
   authorAvatarSrc: string | null;
   publishedAtLabel: string;
+  version: number;
   topics: string[];
   likes: number;
   liked: boolean;

@@ -64,6 +64,7 @@ class UserService(
             authorName = resolveAuthorName(post),
             authorAvatarSrc = post.author.profileImageUrl,
             publishedAtLabel = formatPublishedAtLabel(post),
+            version = post.version,
             topics = topics,
             likes = postLikeRepository.countByPostId(postId).toInt(),
             liked = viewerId?.let { postLikeRepository.existsByPostIdAndUserId(postId, it) } ?: false,

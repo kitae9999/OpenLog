@@ -60,7 +60,7 @@ export default async function NewSuggestionPage({
           <NewSuggestionView
             initialValues={{
               postTitle: detail.title,
-              originalContent: detail.content,
+              baseContent: detail.content,
             }}
             backHref={suggestsHref}
             articleHref={articleHref}
@@ -90,7 +90,7 @@ export default async function NewSuggestionPage({
         <NewSuggestionView
           initialValues={{
             postTitle: entry.post.title,
-            originalContent: extractMarkdownText(entry.body),
+            baseContent: extractMarkdownText(entry.body),
           }}
           backHref={suggestsHref}
           articleHref={articleHref}

@@ -22,7 +22,10 @@ type ComposerMode = "edit" | "preview";
 
 export type NewSuggestionInitialValues = {
   postTitle: string;
-  originalContent: string;
+  baseContent: string;
+  title?: string;
+  description?: string;
+  content?: string;
 };
 
 type SubmitSuggestionAction = (
@@ -39,11 +42,23 @@ export function NewSuggestionView({
   backHref,
   articleHref,
   action = unavailableSuggestionAction,
+  mode = "create",
+  eyebrow = "New Suggest",
+  heading,
+  submitLabel,
+  pendingSubmitLabel,
+  cancelLabel = "Cancel",
 }: {
   initialValues: NewSuggestionInitialValues;
   backHref: string;
   articleHref: string;
   action?: SubmitSuggestionAction;
+  mode?: "create" | "edit";
+  eyebrow?: string;
+  heading?: string;
+  submitLabel?: string;
+  pendingSubmitLabel?: string;
+  cancelLabel?: string;
 }) {
   const router = useRouter();
   const [actionState, formAction] = useActionState(
@@ -52,9 +67,13 @@ export function NewSuggestionView({
   );
   const [composerMode, setComposerMode] = useState<ComposerMode>("edit");
   const [descriptionMode, setDescriptionMode] = useState<ComposerMode>("edit");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
-  const [body, setBody] = useState(initialValues.originalContent);
+  const [title, setTitle] = useState(initialValues.title ?? "");
+  const [description, setDescription] = useState(
+    initialValues.description ?? DEFAULT_DESCRIPTION,
+  );
+  const [body, setBody] = useState(
+    initialValues.content ?? initialValues.baseContent,
+  );
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
@@ -71,12 +90,25 @@ export function NewSuggestionView({
     fitTextareaToContent(textarea);
   }, [description, descriptionMode]);
 
-  const diffRows = buildDiffRows(initialValues.originalContent, body);
+  const diffRows = buildDiffRows(initialValues.baseContent, body);
   const hasChanges = diffRows.some((row) => row.kind !== "context");
+  const hasEditedFields =
+    title.trim() !== (initialValues.title ?? "").trim() ||
+    description.trim() !== (initialValues.description ?? DEFAULT_DESCRIPTION).trim() ||
+    body.trim() !== (initialValues.content ?? initialValues.baseContent).trim();
   const canSubmit =
     title.trim().length > 0 &&
     description.trim().length > 0 &&
-    body.trim() !== initialValues.originalContent.trim();
+    body.trim().length > 0 &&
+    (mode === "edit"
+      ? hasEditedFields
+      : body.trim() !== initialValues.baseContent.trim());
+  const resolvedHeading =
+    heading ?? `Suggest edit for "${initialValues.postTitle}"`;
+  const resolvedSubmitLabel =
+    submitLabel ?? (mode === "edit" ? "Save suggestion" : "Submit suggestion");
+  const resolvedPendingSubmitLabel =
+    pendingSubmitLabel ?? (mode === "edit" ? "Saving..." : "Submitting...");
 
   useEffect(() => {
     if (!actionState.redirectTo) {
@@ -170,10 +202,10 @@ export function NewSuggestionView({
 
           <header className="mt-7 border-b border-zinc-200 pb-6">
             <p className="text-[11px] font-semibold uppercase tracking-normal text-zinc-400">
-              New Suggest
+              {eyebrow}
             </p>
             <h1 className="mt-3 font-serif text-[32px] font-bold leading-[1.15] tracking-tight text-zinc-950">
-              Suggest edit for &quot;{initialValues.postTitle}&quot;
+              {resolvedHeading}
             </h1>
           </header>
 
@@ -335,10 +367,14 @@ export function NewSuggestionView({
                 href={articleHref}
                 className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-5 text-sm font-semibold text-zinc-700 transition hover:border-zinc-950 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
-                Cancel
+                {cancelLabel}
               </Link>
 
-              <SubmitSuggestionButton canSubmit={canSubmit} />
+              <SubmitSuggestionButton
+                canSubmit={canSubmit}
+                submitLabel={resolvedSubmitLabel}
+                pendingSubmitLabel={resolvedPendingSubmitLabel}
+              />
             </div>
           </div>
         </form>
@@ -405,7 +441,15 @@ function ModeButton({
   );
 }
 
-function SubmitSuggestionButton({ canSubmit }: { canSubmit: boolean }) {
+function SubmitSuggestionButton({
+  canSubmit,
+  submitLabel,
+  pendingSubmitLabel,
+}: {
+  canSubmit: boolean;
+  submitLabel: string;
+  pendingSubmitLabel: string;
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -414,7 +458,7 @@ function SubmitSuggestionButton({ canSubmit }: { canSubmit: boolean }) {
       disabled={!canSubmit || pending}
       className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 disabled:cursor-not-allowed disabled:bg-zinc-400"
     >
-      {pending ? "Submitting..." : "Submit suggestion"}
+      {pending ? pendingSubmitLabel : submitLabel}
     </button>
   );
 }

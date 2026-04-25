@@ -80,6 +80,7 @@ class SuggestService(
             baseContent = suggestion.baseContent,
             description = suggestion.description,
             status = suggestion.status,
+            authorId = requireNotNull(suggestion.user.id),
             authorName = suggestion.user.nickname
                 ?: suggestion.user.username
                 ?: "Unknown",
@@ -108,7 +109,7 @@ class SuggestService(
         postId: Long,
         suggestionId: Long
     ) {
-        val suggestion = getManageableSuggestion(userId, postId, suggestionId)
+        val suggestion = getPostAuthorManageableSuggestion(userId, postId, suggestionId)
         val post = suggestion.post
 
         if (suggestion.postBaseVersion != post.version) {
@@ -133,7 +134,7 @@ class SuggestService(
         postId: Long,
         suggestionId: Long
     ) {
-        val suggestion = getManageableSuggestion(userId, postId, suggestionId)
+        val suggestion = getOwnerManageableSuggestion(userId, postId, suggestionId)
         suggestion.markClosed()
     }
 
@@ -142,11 +143,11 @@ class SuggestService(
         postId: Long,
         suggestionId: Long
     ) {
-        val suggestion = getManageableSuggestion(userId, postId, suggestionId)
+        val suggestion = getPostAuthorManageableSuggestion(userId, postId, suggestionId)
         suggestion.markRejected()
     }
 
-    private fun getManageableSuggestion(
+    private fun getPostAuthorManageableSuggestion(
         userId: Long,
         postId: Long,
         suggestionId: Long
@@ -155,6 +156,25 @@ class SuggestService(
             ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
 
         if (suggestion.post.author.id != userId) {
+            throw ForbiddenException("권한이 없습니다.")
+        }
+
+        if (suggestion.status != SuggestionStatus.OPEN) {
+            throw BadRequestException("이미 처리된 Suggestion입니다.")
+        }
+
+        return suggestion
+    }
+
+    private fun getOwnerManageableSuggestion(
+        userId: Long,
+        postId: Long,
+        suggestionId: Long
+    ): Suggestion {
+        val suggestion = suggestionRepository.findManageableWithPostAuthorByIdAndPostId(suggestionId, postId)
+            ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
+
+        if (suggestion.user.id != userId) {
             throw ForbiddenException("권한이 없습니다.")
         }
 
@@ -174,7 +194,7 @@ class SuggestService(
         description: String,
         content: String,
     ){
-        val suggestion = getManageableSuggestion(userId,postId,suggestionId)
+        val suggestion = getOwnerManageableSuggestion(userId, postId, suggestionId)
 
         suggestion.updateSuggestion(
             title = title,

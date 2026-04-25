@@ -123,6 +123,14 @@ export function PostArticle({
                   )}
                   <p className="mt-0.5 flex items-center gap-2 text-sm text-zinc-500">
                     <span>{post.publishedAtLabel}</span>
+                    {post.versionLabel ? (
+                      <>
+                        <span className="text-zinc-300">·</span>
+                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-700">
+                          {post.versionLabel}
+                        </span>
+                      </>
+                    ) : null}
                     <span className="text-zinc-300">·</span>
                   </p>
                 </div>

@@ -10,6 +10,7 @@ data class SuggestionDetailResponse(
     val baseContent: String,
     val description: String,
     val status: SuggestionStatus,
+    val authorId: Long,
     val authorName: String,
     val authorProfileImageUrl: String?,
     val createdAt: LocalDateTime,
