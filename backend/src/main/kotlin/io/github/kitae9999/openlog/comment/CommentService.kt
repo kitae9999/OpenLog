@@ -8,7 +8,6 @@ import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.user.entity.User
-import io.github.kitae9999.openlog.user.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import kotlin.jvm.optionals.getOrNull
@@ -17,11 +16,9 @@ import kotlin.jvm.optionals.getOrNull
 class CommentService(
     private val commentRepository: CommentRepository,
     private val postRepository: PostRepository,
-    private val userRepository: UserRepository
 ) {
     @Transactional
-    fun createComment(userId: Long, postId: Long, content: String): CommentResponse {
-        val author = userRepository.findById(userId).getOrNull() ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
+    fun createComment(author: User, postId: Long, content: String): CommentResponse {
         val post = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("포스트를 찾을 수 없습니다.")
 
         val savedComment = commentRepository.save(
@@ -32,7 +29,7 @@ class CommentService(
             )
         )
 
-        return toCommentResponse(savedComment, userId = userId)
+        return toCommentResponse(savedComment, userId = requireNotNull(author.id))
     }
 
     /**

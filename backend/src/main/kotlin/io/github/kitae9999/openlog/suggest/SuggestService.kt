@@ -10,14 +10,13 @@ import io.github.kitae9999.openlog.suggest.entity.Suggestion
 import io.github.kitae9999.openlog.suggest.entity.SuggestionAction
 import io.github.kitae9999.openlog.suggest.entity.SuggestionStatus
 import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
-import io.github.kitae9999.openlog.user.repository.UserRepository
+import io.github.kitae9999.openlog.user.entity.User
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import kotlin.jvm.optionals.getOrNull
 
 @Service
 class SuggestService(
-    val userRepository: UserRepository,
     val postRepository: PostRepository,
     val suggestionRepository: SuggestionRepository
 ) {
@@ -43,19 +42,17 @@ class SuggestService(
 
     @Transactional
     fun createPostSuggestion(
-        userId: Long,
+        user: User,
         postId: Long ,
         title: String,
         description: String,
         content: String
     ){
         val postToSuggest = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("포스트가 존재하지 않습니다.")
-        val author = userRepository.findById(userId).getOrNull()
-            ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         suggestionRepository.save(
             Suggestion(
                 post = postToSuggest,
-                user = author,
+                user = user,
                 title = title,
                 content = content,
                 baseContent = postToSuggest.content,

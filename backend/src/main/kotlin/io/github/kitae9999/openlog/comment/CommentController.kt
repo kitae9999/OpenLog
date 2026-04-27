@@ -31,9 +31,9 @@ class CommentController(
         @Valid @RequestBody createCommentRequest: CreateCommentRequest,
         request: HttpServletRequest,
     ): ResponseEntity<CommentResponse> {
-        val currentUserId = currentUserResolver.resolveUserIdFromJwt(request)
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
         val content = createCommentRequest.content
-        val createdComment = commentService.createComment(currentUserId, postId, content)
+        val createdComment = commentService.createComment(currentUser, postId, content)
 
         return ResponseEntity.status(201).body(createdComment)
     }
@@ -60,8 +60,8 @@ class CommentController(
         @PathVariable postId: Long,
         request: HttpServletRequest,
     ): ResponseEntity<Void> {
-        val userId = currentUserResolver.resolveUserIdFromJwt(request)
-        commentService.deleteComment(userId, postId, commentId)
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
+        commentService.deleteComment(requireNotNull(currentUser.id), postId, commentId)
         return ResponseEntity.noContent().build()
     }
 
@@ -72,9 +72,9 @@ class CommentController(
         @Valid @RequestBody updateCommentRequest: UpdateCommentRequest,
         request: HttpServletRequest,
     ): ResponseEntity<CommentResponse> {
-        val userId = currentUserResolver.resolveUserIdFromJwt(request)
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
         val updatedComment = commentService.updateComment(
-            userId,
+            requireNotNull(currentUser.id),
             postId,
             commentId,
             updateCommentRequest.content,

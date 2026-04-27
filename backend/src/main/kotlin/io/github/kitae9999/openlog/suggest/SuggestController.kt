@@ -34,9 +34,9 @@ class SuggestController(
         @RequestBody createSuggestionRequest: WriteSuggestionRequest,
         request: HttpServletRequest
     ){
-        val userId = currentUserResolver.resolveUserIdFromJwt(request)
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
         val (title, description, content) = createSuggestionRequest
-        suggestService.createPostSuggestion(userId, postId, title, description, content)
+        suggestService.createPostSuggestion(currentUser, postId, title, description, content)
     }
 
     @GetMapping("/posts/{postId}/suggestions/{suggestionId}")
@@ -54,11 +54,11 @@ class SuggestController(
         request: HttpServletRequest,
         @RequestBody manageSuggestionRequest: ManageSuggestionRequest,
     ): ResponseEntity<Void> {
-        val userId = currentUserResolver.resolveUserIdFromJwt(request)
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
         val action = manageSuggestionRequest.action
 
         suggestService.manageSuggestion(
-            userId = userId,
+            userId = requireNotNull(currentUser.id),
             postId = postId,
             suggestionId = suggestionId,
             action = action
@@ -74,9 +74,9 @@ class SuggestController(
         request: HttpServletRequest,
         @RequestBody updateSuggestionRequest: WriteSuggestionRequest
     ): ResponseEntity<Void>{
-        val userId = currentUserResolver.resolveUserIdFromJwt(request)
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
         suggestService.updateSuggestion(
-            userId = userId,
+            userId = requireNotNull(currentUser.id),
             postId = postId,
             suggestionId = suggestionId,
             title = updateSuggestionRequest.title,

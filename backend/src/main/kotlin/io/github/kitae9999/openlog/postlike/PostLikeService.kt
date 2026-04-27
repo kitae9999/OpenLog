@@ -3,7 +3,7 @@ package io.github.kitae9999.openlog.postlike
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.postlike.entity.PostLike
-import io.github.kitae9999.openlog.user.repository.UserRepository
+import io.github.kitae9999.openlog.user.entity.User
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 
@@ -11,11 +11,11 @@ import org.springframework.stereotype.Service
 class PostLikeService(
     private val postLikeRepository: PostLikeRepository,
     private val postRepository: PostRepository,
-    private val userRepository: UserRepository
 ) {
 
     @Transactional
-    fun toggleLike(userId: Long, postId: Long): Boolean {
+    fun toggleLike(user: User, postId: Long): Boolean {
+        val userId = requireNotNull(user.id)
         val postLike = postLikeRepository.findByPostIdAndUserId(postId, userId)
 
         if (postLike != null) {
@@ -27,7 +27,6 @@ class PostLikeService(
             }
 
             val post = postRepository.getReferenceById(postId)
-            val user = userRepository.getReferenceById(userId)
 
             postLikeRepository.save(
                 PostLike(

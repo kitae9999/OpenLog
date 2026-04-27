@@ -11,7 +11,7 @@ import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
 import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.topic.entity.Topic
 import io.github.kitae9999.openlog.topic.repository.TopicRepository
-import io.github.kitae9999.openlog.user.repository.UserRepository
+import io.github.kitae9999.openlog.user.entity.User
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import kotlin.jvm.optionals.getOrNull
@@ -22,11 +22,10 @@ class PostService(
     private val postTopicRepository: PostTopicRepository,
     private val suggestionRepository: SuggestionRepository,
     private val topicRepository: TopicRepository,
-    private val userRepository: UserRepository,
 ) {
     @Transactional
-    fun createPost(userId: Long, postWriteCommand: PostWriteCommand): PostWriteResponse {
-        val user = userRepository.findById(userId).getOrNull() ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
+    fun createPost(user: User, postWriteCommand: PostWriteCommand): PostWriteResponse {
+        val userId = requireNotNull(user.id)
         val authorUsername = user.username?.trim().orEmpty()
         if (authorUsername.isBlank()) {
             throw NotFoundException("username이 설정된 사용자를 찾을 수 없습니다.")

@@ -9,7 +9,6 @@ import io.github.kitae9999.openlog.suggest.entity.SuggestionAction
 import io.github.kitae9999.openlog.suggest.entity.SuggestionStatus
 import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.user.entity.User
-import io.github.kitae9999.openlog.user.repository.UserRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -24,9 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension
 @ExtendWith(MockitoExtension::class)
 class SuggestServiceTest {
     @Mock
-    private lateinit var userRepository: UserRepository
-
-    @Mock
     private lateinit var postRepository: PostRepository
 
     @Mock
@@ -37,7 +33,6 @@ class SuggestServiceTest {
     @BeforeEach
     fun setUp() {
         suggestService = SuggestService(
-            userRepository = userRepository,
             postRepository = postRepository,
             suggestionRepository = suggestionRepository,
         )
