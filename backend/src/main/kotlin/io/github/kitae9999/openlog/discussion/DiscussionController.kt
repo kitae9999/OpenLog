@@ -1,8 +1,10 @@
 package io.github.kitae9999.openlog.discussion
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
+import io.github.kitae9999.openlog.discussion.dto.DiscussionResponse
 import io.github.kitae9999.openlog.discussion.dto.WriteDiscussionRequest
 import jakarta.servlet.http.HttpServletRequest
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -22,14 +24,16 @@ class DiscussionController(
         @RequestBody createDiscussionRequest: WriteDiscussionRequest,
         @PathVariable postId: Long,
         @PathVariable suggestionId: Long,
-    ){
+    ): ResponseEntity<DiscussionResponse> {
         val currentUser = currentUserResolver.resolveCurrentUser(request)
 
-        discussionService.createDiscussion(
+        val discussion = discussionService.createDiscussion(
             currentUser = currentUser,
             postId = postId,
             suggestionId = suggestionId,
             content = createDiscussionRequest.content
         )
+
+        return ResponseEntity.status(201).body(discussion)
     }
 }

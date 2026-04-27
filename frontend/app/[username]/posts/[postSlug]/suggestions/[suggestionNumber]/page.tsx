@@ -194,7 +194,14 @@ function toSuggestion(
       message: detail.description,
     },
     diffRows: buildDiffRows(detail.baseContent, detail.content),
-    discussionComments: [],
+    discussionComments: detail.discussions.map((discussion) => ({
+      id: String(discussion.id),
+      authorName: discussion.authorName,
+      authorAvatarSrc: discussion.authorProfileImageUrl ?? assets.defaultAvatar,
+      commentedAtLabel: formatDateLabel(discussion.createdAt),
+      message: discussion.content,
+      canManage: discussion.canManage,
+    })),
   };
 }
 

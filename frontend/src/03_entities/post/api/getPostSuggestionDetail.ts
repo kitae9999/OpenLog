@@ -16,6 +16,16 @@ export type ApiSuggestionDetail = {
   authorProfileImageUrl: string | null;
   createdAt: string;
   postBaseVersion: number;
+  discussions: ApiDiscussion[];
+};
+
+export type ApiDiscussion = {
+  id: number;
+  authorName: string;
+  authorProfileImageUrl: string | null;
+  content: string;
+  createdAt: string;
+  canManage: boolean;
 };
 
 export async function getPostSuggestionDetail(

@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.suggest
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
+import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.suggest.dto.WriteSuggestionRequest
 import io.github.kitae9999.openlog.suggest.dto.ManageSuggestionRequest
 import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
@@ -43,8 +44,13 @@ class SuggestController(
     fun getSuggestionDetail(
         @PathVariable postId: Long,
         @PathVariable suggestionId: Long,
+        request: HttpServletRequest,
     ): SuggestionDetailResponse {
-        return suggestService.getSuggestionDetail(postId, suggestionId)
+        return suggestService.getSuggestionDetail(
+            postId = postId,
+            suggestionId = suggestionId,
+            currentUserId = resolveCurrentUserIdOrNull(request),
+        )
     }
 
     @PostMapping("/posts/{postId}/suggestions/{suggestionId}/resolutions")
@@ -85,5 +91,13 @@ class SuggestController(
         )
 
         return ResponseEntity.noContent().build()
+    }
+
+    private fun resolveCurrentUserIdOrNull(request: HttpServletRequest): Long? {
+        return try {
+            currentUserResolver.resolveCurrentUser(request).id
+        } catch (e: OAuthAuthenticationException) {
+            null
+        }
     }
 }

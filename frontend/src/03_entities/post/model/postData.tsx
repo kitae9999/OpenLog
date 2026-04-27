@@ -35,6 +35,7 @@ export type DiscussionComment = {
   authorAvatarSrc: string;
   commentedAtLabel: string;
   message: string;
+  canManage: boolean;
 };
 
 export type DiffRow = {
