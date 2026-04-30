@@ -37,26 +37,27 @@ class DiscussionService (
     }
     @Transactional
     fun deleteDiscussion(
-        currentUser: User, // User는 검증 완료
+        userId: Long,
         postId: Long,
         suggestionId: Long,
         discussionId: Long,
     ){
-        val discussion = discussionRepository.findWithUserByIdAndSuggestionIdAndPostId(
-            discussionId = discussionId,
-            suggestionId = suggestionId,
-            postId = postId,
-        ) ?: throw NotFoundException("Discussion을 찾을 수 없습니다.")
-
-        if (discussion.user.id != currentUser.id) {
-            throw ForbiddenException("권한이 없습니다.")
-        }
-
+        val discussion = getManageableDiscussion(userId, postId, suggestionId, discussionId)
         discussionRepository.delete(discussion)
     }
 
-    fun updateDiscussion(){
+    @Transactional
+    fun updateDiscussion(
+        userId: Long,
+        postId: Long,
+        suggestionId: Long,
+        discussionId: Long,
+        content: String,
+    ): DiscussionResponse {
+        val discussion = getManageableDiscussion(userId, postId, suggestionId, discussionId)
+        discussion.updateContent(content)
 
+        return toDiscussionResponse(discussion, userId)
     }
 
     fun toDiscussionResponse(discussion: Discussion, currentUserId: Long?): DiscussionResponse {
@@ -80,5 +81,24 @@ class DiscussionService (
             !user.email.isNullOrBlank() -> user.email.orEmpty()
             else -> "OpenLog member"
         }
+    }
+
+    private fun getManageableDiscussion(
+        userId: Long,
+        postId: Long,
+        suggestionId: Long,
+        discussionId: Long,
+    ): Discussion {
+        val discussion = discussionRepository.findWithUserByIdAndSuggestionIdAndPostId(
+            discussionId = discussionId,
+            suggestionId = suggestionId,
+            postId = postId,
+        ) ?: throw NotFoundException("Discussion을 찾을 수 없습니다.")
+
+        if (discussion.user.id != userId) {
+            throw ForbiddenException("권한이 없습니다.")
+        }
+
+        return discussion
     }
 }

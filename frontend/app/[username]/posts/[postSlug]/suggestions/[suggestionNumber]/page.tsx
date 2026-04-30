@@ -238,5 +238,7 @@ function formatDateLabel(value: string) {
     year: "numeric",
     month: "numeric",
     day: "numeric",
-  }).format(date);
+  })
+    .format(date)
+    .replace(/\.$/, "");
 }

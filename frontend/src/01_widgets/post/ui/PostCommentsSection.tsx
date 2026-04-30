@@ -247,9 +247,7 @@ function CommentCard({
             <span className="font-semibold text-zinc-950">
               {comment.authorName}
             </span>
-            <span>
-              commented on {formatCommentedAtLabel(comment.createdAt)}.
-            </span>
+            <span>commented on {formatCommentedAtLabel(comment.createdAt)}</span>
           </div>
           {canManage ? (
             <div className="flex items-center gap-2">

@@ -75,7 +75,7 @@ export function SuggestionDiscussionSection({
                   <span className="font-semibold text-zinc-950">
                     {comment.authorName}
                   </span>
-                  <span>commented on {comment.commentedAtLabel}.</span>
+                  <span>commented on {comment.commentedAtLabel}</span>
                 </div>
                 <div className="px-4 py-5">
                   <MarkdownContent markdown={comment.message} variant="compact" />
@@ -119,7 +119,7 @@ function formatDiscussionDateLabel(value: string) {
     return value;
   }
 
-  return DISCUSSION_DATE_FORMATTER.format(date);
+  return DISCUSSION_DATE_FORMATTER.format(date).replace(/\.$/, "");
 }
 
 function IconComment({ className }: { className?: string }) {
