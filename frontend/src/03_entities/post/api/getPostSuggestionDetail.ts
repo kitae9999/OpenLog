@@ -38,6 +38,15 @@ export type DiscussionMutationResult =
       message: string;
     };
 
+export type DeleteDiscussionResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
 export async function getPostSuggestionDetail(
   postId: number,
   suggestionId: number,
