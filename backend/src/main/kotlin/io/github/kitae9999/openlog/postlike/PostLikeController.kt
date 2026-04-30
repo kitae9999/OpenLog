@@ -19,7 +19,7 @@ class PostLikeController(
         @PathVariable postId: Long,
         request: HttpServletRequest
     ): Boolean {
-        val userId = currentUserResolver.resolveUserIdFromJwt(request)
-        return postLikeService.toggleLike(userId, postId)
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
+        return postLikeService.toggleLike(currentUser, postId)
     }
 }

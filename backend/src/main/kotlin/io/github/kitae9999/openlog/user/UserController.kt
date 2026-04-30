@@ -50,10 +50,10 @@ class UserController(
         @Valid @RequestBody request: UpdateProfileRequest,
         httpRequest: HttpServletRequest,
     ): PublicUserProfileResponse {
-        val currentUserId = currentUserResolver.resolveUserIdFromJwt(httpRequest)
+        val currentUser = currentUserResolver.resolveCurrentUser(httpRequest)
 
         return userService.updateProfile(
-            userId = currentUserId,
+            userId = requireNotNull(currentUser.id),
             username = username,
             nickname = request.nickname,
             bio = request.bio,

@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.suggest
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
+import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.suggest.dto.WriteSuggestionRequest
 import io.github.kitae9999.openlog.suggest.dto.ManageSuggestionRequest
 import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
@@ -34,17 +35,22 @@ class SuggestController(
         @RequestBody createSuggestionRequest: WriteSuggestionRequest,
         request: HttpServletRequest
     ){
-        val userId = currentUserResolver.resolveUserIdFromJwt(request)
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
         val (title, description, content) = createSuggestionRequest
-        suggestService.createPostSuggestion(userId, postId, title, description, content)
+        suggestService.createPostSuggestion(currentUser, postId, title, description, content)
     }
 
     @GetMapping("/posts/{postId}/suggestions/{suggestionId}")
     fun getSuggestionDetail(
         @PathVariable postId: Long,
         @PathVariable suggestionId: Long,
+        request: HttpServletRequest,
     ): SuggestionDetailResponse {
-        return suggestService.getSuggestionDetail(postId, suggestionId)
+        return suggestService.getSuggestionDetail(
+            postId = postId,
+            suggestionId = suggestionId,
+            currentUserId = resolveCurrentUserIdOrNull(request),
+        )
     }
 
     @PostMapping("/posts/{postId}/suggestions/{suggestionId}/resolutions")
@@ -54,11 +60,11 @@ class SuggestController(
         request: HttpServletRequest,
         @RequestBody manageSuggestionRequest: ManageSuggestionRequest,
     ): ResponseEntity<Void> {
-        val userId = currentUserResolver.resolveUserIdFromJwt(request)
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
         val action = manageSuggestionRequest.action
 
         suggestService.manageSuggestion(
-            userId = userId,
+            userId = requireNotNull(currentUser.id),
             postId = postId,
             suggestionId = suggestionId,
             action = action
@@ -74,9 +80,9 @@ class SuggestController(
         request: HttpServletRequest,
         @RequestBody updateSuggestionRequest: WriteSuggestionRequest
     ): ResponseEntity<Void>{
-        val userId = currentUserResolver.resolveUserIdFromJwt(request)
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
         suggestService.updateSuggestion(
-            userId = userId,
+            userId = requireNotNull(currentUser.id),
             postId = postId,
             suggestionId = suggestionId,
             title = updateSuggestionRequest.title,
@@ -85,5 +91,13 @@ class SuggestController(
         )
 
         return ResponseEntity.noContent().build()
+    }
+
+    private fun resolveCurrentUserIdOrNull(request: HttpServletRequest): Long? {
+        return try {
+            currentUserResolver.resolveCurrentUser(request).id
+        } catch (e: OAuthAuthenticationException) {
+            null
+        }
     }
 }

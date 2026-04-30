@@ -133,8 +133,11 @@ export default async function PublicPostSuggestionDetailPage({
         <SuggestionDetail
           post={post}
           suggestion={suggestion}
+          postId={detail.id}
+          suggestionId={suggestionDetail.id}
           articleHref={articleHref}
           suggestsHref={suggestsHref}
+          currentUserAvatarSrc={viewer?.profileImageUrl}
           editHref={isOpen && isSuggestionAuthor ? suggestionEditHref : undefined}
           closeAction={closeAction}
           mergeAction={mergeAction}
@@ -194,7 +197,14 @@ function toSuggestion(
       message: detail.description,
     },
     diffRows: buildDiffRows(detail.baseContent, detail.content),
-    discussionComments: [],
+    discussionComments: detail.discussions.map((discussion) => ({
+      id: String(discussion.id),
+      authorName: discussion.authorName,
+      authorAvatarSrc: discussion.authorProfileImageUrl ?? assets.defaultAvatar,
+      commentedAtLabel: formatDateLabel(discussion.createdAt),
+      message: discussion.content,
+      canManage: discussion.canManage,
+    })),
   };
 }
 
@@ -228,5 +238,7 @@ function formatDateLabel(value: string) {
     year: "numeric",
     month: "numeric",
     day: "numeric",
-  }).format(date);
+  })
+    .format(date)
+    .replace(/\.$/, "");
 }

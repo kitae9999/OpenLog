@@ -11,7 +11,6 @@ import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.topic.entity.Topic
 import io.github.kitae9999.openlog.topic.repository.TopicRepository
 import io.github.kitae9999.openlog.user.entity.User
-import io.github.kitae9999.openlog.user.repository.UserRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -42,9 +41,6 @@ class PostServiceTest {
     @Mock
     private lateinit var topicRepository: TopicRepository
 
-    @Mock
-    private lateinit var userRepository: UserRepository
-
     private lateinit var postService: PostService
 
     @BeforeEach
@@ -54,18 +50,16 @@ class PostServiceTest {
             postTopicRepository = postTopicRepository,
             suggestionRepository = suggestionRepository,
             topicRepository = topicRepository,
-            userRepository = userRepository,
         )
     }
 
     @Test
     fun `createPost saves post without blog dependency`() {
         val user = User(id = 1L, username = "alice")
-        given(userRepository.findById(1L)).willReturn(Optional.of(user))
         given(postRepository.existsByAuthorIdAndSlug(1L, "hello-openlog")).willReturn(false)
         given(postRepository.save(any(Post::class.java))).willAnswer { invocation -> invocation.getArgument(0) }
 
-        val response = postService.createPost(1L, createRequest())
+        val response = postService.createPost(user, createRequest())
 
         val postCaptor = ArgumentCaptor.forClass(Post::class.java)
         verify(postRepository).save(postCaptor.capture())
@@ -81,12 +75,11 @@ class PostServiceTest {
     @Test
     fun `createPost appends numeric suffix when author slug already exists`() {
         val user = User(id = 1L, username = "alice")
-        given(userRepository.findById(1L)).willReturn(Optional.of(user))
         given(postRepository.existsByAuthorIdAndSlug(1L, "hello-openlog")).willReturn(true)
         given(postRepository.existsByAuthorIdAndSlug(1L, "hello-openlog-2")).willReturn(false)
         given(postRepository.save(any(Post::class.java))).willAnswer { invocation -> invocation.getArgument(0) }
 
-        val response = postService.createPost(1L, createRequest())
+        val response = postService.createPost(user, createRequest())
 
         assertThat(response.slug).isEqualTo("hello-openlog-2")
     }
@@ -94,10 +87,9 @@ class PostServiceTest {
     @Test
     fun `createPost rejects users without username`() {
         val user = User(id = 1L, username = " ")
-        given(userRepository.findById(1L)).willReturn(Optional.of(user))
 
         val exception = assertThrows(NotFoundException::class.java) {
-            postService.createPost(1L, createRequest())
+            postService.createPost(user, createRequest())
         }
 
         verify(postRepository, never()).save(any(Post::class.java))

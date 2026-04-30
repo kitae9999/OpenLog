@@ -40,7 +40,7 @@ class AuthController(
     fun getMe(
         request: HttpServletRequest
     ): MeResponse {
-        val meUser = authService.getCurrentUser(currentUserResolver.resolveUserIdFromJwt(request))
+        val meUser = currentUserResolver.resolveCurrentUser(request)
 
         return meUser.toMeResponse() // 코틀린 확장 함수 (메서드 아님)
     }
@@ -50,12 +50,13 @@ class AuthController(
         request: HttpServletRequest,
         @Valid @RequestBody onboardingRequest: CompleteOnboardingRequest,
     ): MeResponse {
-        val currentUser = authService.completeOnboarding(
-            userId = currentUserResolver.resolveUserIdFromJwt(request),
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
+        val onboardedUser = authService.completeOnboarding(
+            userId = requireNotNull(currentUser.id),
             request = onboardingRequest,
         )
 
-        return currentUser.toMeResponse()
+        return onboardedUser.toMeResponse()
     }
 
     @GetMapping("google")

@@ -2,6 +2,8 @@ package io.github.kitae9999.openlog.suggest
 
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
+import io.github.kitae9999.openlog.discussion.DiscussionService
+import io.github.kitae9999.openlog.discussion.repository.DiscussionRepository
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.suggest.entity.Suggestion
@@ -9,7 +11,6 @@ import io.github.kitae9999.openlog.suggest.entity.SuggestionAction
 import io.github.kitae9999.openlog.suggest.entity.SuggestionStatus
 import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.user.entity.User
-import io.github.kitae9999.openlog.user.repository.UserRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -24,22 +25,26 @@ import org.mockito.junit.jupiter.MockitoExtension
 @ExtendWith(MockitoExtension::class)
 class SuggestServiceTest {
     @Mock
-    private lateinit var userRepository: UserRepository
-
-    @Mock
     private lateinit var postRepository: PostRepository
 
     @Mock
     private lateinit var suggestionRepository: SuggestionRepository
+
+    @Mock
+    private lateinit var discussionRepository: DiscussionRepository
+
+    @Mock
+    private lateinit var discussionService: DiscussionService
 
     private lateinit var suggestService: SuggestService
 
     @BeforeEach
     fun setUp() {
         suggestService = SuggestService(
-            userRepository = userRepository,
             postRepository = postRepository,
             suggestionRepository = suggestionRepository,
+            discussionRepository = discussionRepository,
+            discussionService = discussionService,
         )
     }
 

@@ -3,6 +3,8 @@ package io.github.kitae9999.openlog.suggest
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.discussion.DiscussionService
+import io.github.kitae9999.openlog.discussion.repository.DiscussionRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
 import io.github.kitae9999.openlog.suggest.dto.SuggestionSummaryResponse
@@ -10,16 +12,17 @@ import io.github.kitae9999.openlog.suggest.entity.Suggestion
 import io.github.kitae9999.openlog.suggest.entity.SuggestionAction
 import io.github.kitae9999.openlog.suggest.entity.SuggestionStatus
 import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
-import io.github.kitae9999.openlog.user.repository.UserRepository
+import io.github.kitae9999.openlog.user.entity.User
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import kotlin.jvm.optionals.getOrNull
 
 @Service
 class SuggestService(
-    val userRepository: UserRepository,
     val postRepository: PostRepository,
-    val suggestionRepository: SuggestionRepository
+    val suggestionRepository: SuggestionRepository,
+    private val discussionRepository: DiscussionRepository,
+    private val discussionService: DiscussionService,
 ) {
     @Transactional
     fun getPostSuggestions(postId: Long): List<SuggestionSummaryResponse> {
@@ -36,26 +39,24 @@ class SuggestService(
                 authorProfileImageUrl = suggestion.user.profileImageUrl,
                 createdAt = suggestion.createdAt,
                 updatedAt = suggestion.updatedAt,
-                commentCount = 0,
+                commentCount = discussionRepository.countBySuggestionId(requireNotNull(suggestion.id)).toInt(),
             )
         }
     }
 
     @Transactional
     fun createPostSuggestion(
-        userId: Long,
+        user: User,
         postId: Long ,
         title: String,
         description: String,
         content: String
     ){
         val postToSuggest = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("포스트가 존재하지 않습니다.")
-        val author = userRepository.findById(userId).getOrNull()
-            ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         suggestionRepository.save(
             Suggestion(
                 post = postToSuggest,
-                user = author,
+                user = user,
                 title = title,
                 content = content,
                 baseContent = postToSuggest.content,
@@ -68,10 +69,12 @@ class SuggestService(
     @Transactional
     fun getSuggestionDetail(
         postId: Long,
-        suggestionId: Long
+        suggestionId: Long,
+        currentUserId: Long?,
     ): SuggestionDetailResponse {
         val suggestion = suggestionRepository.findDetailWithUserByIdAndPostId(suggestionId, postId)
             ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
+        val discussions = discussionRepository.findAllWithUserBySuggestionId(suggestionId)
 
         return SuggestionDetailResponse(
             id = requireNotNull(suggestion.id),
@@ -87,6 +90,9 @@ class SuggestService(
             authorProfileImageUrl = suggestion.user.profileImageUrl,
             createdAt = suggestion.createdAt,
             postBaseVersion = suggestion.postBaseVersion,
+            discussions = discussions.map { discussion ->
+                discussionService.toDiscussionResponse(discussion, currentUserId)
+            },
         )
     }
 

@@ -1,5 +1,6 @@
 package io.github.kitae9999.openlog.suggest.dto
 
+import io.github.kitae9999.openlog.discussion.dto.DiscussionResponse
 import io.github.kitae9999.openlog.suggest.entity.SuggestionStatus
 import java.time.LocalDateTime
 
@@ -15,4 +16,5 @@ data class SuggestionDetailResponse(
     val authorProfileImageUrl: String?,
     val createdAt: LocalDateTime,
     val postBaseVersion: Long,
+    val discussions: List<DiscussionResponse>,
 )
