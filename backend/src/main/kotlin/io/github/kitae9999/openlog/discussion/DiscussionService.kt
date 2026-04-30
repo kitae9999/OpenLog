@@ -1,5 +1,6 @@
 package io.github.kitae9999.openlog.discussion
 
+import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.discussion.dto.DiscussionResponse
 import io.github.kitae9999.openlog.discussion.entity.Discussion
@@ -33,6 +34,29 @@ class DiscussionService (
         )
 
         return toDiscussionResponse(discussion, requireNotNull(currentUser.id))
+    }
+    @Transactional
+    fun deleteDiscussion(
+        currentUser: User, // User는 검증 완료
+        postId: Long,
+        suggestionId: Long,
+        discussionId: Long,
+    ){
+        val discussion = discussionRepository.findWithUserByIdAndSuggestionIdAndPostId(
+            discussionId = discussionId,
+            suggestionId = suggestionId,
+            postId = postId,
+        ) ?: throw NotFoundException("Discussion을 찾을 수 없습니다.")
+
+        if (discussion.user.id != currentUser.id) {
+            throw ForbiddenException("권한이 없습니다.")
+        }
+
+        discussionRepository.delete(discussion)
+    }
+
+    fun updateDiscussion(){
+
     }
 
     fun toDiscussionResponse(discussion: Discussion, currentUserId: Long?): DiscussionResponse {

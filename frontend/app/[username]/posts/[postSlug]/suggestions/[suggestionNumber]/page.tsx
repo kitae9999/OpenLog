@@ -133,8 +133,11 @@ export default async function PublicPostSuggestionDetailPage({
         <SuggestionDetail
           post={post}
           suggestion={suggestion}
+          postId={detail.id}
+          suggestionId={suggestionDetail.id}
           articleHref={articleHref}
           suggestsHref={suggestsHref}
+          currentUserAvatarSrc={viewer?.profileImageUrl}
           editHref={isOpen && isSuggestionAuthor ? suggestionEditHref : undefined}
           closeAction={closeAction}
           mergeAction={mergeAction}

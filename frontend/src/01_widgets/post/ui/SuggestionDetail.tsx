@@ -2,19 +2,21 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Post, Suggestion } from "@/entities/post/model";
-import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
 import { MarkdownContent } from "@/shared/ui/markdown";
-import { DiscussionComposer } from "@/features/discussion-composer/ui";
+import { SuggestionDiscussionSection } from "./SuggestionDiscussionSection";
 
 type SuggestionManageAction = (formData: FormData) => void | Promise<void>;
 
 export function SuggestionDetail({
   post,
   suggestion,
+  postId,
+  suggestionId,
   articleHref,
   suggestsHref,
+  currentUserAvatarSrc,
   editHref,
   closeAction,
   mergeAction,
@@ -22,8 +24,11 @@ export function SuggestionDetail({
 }: {
   post: Post;
   suggestion: Suggestion;
+  postId: number;
+  suggestionId: number;
   articleHref: string;
   suggestsHref: string;
+  currentUserAvatarSrc?: string | null;
   editHref?: string;
   closeAction?: SuggestionManageAction;
   mergeAction?: SuggestionManageAction;
@@ -147,7 +152,12 @@ export function SuggestionDetail({
             </div>
           ) : null}
 
-          <DiscussionSection suggestion={suggestion} />
+          <SuggestionDiscussionSection
+            postId={postId}
+            suggestionId={suggestionId}
+            initialComments={suggestion.discussionComments}
+            currentUserAvatarSrc={currentUserAvatarSrc}
+          />
         </div>
 
         <aside className="space-y-6">
@@ -261,65 +271,6 @@ function MergedNotice({
       <div>
         <h2 className="text-sm font-bold text-violet-900">{title}</h2>
         <p className="mt-1 text-xs text-violet-700">{description}</p>
-      </div>
-    </section>
-  );
-}
-
-function DiscussionSection({
-  suggestion,
-}: {
-  suggestion: Suggestion;
-}) {
-  return (
-    <section>
-      <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-zinc-200" />
-        <div className="inline-flex items-center gap-2 text-sm text-zinc-500">
-          <IconComment className="size-4" />
-          Discussion
-        </div>
-        <div className="h-px flex-1 bg-zinc-200" />
-      </div>
-
-      {suggestion.discussionComments.length > 0 ? (
-        <div className="mt-6 space-y-4">
-          {suggestion.discussionComments.map((comment) => (
-            <div key={comment.id} className="flex items-start gap-4">
-              <Image
-                src={comment.authorAvatarSrc}
-                alt={`${comment.authorName} avatar`}
-                width={40}
-                height={40}
-                className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
-              />
-              <section className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-                <div className="flex items-center gap-2 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-500">
-                  <span className="font-semibold text-zinc-950">
-                    {comment.authorName}
-                  </span>
-                  <span>commented on {comment.commentedAtLabel}.</span>
-                </div>
-                <div className="px-4 py-5 text-sm leading-6 text-zinc-800">
-                  {comment.message}
-                </div>
-              </section>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="mt-6 flex items-start gap-4">
-        <Image
-          src={assets.defaultAvatar}
-          alt="Current user avatar"
-          width={40}
-          height={40}
-          className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
-        />
-        <div className="min-w-0 flex-1">
-          <DiscussionComposer />
-        </div>
       </div>
     </section>
   );
@@ -469,24 +420,5 @@ function IconFileDiff({ className }: { className?: string }) {
         mask: "url('/filediff.svg') center / contain no-repeat",
       }}
     />
-  );
-}
-
-function IconComment({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M13 10a2.5 2.5 0 01-2.5 2.5H5.25L2 14.5v-9A2.5 2.5 0 014.5 3h6A2.5 2.5 0 0113 5.5V10z"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

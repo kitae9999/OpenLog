@@ -28,6 +28,16 @@ export type ApiDiscussion = {
   canManage: boolean;
 };
 
+export type DiscussionMutationResult =
+  | {
+      ok: true;
+      discussion: ApiDiscussion;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
 export async function getPostSuggestionDetail(
   postId: number,
   suggestionId: number,

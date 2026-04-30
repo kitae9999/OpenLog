@@ -17,5 +17,21 @@ interface DiscussionRepository : JpaRepository<Discussion, Long> {
     )
     fun findAllWithUserBySuggestionId(@Param("suggestionId") suggestionId: Long): List<Discussion>
 
+    @Query(
+        """
+        select d
+        from Discussion d
+        join fetch d.user
+        where d.id = :discussionId
+          and d.suggestion.id = :suggestionId
+          and d.suggestion.post.id = :postId
+        """
+    )
+    fun findWithUserByIdAndSuggestionIdAndPostId(
+        @Param("discussionId") discussionId: Long,
+        @Param("suggestionId") suggestionId: Long,
+        @Param("postId") postId: Long,
+    ): Discussion?
+
     fun countBySuggestionId(suggestionId: Long): Long
 }

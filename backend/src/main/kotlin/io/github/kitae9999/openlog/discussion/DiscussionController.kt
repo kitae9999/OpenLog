@@ -5,6 +5,8 @@ import io.github.kitae9999.openlog.discussion.dto.DiscussionResponse
 import io.github.kitae9999.openlog.discussion.dto.WriteDiscussionRequest
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -35,5 +37,33 @@ class DiscussionController(
         )
 
         return ResponseEntity.status(201).body(discussion)
+    }
+
+    @DeleteMapping("{discussionId}")
+    fun deleteDiscussion(
+        request: HttpServletRequest,
+        @PathVariable postId: Long,
+        @PathVariable suggestionId: Long,
+        @PathVariable discussionId: Long,
+    ){
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
+
+        discussionService.deleteDiscussion(
+            currentUser = currentUser,
+            postId = postId,
+            suggestionId = suggestionId,
+            discussionId = discussionId
+        )
+
+    }
+
+    @PatchMapping("{discussionId}")
+    fun updateDiscussion(
+        request: HttpServletRequest,
+        @PathVariable postId: Long,
+        @PathVariable suggestionId: Long,
+        @PathVariable discussionId: Long,
+    ){
+
     }
 }
