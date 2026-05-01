@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component
 @Component
 class KafkaEventPublisher(
     private val kafkaTemplate: KafkaTemplate<String, Any>
-): EventPublisher {
-    override fun <T : Any> publish(topic: String, key: String, event: T) {
+) {
+    fun <T : Any> publish(topic: String, key: String, event: T) {
         kafkaTemplate.send(topic, key, event) // Topic, Key, Value
     }
 }
