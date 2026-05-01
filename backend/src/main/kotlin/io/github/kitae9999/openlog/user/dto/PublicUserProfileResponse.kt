@@ -8,4 +8,7 @@ data class PublicUserProfileResponse(
     val location: String?,
     val websiteUrl: String?,
     val joinedAt: String,
+    val following: Boolean,
+    val followersCount: Long,
+    val followingCount: Long,
 )

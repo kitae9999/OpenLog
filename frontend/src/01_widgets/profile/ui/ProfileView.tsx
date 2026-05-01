@@ -44,6 +44,7 @@ export async function ProfileView({ username }: { username: string }) {
             <EditableProfileHeader
               profile={profile}
               isViewer={isViewer}
+              canFollow={!!viewer && !isViewer}
               joinedLabel={joinedLabel}
             />
           </div>

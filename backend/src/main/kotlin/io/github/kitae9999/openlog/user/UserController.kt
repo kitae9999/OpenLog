@@ -24,8 +24,9 @@ class UserController(
     @GetMapping("{username}")
     fun getPublicProfile(
         @PathVariable username: String,
+        request: HttpServletRequest,
     ): PublicUserProfileResponse {
-        return userService.getPublicProfile(username)
+        return userService.getPublicProfile(username, resolveUserIdOrNull(request))
     }
 
     @GetMapping("{username}/posts")

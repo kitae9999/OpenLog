@@ -1,25 +1,40 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import {
+  useOptimistic,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react";
 import type { PublicUserProfile } from "@/entities/user/api/getPublicUserProfile";
 import {
+  type FollowListType,
+  type FollowUser,
+} from "@/entities/user/api/getUserFollowList";
+import {
+  getProfileFollowListAction,
+  toggleFollowAction,
   updateProfileAction,
   type UpdateProfileActionState,
   type UpdateProfileValues,
 } from "@/features/profile/api/profileActions";
 import { assets } from "@/shared/config/assets";
+import { buildPublicProfilePath } from "@/shared/lib/publicRoutes";
 
 type FieldName = "nickname" | "bio" | "location" | "websiteUrl";
 
 export function EditableProfileHeader({
   profile,
   isViewer,
+  canFollow,
   joinedLabel,
 }: {
   profile: PublicUserProfile;
   isViewer: boolean;
+  canFollow: boolean;
   joinedLabel: string;
 }) {
   const router = useRouter();
@@ -36,6 +51,14 @@ export function EditableProfileHeader({
   >({});
   const [serverErrors, setServerErrors] = useState(initialState.errors);
   const [isPending, startTransition] = useTransition();
+  const [following, setFollowing] = useOptimistic(profile.following);
+  const [isFollowPending, startFollowTransition] = useTransition();
+  const [followListType, setFollowListType] = useState<FollowListType | null>(
+    null,
+  );
+  const [followListUsers, setFollowListUsers] = useState<FollowUser[]>([]);
+  const [isFollowListLoading, setIsFollowListLoading] = useState(false);
+  const [followListError, setFollowListError] = useState<string | null>(null);
 
   const profileName = currentProfile.nickname ?? currentProfile.username;
 
@@ -150,6 +173,44 @@ export function EditableProfileHeader({
     });
   }
 
+  function handleFollowToggle() {
+    if (!canFollow || isFollowPending) {
+      return;
+    }
+
+    const currentFollowing = following;
+
+    startFollowTransition(async () => {
+      setFollowing(!currentFollowing);
+
+      try {
+        await toggleFollowAction(currentProfile.username, currentFollowing);
+        router.refresh();
+      } catch {
+        router.refresh();
+      }
+    });
+  }
+
+  async function handleOpenFollowList(type: FollowListType) {
+    setFollowListType(type);
+    setFollowListUsers([]);
+    setFollowListError(null);
+    setIsFollowListLoading(true);
+
+    try {
+      const users = await getProfileFollowListAction(
+        currentProfile.username,
+        type,
+      );
+      setFollowListUsers(users);
+    } catch {
+      setFollowListError("목록을 불러오지 못했습니다.");
+    } finally {
+      setIsFollowListLoading(false);
+    }
+  }
+
   if (isEditing) {
     return (
       <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">
@@ -158,7 +219,11 @@ export function EditableProfileHeader({
           className="flex flex-col gap-8 lg:flex-row lg:items-start"
         >
           <input type="hidden" name="username" value={currentProfile.username} />
-          <ProfileAvatar profile={currentProfile} profileName={profileName} />
+          <ProfileAvatar
+            profile={currentProfile}
+            profileName={profileName}
+            onOpenFollowList={handleOpenFollowList}
+          />
 
           <div className="min-w-0 flex-1">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -232,7 +297,11 @@ export function EditableProfileHeader({
   return (
     <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-        <ProfileAvatar profile={currentProfile} profileName={profileName} />
+        <ProfileAvatar
+          profile={currentProfile}
+          profileName={profileName}
+          onOpenFollowList={handleOpenFollowList}
+        />
 
         <div className="min-w-0 flex-1">
           <div className="min-w-0">
@@ -249,6 +318,33 @@ export function EditableProfileHeader({
                 >
                   <IconPencil className="size-4" />
                   Edit
+                </button>
+              ) : canFollow ? (
+                <button
+                  type="button"
+                  onClick={handleFollowToggle}
+                  disabled={isFollowPending}
+                  className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-sm font-semibold text-zinc-950 transition hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                >
+                  {following ? (
+                    <Image
+                      src="/Users.svg"
+                      alt=""
+                      width={16}
+                      height={16}
+                      aria-hidden="true"
+                      className="size-4"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="relative inline-block size-3 shrink-0"
+                    >
+                      <span className="absolute left-1/2 top-1/2 h-[1.5px] w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-current" />
+                      <span className="absolute left-1/2 top-1/2 h-2.5 w-[1.5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-current" />
+                    </span>
+                  )}
+                  {following ? "Following" : "Follow"}
                 </button>
               ) : null}
             </div>
@@ -276,6 +372,15 @@ export function EditableProfileHeader({
           </div>
         </div>
       </div>
+      {followListType ? (
+        <FollowListModal
+          type={followListType}
+          users={followListUsers}
+          loading={isFollowListLoading}
+          error={followListError}
+          onClose={() => setFollowListType(null)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -283,12 +388,14 @@ export function EditableProfileHeader({
 function ProfileAvatar({
   profile,
   profileName,
+  onOpenFollowList,
 }: {
   profile: PublicUserProfile;
   profileName: string;
+  onOpenFollowList: (type: FollowListType) => void;
 }) {
   return (
-    <div className="mx-auto lg:mx-0">
+    <div className="mx-auto flex shrink-0 flex-col items-center gap-4 lg:mx-0">
       <div className="rounded-full border-4 border-zinc-50 bg-white p-1">
         <Image
           src={profile.profileImageUrl ?? assets.defaultAvatar}
@@ -299,7 +406,157 @@ function ProfileAvatar({
           priority
         />
       </div>
+      <div className="flex items-center gap-4 text-sm text-zinc-500">
+        <button
+          type="button"
+          onClick={() => onOpenFollowList("followers")}
+          className="inline-flex cursor-pointer items-baseline gap-1 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          <span className="font-semibold text-zinc-950">
+            {profile.followersCount}
+          </span>
+          <span>Followers</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpenFollowList("following")}
+          className="inline-flex cursor-pointer items-baseline gap-1 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          <span className="font-semibold text-zinc-950">
+            {profile.followingCount}
+          </span>
+          <span>Following</span>
+        </button>
+      </div>
     </div>
+  );
+}
+
+function FollowListModal({
+  type,
+  users,
+  loading,
+  error,
+  onClose,
+}: {
+  type: FollowListType;
+  users: FollowUser[];
+  loading: boolean;
+  error: string | null;
+  onClose: () => void;
+}) {
+  const title = type === "followers" ? "Followers" : "Following";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 px-4"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="follow-list-title"
+        className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <h2
+            id="follow-list-title"
+            className="text-base font-semibold text-zinc-950"
+          >
+            {title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            aria-label="Close"
+          >
+            x
+          </button>
+        </div>
+        <FollowListContent
+          title={title}
+          users={users}
+          loading={loading}
+          error={error}
+          onClose={onClose}
+        />
+      </div>
+    </div>
+  );
+}
+
+function FollowListContent({
+  title,
+  users,
+  loading,
+  error,
+  onClose,
+}: {
+  title: string;
+  users: FollowUser[];
+  loading: boolean;
+  error: string | null;
+  onClose: () => void;
+}) {
+  if (loading) {
+    return (
+      <div className="mt-6 rounded-xl border border-dashed border-zinc-200 px-4 py-8 text-center text-sm text-zinc-500">
+        Loading {title.toLowerCase()}...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-6 rounded-xl border border-rose-100 bg-rose-50 px-4 py-4 text-sm font-medium text-rose-700">
+        {error}
+      </div>
+    );
+  }
+
+  if (users.length === 0) {
+    return (
+      <div className="mt-6 rounded-xl border border-dashed border-zinc-200 px-4 py-8 text-center text-sm text-zinc-500">
+        No {title.toLowerCase()} yet.
+      </div>
+    );
+  }
+
+  return (
+    <ul className="mt-5 max-h-[360px] overflow-y-auto">
+      {users.map((user) => {
+        const name = user.nickname ?? user.username;
+
+        return (
+          <li key={user.username}>
+            <Link
+              href={buildPublicProfilePath(user.username)}
+              onClick={onClose}
+              className="flex items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10"
+            >
+              <Image
+                src={user.profileImageUrl ?? assets.defaultAvatar}
+                alt={`${name} avatar`}
+                width={40}
+                height={40}
+                className="size-10 rounded-full object-cover"
+              />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold text-zinc-950">
+                  {name}
+                </span>
+                <span className="block truncate text-sm text-zinc-500">
+                  @{user.username}
+                </span>
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

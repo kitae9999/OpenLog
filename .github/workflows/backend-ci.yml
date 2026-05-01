@@ -1,15 +1,11 @@
 name: Backend CI
 
 on:
-  push:
-    paths:
-      - "backend/**"
-      - "gradle/**"
-      - "gradlew"
-      - "gradlew.bat"
-      - "settings.gradle.kts"
-      - ".github/workflows/backend-ci.yml"
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
     paths:
       - "backend/**"
       - "gradle/**"

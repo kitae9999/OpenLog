@@ -2,6 +2,8 @@ package io.github.kitae9999.openlog.user
 
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.follow.FollowRepository
+import io.github.kitae9999.openlog.follow.entity.FollowId
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
 import io.github.kitae9999.openlog.post.formatPublishedAtLabel
 import io.github.kitae9999.openlog.post.repository.PostRepository
@@ -21,12 +23,18 @@ class UserService(
     private val postRepository: PostRepository,
     private val postTopicRepository: PostTopicRepository,
     private val postLikeRepository: PostLikeRepository,
+    private val followRepository: FollowRepository,
 ) {
     @Transactional
-    fun getPublicProfile(username: String): PublicUserProfileResponse {
+    fun getPublicProfile(username: String, viewerId: Long?): PublicUserProfileResponse {
         val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
+        val userId = requireNotNull(user.id)
+        val following = viewerId
+            ?.takeIf { it != userId }
+            ?.let { followRepository.existsById(FollowId(followingUserId = it, followedUserId = userId)) }
+            ?: false
 
-        return toPublicUserProfileResponse(user)
+        return toPublicUserProfileResponse(user, following)
     }
 
     @Transactional
@@ -94,10 +102,12 @@ class UserService(
             websiteUrl = websiteUrl?.trim()?.takeIf { it.isNotEmpty() },
         )
 
-        return toPublicUserProfileResponse(user)
+        return toPublicUserProfileResponse(user, following = false)
     }
 
-    private fun toPublicUserProfileResponse(user: User): PublicUserProfileResponse {
+    private fun toPublicUserProfileResponse(user: User, following: Boolean): PublicUserProfileResponse {
+        val userId = requireNotNull(user.id)
+
         return PublicUserProfileResponse(
             username = requireNotNull(user.username),
             nickname = user.nickname,
@@ -106,6 +116,9 @@ class UserService(
             location = user.location,
             websiteUrl = user.websiteUrl,
             joinedAt = user.createdAt.toString(),
+            following = following,
+            followersCount = followRepository.countByFollowedUser_Id(userId),
+            followingCount = followRepository.countByFollowingUser_Id(userId),
         )
     }
 }
