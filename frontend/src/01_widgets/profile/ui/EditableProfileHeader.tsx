@@ -16,10 +16,12 @@ type FieldName = "nickname" | "bio" | "location" | "websiteUrl";
 export function EditableProfileHeader({
   profile,
   isViewer,
+  canFollow,
   joinedLabel,
 }: {
   profile: PublicUserProfile;
   isViewer: boolean;
+  canFollow: boolean;
   joinedLabel: string;
 }) {
   const router = useRouter();
@@ -249,6 +251,21 @@ export function EditableProfileHeader({
                 >
                   <IconPencil className="size-4" />
                   Edit
+                </button>
+              ) : canFollow ? (
+                <button
+                  type="button"
+                  className="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-semibold text-zinc-950 transition hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                >
+                  <Image
+                    src="/Users.svg"
+                    alt=""
+                    width={16}
+                    height={16}
+                    aria-hidden="true"
+                    className="size-4"
+                  />
+                  Follow
                 </button>
               ) : null}
             </div>
