@@ -27,12 +27,9 @@ class AuthController(
     private val authService: AuthService,
     private val currentUserResolver: CurrentUserResolver,
     private val jwtTokenService: JwtTokenService,
-    @Value("\${auth.jwt.cookie-name:openlog_access_token}")
-    private val accessTokenCookieName: String,
+    private val accessTokenCookieFactory: AccessTokenCookieFactory,
     @Value("\${auth.jwt.cookie-secure:false}")
     private val accessTokenCookieSecure: Boolean,
-    @Value("\${auth.jwt.cookie-domain:}")
-    private val accessTokenCookieDomain: String,
     @Value("\${app.frontend-home-url:http://localhost:3030}")
     private val frontendHomeUrl: String,
 ) {
@@ -110,13 +107,7 @@ class AuthController(
             email = email,
         )
         val issuedJwt = jwtTokenService.createAccessToken(currentUser)
-        val authCookie = withCookieDomain(ResponseCookie.from(accessTokenCookieName, issuedJwt))
-            .httpOnly(true)
-            .secure(accessTokenCookieSecure)
-            .sameSite("Lax")
-            .path("/")
-            .maxAge(jwtTokenService.accessTokenTtl())
-            .build()
+        val authCookie = accessTokenCookieFactory.create(issuedJwt)
 
         return ResponseEntity.status(HttpStatus.FOUND)
             .header(HttpHeaders.SET_COOKIE, deleteCookie.toString(), authCookie.toString())
@@ -142,16 +133,6 @@ class AuthController(
             bio = bio,
             isOnboardingComplete = isOnboardingComplete(),
         )
-    }
-
-    private fun withCookieDomain(
-        builder: ResponseCookie.ResponseCookieBuilder
-    ): ResponseCookie.ResponseCookieBuilder {
-        return if (accessTokenCookieDomain.isBlank()) {
-            builder
-        } else {
-            builder.domain(accessTokenCookieDomain)
-        }
     }
 
 //    @GetMapping("github")

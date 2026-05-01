@@ -5,7 +5,6 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
-import org.springframework.http.ResponseCookie
 import org.springframework.security.core.Authentication
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
@@ -16,12 +15,7 @@ import java.net.URI
 class GithubOAuthSuccessHandler(
     private val authService: AuthService,
     private val jwtTokenService: JwtTokenService,
-    @Value("\${auth.jwt.cookie-name:openlog_access_token}")
-    private val accessTokenCookieName: String,
-    @Value("\${auth.jwt.cookie-secure:false}")
-    private val accessTokenCookieSecure: Boolean,
-    @Value("\${auth.jwt.cookie-domain:}")
-    private val accessTokenCookieDomain: String,
+    private val accessTokenCookieFactory: AccessTokenCookieFactory,
     @Value("\${app.frontend-home-url:http://localhost:3030}")
     private val frontendHomeUrl: String,
 ): AuthenticationSuccessHandler {
@@ -50,13 +44,7 @@ class GithubOAuthSuccessHandler(
             email = email,
         )
         val issuedJwt = jwtTokenService.createAccessToken(currentUser)
-        val authCookie = withCookieDomain(ResponseCookie.from(accessTokenCookieName, issuedJwt))
-            .httpOnly(true)
-            .secure(accessTokenCookieSecure)
-            .sameSite("Lax")
-            .path("/")
-            .maxAge(jwtTokenService.accessTokenTtl())
-            .build()
+        val authCookie = accessTokenCookieFactory.create(issuedJwt)
 
         response.addHeader(HttpHeaders.SET_COOKIE, authCookie.toString())
         response.sendRedirect(
@@ -68,13 +56,4 @@ class GithubOAuthSuccessHandler(
         )
     }
 
-    private fun withCookieDomain(
-        builder: ResponseCookie.ResponseCookieBuilder
-    ): ResponseCookie.ResponseCookieBuilder {
-        return if (accessTokenCookieDomain.isBlank()) {
-            builder
-        } else {
-            builder.domain(accessTokenCookieDomain)
-        }
-    }
 }
