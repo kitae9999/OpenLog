@@ -2,6 +2,7 @@ package io.github.kitae9999.openlog.follow
 
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.follow.dto.FollowUserResponse
 import io.github.kitae9999.openlog.follow.entity.Follow
 import io.github.kitae9999.openlog.follow.entity.FollowId
 import io.github.kitae9999.openlog.user.entity.User
@@ -47,11 +48,34 @@ class FollowService(
         followRepository.deleteById(followId)
     }
 
+
+    @Transactional
+    fun getFollowers(
+        username: String
+    ): List<FollowUserResponse> {
+        val user = findUserByUsername(username)
+        val userId = requireNotNull(user.id)
+
+        return followRepository.findAllByFollowedUser_IdOrderByCreatedAtDesc(userId)
+            .map { it.followingUser.toFollowUserResponse() }
+    }
+
+    @Transactional
+    fun getFollowing(
+        username: String
+    ): List<FollowUserResponse> {
+        val user = findUserByUsername(username)
+        val userId = requireNotNull(user.id)
+
+        return followRepository.findAllByFollowingUser_IdOrderByCreatedAtDesc(userId)
+            .map { it.followedUser.toFollowUserResponse() }
+    }
+
     private fun resolveTargetUserAndFollowId(
         targetUsername: String,
         currentUser: User,
     ): Pair<User, FollowId> {
-        val targetUser = userRepository.findByUsername(targetUsername) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
+        val targetUser = findUserByUsername(targetUsername)
 
         val currentUserId = requireNotNull(currentUser.id)
         val targetUserId = requireNotNull(targetUser.id)
@@ -63,6 +87,18 @@ class FollowService(
         return targetUser to FollowId( // User, FollowId 타입의 pair 생성
             followingUserId = currentUserId,
             followedUserId = targetUserId,
+        )
+    }
+
+    private fun findUserByUsername(username: String): User {
+        return userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
+    }
+
+    private fun User.toFollowUserResponse(): FollowUserResponse {
+        return FollowUserResponse(
+            username = requireNotNull(username),
+            nickname = nickname,
+            profileImageUrl = profileImageUrl,
         )
     }
 }

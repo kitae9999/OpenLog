@@ -106,6 +106,8 @@ class UserService(
     }
 
     private fun toPublicUserProfileResponse(user: User, following: Boolean): PublicUserProfileResponse {
+        val userId = requireNotNull(user.id)
+
         return PublicUserProfileResponse(
             username = requireNotNull(user.username),
             nickname = user.nickname,
@@ -115,6 +117,8 @@ class UserService(
             websiteUrl = user.websiteUrl,
             joinedAt = user.createdAt.toString(),
             following = following,
+            followersCount = followRepository.countByFollowedUser_Id(userId),
+            followingCount = followRepository.countByFollowingUser_Id(userId),
         )
     }
 }

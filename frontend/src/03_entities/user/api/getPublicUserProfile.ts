@@ -12,6 +12,8 @@ export type PublicUserProfile = {
   websiteUrl: string | null;
   joinedAt: string;
   following: boolean;
+  followersCount: number;
+  followingCount: number;
 };
 
 export async function getPublicUserProfile(username: string) {
