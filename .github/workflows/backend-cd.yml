@@ -133,9 +133,9 @@ jobs:
           PRODUCTION_GHCR_USERNAME: ${{ secrets.PRODUCTION_GHCR_USERNAME }}
         run: |
           if [[ "${{ needs.changes.outputs.nginx_changed }}" == "true" ]]; then
-            SERVICES="backend nginx"
+            SERVICES="kafka backend nginx"
           else
-            SERVICES="backend"
+            SERVICES="kafka backend"
           fi
 
           ssh "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}" "

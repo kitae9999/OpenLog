@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [[ $# -eq 0 ]]; then
-  set -- backend
+  set -- kafka backend
 fi
 
 docker compose \

@@ -8,6 +8,7 @@
 
 ## 요청별 지침 라우팅
 - PR 문서 작성/자동 생성/PR 템플릿 작성: `_docs/PR/INSTRUCTIONS.md`만 읽는다.
+- Issue 문서화/버그 리포트/장애 기록: `_docs/issues/INSTRUCTIONS.md`만 읽는다.
 - 기능 설계/순서/아키텍처 계획/Plan 문서화: `_docs/plan/INSTRUCTIONS.md`만 읽는다.
 - Task 문서화/체크리스트/조사 정리/개선 계획: `_docs/tasks/INSTRUCTIONS.md`만 읽는다.
 - Worklog 업데이트/진행상황/의사결정 로그: `_docs/worklog/INSTRUCTIONS.md`만 읽는다.
@@ -15,6 +16,7 @@
 
 ## 기본 경로
 - Plan: `_docs/plan/`
+- Issue: `_docs/issues/`
 - Task: `_docs/tasks/`
 - Worklog: `_docs/worklog/`
 - PR: `_docs/PR/`
