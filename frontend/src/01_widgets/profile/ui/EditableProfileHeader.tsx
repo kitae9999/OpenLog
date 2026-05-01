@@ -2,9 +2,15 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import {
+  useOptimistic,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react";
 import type { PublicUserProfile } from "@/entities/user/api/getPublicUserProfile";
 import {
+  toggleFollowAction,
   updateProfileAction,
   type UpdateProfileActionState,
   type UpdateProfileValues,
@@ -38,6 +44,8 @@ export function EditableProfileHeader({
   >({});
   const [serverErrors, setServerErrors] = useState(initialState.errors);
   const [isPending, startTransition] = useTransition();
+  const [following, setFollowing] = useOptimistic(profile.following);
+  const [isFollowPending, startFollowTransition] = useTransition();
 
   const profileName = currentProfile.nickname ?? currentProfile.username;
 
@@ -152,6 +160,25 @@ export function EditableProfileHeader({
     });
   }
 
+  function handleFollowToggle() {
+    if (!canFollow || isFollowPending) {
+      return;
+    }
+
+    const currentFollowing = following;
+
+    startFollowTransition(async () => {
+      setFollowing(!currentFollowing);
+
+      try {
+        await toggleFollowAction(currentProfile.username, currentFollowing);
+        router.refresh();
+      } catch {
+        router.refresh();
+      }
+    });
+  }
+
   if (isEditing) {
     return (
       <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">
@@ -255,17 +282,29 @@ export function EditableProfileHeader({
               ) : canFollow ? (
                 <button
                   type="button"
-                  className="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-semibold text-zinc-950 transition hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                  onClick={handleFollowToggle}
+                  disabled={isFollowPending}
+                  className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-sm font-semibold text-zinc-950 transition hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                 >
-                  <Image
-                    src="/Users.svg"
-                    alt=""
-                    width={16}
-                    height={16}
-                    aria-hidden="true"
-                    className="size-4"
-                  />
-                  Follow
+                  {following ? (
+                    <Image
+                      src="/Users.svg"
+                      alt=""
+                      width={16}
+                      height={16}
+                      aria-hidden="true"
+                      className="size-4"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="relative inline-block size-3 shrink-0"
+                    >
+                      <span className="absolute left-1/2 top-1/2 h-[1.5px] w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-current" />
+                      <span className="absolute left-1/2 top-1/2 h-2.5 w-[1.5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-current" />
+                    </span>
+                  )}
+                  {following ? "Following" : "Follow"}
                 </button>
               ) : null}
             </div>

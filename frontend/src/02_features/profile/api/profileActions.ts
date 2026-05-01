@@ -1,9 +1,11 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { PublicUserProfile } from "@/entities/user/api/getPublicUserProfile";
 import { API_CONFIG } from "@/shared/api";
+import { buildPublicProfilePath } from "@/shared/lib/publicRoutes";
 
 export type UpdateProfileValues = {
   username: string;
@@ -103,6 +105,34 @@ export async function updateProfileAction(
     },
     profile: null,
   };
+}
+
+export async function toggleFollowAction(
+  username: string,
+  following: boolean,
+): Promise<void> {
+  const headerStore = await headers();
+  const response = await fetch(
+    `${API_CONFIG.baseURL}/users/${encodeURIComponent(username)}/follow`,
+    {
+      method: following ? "DELETE" : "POST",
+      cache: "no-store",
+      headers: {
+        cookie: headerStore.get("cookie") ?? "",
+      },
+    },
+  );
+
+  if (response.ok) {
+    revalidatePath(buildPublicProfilePath(username));
+    return;
+  }
+
+  if (response.status === 401) {
+    redirect("/");
+  }
+
+  throw new Error("팔로우 상태를 변경하는 중 문제가 발생했습니다.");
 }
 
 function toUpdateProfileValues(profile: PublicUserProfile): UpdateProfileValues {
