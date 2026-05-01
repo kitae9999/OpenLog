@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
 interface CommentRepository : JpaRepository<Comment, Long> {
+    //Todo: @EntityGraph로 수정
     @Query(
         """
         select c
