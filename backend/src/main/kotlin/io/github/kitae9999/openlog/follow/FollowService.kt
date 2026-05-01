@@ -19,19 +19,7 @@ class FollowService(
         targetUsername: String,
         currentUser: User
     ) {
-        val targetUser = userRepository.findByUsername(targetUsername) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
-
-        val currentUserId = requireNotNull(currentUser.id)
-        val targetUserId = requireNotNull(targetUser.id)
-
-        if (currentUserId == targetUserId) {
-            throw BadRequestException("자기 자신은 팔로우할 수 없습니다.")
-        }
-
-        val followId = FollowId(
-            followingUserId = currentUserId,
-            followedUserId = targetUserId,
-        )
+        val (targetUser, followId) = resolveTargetUserAndFollowId(targetUsername, currentUser)
 
         if (followRepository.existsById(followId)) {
             return
@@ -45,4 +33,36 @@ class FollowService(
         )
     }
 
+    @Transactional
+    fun unfollowUser(
+        targetUsername: String,
+        currentUser: User
+    ) {
+        val (_, followId) = resolveTargetUserAndFollowId(targetUsername, currentUser)
+
+        if (!followRepository.existsById(followId)) {
+            return
+        }
+
+        followRepository.deleteById(followId)
+    }
+
+    private fun resolveTargetUserAndFollowId(
+        targetUsername: String,
+        currentUser: User,
+    ): Pair<User, FollowId> {
+        val targetUser = userRepository.findByUsername(targetUsername) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
+
+        val currentUserId = requireNotNull(currentUser.id)
+        val targetUserId = requireNotNull(targetUser.id)
+
+        if (currentUserId == targetUserId) {
+            throw BadRequestException("자기 자신은 팔로우할 수 없습니다.")
+        }
+
+        return targetUser to FollowId( // User, FollowId 타입의 pair 생성
+            followingUserId = currentUserId,
+            followedUserId = targetUserId,
+        )
+    }
 }
