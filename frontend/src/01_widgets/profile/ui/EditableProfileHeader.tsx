@@ -11,11 +11,11 @@ import {
 } from "react";
 import type { PublicUserProfile } from "@/entities/user/api/getPublicUserProfile";
 import {
-  getUserFollowList,
   type FollowListType,
   type FollowUser,
 } from "@/entities/user/api/getUserFollowList";
 import {
+  getProfileFollowListAction,
   toggleFollowAction,
   updateProfileAction,
   type UpdateProfileActionState,
@@ -199,7 +199,10 @@ export function EditableProfileHeader({
     setIsFollowListLoading(true);
 
     try {
-      const users = await getUserFollowList(currentProfile.username, type);
+      const users = await getProfileFollowListAction(
+        currentProfile.username,
+        type,
+      );
       setFollowListUsers(users);
     } catch {
       setFollowListError("목록을 불러오지 못했습니다.");

@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { PublicUserProfile } from "@/entities/user/api/getPublicUserProfile";
+import type {
+  FollowListType,
+  FollowUser,
+} from "@/entities/user/api/getUserFollowList";
 import { API_CONFIG } from "@/shared/api";
 import { buildPublicProfilePath } from "@/shared/lib/publicRoutes";
 
@@ -133,6 +137,24 @@ export async function toggleFollowAction(
   }
 
   throw new Error("팔로우 상태를 변경하는 중 문제가 발생했습니다.");
+}
+
+export async function getProfileFollowListAction(
+  username: string,
+  type: FollowListType,
+): Promise<FollowUser[]> {
+  const response = await fetch(
+    `${API_CONFIG.baseURL}/users/${encodeURIComponent(username)}/${type}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("팔로우 목록을 불러오지 못했습니다.");
+  }
+
+  return (await response.json()) as FollowUser[];
 }
 
 function toUpdateProfileValues(profile: PublicUserProfile): UpdateProfileValues {
