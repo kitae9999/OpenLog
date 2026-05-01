@@ -158,8 +158,23 @@ class AuthService(
         picture: String?,
         email: String?,
     ): User {
+        return findOrCreateOAuthUser(
+            provider = "google",
+            providerUserId = sub,
+            picture = picture,
+            email = email,
+        )
+    }
+
+    @Transactional
+    fun findOrCreateOAuthUser(
+        provider: String,
+        providerUserId: String,
+        picture: String?,
+        email: String?,
+    ): User {
         val existingAccount = oauthAccountRepository
-            .findByProviderAndProviderUserId("google", sub)
+            .findByProviderAndProviderUserId(provider, providerUserId)
 
         if (existingAccount != null) {
             return existingAccount.user
@@ -175,8 +190,8 @@ class AuthService(
         oauthAccountRepository.save(
             OauthAccount(
                 user = user,
-                provider = "google",
-                providerUserId = sub,
+                provider = provider,
+                providerUserId = providerUserId,
             )
         )
 
