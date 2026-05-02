@@ -56,7 +56,10 @@ export default async function PublicPostSuggestsPage({
   ]);
 
   const articleHref = buildPublicPostPath(authorUsername, canonicalPostSlug);
-  const suggestsHref = buildPublicSuggestsPath(authorUsername, canonicalPostSlug);
+  const suggestsHref = buildPublicSuggestsPath(
+    authorUsername,
+    canonicalPostSlug,
+  );
   const suggestEditHref = buildPublicSuggestNewPath(
     authorUsername,
     canonicalPostSlug,
@@ -70,7 +73,9 @@ export default async function PublicPostSuggestsPage({
         <Header
           isLoggedIn={!!viewer}
           profileImageUrl={viewer?.profileImageUrl}
-          profileHref={viewer ? buildViewerProfileHref(viewer.username) : undefined}
+          profileHref={
+            viewer ? buildViewerProfileHref(viewer.username) : undefined
+          }
         />
 
         <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
@@ -97,7 +102,7 @@ export default async function PublicPostSuggestsPage({
                 list,
               ),
             )}
-            backHref="/?tab=trending"
+            backHref="/"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
             suggestEditHref={suggestEditHref}
@@ -121,14 +126,16 @@ export default async function PublicPostSuggestsPage({
       <Header
         isLoggedIn={!!viewer}
         profileImageUrl={viewer?.profileImageUrl}
-        profileHref={viewer ? buildViewerProfileHref(viewer.username) : undefined}
+        profileHref={
+          viewer ? buildViewerProfileHref(viewer.username) : undefined
+        }
       />
 
       <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <PostSuggests
           post={entry.post}
           suggestions={entry.suggestions}
-          backHref="/?tab=trending"
+          backHref="/"
           articleHref={articleHref}
           suggestsHref={suggestsHref}
           suggestEditHref={suggestEditHref}

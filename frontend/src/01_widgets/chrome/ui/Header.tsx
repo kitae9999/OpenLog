@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { assets } from "@/shared/config/assets";
@@ -12,11 +14,15 @@ export function Header({
   profileImageUrl,
   profileHref,
   showWriteAction = true,
+  isSidebarOpen,
+  onSidebarToggle,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
   showWriteAction?: boolean;
+  isSidebarOpen?: boolean;
+  onSidebarToggle?: () => void;
 }) {
   const resolvedProfileImageUrl = profileImageUrl ?? assets.defaultAvatar;
 
@@ -24,20 +30,34 @@ export function Header({
     <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-[1083px] items-center justify-between gap-4 px-4 sm:px-8">
         <div className="flex items-center gap-8">
-          <Link
-            href="/"
-            className="flex items-center gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-          >
-            <span
-              className={cn(
-                "grid size-7 place-items-center rounded-lg bg-black text-[16px] text-white",
-                logoMarkClassName,
-              )}
+          <div className="flex items-center gap-3">
+            {onSidebarToggle ? (
+              <button
+                type="button"
+                aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+                aria-expanded={isSidebarOpen}
+                onClick={onSidebarToggle}
+                className="grid size-10 place-items-center rounded-full text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                <IconMenu isOpen={!!isSidebarOpen} className="size-5" />
+              </button>
+            ) : null}
+
+            <Link
+              href="/"
+              className="flex items-center gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
             >
-              O
-            </span>
-            <span className={logoWordmarkClassName}>OpenLog</span>
-          </Link>
+              <span
+                className={cn(
+                  "grid size-7 place-items-center rounded-lg bg-black text-[16px] text-white",
+                  logoMarkClassName,
+                )}
+              >
+                O
+              </span>
+              <span className={logoWordmarkClassName}>OpenLog</span>
+            </Link>
+          </div>
 
           <nav
             aria-label="Primary"
@@ -49,7 +69,7 @@ export function Header({
                 href={item.href}
                 className={cn(
                   "text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                  item.label === "Trending" && "text-zinc-950",
+                  item.label === "Home" && "text-zinc-950",
                 )}
               >
                 {item.label}
@@ -100,6 +120,51 @@ export function Header({
         </div>
       </div>
     </header>
+  );
+}
+
+function IconMenu({
+  isOpen,
+  className,
+}: {
+  isOpen: boolean;
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M4 7h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        className={cn(
+          "origin-center transition-transform duration-300",
+          isOpen && "translate-y-[5px] rotate-45",
+        )}
+      />
+      <path
+        d="M4 12h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        className={cn("transition-opacity duration-200", isOpen && "opacity-0")}
+      />
+      <path
+        d="M4 17h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        className={cn(
+          "origin-center transition-transform duration-300",
+          isOpen && "-translate-y-[5px] -rotate-45",
+        )}
+      />
+    </svg>
   );
 }
 

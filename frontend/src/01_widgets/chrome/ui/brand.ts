@@ -1,7 +1,6 @@
 export const navLinks = [
-  { href: "/?tab=trending", label: "Trending" },
-  { href: "/explore", label: "Explore" },
-  { href: "/topics", label: "Topics" },
+  { href: "/", label: "Home" },
+  { href: "/?tab=following", label: "Following" },
 ] as const;
 
 export const logoWordmarkClassName =
