@@ -5,12 +5,17 @@ import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.follow.FollowRepository
 import io.github.kitae9999.openlog.follow.entity.FollowId
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
+import io.github.kitae9999.openlog.post.dto.PostWikiLinkResponse
 import io.github.kitae9999.openlog.post.formatPublishedAtLabel
+import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.post.resolveAuthorName
 import io.github.kitae9999.openlog.postlike.PostLikeRepository
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
 import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
+import io.github.kitae9999.openlog.user.dto.PublicUserPostGraphEdgeResponse
+import io.github.kitae9999.openlog.user.dto.PublicUserPostGraphNodeResponse
+import io.github.kitae9999.openlog.user.dto.PublicUserPostGraphResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserProfileResponse
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
@@ -21,6 +26,7 @@ import org.springframework.stereotype.Service
 class UserService(
     private val userRepository: UserRepository,
     private val postRepository: PostRepository,
+    private val postLinkRepository: PostLinkRepository,
     private val postTopicRepository: PostTopicRepository,
     private val postLikeRepository: PostLikeRepository,
     private val followRepository: FollowRepository,
@@ -53,6 +59,37 @@ class UserService(
     }
 
     @Transactional
+    fun getPublicPostGraph(username: String): PublicUserPostGraphResponse {
+        val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
+        val authorId = requireNotNull(user.id)
+        val posts = postRepository.findAllByAuthorIdOrderByCreatedAtDesc(authorId)
+        val postIds = posts.mapNotNull { it.id }
+        val links = if (postIds.isEmpty()) {
+            emptyList()
+        } else {
+            postLinkRepository.findAllBySourcePostIdIn(postIds)
+                .filter { link -> link.targetPost.author.id == authorId }
+        }
+
+        return PublicUserPostGraphResponse(
+            nodes = posts.map { post ->
+                PublicUserPostGraphNodeResponse(
+                    slug = post.slug,
+                    title = post.title,
+                    description = post.description,
+                )
+            },
+            edges = links.map { link ->
+                PublicUserPostGraphEdgeResponse(
+                    sourceSlug = link.sourcePost.slug,
+                    targetSlug = link.targetPost.slug,
+                    label = link.label,
+                )
+            },
+        )
+    }
+
+    @Transactional
     fun getPublicPostDetail(username: String, slug: String, viewerId: Long?): PostDetailResponse {
         val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val post = postRepository.findByAuthorIdAndSlug(requireNotNull(user.id), slug)
@@ -61,6 +98,15 @@ class UserService(
         val topics = postTopicRepository.findAllByPostId(postId)
             .map { it.topic.name }
             .sorted()
+        val wikiLinks = postLinkRepository.findAllBySourcePostId(postId)
+            .map { link ->
+                PostWikiLinkResponse(
+                    label = link.label,
+                    targetSlug = link.targetPost.slug,
+                    targetTitle = link.targetPost.title,
+                )
+            }
+            .distinctBy { "${it.targetSlug}\u0000${it.label}" }
 
         return PostDetailResponse(
             id = postId,
@@ -74,6 +120,7 @@ class UserService(
             publishedAtLabel = formatPublishedAtLabel(post),
             version = post.version,
             topics = topics,
+            wikiLinks = wikiLinks,
             likes = postLikeRepository.countByPostId(postId).toInt(),
             liked = viewerId?.let { postLikeRepository.existsByPostIdAndUserId(postId, it) } ?: false,
         )

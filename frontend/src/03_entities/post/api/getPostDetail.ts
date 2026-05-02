@@ -15,9 +15,16 @@ export type ApiPostDetail = {
   publishedAtLabel: string;
   version: number;
   topics: string[];
+  wikiLinks: ApiPostWikiLink[];
   likes: number;
   liked: boolean;
   comments: number;
+};
+
+export type ApiPostWikiLink = {
+  label: string;
+  targetSlug: string;
+  targetTitle: string;
 };
 
 export async function getPostDetail(username: string, slug: string) {

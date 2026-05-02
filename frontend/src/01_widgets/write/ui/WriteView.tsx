@@ -28,6 +28,7 @@ import { Footer, Header } from "@/widgets/chrome/ui";
 type ComposerMode = "edit" | "preview";
 type WriteViewMode = "create" | "edit";
 type SaveReason = "auto" | "manual" | "restored" | "cleared";
+type WikiMenuPlacement = "bottom" | "top";
 type WriteAction = (
   prevState: WriteActionState,
   formData: FormData,
@@ -38,6 +39,26 @@ export type WriteViewInitialValues = {
   description: string;
   topics: string[];
   content: string;
+};
+
+export type WriteViewPostReference = {
+  slug: string;
+  title: string;
+  description?: string;
+};
+
+export type WriteViewWikiLink = {
+  label: string;
+  targetSlug: string;
+};
+
+type WikiMenuState = {
+  query: string;
+  startIndex: number;
+  endIndex: number;
+  top: number;
+  left: number;
+  placement: WikiMenuPlacement;
 };
 
 const DRAFT_STORAGE_KEY = "openlog.write.draft";
@@ -56,6 +77,8 @@ export function WriteView({
   mode: writeMode = "create",
   action = submitPost,
   initialValues = EMPTY_WRITE_VALUES,
+  authoredPosts = [],
+  initialWikiLinks = [],
   draftStorageKey = DRAFT_STORAGE_KEY,
   backHref = "/?tab=trending",
   backLabel = "Back to feed",
@@ -68,6 +91,8 @@ export function WriteView({
   mode?: WriteViewMode;
   action?: WriteAction;
   initialValues?: WriteViewInitialValues;
+  authoredPosts?: WriteViewPostReference[];
+  initialWikiLinks?: WriteViewWikiLink[];
   draftStorageKey?: string;
   backHref?: string;
   backLabel?: string;
@@ -85,6 +110,12 @@ export function WriteView({
     normalizeTopics(initialValues.topics),
   );
   const [body, setBody] = useState(initialValues.content);
+  const [wikiLinks, setWikiLinks] = useState<WriteViewWikiLink[]>(() =>
+    normalizeWikiLinks(initialWikiLinks),
+  );
+  const [wikiMenu, setWikiMenu] = useState<WikiMenuState | null>(null);
+  const [activeWikiIndex, setActiveWikiIndex] = useState(0);
+  const activeWikiIndexRef = useRef(0);
   const [statusMessage, setStatusMessage] = useState(
     defaultStatusMessage(writeMode),
   );
@@ -106,6 +137,12 @@ export function WriteView({
   const deferredDescription = useDeferredValue(description);
   const deferredTopics = useDeferredValue(topics);
   const deferredBody = useDeferredValue(body);
+  const activeWikiLinks = getActiveWikiLinks(body, wikiLinks);
+  const wikiCandidates = getWikiCandidates(authoredPosts, wikiMenu?.query ?? "");
+  const activeWikiCandidateIndex =
+    wikiCandidates.length === 0
+      ? 0
+      : Math.min(activeWikiIndex, wikiCandidates.length - 1);
 
   useEffect(() => {
     setSubmitErrors(actionState?.errors ?? {});
@@ -144,13 +181,14 @@ export function WriteView({
     }
 
     const updatedAt = new Date().toISOString();
-    window.localStorage.setItem(
+      window.localStorage.setItem(
       draftStorageKey,
       JSON.stringify({
         title,
         description,
         topics,
         body,
+        wikiLinks,
         updatedAt,
       }),
     );
@@ -174,6 +212,7 @@ export function WriteView({
         description: string;
         topics: string[];
         body: string;
+        wikiLinks: WriteViewWikiLink[];
         updatedAt: string;
       }>;
 
@@ -181,6 +220,7 @@ export function WriteView({
       setDescription(normalizeDescription(draft.description ?? ""));
       setTopics(normalizeTopics(draft.topics ?? []));
       setBody(draft.body ?? "");
+      setWikiLinks(normalizeWikiLinks(draft.wikiLinks ?? []));
       setStatusMessage(statusLabel("restored", draft.updatedAt));
     } catch {
       window.localStorage.removeItem(draftStorageKey);
@@ -200,7 +240,7 @@ export function WriteView({
     }, 900);
 
     return () => window.clearTimeout(timeoutId);
-  }, [body, description, hasRestoredDraft, title, topics]);
+  }, [body, description, hasRestoredDraft, title, topics, wikiLinks]);
 
   useEffect(() => {
     if (!isTitleFocused) {
@@ -209,6 +249,17 @@ export function WriteView({
 
     syncTitleCaret();
   }, [isTitleFocused, title]);
+
+  useEffect(() => {
+    if (activeWikiIndex >= wikiCandidates.length && wikiCandidates.length > 0) {
+      updateActiveWikiIndex(wikiCandidates.length - 1);
+    }
+  }, [activeWikiIndex, wikiCandidates.length]);
+
+  function updateActiveWikiIndex(nextIndex: number) {
+    activeWikiIndexRef.current = nextIndex;
+    setActiveWikiIndex(nextIndex);
+  }
 
   function handleModeChange(nextMode: ComposerMode) {
     startTransition(() => {
@@ -279,9 +330,156 @@ export function WriteView({
     clearError("description");
   }
 
-  function handleBodyChange(nextValue: string) {
+  function handleBodyChange(nextValue: string, textarea?: HTMLTextAreaElement) {
     setBody(nextValue);
     clearError("content");
+    if (textarea) {
+      scheduleWikiMenuSync(textarea);
+    }
+  }
+
+  function scheduleWikiMenuSync(textarea = editorRef.current) {
+    window.requestAnimationFrame(() => {
+      syncWikiMenu(textarea);
+    });
+  }
+
+  function syncWikiMenu(textarea = editorRef.current) {
+    if (!textarea || composerMode !== "edit") {
+      setWikiMenu(null);
+      return;
+    }
+
+    const selectionStart = textarea.selectionStart ?? textarea.value.length;
+    const selectionEnd = textarea.selectionEnd ?? selectionStart;
+    if (selectionStart !== selectionEnd) {
+      setWikiMenu(null);
+      return;
+    }
+
+    const trigger = findWikiLinkTrigger(textarea.value, selectionStart);
+    if (!trigger) {
+      setWikiMenu(null);
+      return;
+    }
+
+    const caret = getTextareaCaretPosition(textarea, selectionStart);
+    const menuHeight = 244;
+    const menuWidth = 320;
+    const textareaRect = textarea.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - (textareaRect.top + caret.top + caret.height);
+    const placement: WikiMenuPlacement =
+      spaceBelow < menuHeight + 24 && caret.top > menuHeight ? "top" : "bottom";
+
+    setWikiMenu({
+      query: trigger.query,
+      startIndex: trigger.startIndex,
+      endIndex: selectionStart,
+      top:
+        placement === "top"
+          ? Math.max(12, caret.top - menuHeight - 8)
+          : caret.top + caret.height + 8,
+      left: Math.min(
+        Math.max(12, caret.left),
+        Math.max(12, textarea.clientWidth - menuWidth - 12),
+      ),
+      placement,
+    });
+    updateActiveWikiIndex(0);
+  }
+
+  function handleEditorKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (!wikiMenu || event.nativeEvent.isComposing) {
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setWikiMenu(null);
+      return;
+    }
+
+    if (wikiCandidates.length === 0) {
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      updateActiveWikiIndex(
+        (activeWikiIndexRef.current + 1) % wikiCandidates.length,
+      );
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      updateActiveWikiIndex(
+        (activeWikiIndexRef.current - 1 + wikiCandidates.length) %
+          wikiCandidates.length,
+      );
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === "Tab") {
+      event.preventDefault();
+      const selectedPost =
+        wikiCandidates[
+          Math.min(activeWikiIndexRef.current, wikiCandidates.length - 1)
+        ];
+      if (selectedPost) {
+        insertWikiLink(selectedPost);
+      }
+    }
+  }
+
+  function handleEditorKeyUp(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      wikiMenu &&
+      ["ArrowDown", "ArrowUp", "Enter", "Tab", "Escape"].includes(event.key)
+    ) {
+      return;
+    }
+
+    syncWikiMenu(event.currentTarget);
+  }
+
+  function insertWikiLink(post: WriteViewPostReference) {
+    const textarea = editorRef.current;
+    if (!textarea || !wikiMenu) {
+      return;
+    }
+
+    const insertedText = `[[${post.title}]]`;
+    const currentValue = textarea.value;
+    const selectionStart = textarea.selectionStart ?? wikiMenu.endIndex;
+    const selectionEnd = textarea.selectionEnd ?? selectionStart;
+    const replacementEnd =
+      selectionStart === selectionEnd
+        ? Math.max(selectionStart, wikiMenu.endIndex)
+        : selectionEnd;
+    const nextBody =
+      currentValue.slice(0, wikiMenu.startIndex) +
+      insertedText +
+      currentValue.slice(replacementEnd);
+    const nextCaret = wikiMenu.startIndex + insertedText.length;
+
+    setBody(nextBody);
+    setWikiLinks((current) =>
+      normalizeWikiLinks([
+        ...current.filter((link) => link.label !== post.title),
+        {
+          label: post.title,
+          targetSlug: post.slug,
+        },
+      ]),
+    );
+    clearError("content");
+    setWikiMenu(null);
+
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(nextCaret, nextCaret);
+    });
   }
 
   function handleTopicInputChange(nextValue: string) {
@@ -363,6 +561,11 @@ export function WriteView({
           {composerMode === "preview" ? (
             <input type="hidden" name="content" value={body} />
           ) : null}
+          <input
+            type="hidden"
+            name="links"
+            value={JSON.stringify(activeWikiLinks)}
+          />
 
           <div className="flex flex-col gap-6 border-b border-zinc-200/80 pb-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 flex-1">
@@ -517,20 +720,41 @@ export function WriteView({
 
               <div className="min-h-[520px] bg-white">
                 {composerMode === "edit" ? (
-                  <textarea
-                    ref={editorRef}
-                    name="content"
-                    value={body}
-                    onChange={(event) => handleBodyChange(event.target.value)}
-                    placeholder="Share your ideas, code, and insights…"
-                    className="min-h-[520px] w-full resize-none px-6 py-6 text-[16px] leading-8 tracking-normal text-zinc-900 outline-none placeholder:text-zinc-400"
-                  />
+                  <div className="relative min-h-[520px]">
+                    <textarea
+                      ref={editorRef}
+                      name="content"
+                      value={body}
+                      onChange={(event) =>
+                        handleBodyChange(event.target.value, event.currentTarget)
+                      }
+                      onClick={(event) => syncWikiMenu(event.currentTarget)}
+                      onKeyDown={handleEditorKeyDown}
+                      onKeyUp={handleEditorKeyUp}
+                      onSelect={(event) => syncWikiMenu(event.currentTarget)}
+                      placeholder="Share your ideas, code, and insights…"
+                      className="min-h-[520px] w-full resize-none px-6 py-6 text-[16px] leading-8 tracking-normal text-zinc-900 outline-none placeholder:text-zinc-400"
+                    />
+                    {wikiMenu ? (
+                      <WikiLinkMenu
+                        candidates={wikiCandidates}
+                        activeIndex={activeWikiCandidateIndex}
+                        query={wikiMenu.query}
+                        placement={wikiMenu.placement}
+                        top={wikiMenu.top}
+                        left={wikiMenu.left}
+                        onSelect={insertWikiLink}
+                        onHover={updateActiveWikiIndex}
+                      />
+                    ) : null}
+                  </div>
                 ) : (
                   <MarkdownPreview
                     title={deferredTitle}
                     description={deferredDescription}
                     topics={deferredTopics}
                     body={deferredBody}
+                    wikiLinks={activeWikiLinks}
                   />
                 )}
               </div>
@@ -650,11 +874,13 @@ function MarkdownPreview({
   description,
   topics,
   body,
+  wikiLinks,
 }: {
   title: string;
   description: string;
   topics: string[];
   body: string;
+  wikiLinks: WriteViewWikiLink[];
 }) {
   const hasContent =
     title.trim() || description.trim() || body.trim() || topics.length > 0;
@@ -704,6 +930,7 @@ function MarkdownPreview({
       <div className="mt-8 space-y-6 text-[16px] leading-8 text-zinc-700">
         <MarkdownContent
           markdown={body}
+          wikiLinks={wikiLinks}
           emptyFallback={
             <p className="text-zinc-400">
               Your markdown body will render here once you start writing.
@@ -713,6 +940,183 @@ function MarkdownPreview({
       </div>
     </article>
   );
+}
+
+function WikiLinkMenu({
+  candidates,
+  activeIndex,
+  query,
+  placement,
+  top,
+  left,
+  onSelect,
+  onHover,
+}: {
+  candidates: WriteViewPostReference[];
+  activeIndex: number;
+  query: string;
+  placement: WikiMenuPlacement;
+  top: number;
+  left: number;
+  onSelect: (post: WriteViewPostReference) => void;
+  onHover: (index: number) => void;
+}) {
+  return (
+    <div
+      className="absolute z-20 w-80 overflow-hidden rounded-[8px] border border-zinc-200 bg-white shadow-[0_18px_45px_rgba(24,24,27,0.16)]"
+      style={{ top, left }}
+      role="listbox"
+      aria-label="Post suggestions"
+      data-placement={placement}
+    >
+      <div className="border-b border-zinc-100 px-3 py-2 text-[11px] font-semibold uppercase tracking-normal text-zinc-400">
+        Link a post
+      </div>
+      {candidates.length > 0 ? (
+        <div className="max-h-48 overflow-y-auto p-1">
+          {candidates.map((post, index) => (
+            <button
+              key={post.slug}
+              type="button"
+              role="option"
+              aria-selected={index === activeIndex}
+              onMouseEnter={() => onHover(index)}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                onSelect(post);
+              }}
+              className={cn(
+                "block w-full rounded-[6px] px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                index === activeIndex
+                  ? "bg-zinc-950 text-white"
+                  : "text-zinc-800 hover:bg-zinc-100",
+              )}
+            >
+              <span className="block truncate text-sm font-semibold">
+                {post.title}
+              </span>
+              {post.description ? (
+                <span
+                  className={cn(
+                    "mt-0.5 block truncate text-xs",
+                    index === activeIndex ? "text-zinc-300" : "text-zinc-500",
+                  )}
+                >
+                  {post.description}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="px-3 py-4 text-sm text-zinc-500">
+          No posts match {query ? `"${query}"` : "this link"}.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getWikiCandidates(posts: WriteViewPostReference[], query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+  return posts
+    .filter((post) =>
+      normalizedQuery
+        ? post.title.toLowerCase().includes(normalizedQuery)
+        : true,
+    )
+    .slice(0, 8);
+}
+
+function getActiveWikiLinks(
+  body: string,
+  wikiLinks: WriteViewWikiLink[],
+): WriteViewWikiLink[] {
+  const labels = new Set(
+    Array.from(body.matchAll(/\[\[([^\[\]\n]+)]]/g), (match) =>
+      match[1].trim(),
+    ).filter(Boolean),
+  );
+
+  return normalizeWikiLinks(wikiLinks).filter((link) => labels.has(link.label));
+}
+
+function normalizeWikiLinks(links: WriteViewWikiLink[]) {
+  const normalized: WriteViewWikiLink[] = [];
+  const seen = new Set<string>();
+
+  for (const link of links) {
+    const label = link.label.trim();
+    const targetSlug = link.targetSlug.trim();
+    if (!label || !targetSlug) {
+      continue;
+    }
+
+    const key = `${label}\u0000${targetSlug}`;
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    normalized.push({ label, targetSlug });
+  }
+
+  return normalized;
+}
+
+function findWikiLinkTrigger(value: string, caretIndex: number) {
+  const beforeCaret = value.slice(0, caretIndex);
+  const startIndex = beforeCaret.lastIndexOf("[[");
+  if (startIndex < 0) {
+    return null;
+  }
+
+  const query = beforeCaret.slice(startIndex + 2);
+  if (query.includes("]") || query.includes("[") || query.includes("\n")) {
+    return null;
+  }
+
+  return {
+    query,
+    startIndex,
+  };
+}
+
+function getTextareaCaretPosition(
+  textarea: HTMLTextAreaElement,
+  caretIndex: number,
+) {
+  const computed = window.getComputedStyle(textarea);
+  const mirror = document.createElement("div");
+  const marker = document.createElement("span");
+
+  mirror.style.position = "absolute";
+  mirror.style.visibility = "hidden";
+  mirror.style.whiteSpace = "pre-wrap";
+  mirror.style.overflowWrap = "break-word";
+  mirror.style.wordWrap = "break-word";
+  mirror.style.boxSizing = computed.boxSizing;
+  mirror.style.width = `${textarea.clientWidth}px`;
+  mirror.style.font = computed.font;
+  mirror.style.lineHeight = computed.lineHeight;
+  mirror.style.letterSpacing = computed.letterSpacing;
+  mirror.style.padding = computed.padding;
+  mirror.style.border = computed.border;
+
+  mirror.textContent = textarea.value.slice(0, caretIndex);
+  marker.textContent = textarea.value.slice(caretIndex, caretIndex + 1) || ".";
+  mirror.appendChild(marker);
+  document.body.appendChild(mirror);
+
+  const lineHeight = Number.parseFloat(computed.lineHeight) || 32;
+  const position = {
+    left: marker.offsetLeft - textarea.scrollLeft,
+    top: marker.offsetTop - textarea.scrollTop,
+    height: lineHeight,
+  };
+
+  document.body.removeChild(mirror);
+  return position;
 }
 
 function normalizeTopic(value: string) {

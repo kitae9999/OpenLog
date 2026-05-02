@@ -11,6 +11,11 @@ type PostWriteResponse = {
   slug: string;
 };
 
+type PostWriteLink = {
+  label: string;
+  targetSlug: string;
+};
+
 const DESCRIPTION_MAX_LENGTH = 50;
 
 export type DeletePostResult =
@@ -27,7 +32,7 @@ export async function updatePostAction(
   _prevState: WriteActionState,
   formData: FormData,
 ): Promise<WriteActionState> {
-  const { title, description, content, topics, errors } =
+  const { title, description, content, topics, links, errors } =
     parsePostWriteForm(formData);
 
   if (Object.keys(errors).length > 0) {
@@ -47,6 +52,7 @@ export async function updatePostAction(
       description,
       content,
       topics,
+      links,
     }),
   });
 
@@ -110,6 +116,7 @@ function parsePostWriteForm(formData: FormData) {
     .map((value) => String(value).trim().toLowerCase())
     .filter(Boolean)
     .filter((value, index, list) => list.indexOf(value) === index);
+  const links = parsePostWriteLinks(formData);
 
   const errors: WriteActionState["errors"] = {};
 
@@ -132,8 +139,56 @@ function parsePostWriteForm(formData: FormData) {
     description,
     content,
     topics,
+    links,
     errors,
   };
+}
+
+function parsePostWriteLinks(formData: FormData): PostWriteLink[] {
+  const rawLinks = String(formData.get("links") ?? "");
+  if (!rawLinks) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(rawLinks) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    const links: PostWriteLink[] = [];
+    const seen = new Set<string>();
+
+    for (const item of parsed) {
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+
+      const { label, targetSlug } = item as Partial<PostWriteLink>;
+      const normalizedLabel = typeof label === "string" ? label.trim() : "";
+      const normalizedTargetSlug =
+        typeof targetSlug === "string" ? targetSlug.trim() : "";
+
+      if (!normalizedLabel || !normalizedTargetSlug) {
+        continue;
+      }
+
+      const key = `${normalizedLabel}\u0000${normalizedTargetSlug}`;
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      links.push({
+        label: normalizedLabel,
+        targetSlug: normalizedTargetSlug,
+      });
+    }
+
+    return links;
+  } catch {
+    return [];
+  }
 }
 
 async function getErrorMessage(response: Response, fallbackMessage: string) {

@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getPostDetail } from "@/entities/post/api/getPostDetail";
+import { getPublicUserPosts } from "@/entities/user/api/getPublicUserPosts";
 import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 import { updatePostAction } from "@/features/post/api/postActions";
 import {
@@ -40,13 +41,15 @@ export default async function EditPostPage({
 
   const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
 
-  if (!viewer) {
+  if (!viewer?.username) {
     redirect("/");
   }
 
   if (viewer.username !== detail.authorUsername) {
     redirect(articleHref);
   }
+
+  const authoredPosts = await getPublicUserPosts(viewer.username);
 
   return (
     <WriteView
@@ -61,6 +64,8 @@ export default async function EditPostPage({
         topics: detail.topics,
         content: detail.content,
       }}
+      authoredPosts={authoredPosts ?? []}
+      initialWikiLinks={detail.wikiLinks}
       draftStorageKey={`openlog.write.edit.${detail.id}.${detail.version}`}
       backHref={articleHref}
       backLabel="Back to story"

@@ -105,7 +105,17 @@ export default async function PublicPostPage({
             suggestCount={suggestions.length}
           >
             <div className="mt-8 space-y-6 text-[16px] leading-8 text-zinc-700">
-              <MarkdownContent markdown={detail.content} />
+              <MarkdownContent
+                markdown={detail.content}
+                wikiLinks={detail.wikiLinks.map((link) => ({
+                  label: link.label,
+                  href: buildPublicPostPath(
+                    detail.authorUsername,
+                    link.targetSlug,
+                  ),
+                  targetSlug: link.targetSlug,
+                }))}
+              />
             </div>
           </PostArticle>
         </main>

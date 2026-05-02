@@ -13,4 +13,6 @@ data class PostWriteRequest(
     val content: String,
 
     val topics: List<String> = emptyList(),
+
+    val links: List<PostLinkWriteRequest> = emptyList(),
 )

@@ -11,6 +11,11 @@ type PostWriteResponse = {
   slug: string;
 };
 
+type PostWriteLink = {
+  label: string;
+  targetSlug: string;
+};
+
 const DESCRIPTION_MAX_LENGTH = 50;
 
 export async function submitPost(
@@ -25,6 +30,7 @@ export async function submitPost(
     .map((value) => String(value).trim().toLowerCase())
     .filter(Boolean)
     .filter((value, index, list) => list.indexOf(value) === index);
+  const links = parsePostWriteLinks(formData);
 
   const errors: WriteActionState["errors"] = {};
 
@@ -59,6 +65,7 @@ export async function submitPost(
       description,
       content,
       topics,
+      links,
     }),
   });
 
@@ -87,4 +94,51 @@ export async function submitPost(
       form: errorBody?.message ?? "글을 발행하는 중 문제가 발생했습니다.",
     },
   };
+}
+
+function parsePostWriteLinks(formData: FormData): PostWriteLink[] {
+  const rawLinks = String(formData.get("links") ?? "");
+  if (!rawLinks) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(rawLinks) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    const links: PostWriteLink[] = [];
+    const seen = new Set<string>();
+
+    for (const item of parsed) {
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+
+      const { label, targetSlug } = item as Partial<PostWriteLink>;
+      const normalizedLabel = typeof label === "string" ? label.trim() : "";
+      const normalizedTargetSlug =
+        typeof targetSlug === "string" ? targetSlug.trim() : "";
+
+      if (!normalizedLabel || !normalizedTargetSlug) {
+        continue;
+      }
+
+      const key = `${normalizedLabel}\u0000${normalizedTargetSlug}`;
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      links.push({
+        label: normalizedLabel,
+        targetSlug: normalizedTargetSlug,
+      });
+    }
+
+    return links;
+  } catch {
+    return [];
+  }
 }

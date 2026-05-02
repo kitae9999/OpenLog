@@ -16,6 +16,7 @@ class PostTopic(
     post: Post,
     topic: Topic,
 ) {
+    //Todo: 복합키 대신 id + 유니크 제약으로 수정
     @EmbeddedId
     var id: PostTopicId = PostTopicId(
         postId = requireNotNull(post.id),
