@@ -40,8 +40,8 @@ class AuthController(
         request: HttpServletRequest,
         response: HttpServletResponse
     ): ResponseEntity<Void>{
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
-        val cookie = authService.logOut()
+        currentUserResolver.resolveCurrentUser(request)
+        val cookie = accessTokenCookieFactory.expire()
 
         response.addHeader(
             HttpHeaders.SET_COOKIE,
