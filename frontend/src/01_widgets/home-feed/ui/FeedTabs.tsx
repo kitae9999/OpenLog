@@ -12,7 +12,7 @@ export function FeedTabs({ active }: { active: TabKey }) {
           return (
             <Link
               key={tab.key}
-              href={tab.key === "home" ? "/" : "/?tab=following"}
+              href={getTabHref(tab.key)}
               className={cn(
                 "relative -mb-px inline-flex items-center gap-2 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
                 isActive
@@ -30,4 +30,8 @@ export function FeedTabs({ active }: { active: TabKey }) {
       </div>
     </div>
   );
+}
+
+function getTabHref(tab: TabKey) {
+  return tab === "home" ? "/" : `/?tab=${tab}`;
 }

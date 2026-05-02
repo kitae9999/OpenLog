@@ -5,7 +5,7 @@ import Link from "next/link";
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GuestActions } from "@/features/auth/ui";
-import { logoMarkClassName, logoWordmarkClassName, navLinks } from "./brand";
+import { logoMarkClassName, logoWordmarkClassName } from "./brand";
 import { ProfileMenu } from "./ProfileMenu";
 import { SearchBar } from "./SearchBar";
 
@@ -39,7 +39,7 @@ export function Header({
                 onClick={onSidebarToggle}
                 className="grid size-10 place-items-center rounded-full text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
-                <IconMenu isOpen={!!isSidebarOpen} className="size-5" />
+                <IconMenu className="size-5" />
               </button>
             ) : null}
 
@@ -58,24 +58,6 @@ export function Header({
               <span className={logoWordmarkClassName}>OpenLog</span>
             </Link>
           </div>
-
-          <nav
-            aria-label="Primary"
-            className="hidden items-center gap-6 md:flex"
-          >
-            {navLinks.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={cn(
-                  "text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                  item.label === "Home" && "text-zinc-950",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
         </div>
 
         <div className="flex items-center gap-3">
@@ -123,13 +105,7 @@ export function Header({
   );
 }
 
-function IconMenu({
-  isOpen,
-  className,
-}: {
-  isOpen: boolean;
-  className?: string;
-}) {
+function IconMenu({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -142,27 +118,18 @@ function IconMenu({
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
-        className={cn(
-          "origin-center transition-transform duration-300",
-          isOpen && "translate-y-[5px] rotate-45",
-        )}
       />
       <path
         d="M4 12h16"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
-        className={cn("transition-opacity duration-200", isOpen && "opacity-0")}
       />
       <path
         d="M4 17h16"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
-        className={cn(
-          "origin-center transition-transform duration-300",
-          isOpen && "-translate-y-[5px] -rotate-45",
-        )}
       />
     </svg>
   );

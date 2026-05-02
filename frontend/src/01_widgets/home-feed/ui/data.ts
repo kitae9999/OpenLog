@@ -1,6 +1,6 @@
 import { assets } from "@/shared/config/assets";
 
-export type TabKey = "home" | "following";
+export type TabKey = "home" | "following" | "liked";
 
 export type FeedPost = {
   id: string;
@@ -21,6 +21,7 @@ export const tabs: Array<{
 }> = [
   { key: "home", label: "Home" },
   { key: "following", label: "Following" },
+  { key: "liked", label: "Liked" },
 ];
 
 export const feedPosts: FeedPost[] = [
@@ -78,6 +79,8 @@ export const feedPosts: FeedPost[] = [
 ];
 
 export const followingPosts: FeedPost[] = feedPosts.slice(1, 4);
+
+export const likedPosts: FeedPost[] = [feedPosts[0], feedPosts[2]];
 
 export const recommendedTopics = [
   "React",

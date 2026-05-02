@@ -8,6 +8,7 @@ import { cn } from "@/shared/lib/cn";
 import {
   feedPosts,
   followingPosts,
+  likedPosts,
   tabs,
   type FeedPost,
   type TabKey,
@@ -27,7 +28,7 @@ export function HomeFeedShell({
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const posts = activeTab === "following" ? followingPosts : feedPosts;
+  const posts = getPostsForTab(activeTab);
 
   useEffect(() => {
     const query = window.matchMedia("(min-width: 1024px)");
@@ -83,9 +84,14 @@ export function HomeFeedShell({
         >
           <section
             aria-label="New posts"
-            className="mx-auto w-full max-w-[1012px] px-5 pb-16 pt-9 sm:px-8 lg:px-12"
+            className="mx-auto w-full max-w-[1012px] px-5 pb-16 pt-6 sm:px-8 lg:px-12"
           >
-            <FeedNav activeTab={activeTab} />
+            {activeTab === "home" ? (
+              <div className="flex items-center gap-2 border-b border-zinc-200/80 pb-4 text-[15px] font-semibold text-zinc-950">
+                <IconClock className="size-5 text-zinc-600" />
+                <h1>Recent</h1>
+              </div>
+            ) : null}
 
             <div className="divide-y divide-zinc-200/80">
               {posts.map((post) => (
@@ -126,7 +132,7 @@ function HomeSidebar({
             return (
               <Link
                 key={tab.key}
-                href={tab.key === "home" ? "/" : "/?tab=following"}
+                href={getTabHref(tab.key)}
                 aria-current={isActive ? "page" : undefined}
                 onClick={onNavigate}
                 className={cn(
@@ -138,8 +144,10 @@ function HomeSidebar({
               >
                 {tab.key === "home" ? (
                   <IconHome className="size-5" />
-                ) : (
+                ) : tab.key === "following" ? (
                   <IconUsers className="size-5" />
+                ) : (
+                  <IconHeart className="size-5" />
                 )}
                 {tab.label}
               </Link>
@@ -152,37 +160,6 @@ function HomeSidebar({
         </div>
       </nav>
     </aside>
-  );
-}
-
-function FeedNav({ activeTab }: { activeTab: TabKey }) {
-  return (
-    <div className="sticky top-16 z-10 border-b border-zinc-200/80 bg-white/95 pt-2 backdrop-blur">
-      <div className="flex items-end gap-9">
-        {tabs.map((tab) => {
-          const isActive = tab.key === activeTab;
-
-          return (
-            <Link
-              key={tab.key}
-              href={tab.key === "home" ? "/" : "/?tab=following"}
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "relative -mb-px py-4 text-[15px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                isActive
-                  ? "text-zinc-950"
-                  : "text-zinc-500 hover:text-zinc-950",
-              )}
-            >
-              {tab.label}
-              {isActive ? (
-                <span className="absolute inset-x-0 bottom-0 h-px bg-zinc-950" />
-              ) : null}
-            </Link>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
@@ -262,6 +239,22 @@ function ArticleCard({ post }: { post: FeedPost }) {
   );
 }
 
+function getPostsForTab(tab: TabKey) {
+  if (tab === "following") {
+    return followingPosts;
+  }
+
+  if (tab === "liked") {
+    return likedPosts;
+  }
+
+  return feedPosts;
+}
+
+function getTabHref(tab: TabKey) {
+  return tab === "home" ? "/" : `/?tab=${tab}`;
+}
+
 function IconHome({ className }: { className?: string }) {
   return (
     <svg
@@ -293,6 +286,45 @@ function IconUsers({ className }: { className?: string }) {
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconHeart({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M20.3 5.7a5.1 5.1 0 0 0-7.2 0L12 6.8l-1.1-1.1a5.1 5.1 0 1 0-7.2 7.2L12 21l8.3-8.1a5.1 5.1 0 0 0 0-7.2Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconClock({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 7.5V12l3 2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
       />
     </svg>
   );
