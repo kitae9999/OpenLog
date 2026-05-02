@@ -3,6 +3,7 @@ package io.github.kitae9999.openlog.auth
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseCookie
 import org.springframework.stereotype.Component
+import java.time.Duration
 
 @Component
 class AccessTokenCookieFactory(
@@ -24,6 +25,16 @@ class AccessTokenCookieFactory(
             .sameSite("Lax")
             .path("/")
             .maxAge(jwtTokenService.accessTokenTtl())
+            .build()
+    }
+
+    fun expire(): ResponseCookie {
+        return withCookieDomain(ResponseCookie.from(accessTokenCookieName, ""))
+            .httpOnly(true)
+            .secure(accessTokenCookieSecure)
+            .sameSite("Lax")
+            .path("/")
+            .maxAge(Duration.ZERO)
             .build()
     }
 

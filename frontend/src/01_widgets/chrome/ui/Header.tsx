@@ -4,8 +4,8 @@ import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GuestActions } from "@/features/auth/ui";
 import { logoMarkClassName, logoWordmarkClassName, navLinks } from "./brand";
+import { ProfileMenu } from "./ProfileMenu";
 import { SearchBar } from "./SearchBar";
-// import { getUser } from "@/features/auth/api/getUser";
 
 export function Header({
   isLoggedIn,
@@ -89,19 +89,10 @@ export function Header({
                 <span className="absolute right-[9px] top-[9px] size-2 rounded-full border-2 border-white bg-red-500" />
               </button>
 
-              <Link
-                href={profileHref ?? "/"}
-                aria-label="Your profile"
-                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-              >
-                <Image
-                  src={resolvedProfileImageUrl}
-                  alt="Profile avatar"
-                  width={32}
-                  height={32}
-                  className="size-8 rounded-full border border-zinc-200 object-cover"
-                />
-              </Link>
+              <ProfileMenu
+                profileHref={profileHref ?? "/"}
+                profileImageUrl={resolvedProfileImageUrl}
+              />
             </>
           ) : (
             <GuestActions />
