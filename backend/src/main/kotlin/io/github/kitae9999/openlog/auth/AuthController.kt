@@ -37,10 +37,8 @@ class AuthController(
 
     @PostMapping("logout")
     fun logOut(
-        request: HttpServletRequest,
         response: HttpServletResponse
     ): ResponseEntity<Void>{
-        currentUserResolver.resolveCurrentUser(request)
         val cookie = accessTokenCookieFactory.expire()
 
         response.addHeader(
