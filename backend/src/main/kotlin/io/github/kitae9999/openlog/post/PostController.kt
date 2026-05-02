@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.post
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
+import io.github.kitae9999.openlog.post.command.PostLinkWriteCommand
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.dto.PostWriteResponse
 import io.github.kitae9999.openlog.post.dto.PostWriteRequest
@@ -27,12 +28,13 @@ class PostController(
         @Valid @RequestBody postWriteRequest: PostWriteRequest
     ): ResponseEntity<PostWriteResponse> {
         val currentUser = currentUserResolver.resolveCurrentUser(request)
-        val (title, description, content, topics) = postWriteRequest
+        val (title, description, content, topics, links) = postWriteRequest
         val createdPost = postService.createPost(currentUser, PostWriteCommand(
             title = title,
             description = description,
             content = content,
             topics = topics,
+            links = links.map { PostLinkWriteCommand(label = it.label, targetSlug = it.targetSlug) },
         ))
 
         return ResponseEntity.status(201).body(createdPost)
@@ -58,7 +60,7 @@ class PostController(
         @Valid @RequestBody postWriteRequest: PostWriteRequest,
     ): ResponseEntity<PostWriteResponse> {
         val currentUser = currentUserResolver.resolveCurrentUser(request)
-        val (title, description, content, topics) = postWriteRequest
+        val (title, description, content, topics, links) = postWriteRequest
         val updatedPost = postService.updatePost(
             requireNotNull(currentUser.id),
             postId,
@@ -67,6 +69,7 @@ class PostController(
                 description = description,
                 content = content,
                 topics = topics,
+                links = links.map { PostLinkWriteCommand(label = it.label, targetSlug = it.targetSlug) },
             )
         )
 

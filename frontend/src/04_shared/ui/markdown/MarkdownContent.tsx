@@ -5,7 +5,7 @@ import { MarkdownCodeBlock } from "./MarkdownCodeBlock";
 
 type MarkdownBlock =
   | { type: "heading"; level: 1 | 2 | 3; text: string }
-  | { type: "paragraph"; text: string }
+  | { type: "paragraph"; lines: string[] }
   | { type: "quote"; lines: string[] }
   | { type: "unordered-list"; items: string[] }
   | { type: "ordered-list"; items: string[] }
@@ -13,14 +13,19 @@ type MarkdownBlock =
 
 export function MarkdownContent({
   markdown,
+  wikiLinks = [],
   variant = "default",
   emptyFallback = null,
 }: {
   markdown: string;
+  wikiLinks?: MarkdownWikiLink[];
   variant?: "default" | "compact";
   emptyFallback?: ReactNode;
 }) {
   const blocks = parseMarkdown(markdown);
+  const wikiLinksByLabel = new Map(
+    wikiLinks.map((link) => [link.label, link] as const),
+  );
 
   if (blocks.length === 0) {
     return <>{emptyFallback}</>;
@@ -60,14 +65,14 @@ export function MarkdownContent({
                   className,
                 )}
               >
-                {renderInlineContent(block.text, key)}
+                {renderInlineContent(block.text, key, wikiLinksByLabel)}
               </h3>
             );
           }
           case "paragraph":
             return (
               <p key={key} className={variant === "default" ? "max-w-[66ch]" : ""}>
-                {renderInlineContent(block.text, key)}
+                {renderInlineLines(block.lines, key, wikiLinksByLabel)}
               </p>
             );
           case "quote":
@@ -79,7 +84,11 @@ export function MarkdownContent({
                 <div className="space-y-3">
                   {block.lines.map((line, lineIndex) => (
                     <p key={`${key}-${lineIndex}`}>
-                      {renderInlineContent(line, `${key}-${lineIndex}`)}
+                      {renderInlineContent(
+                        line,
+                        `${key}-${lineIndex}`,
+                        wikiLinksByLabel,
+                      )}
                     </p>
                   ))}
                 </div>
@@ -90,7 +99,11 @@ export function MarkdownContent({
               <ul key={key} className="list-disc space-y-2 pl-6">
                 {block.items.map((item, itemIndex) => (
                   <li key={`${key}-${itemIndex}`}>
-                    {renderInlineContent(item, `${key}-${itemIndex}`)}
+                    {renderInlineContent(
+                      item,
+                      `${key}-${itemIndex}`,
+                      wikiLinksByLabel,
+                    )}
                   </li>
                 ))}
               </ul>
@@ -100,7 +113,11 @@ export function MarkdownContent({
               <ol key={key} className="list-decimal space-y-2 pl-6">
                 {block.items.map((item, itemIndex) => (
                   <li key={`${key}-${itemIndex}`}>
-                    {renderInlineContent(item, `${key}-${itemIndex}`)}
+                    {renderInlineContent(
+                      item,
+                      `${key}-${itemIndex}`,
+                      wikiLinksByLabel,
+                    )}
                   </li>
                 ))}
               </ol>
@@ -122,6 +139,12 @@ export function MarkdownContent({
     </div>
   );
 }
+
+export type MarkdownWikiLink = {
+  label: string;
+  href?: string;
+  targetSlug?: string;
+};
 
 function parseMarkdown(markdown: string): MarkdownBlock[] {
   const normalized = markdown.replace(/\r\n/g, "\n");
@@ -219,17 +242,21 @@ function parseMarkdown(markdown: string): MarkdownBlock[] {
 
     blocks.push({
       type: "paragraph",
-      text: paragraphLines.join(" "),
+      lines: paragraphLines,
     });
   }
 
   return blocks;
 }
 
-function renderInlineContent(text: string, keyPrefix: string): ReactNode[] {
+function renderInlineContent(
+  text: string,
+  keyPrefix: string,
+  wikiLinksByLabel: Map<string, MarkdownWikiLink>,
+): ReactNode[] {
   const nodes: ReactNode[] = [];
   const pattern =
-    /(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\))/g;
+    /(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)|\[\[([^\[\]\n]+)]])/g;
   let lastIndex = 0;
 
   for (const match of text.matchAll(pattern)) {
@@ -275,6 +302,39 @@ function renderInlineContent(text: string, keyPrefix: string): ReactNode[] {
           {match[5]}
         </a>,
       );
+    } else if (match[7]) {
+      const label = match[7].trim();
+      const wikiLink = wikiLinksByLabel.get(label);
+
+      if (wikiLink?.href) {
+        nodes.push(
+          <a
+            key={`${keyPrefix}-${matchIndex}`}
+            href={wikiLink.href}
+            className="rounded bg-emerald-50 px-1 py-0.5 font-medium text-[#087f5b] underline decoration-[#087f5b]/25 underline-offset-4"
+          >
+            {label}
+          </a>,
+        );
+      } else if (wikiLink) {
+        nodes.push(
+          <span
+            key={`${keyPrefix}-${matchIndex}`}
+            className="rounded bg-emerald-50 px-1 py-0.5 font-medium text-[#087f5b]"
+          >
+            {label}
+          </span>,
+        );
+      } else {
+        nodes.push(
+          <span
+            key={`${keyPrefix}-${matchIndex}`}
+            className="rounded bg-zinc-100 px-1 py-0.5 font-medium text-zinc-500"
+          >
+            {label}
+          </span>,
+        );
+      }
     }
 
     lastIndex = matchIndex + match[0].length;
@@ -285,6 +345,27 @@ function renderInlineContent(text: string, keyPrefix: string): ReactNode[] {
   }
 
   return nodes.length > 0 ? nodes : [text];
+}
+
+function renderInlineLines(
+  lines: string[],
+  keyPrefix: string,
+  wikiLinksByLabel: Map<string, MarkdownWikiLink>,
+): ReactNode[] {
+  return lines.flatMap((line, index) => {
+    const nodes = renderInlineContent(
+      line,
+      `${keyPrefix}-${index}`,
+      wikiLinksByLabel,
+    );
+
+    return index === 0
+      ? nodes
+      : [
+          <br key={`${keyPrefix}-${index}-break`} />,
+          ...nodes,
+        ];
+  });
 }
 
 function isStructuredMarkdownLine(line: string) {

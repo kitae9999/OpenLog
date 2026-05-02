@@ -12,6 +12,7 @@ data class PostDetailResponse(
     val publishedAtLabel: String,
     val version: Long,
     val topics: List<String>,
+    val wikiLinks: List<PostWikiLinkResponse> = emptyList(),
     val likes: Int = 0,
     val liked: Boolean = false,
     val comments: Int = 0,

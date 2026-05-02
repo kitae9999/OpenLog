@@ -17,6 +17,7 @@ class Follow(
     followingUser: User,
     followedUser: User,
 ) {
+    // Todo: 복합키 방식을 굳이 쓸 필요가 있나? id+ unique제약으로 수정하자
     @EmbeddedId
     var id: FollowId = FollowId(
         followingUserId = requireNotNull(followingUser.id),

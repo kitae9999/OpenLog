@@ -5,4 +5,10 @@ data class PostWriteCommand(
     val description: String,
     val content: String,
     val topics : List<String>,
+    val links: List<PostLinkWriteCommand> = emptyList(),
+)
+
+data class PostLinkWriteCommand(
+    val label: String,
+    val targetSlug: String,
 )

@@ -4,6 +4,7 @@ import io.github.kitae9999.openlog.auth.CurrentUserResolver
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
+import io.github.kitae9999.openlog.user.dto.PublicUserPostGraphResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserProfileResponse
 import io.github.kitae9999.openlog.user.dto.UpdateProfileRequest
 import jakarta.servlet.http.HttpServletRequest
@@ -34,6 +35,13 @@ class UserController(
         @PathVariable username: String,
     ): List<PublicUserPostSummaryResponse> {
         return userService.getPublicPosts(username)
+    }
+
+    @GetMapping("{username}/post-graph")
+    fun getPublicPostGraph(
+        @PathVariable username: String,
+    ): PublicUserPostGraphResponse {
+        return userService.getPublicPostGraph(username)
     }
 
     @GetMapping("{username}/posts/{titleSlug}")
