@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseCookie
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestClient
@@ -236,4 +237,21 @@ class AuthService(
 
     private fun buildStateKey(flowId: String): String =
         "$GOOGLE_STATE_KEY_PREFIX$flowId"
+
+    //Todo: refresh token 적용하면 로직 구체화, 현재는 쿠키날리기만
+    fun logOut(): ResponseCookie{
+        val cookie = expireCookie("openlog_access_token")
+        return cookie
+    }
+
+
+    private fun expireCookie(name: String): ResponseCookie{
+        return ResponseCookie.from(name, "")
+            .path("/")
+            .httpOnly(true)
+            .secure(true)
+            .sameSite("None")
+            .maxAge(0)
+            .build()
+    }
 }

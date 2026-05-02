@@ -6,6 +6,7 @@ import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.user.entity.User
 import jakarta.validation.Valid
 import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -33,6 +34,23 @@ class AuthController(
     @Value("\${app.frontend-home-url:http://localhost:3030}")
     private val frontendHomeUrl: String,
 ) {
+
+    @PostMapping("logout")
+    fun logOut(
+        request: HttpServletRequest,
+        response: HttpServletResponse
+    ): ResponseEntity<Void>{
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
+        val cookie = authService.logOut()
+
+        response.addHeader(
+            HttpHeaders.SET_COOKIE,
+            cookie.toString()
+        )
+
+        return ResponseEntity.noContent().build()
+    }
+
     @GetMapping("me")
     fun getMe(
         request: HttpServletRequest
@@ -135,8 +153,6 @@ class AuthController(
         )
     }
 
-//    @GetMapping("github")
-//    fun redirectToGithubOAuth(){
-//
-//    }
+
+
 }
