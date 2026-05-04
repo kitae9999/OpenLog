@@ -1,7 +1,7 @@
 package io.github.kitae9999.openlog.user
 
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
-import io.github.kitae9999.openlog.common.exception.BadRequestException
+import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.follow.FollowRepository
@@ -15,7 +15,6 @@ import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.post.resolveAuthorName
 import io.github.kitae9999.openlog.postlike.PostLikeRepository
-import io.github.kitae9999.openlog.postlike.entity.PostLike
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
 import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserPostGraphEdgeResponse
@@ -27,8 +26,6 @@ import io.github.kitae9999.openlog.user.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
-import java.time.LocalDateTime
-import java.util.Base64
 
 @Service
 class UserService(
@@ -43,7 +40,7 @@ class UserService(
     @Transactional
     fun getLikedPosts(userId: Long, cursor: String?, size: Int): RecentPostCursorResponse {
         val safeSize = size.coerceIn(1, LIKED_POSTS_PAGE_SIZE)
-        val cursorMarker = cursor?.let(::decodeLikedPostCursor)
+        val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
         val postLikes = if (cursorMarker == null) {
             postLikeRepository.findLikedPostsByUserId(
                 userId = userId,
@@ -83,7 +80,7 @@ class UserService(
             size = safeSize,
             nextCursor = pageItems.lastOrNull()
                 ?.takeIf { hasNext }
-                ?.let(::encodeLikedPostCursor),
+                ?.let { postLike -> DateTimeIdCursorCodec.encode(postLike.createdAt, requireNotNull(postLike.id)) },
             hasNext = hasNext,
         )
     }
@@ -242,36 +239,7 @@ class UserService(
         return commentRepository.countAllByPostIdIn(postIds).associate { it.postId to it.count }
     }
 
-    private fun encodeLikedPostCursor(postLike: PostLike): String {
-        val rawCursor = "${postLike.createdAt}|${requireNotNull(postLike.id)}"
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(rawCursor.toByteArray())
-    }
-
-    private fun decodeLikedPostCursor(cursor: String): LikedPostCursor {
-        val decodedCursor = runCatching {
-            String(Base64.getUrlDecoder().decode(cursor))
-        }.getOrElse {
-            throw BadRequestException("유효하지 않은 커서입니다.")
-        }
-        val delimiterIndex = decodedCursor.lastIndexOf('|')
-        if (delimiterIndex < 1 || delimiterIndex == decodedCursor.lastIndex) {
-            throw BadRequestException("유효하지 않은 커서입니다.")
-        }
-
-        return LikedPostCursor(
-            createdAt = runCatching { LocalDateTime.parse(decodedCursor.substring(0, delimiterIndex)) }
-                .getOrElse { throw BadRequestException("유효하지 않은 커서입니다.") },
-            id = decodedCursor.substring(delimiterIndex + 1).toLongOrNull()
-                ?: throw BadRequestException("유효하지 않은 커서입니다."),
-        )
-    }
-
     private companion object {
         const val LIKED_POSTS_PAGE_SIZE = 10
     }
-
-    private data class LikedPostCursor(
-        val createdAt: LocalDateTime,
-        val id: Long,
-    )
 }

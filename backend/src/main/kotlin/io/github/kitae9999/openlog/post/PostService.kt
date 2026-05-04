@@ -1,7 +1,7 @@
 package io.github.kitae9999.openlog.post
 
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
-import io.github.kitae9999.openlog.common.exception.BadRequestException
+import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
@@ -22,8 +22,6 @@ import io.github.kitae9999.openlog.user.entity.User
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
-import java.util.Base64
 import kotlin.jvm.optionals.getOrNull
 
 @Service
@@ -39,7 +37,7 @@ class PostService(
     @Transactional(readOnly = true)
     fun getRecentPosts(cursor: String?, size: Int): RecentPostCursorResponse {
         val safeSize = size.coerceIn(1, RECENT_POSTS_PAGE_SIZE)
-        val cursorMarker = cursor?.let(::decodeRecentPostCursor)
+        val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
         val recentPosts = if (cursorMarker == null) {
             postRepository.findAllByOrderByCreatedAtDescIdDesc(PageRequest.of(0, safeSize + 1))
         } else {
@@ -74,7 +72,7 @@ class PostService(
             size = safeSize,
             nextCursor = posts.lastOrNull()
                 ?.takeIf { hasNext }
-                ?.let(::encodeRecentPostCursor),
+                ?.let { post -> DateTimeIdCursorCodec.encode(post.createdAt, requireNotNull(post.id)) },
             hasNext = hasNext,
         )
     }
@@ -348,30 +346,6 @@ class PostService(
         return commentRepository.countAllByPostIdIn(postIds).associate { it.postId to it.count }
     }
 
-    private fun encodeRecentPostCursor(post: Post): String {
-        val rawCursor = "${post.createdAt}|${requireNotNull(post.id)}"
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(rawCursor.toByteArray())
-    }
-
-    private fun decodeRecentPostCursor(cursor: String): RecentPostCursor {
-        val decodedCursor = runCatching {
-            String(Base64.getUrlDecoder().decode(cursor))
-        }.getOrElse {
-            throw BadRequestException("유효하지 않은 커서입니다.")
-        }
-        val delimiterIndex = decodedCursor.lastIndexOf('|')
-        if (delimiterIndex < 1 || delimiterIndex == decodedCursor.lastIndex) {
-            throw BadRequestException("유효하지 않은 커서입니다.")
-        }
-
-        return RecentPostCursor(
-            createdAt = runCatching { LocalDateTime.parse(decodedCursor.substring(0, delimiterIndex)) }
-                .getOrElse { throw BadRequestException("유효하지 않은 커서입니다.") },
-            id = decodedCursor.substring(delimiterIndex + 1).toLongOrNull()
-                ?: throw BadRequestException("유효하지 않은 커서입니다."),
-        )
-    }
-
     private fun slugify(title: String): String {
         val slug = NON_SLUG_CHARACTERS.replace(title.trim().lowercase(), "-")
             .trim('-')
@@ -383,9 +357,4 @@ class PostService(
         private val NON_SLUG_CHARACTERS = Regex("[^\\p{L}\\p{N}]+")
         private val WIKI_LINK_PATTERN = Regex("\\[\\[([^\\[\\]\\n]+)]]")
     }
-
-    private data class RecentPostCursor(
-        val createdAt: LocalDateTime,
-        val id: Long,
-    )
 }
