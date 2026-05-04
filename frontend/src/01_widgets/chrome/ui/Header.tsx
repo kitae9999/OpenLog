@@ -27,7 +27,7 @@ export function Header({
   const resolvedProfileImageUrl = profileImageUrl ?? assets.defaultAvatar;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-[1083px] items-center justify-between gap-4 px-4 sm:px-8">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-3">

@@ -2,13 +2,24 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Header } from "@/widgets/chrome/ui";
+import type {
+  RecentPostCursorPage,
+  RecentPostSummary,
+} from "@/entities/post/api/getRecentPosts";
+import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
+import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import {
   feedPosts,
   followingPosts,
-  likedPosts,
   tabs,
   type FeedPost,
   type TabKey,
@@ -17,18 +28,60 @@ import {
 export function HomeFeedShell({
   activeTab,
   isLoggedIn,
+  initialHomePosts,
+  initialHomeNextCursor,
+  initialHomeHasNext,
+  initialLikedPosts,
+  initialLikedNextCursor,
+  initialLikedHasNext,
   profileImageUrl,
   profileHref,
   footer,
 }: {
   activeTab: TabKey;
   isLoggedIn: boolean;
+  initialHomePosts: RecentPostSummary[];
+  initialHomeNextCursor: string | null;
+  initialHomeHasNext: boolean;
+  initialLikedPosts: RecentPostSummary[];
+  initialLikedNextCursor: string | null;
+  initialLikedHasNext: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const posts = getPostsForTab(activeTab);
+  const [homePosts, setHomePosts] = useState<FeedPost[]>(() =>
+    initialHomePosts.map(toFeedPost),
+  );
+  const [likedFeedPosts, setLikedFeedPosts] = useState<FeedPost[]>(() =>
+    initialLikedPosts.map(toFeedPost),
+  );
+  const [homeNextCursor, setHomeNextCursor] = useState<string | null>(
+    initialHomeNextCursor,
+  );
+  const [likedNextCursor, setLikedNextCursor] = useState<string | null>(
+    initialLikedNextCursor,
+  );
+  const [hasNextHomePage, setHasNextHomePage] = useState(initialHomeHasNext);
+  const [hasNextLikedPage, setHasNextLikedPage] =
+    useState(initialLikedHasNext);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const isLoadingMoreRef = useRef(false);
+  const posts =
+    activeTab === "home"
+      ? homePosts
+      : activeTab === "liked"
+        ? likedFeedPosts
+        : getPostsForTab(activeTab);
+  const hasNextActivePage =
+    activeTab === "home"
+      ? hasNextHomePage
+      : activeTab === "liked"
+        ? hasNextLikedPage
+        : false;
 
   useEffect(() => {
     const query = window.matchMedia("(min-width: 1024px)");
@@ -44,6 +97,115 @@ export function HomeFeedShell({
       query.removeEventListener("change", syncSidebar);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isSidebarOpen || window.matchMedia("(min-width: 1024px)").matches) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscrollBehaviorY = document.body.style.overscrollBehaviorY;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehaviorY = "none";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehaviorY = previousOverscrollBehaviorY;
+    };
+  }, [isSidebarOpen]);
+
+  useEffect(() => {
+    setHomePosts(initialHomePosts.map(toFeedPost));
+    setHomeNextCursor(initialHomeNextCursor);
+    setHasNextHomePage(initialHomeHasNext);
+    setLoadError(null);
+  }, [initialHomePosts, initialHomeNextCursor, initialHomeHasNext]);
+
+  useEffect(() => {
+    setLikedFeedPosts(initialLikedPosts.map(toFeedPost));
+    setLikedNextCursor(initialLikedNextCursor);
+    setHasNextLikedPage(initialLikedHasNext);
+    setLoadError(null);
+  }, [initialLikedPosts, initialLikedNextCursor, initialLikedHasNext]);
+
+  const loadMorePosts = useCallback(async () => {
+    const endpoint =
+      activeTab === "home"
+        ? "/api/posts"
+        : activeTab === "liked"
+          ? "/api/users/me/liked-posts"
+          : null;
+    const cursor = activeTab === "home" ? homeNextCursor : likedNextCursor;
+
+    if (!endpoint || !hasNextActivePage || !cursor || isLoadingMoreRef.current) {
+      return;
+    }
+
+    isLoadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    setLoadError(null);
+
+    try {
+      const params = new URLSearchParams({
+        cursor,
+        size: "10",
+      });
+      const response = await fetch(`${endpoint}?${params}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to load posts.");
+      }
+
+      const page = (await response.json()) as RecentPostCursorPage;
+
+      if (activeTab === "home") {
+        setHomePosts((current) => [
+          ...current,
+          ...page.posts.map(toFeedPost),
+        ]);
+        setHomeNextCursor(page.nextCursor);
+        setHasNextHomePage(page.hasNext);
+      } else {
+        setLikedFeedPosts((current) => [
+          ...current,
+          ...page.posts.map(toFeedPost),
+        ]);
+        setLikedNextCursor(page.nextCursor);
+        setHasNextLikedPage(page.hasNext);
+      }
+    } catch {
+      setLoadError("Could not load more posts.");
+    } finally {
+      isLoadingMoreRef.current = false;
+      setIsLoadingMore(false);
+    }
+  }, [activeTab, hasNextActivePage, homeNextCursor, likedNextCursor]);
+
+  useEffect(() => {
+    if ((activeTab !== "home" && activeTab !== "liked") || !hasNextActivePage) {
+      return;
+    }
+
+    const sentinel = sentinelRef.current;
+    if (!sentinel) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMorePosts();
+        }
+      },
+      { rootMargin: "360px 0px" },
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeTab, hasNextActivePage, loadMorePosts]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-white text-zinc-950">
@@ -98,6 +260,26 @@ export function HomeFeedShell({
                 <ArticleCard key={post.id} post={post} />
               ))}
             </div>
+
+            {activeTab === "home" || activeTab === "liked" ? (
+              <div
+                ref={sentinelRef}
+                className="flex min-h-24 items-center justify-center py-6 text-sm text-zinc-500"
+                aria-live="polite"
+              >
+                {isLoadingMore
+                  ? "Loading posts..."
+                  : loadError
+                    ? loadError
+                    : posts.length === 0
+                      ? activeTab === "liked" && !isLoggedIn
+                        ? "Log in to see liked posts."
+                        : "No posts yet."
+                      : hasNextActivePage
+                        ? ""
+                        : "No more posts."}
+              </div>
+            ) : null}
           </section>
         </main>
       </div>
@@ -120,7 +302,7 @@ function HomeSidebar({
     <aside
       aria-label="Feed navigation"
       className={cn(
-        "fixed bottom-0 left-0 top-16 z-40 w-[282px] border-r border-zinc-200/80 bg-white transition-transform duration-300 ease-out",
+        "fixed bottom-0 left-0 top-16 z-40 w-[282px] border-r border-t border-zinc-200/80 bg-white transition-transform duration-300 ease-out",
         isOpen ? "translate-x-0" : "-translate-x-full",
       )}
     >
@@ -171,20 +353,18 @@ function ArticleCard({ post }: { post: FeedPost }) {
         className="group grid gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 sm:grid-cols-[minmax(0,1fr)_184px] sm:items-center"
       >
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-zinc-600">
-            <span className="grid size-6 place-items-center rounded-full bg-zinc-950 text-[11px] font-semibold text-white">
-              {post.author.charAt(0)}
-            </span>
-            {post.publication ? (
-              <>
-                <span>In {post.publication}</span>
-                <span className="text-zinc-300">by</span>
-              </>
-            ) : null}
-            <span className="font-medium text-zinc-800">{post.author}</span>
+          <div className="flex items-center gap-2 text-[13px] text-zinc-600">
+            <Image
+              src={post.profileImageSrc}
+              alt=""
+              width={24}
+              height={24}
+              className="size-6 rounded-full border border-zinc-200 object-cover"
+            />
+            <span className="font-medium text-zinc-800">{post.nickname}</span>
           </div>
 
-          <h2 className="mt-4 max-w-[680px] text-[24px] font-bold leading-[1.16] tracking-tight text-zinc-950 transition-colors group-hover:text-zinc-700 sm:text-[30px]">
+          <h2 className="mt-4 max-w-[680px] text-[24px] font-bold leading-[1.16] tracking-tight text-zinc-950 transition-colors group-hover:text-zinc-700 sm:text-[30px] [font-family:Georgia,serif]">
             {post.title}
           </h2>
 
@@ -204,36 +384,16 @@ function ArticleCard({ post }: { post: FeedPost }) {
         </div>
       </Link>
 
-      <div className="mt-5 flex items-center justify-between gap-4 text-[13px] text-zinc-500">
-        <div className="flex flex-wrap items-center gap-3">
-          <IconSparkle className="size-4 text-amber-500" />
-          <span>{post.dateLabel}</span>
-          <span className="inline-flex items-center gap-1.5">
-            <IconClap className="size-4" />
-            {post.readCount}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <IconComment className="size-4" />
-            {post.commentCount}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 text-zinc-500">
-          <button
-            type="button"
-            aria-label={`Save ${post.title}`}
-            className="grid size-8 place-items-center rounded-full transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-          >
-            <IconBookmark className="size-5" />
-          </button>
-          <button
-            type="button"
-            aria-label={`More actions for ${post.title}`}
-            className="grid size-8 place-items-center rounded-full transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-          >
-            <IconDots className="size-5" />
-          </button>
-        </div>
+      <div className="mt-5 flex flex-wrap items-center gap-3 text-[13px] text-zinc-500">
+        <span>{post.dateLabel}</span>
+        <span className="inline-flex items-center gap-1.5">
+          <IconComment className="size-4" />
+          {post.commentCount}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <IconHeart className="size-4" />
+          {post.likeCount}
+        </span>
       </div>
     </article>
   );
@@ -244,11 +404,36 @@ function getPostsForTab(tab: TabKey) {
     return followingPosts;
   }
 
-  if (tab === "liked") {
-    return likedPosts;
-  }
-
   return feedPosts;
+}
+
+const FEED_THUMBNAILS = [
+  "/feed/operational-notes.svg",
+  "/feed/review-cadence.svg",
+  "/feed/knowledge-graph.svg",
+  "/feed/quiet-interfaces.svg",
+] as const;
+
+function toFeedPost(post: RecentPostSummary): FeedPost {
+  return {
+    id: String(post.id),
+    nickname: post.authorName,
+    profileImageSrc: post.authorAvatarSrc || assets.defaultAvatar,
+    title: post.title,
+    description: post.description,
+    dateLabel: post.publishedAtLabel,
+    commentCount: formatCompactCount(post.comments),
+    likeCount: formatCompactCount(post.likes),
+    thumbnailSrc: FEED_THUMBNAILS[post.id % FEED_THUMBNAILS.length],
+    href: buildPublicPostPath(post.authorUsername, post.slug),
+  };
+}
+
+function formatCompactCount(value: number) {
+  return new Intl.NumberFormat("en", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
 function getTabHref(tab: TabKey) {
@@ -330,25 +515,6 @@ function IconClock({ className }: { className?: string }) {
   );
 }
 
-function IconClap({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M7.5 11.5 5.8 8.1a1.4 1.4 0 0 1 2.5-1.25l1.85 3.7M10.2 10.6 7.9 5.8a1.45 1.45 0 0 1 2.6-1.25l2.55 5.35M13 10.2l-1.8-3.8a1.45 1.45 0 0 1 2.62-1.25L17.6 13M17.6 13l.95-2.65a1.35 1.35 0 0 1 2.6.68c-.9 5.5-3.3 8.15-7.25 8.15H12c-2.9 0-5.35-1.65-6.55-4.3l-1.2-2.65a1.45 1.45 0 0 1 2.6-1.28l1.15 2.1"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function IconComment({ className }: { className?: string }) {
   return (
     <svg
@@ -362,55 +528,6 @@ function IconComment({ className }: { className?: string }) {
         stroke="currentColor"
         strokeWidth="1.7"
         strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconSparkle({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M12 2.75 14.42 9.58 21.25 12l-6.83 2.42L12 21.25l-2.42-6.83L2.75 12l6.83-2.42L12 2.75Z" />
-    </svg>
-  );
-}
-
-function IconBookmark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M6.5 4.5A1.5 1.5 0 0 1 8 3h8a1.5 1.5 0 0 1 1.5 1.5V21L12 17.5 6.5 21V4.5Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconDots({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M6.5 12h.01M12 12h.01M17.5 12h.01"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
       />
     </svg>
   );

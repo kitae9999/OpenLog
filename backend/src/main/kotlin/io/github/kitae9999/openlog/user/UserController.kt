@@ -3,6 +3,7 @@ package io.github.kitae9999.openlog.user
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
+import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserPostGraphResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserProfileResponse
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -22,6 +24,18 @@ class UserController(
     private val userService: UserService,
     private val currentUserResolver: CurrentUserResolver,
 ) {
+    @GetMapping("me/liked-posts")
+    fun getLikedPosts(
+        request: HttpServletRequest,
+        @RequestParam(required = false) cursor: String?,
+        @RequestParam(defaultValue = "10") size: Int,
+    ): RecentPostCursorResponse {
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
+        val likedPosts = userService.getLikedPosts(requireNotNull(currentUser.id), cursor, size)
+
+        return likedPosts
+    }
+
     @GetMapping("{username}")
     fun getPublicProfile(
         @PathVariable username: String,

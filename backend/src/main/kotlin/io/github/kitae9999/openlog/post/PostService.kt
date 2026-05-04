@@ -1,21 +1,29 @@
 package io.github.kitae9999.openlog.post
 
+import io.github.kitae9999.openlog.comment.repository.CommentRepository
+import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
+import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
+import io.github.kitae9999.openlog.post.dto.RecentPostResponse
 import io.github.kitae9999.openlog.post.entity.PostLink
 import io.github.kitae9999.openlog.post.dto.PostWriteResponse
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
+import io.github.kitae9999.openlog.postlike.PostLikeRepository
 import io.github.kitae9999.openlog.posttopic.entity.PostTopic
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
 import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.topic.entity.Topic
 import io.github.kitae9999.openlog.topic.repository.TopicRepository
 import io.github.kitae9999.openlog.user.entity.User
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
+import java.util.Base64
 import kotlin.jvm.optionals.getOrNull
 
 @Service
@@ -25,7 +33,53 @@ class PostService(
     private val postTopicRepository: PostTopicRepository,
     private val suggestionRepository: SuggestionRepository,
     private val topicRepository: TopicRepository,
+    private val postLikeRepository: PostLikeRepository,
+    private val commentRepository: CommentRepository,
 ) {
+    @Transactional(readOnly = true)
+    fun getRecentPosts(cursor: String?, size: Int): RecentPostCursorResponse {
+        val safeSize = size.coerceIn(1, RECENT_POSTS_PAGE_SIZE)
+        val cursorMarker = cursor?.let(::decodeRecentPostCursor)
+        val recentPosts = if (cursorMarker == null) {
+            postRepository.findAllByOrderByCreatedAtDescIdDesc(PageRequest.of(0, safeSize + 1))
+        } else {
+            postRepository.findRecentPostsAfterCursor(
+                createdAt = cursorMarker.createdAt,
+                id = cursorMarker.id,
+                pageable = PageRequest.of(0, safeSize + 1),
+            )
+        }
+        val hasNext = recentPosts.size > safeSize
+        val posts = recentPosts.take(safeSize)
+        val postIds = posts.mapNotNull { it.id } // 람다 결과가 null인 것들은 제외한 리스트 반환
+        val likeCounts = getPostLikeCounts(postIds)
+        val commentCounts = getPostCommentCounts(postIds)
+
+        return RecentPostCursorResponse(
+            posts = posts.map { post ->
+                val postId = requireNotNull(post.id)
+                RecentPostResponse(
+                    id = postId,
+                    slug = post.slug,
+                    title = post.title,
+                    description = post.description,
+                    publishedAtLabel = formatPublishedAtLabel(post),
+                    authorUsername = requireNotNull(post.author.username),
+                    authorName = resolveAuthorName(post),
+                    authorAvatarSrc = post.author.profileImageUrl,
+                    likes = likeCounts[postId]?.toInt() ?: 0,
+                    comments = commentCounts[postId]?.toInt() ?: 0,
+                )
+            },
+            size = safeSize,
+            nextCursor = posts.lastOrNull()
+                ?.takeIf { hasNext }
+                ?.let(::encodeRecentPostCursor),
+            hasNext = hasNext,
+        )
+    }
+
+
     @Transactional
     fun createPost(user: User, postWriteCommand: PostWriteCommand): PostWriteResponse {
         val userId = requireNotNull(user.id)
@@ -278,6 +332,46 @@ class PostService(
         }
     }
 
+    private fun getPostLikeCounts(postIds: List<Long>): Map<Long, Long> {
+        if (postIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        return postLikeRepository.countAllByPostIdIn(postIds).associate { it.postId to it.count }
+    }
+
+    private fun getPostCommentCounts(postIds: List<Long>): Map<Long, Long> {
+        if (postIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        return commentRepository.countAllByPostIdIn(postIds).associate { it.postId to it.count }
+    }
+
+    private fun encodeRecentPostCursor(post: Post): String {
+        val rawCursor = "${post.createdAt}|${requireNotNull(post.id)}"
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(rawCursor.toByteArray())
+    }
+
+    private fun decodeRecentPostCursor(cursor: String): RecentPostCursor {
+        val decodedCursor = runCatching {
+            String(Base64.getUrlDecoder().decode(cursor))
+        }.getOrElse {
+            throw BadRequestException("유효하지 않은 커서입니다.")
+        }
+        val delimiterIndex = decodedCursor.lastIndexOf('|')
+        if (delimiterIndex < 1 || delimiterIndex == decodedCursor.lastIndex) {
+            throw BadRequestException("유효하지 않은 커서입니다.")
+        }
+
+        return RecentPostCursor(
+            createdAt = runCatching { LocalDateTime.parse(decodedCursor.substring(0, delimiterIndex)) }
+                .getOrElse { throw BadRequestException("유효하지 않은 커서입니다.") },
+            id = decodedCursor.substring(delimiterIndex + 1).toLongOrNull()
+                ?: throw BadRequestException("유효하지 않은 커서입니다."),
+        )
+    }
+
     private fun slugify(title: String): String {
         val slug = NON_SLUG_CHARACTERS.replace(title.trim().lowercase(), "-")
             .trim('-')
@@ -285,7 +379,13 @@ class PostService(
     }
 
     companion object {
+        private const val RECENT_POSTS_PAGE_SIZE = 10
         private val NON_SLUG_CHARACTERS = Regex("[^\\p{L}\\p{N}]+")
         private val WIKI_LINK_PATTERN = Regex("\\[\\[([^\\[\\]\\n]+)]]")
     }
+
+    private data class RecentPostCursor(
+        val createdAt: LocalDateTime,
+        val id: Long,
+    )
 }
