@@ -17,4 +17,19 @@ interface CommentRepository : JpaRepository<Comment, Long> {
         """
     )
     fun findAllWithUserByPostId(@Param("postId") postId: Long): List<Comment>
+
+    @Query(
+        """
+        select c.post.id as postId, count(c) as count
+        from Comment c
+        where c.post.id in :postIds
+        group by c.post.id
+        """
+    )
+    fun countAllByPostIdIn(@Param("postIds") postIds: Collection<Long>): List<CommentCount>
+}
+
+interface CommentCount {
+    val postId: Long
+    val count: Long
 }

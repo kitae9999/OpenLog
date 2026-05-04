@@ -12,8 +12,8 @@ export default async function Home({
 }
 
 function normalizeTab(value: string | undefined) {
-  if (value === "latest" || value === "following" || value === "trending") {
+  if (value === "home" || value === "following" || value === "liked") {
     return value;
   }
-  return "trending";
+  return "home";
 }

@@ -29,6 +29,11 @@ body {
     "Segoe UI Emoji";
 }
 
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
 @keyframes openlog-caret-blink {
   0%,
   49% {

@@ -1,5 +1,6 @@
 package io.github.kitae9999.openlog.post
 
+import io.github.kitae9999.openlog.comment.repository.CommentRepository
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.command.PostLinkWriteCommand
@@ -8,12 +9,15 @@ import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.entity.PostLink
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
+import io.github.kitae9999.openlog.postlike.PostLikeCount
+import io.github.kitae9999.openlog.postlike.PostLikeRepository
 import io.github.kitae9999.openlog.posttopic.entity.PostTopic
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
 import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.topic.entity.Topic
 import io.github.kitae9999.openlog.topic.repository.TopicRepository
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.comment.repository.CommentCount
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -30,6 +34,8 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageRequest
+import java.util.Base64
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
@@ -49,6 +55,12 @@ class PostServiceTest {
     @Mock
     private lateinit var topicRepository: TopicRepository
 
+    @Mock
+    private lateinit var postLikeRepository: PostLikeRepository
+
+    @Mock
+    private lateinit var commentRepository: CommentRepository
+
     private lateinit var postService: PostService
 
     @BeforeEach
@@ -59,6 +71,8 @@ class PostServiceTest {
             postTopicRepository = postTopicRepository,
             suggestionRepository = suggestionRepository,
             topicRepository = topicRepository,
+            postLikeRepository = postLikeRepository,
+            commentRepository = commentRepository,
         )
         lenient().`when`(postLinkRepository.findAllBySourcePostId(anyLong())).thenReturn(emptyList())
     }
@@ -80,6 +94,91 @@ class PostServiceTest {
         assertThat(postCaptor.value.author).isSameAs(user)
         assertThat(postCaptor.value.slug).isEqualTo("hello-openlog")
         assertThat(postCaptor.value.title).isEqualTo("Hello OpenLog")
+    }
+
+    @Test
+    fun `getRecentPosts returns first cursor page with capped page size`() {
+        val user = User(
+            id = 1L,
+            username = "alice",
+            nickname = "Alice",
+            profileImageUrl = "https://example.com/alice.png",
+        )
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "A short intro",
+            content = "Content",
+        )
+        given(postRepository.findAllByOrderByCreatedAtDescIdDesc(PageRequest.of(0, 11)))
+            .willReturn(listOf(post))
+        given(postLikeRepository.countAllByPostIdIn(listOf(10L))).willReturn(
+            listOf(object : PostLikeCount {
+                override val postId = 10L
+                override val count = 3L
+            })
+        )
+        given(commentRepository.countAllByPostIdIn(listOf(10L))).willReturn(
+            listOf(object : CommentCount {
+                override val postId = 10L
+                override val count = 2L
+            })
+        )
+
+        val response = postService.getRecentPosts(cursor = null, size = 30)
+
+        assertThat(response.size).isEqualTo(10)
+        assertThat(response.nextCursor).isNull()
+        assertThat(response.hasNext).isFalse()
+        val summary = response.posts.single()
+        assertThat(summary.id).isEqualTo(10L)
+        assertThat(summary.slug).isEqualTo("hello-openlog")
+        assertThat(summary.authorUsername).isEqualTo("alice")
+        assertThat(summary.authorName).isEqualTo("Alice")
+        assertThat(summary.authorAvatarSrc).isEqualTo("https://example.com/alice.png")
+        assertThat(summary.likes).isEqualTo(3)
+        assertThat(summary.comments).isEqualTo(2)
+    }
+
+    @Test
+    fun `getRecentPosts loads next cursor page`() {
+        val user = User(id = 1L, username = "alice", nickname = "Alice")
+        val cursorPost = Post(
+            id = 20L,
+            author = user,
+            slug = "cursor-post",
+            title = "Cursor Post",
+            description = "Cursor",
+            content = "Content",
+        )
+        val nextPost = Post(
+            id = 19L,
+            author = user,
+            slug = "next-post",
+            title = "Next Post",
+            description = "Next",
+            content = "Content",
+        )
+        val cursor = Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString("${cursorPost.createdAt}|20".toByteArray())
+        given(
+            postRepository.findRecentPostsAfterCursor(
+                cursorPost.createdAt,
+                20L,
+                PageRequest.of(0, 11),
+            )
+        ).willReturn(listOf(nextPost))
+        given(postLikeRepository.countAllByPostIdIn(listOf(19L))).willReturn(emptyList())
+        given(commentRepository.countAllByPostIdIn(listOf(19L))).willReturn(emptyList())
+
+        val response = postService.getRecentPosts(cursor = cursor, size = 10)
+
+        assertThat(response.posts.single().id).isEqualTo(19L)
+        assertThat(response.nextCursor).isNull()
+        assertThat(response.hasNext).isFalse()
     }
 
     @Test

@@ -419,7 +419,8 @@ function SecondBrainGraph({
     }
 
     const moved =
-      Math.abs(point.x - drag.startX) > 2 || Math.abs(point.y - drag.startY) > 2;
+      Math.abs(point.x - drag.startX) > 2 ||
+      Math.abs(point.y - drag.startY) > 2;
     drag.moved = drag.moved || moved;
     lastDragMovedRef.current = drag.moved;
     moveDraggedNode(drag.slug, point.x, point.y, false);
@@ -513,99 +514,92 @@ function SecondBrainGraph({
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
         >
-        <g transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}>
-          {graph.edges.map((edge, index) => {
-            const source = nodeStatesBySlug.get(edge.sourceSlug);
-            const target = nodeStatesBySlug.get(edge.targetSlug);
-            if (!source || !target) {
-              return null;
-            }
+          <g
+            transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}
+          >
+            {graph.edges.map((edge, index) => {
+              const source = nodeStatesBySlug.get(edge.sourceSlug);
+              const target = nodeStatesBySlug.get(edge.targetSlug);
+              if (!source || !target) {
+                return null;
+              }
 
-            const active =
-              !activeSlug ||
-              edge.sourceSlug === activeSlug ||
-              edge.targetSlug === activeSlug;
+              const active =
+                !activeSlug ||
+                edge.sourceSlug === activeSlug ||
+                edge.targetSlug === activeSlug;
 
-            return (
-              <line
-                key={`${edge.sourceSlug}-${edge.targetSlug}-${edge.label}-${index}`}
-                x1={source.x}
-                y1={source.y}
-                x2={target.x}
-                y2={target.y}
-                className="transition"
-                stroke={active ? "#52525b" : "#d4d4d8"}
-                strokeWidth={active ? 0.85 : 0.5}
-                strokeLinecap="round"
-                opacity={active ? 0.48 : 0.34}
-              />
-            );
-          })}
+              return (
+                <line
+                  key={`${edge.sourceSlug}-${edge.targetSlug}-${edge.label}-${index}`}
+                  x1={source.x}
+                  y1={source.y}
+                  x2={target.x}
+                  y2={target.y}
+                  className="transition"
+                  stroke={active ? "#52525b" : "#d4d4d8"}
+                  strokeWidth={active ? 0.85 : 0.5}
+                  strokeLinecap="round"
+                  opacity={active ? 0.48 : 0.34}
+                />
+              );
+            })}
 
-          {nodeStates.map((node) => {
-            const active =
-              !activeSlug ||
-              activeSlug === node.slug ||
-              connectedSlugs?.has(node.slug);
-            const href = buildPublicPostPath(username, node.slug);
+            {nodeStates.map((node) => {
+              const active =
+                !activeSlug ||
+                activeSlug === node.slug ||
+                connectedSlugs?.has(node.slug);
+              const href = buildPublicPostPath(username, node.slug);
 
-            return (
-              <g
-                key={node.slug}
-                role="link"
-                tabIndex={0}
-                aria-label={`Open ${node.title}`}
-                onPointerDown={(event) =>
-                  handleNodePointerDown(event, node.slug)
-                }
-                onPointerMove={handleNodePointerMove}
-                onPointerUp={handleNodePointerUp}
-                onPointerCancel={handleNodePointerUp}
-                onClick={(event) => handleNodeClick(event, href)}
-                onKeyDown={(event) => handleNodeKeyDown(event, href)}
-                onMouseEnter={() => setActiveSlug(node.slug)}
-                onMouseLeave={() => setActiveSlug(null)}
-                onFocus={() => setActiveSlug(node.slug)}
-                onBlur={() => setActiveSlug(null)}
-                className="cursor-pointer outline-none"
-              >
-                <g className="transition">
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={18}
-                    fill="transparent"
-                  />
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={activeSlug === node.slug ? 7.5 : 5.6}
-                    fill={activeSlug === node.slug ? "#18181b" : "#a1a1aa"}
-                    opacity={active ? 0.96 : 0.56}
-                    className="transition"
-                  />
-                  {showLabels ? (
-                    <text
-                      x={node.x}
-                      y={node.y + 20}
-                      textAnchor="middle"
-                      paintOrder="stroke"
-                      stroke="#ffffff"
-                      strokeWidth={4}
-                      strokeLinejoin="round"
-                      className={cn(
-                        "pointer-events-none text-[10px] font-medium transition",
-                        active ? "fill-zinc-800" : "fill-zinc-500",
-                      )}
-                    >
-                      {truncateNodeTitle(node.title)}
-                    </text>
-                  ) : null}
+              return (
+                <g
+                  key={node.slug}
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`Open ${node.title}`}
+                  onPointerDown={(event) =>
+                    handleNodePointerDown(event, node.slug)
+                  }
+                  onPointerMove={handleNodePointerMove}
+                  onPointerUp={handleNodePointerUp}
+                  onPointerCancel={handleNodePointerUp}
+                  onClick={(event) => handleNodeClick(event, href)}
+                  onKeyDown={(event) => handleNodeKeyDown(event, href)}
+                  onMouseEnter={() => setActiveSlug(node.slug)}
+                  onMouseLeave={() => setActiveSlug(null)}
+                  onFocus={() => setActiveSlug(node.slug)}
+                  onBlur={() => setActiveSlug(null)}
+                  className="cursor-pointer outline-none"
+                >
+                  <g className="transition">
+                    <circle cx={node.x} cy={node.y} r={18} fill="transparent" />
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={activeSlug === node.slug ? 7.5 : 5.6}
+                      fill={activeSlug === node.slug ? "#18181b" : "#a1a1aa"}
+                      opacity={active ? 0.96 : 0.56}
+                      className="transition"
+                    />
+                    {showLabels ? (
+                      <text
+                        x={node.x}
+                        y={node.y + 20}
+                        textAnchor="middle"
+                        className={cn(
+                          "pointer-events-none text-[10px] font-medium transition",
+                          active ? "fill-zinc-800" : "fill-zinc-500",
+                        )}
+                      >
+                        {truncateNodeTitle(node.title)}
+                      </text>
+                    ) : null}
+                  </g>
                 </g>
-              </g>
-            );
-          })}
-        </g>
+              );
+            })}
+          </g>
         </svg>
       </div>
     </div>

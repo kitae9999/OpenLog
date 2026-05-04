@@ -80,7 +80,7 @@ export function WriteView({
   authoredPosts = [],
   initialWikiLinks = [],
   draftStorageKey = DRAFT_STORAGE_KEY,
-  backHref = "/?tab=trending",
+  backHref = "/",
   backLabel = "Back to feed",
   submitLabel = "Publish",
   pendingSubmitLabel = "Publishing...",
@@ -138,7 +138,10 @@ export function WriteView({
   const deferredTopics = useDeferredValue(topics);
   const deferredBody = useDeferredValue(body);
   const activeWikiLinks = getActiveWikiLinks(body, wikiLinks);
-  const wikiCandidates = getWikiCandidates(authoredPosts, wikiMenu?.query ?? "");
+  const wikiCandidates = getWikiCandidates(
+    authoredPosts,
+    wikiMenu?.query ?? "",
+  );
   const activeWikiCandidateIndex =
     wikiCandidates.length === 0
       ? 0
@@ -181,7 +184,7 @@ export function WriteView({
     }
 
     const updatedAt = new Date().toISOString();
-      window.localStorage.setItem(
+    window.localStorage.setItem(
       draftStorageKey,
       JSON.stringify({
         title,
@@ -367,7 +370,8 @@ export function WriteView({
     const menuHeight = 244;
     const menuWidth = 320;
     const textareaRect = textarea.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - (textareaRect.top + caret.top + caret.height);
+    const spaceBelow =
+      window.innerHeight - (textareaRect.top + caret.top + caret.height);
     const placement: WikiMenuPlacement =
       spaceBelow < menuHeight + 24 && caret.top > menuHeight ? "top" : "bottom";
 
@@ -726,7 +730,10 @@ export function WriteView({
                       name="content"
                       value={body}
                       onChange={(event) =>
-                        handleBodyChange(event.target.value, event.currentTarget)
+                        handleBodyChange(
+                          event.target.value,
+                          event.currentTarget,
+                        )
                       }
                       onClick={(event) => syncWikiMenu(event.currentTarget)}
                       onKeyDown={handleEditorKeyDown}

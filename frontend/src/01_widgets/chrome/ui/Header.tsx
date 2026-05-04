@@ -1,9 +1,11 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GuestActions } from "@/features/auth/ui";
-import { logoMarkClassName, logoWordmarkClassName, navLinks } from "./brand";
+import { logoMarkClassName, logoWordmarkClassName } from "./brand";
 import { ProfileMenu } from "./ProfileMenu";
 import { SearchBar } from "./SearchBar";
 
@@ -12,50 +14,50 @@ export function Header({
   profileImageUrl,
   profileHref,
   showWriteAction = true,
+  isSidebarOpen,
+  onSidebarToggle,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
   showWriteAction?: boolean;
+  isSidebarOpen?: boolean;
+  onSidebarToggle?: () => void;
 }) {
   const resolvedProfileImageUrl = profileImageUrl ?? assets.defaultAvatar;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-[1083px] items-center justify-between gap-4 px-4 sm:px-8">
         <div className="flex items-center gap-8">
-          <Link
-            href="/"
-            className="flex items-center gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-          >
-            <span
-              className={cn(
-                "grid size-7 place-items-center rounded-lg bg-black text-[16px] text-white",
-                logoMarkClassName,
-              )}
-            >
-              O
-            </span>
-            <span className={logoWordmarkClassName}>OpenLog</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            {onSidebarToggle ? (
+              <button
+                type="button"
+                aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+                aria-expanded={isSidebarOpen}
+                onClick={onSidebarToggle}
+                className="grid size-10 place-items-center rounded-full text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                <IconMenu className="size-5" />
+              </button>
+            ) : null}
 
-          <nav
-            aria-label="Primary"
-            className="hidden items-center gap-6 md:flex"
-          >
-            {navLinks.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
+            <Link
+              href="/"
+              className="flex items-center gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              <span
                 className={cn(
-                  "text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                  item.label === "Trending" && "text-zinc-950",
+                  "grid size-7 place-items-center rounded-lg bg-black text-[16px] text-white",
+                  logoMarkClassName,
                 )}
               >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+                O
+              </span>
+              <span className={logoWordmarkClassName}>OpenLog</span>
+            </Link>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -100,6 +102,36 @@ export function Header({
         </div>
       </div>
     </header>
+  );
+}
+
+function IconMenu({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M4 7h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 12h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 17h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

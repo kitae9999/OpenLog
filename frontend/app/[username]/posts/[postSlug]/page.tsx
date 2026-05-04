@@ -99,7 +99,7 @@ export default async function PublicPostPage({
             }
             authorHref={authorHref}
             currentUserAvatarSrc={viewer?.profileImageUrl}
-            backHref="/?tab=trending"
+            backHref="/"
             articleHref={articleHref}
             suggestsHref={suggestsHref}
             suggestCount={suggestions.length}
@@ -151,7 +151,7 @@ export default async function PublicPostPage({
           contributors={contributors}
           authorHref={authorHref}
           currentUserAvatarSrc={viewer?.profileImageUrl}
-          backHref="/?tab=trending"
+          backHref="/"
           articleHref={articleHref}
           suggestsHref={suggestsHref}
           suggestCount={entry.suggestCount}
