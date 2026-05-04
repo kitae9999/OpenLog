@@ -370,10 +370,19 @@ export function WriteView({
     const menuHeight = 244;
     const menuWidth = 320;
     const textareaRect = textarea.getBoundingClientRect();
-    const spaceBelow =
-      window.innerHeight - (textareaRect.top + caret.top + caret.height);
+    const visibleTextareaTop = Math.max(0, textareaRect.top);
+    const visibleTextareaBottom = Math.min(
+      window.innerHeight,
+      textareaRect.bottom,
+    );
+    const caretViewportTop = textareaRect.top + caret.top;
+    const caretViewportBottom = caretViewportTop + caret.height;
+    const spaceAbove = Math.max(0, caretViewportTop - visibleTextareaTop);
+    const spaceBelow = Math.max(0, visibleTextareaBottom - caretViewportBottom);
     const placement: WikiMenuPlacement =
-      spaceBelow < menuHeight + 24 && caret.top > menuHeight ? "top" : "bottom";
+      spaceBelow < menuHeight + 24 && spaceAbove > spaceBelow
+        ? "top"
+        : "bottom";
 
     setWikiMenu({
       query: trigger.query,
@@ -738,6 +747,7 @@ export function WriteView({
                       onClick={(event) => syncWikiMenu(event.currentTarget)}
                       onKeyDown={handleEditorKeyDown}
                       onKeyUp={handleEditorKeyUp}
+                      onScroll={(event) => syncWikiMenu(event.currentTarget)}
                       onSelect={(event) => syncWikiMenu(event.currentTarget)}
                       placeholder="Share your ideas, code, and insights…"
                       className="min-h-[520px] w-full resize-none px-6 py-6 text-[16px] leading-8 tracking-normal text-zinc-900 outline-none placeholder:text-zinc-400"
