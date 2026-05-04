@@ -4,12 +4,35 @@ import { highlightCodeBlock } from "@/shared/lib/markdown/highlightCode";
 import { MarkdownCodeBlock } from "./MarkdownCodeBlock";
 
 type MarkdownBlock =
-  | { type: "heading"; level: 1 | 2 | 3; text: string }
+  | { type: "heading"; level: HeadingLevel; text: string }
   | { type: "paragraph"; lines: string[] }
   | { type: "quote"; lines: string[] }
   | { type: "unordered-list"; items: string[] }
   | { type: "ordered-list"; items: string[] }
   | { type: "code"; language: string; code: string };
+
+type HeadingLevel = 1 | 2 | 3 | 4 | 5;
+type HeadingTag = `h${HeadingLevel}`;
+
+const headingClassNamesByVariant: Record<
+  "default" | "compact",
+  Record<HeadingLevel, string>
+> = {
+  default: {
+    1: "text-[32px]",
+    2: "text-[28px]",
+    3: "text-[24px]",
+    4: "text-[20px]",
+    5: "text-[16px]",
+  },
+  compact: {
+    1: "text-[24px]",
+    2: "text-[22px]",
+    3: "text-[20px]",
+    4: "text-[18px]",
+    5: "text-[16px]",
+  },
+};
 
 export function MarkdownContent({
   markdown,
@@ -44,29 +67,18 @@ export function MarkdownContent({
 
         switch (block.type) {
           case "heading": {
-            const className =
-              variant === "default"
-                ? block.level === 1
-                  ? "text-[32px]"
-                  : block.level === 2
-                    ? "text-[26px]"
-                    : "text-[20px]"
-                : block.level === 1
-                  ? "text-[24px]"
-                  : block.level === 2
-                    ? "text-[20px]"
-                    : "text-[18px]";
+            const HeadingTag = `h${block.level}` as HeadingTag;
 
             return (
-              <h3
+              <HeadingTag
                 key={key}
                 className={cn(
-                  "[font-family:Georgia,serif] font-bold leading-tight tracking-[-0.03em] text-zinc-950",
-                  className,
+                  "[font-family:Georgia,serif] font-bold leading-tight text-zinc-950",
+                  headingClassNamesByVariant[variant][block.level],
                 )}
               >
                 {renderInlineContent(block.text, key, wikiLinksByLabel)}
-              </h3>
+              </HeadingTag>
             );
           }
           case "paragraph":
@@ -181,11 +193,11 @@ function parseMarkdown(markdown: string): MarkdownBlock[] {
       continue;
     }
 
-    const headingMatch = line.match(/^(#{1,3})\s+(.+)$/);
+    const headingMatch = line.match(/^(#{1,5})\s+(.+)$/);
     if (headingMatch) {
       blocks.push({
         type: "heading",
-        level: headingMatch[1].length as 1 | 2 | 3,
+        level: headingMatch[1].length as HeadingLevel,
         text: headingMatch[2],
       });
       index += 1;
@@ -208,7 +220,7 @@ function parseMarkdown(markdown: string): MarkdownBlock[] {
       const items: string[] = [];
 
       while (index < lines.length && isUnorderedListLine(lines[index])) {
-        items.push(lines[index].replace(/^[-*]\s+/, ""));
+        items.push(lines[index].replace(/^[-*+]\s+/, ""));
         index += 1;
       }
 
@@ -371,7 +383,7 @@ function renderInlineLines(
 function isStructuredMarkdownLine(line: string) {
   return (
     line.startsWith("```") ||
-    /^#{1,3}\s+/.test(line) ||
+    /^#{1,5}\s+/.test(line) ||
     line.startsWith(">") ||
     isUnorderedListLine(line) ||
     isOrderedListLine(line)
@@ -379,7 +391,7 @@ function isStructuredMarkdownLine(line: string) {
 }
 
 function isUnorderedListLine(line: string) {
-  return /^[-*]\s+/.test(line);
+  return /^[-*+]\s+/.test(line);
 }
 
 function isOrderedListLine(line: string) {
