@@ -11,11 +11,17 @@ import {
   useEffectEvent,
   useRef,
   useState,
+  type ClipboardEvent,
+  type DragEvent,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
 import { useFormStatus } from "react-dom";
 import { submitPost } from "@/app/write/actions";
+import {
+  getUploadImageAltText,
+  uploadMarkdownImage,
+} from "@/features/media/api/uploadMarkdownImage";
 import {
   initialWriteActionState,
   type WriteActionState,
@@ -34,6 +40,7 @@ type ComposerMode = "edit" | "preview";
 type WriteViewMode = "create" | "edit";
 type SaveReason = "auto" | "manual" | "restored" | "cleared";
 type WikiMenuPlacement = "bottom" | "top";
+type ImageUploadStatusKind = "info" | "error" | "success";
 type WriteAction = (
   prevState: WriteActionState,
   formData: FormData,
@@ -124,6 +131,11 @@ export function WriteView({
   const [statusMessage, setStatusMessage] = useState(
     defaultStatusMessage(writeMode),
   );
+  const [imageUploadStatus, setImageUploadStatus] = useState<{
+    kind: ImageUploadStatusKind;
+    message: string;
+  } | null>(null);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
   const [submitErrors, setSubmitErrors] = useState<WriteActionState["errors"]>(
     () => ({ ...initialWriteActionState.errors }),
@@ -137,6 +149,7 @@ export function WriteView({
   );
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const imageUploadStatusTimeoutRef = useRef<number | null>(null);
 
   const deferredTitle = useDeferredValue(title);
   const deferredDescription = useDeferredValue(description);
@@ -264,6 +277,14 @@ export function WriteView({
     }
   }, [activeWikiIndex, wikiCandidates.length]);
 
+  useEffect(() => {
+    return () => {
+      if (imageUploadStatusTimeoutRef.current !== null) {
+        window.clearTimeout(imageUploadStatusTimeoutRef.current);
+      }
+    };
+  }, []);
+
   function updateActiveWikiIndex(nextIndex: number) {
     activeWikiIndexRef.current = nextIndex;
     setActiveWikiIndex(nextIndex);
@@ -343,6 +364,188 @@ export function WriteView({
     clearError("content");
     if (textarea) {
       scheduleWikiMenuSync(textarea);
+    }
+  }
+
+  function showImageUploadStatus(
+    kind: ImageUploadStatusKind,
+    message: string,
+    timeoutMs = 3600,
+  ) {
+    if (imageUploadStatusTimeoutRef.current !== null) {
+      window.clearTimeout(imageUploadStatusTimeoutRef.current);
+    }
+
+    setImageUploadStatus({ kind, message });
+
+    if (timeoutMs > 0) {
+      imageUploadStatusTimeoutRef.current = window.setTimeout(() => {
+        setImageUploadStatus(null);
+        imageUploadStatusTimeoutRef.current = null;
+      }, timeoutMs);
+    }
+  }
+
+  function getCurrentEditorSelection(textarea = editorRef.current) {
+    if (!textarea) {
+      return {
+        selectionStart: body.length,
+        selectionEnd: body.length,
+      };
+    }
+
+    return {
+      selectionStart: textarea.selectionStart ?? textarea.value.length,
+      selectionEnd: textarea.selectionEnd ?? textarea.value.length,
+    };
+  }
+
+  function insertEditorText(
+    source: string,
+    insertedText: string,
+    selectionStart: number,
+    selectionEnd: number,
+  ) {
+    return (
+      source.slice(0, selectionStart) + insertedText + source.slice(selectionEnd)
+    );
+  }
+
+  function insertMarkdownAtSelection(markdown: string, textarea = editorRef.current) {
+    const { selectionStart, selectionEnd } = getCurrentEditorSelection(textarea);
+    const currentBody = textarea?.value ?? body;
+    const insertion = buildStandaloneMarkdownInsertion(
+      currentBody,
+      markdown,
+      selectionStart,
+      selectionEnd,
+    );
+    const nextBody = insertEditorText(
+      currentBody,
+      insertion.text,
+      selectionStart,
+      selectionEnd,
+    );
+    const nextSelection = selectionStart + insertion.text.length;
+
+    setBody(nextBody);
+    clearError("content");
+    handleModeChange("edit");
+
+    window.requestAnimationFrame(() => {
+      textarea?.focus();
+      textarea?.setSelectionRange(nextSelection, nextSelection);
+      if (textarea) {
+        syncWikiMenu(textarea);
+      }
+    });
+
+    return insertion.text;
+  }
+
+  async function handleImageFiles(files: File[], textarea = editorRef.current) {
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      return;
+    }
+
+    showImageUploadStatus(
+      "info",
+      imageFiles.length === 1
+        ? "Uploading image..."
+        : `Uploading ${imageFiles.length} images...`,
+      0,
+    );
+
+    const placeholders = imageFiles.map((file) => {
+      const uploadId = crypto.randomUUID();
+      const altText = getUploadImageAltText(file);
+
+      return {
+        file,
+        placeholder: `![${altText}](uploading://${uploadId})`,
+      };
+    });
+    insertMarkdownAtSelection(
+      placeholders.map(({ placeholder }) => placeholder).join("\n\n"),
+      textarea,
+    );
+
+    const results = await Promise.allSettled(
+      placeholders.map(async ({ file, placeholder }) => {
+        const uploaded = await uploadMarkdownImage(file);
+        return {
+          placeholder,
+          markdown: `![${uploaded.altText}](${uploaded.markdownUrl})`,
+        };
+      }),
+    );
+
+    setBody((current) =>
+      results.reduce((nextBody, result, index) => {
+        const { placeholder } = placeholders[index];
+        if (result.status === "fulfilled") {
+          return nextBody.replace(placeholder, result.value.markdown);
+        }
+
+        return nextBody.replace(
+          placeholder,
+          `![${getUploadImageAltText(placeholders[index].file)}](upload-failed://${index})`,
+        );
+      }, current),
+    );
+
+    const failedCount = results.filter((result) => result.status === "rejected").length;
+    if (failedCount > 0) {
+      showImageUploadStatus(
+        "error",
+        failedCount === 1
+          ? "Image upload failed. Check backend media upload support."
+          : `${failedCount} image uploads failed. Check backend media upload support.`,
+        6500,
+      );
+      return;
+    }
+
+    showImageUploadStatus(
+      "success",
+      imageFiles.length === 1 ? "Image uploaded." : "Images uploaded.",
+    );
+  }
+
+  function handleEditorPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const files = getImageFiles(event.clipboardData.files);
+    if (files.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    void handleImageFiles(files, event.currentTarget);
+  }
+
+  function handleEditorDrop(event: DragEvent<HTMLTextAreaElement>) {
+    const files = getImageFiles(event.dataTransfer.files);
+    if (files.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    setIsDraggingImage(false);
+    void handleImageFiles(files, event.currentTarget);
+  }
+
+  function handleEditorDragOver(event: DragEvent<HTMLTextAreaElement>) {
+    if (!hasImageTransfer(event.dataTransfer)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  function handleEditorDragEnter(event: DragEvent<HTMLTextAreaElement>) {
+    if (hasImageTransfer(event.dataTransfer)) {
+      setIsDraggingImage(true);
     }
   }
 
@@ -544,6 +747,11 @@ export function WriteView({
       return;
     }
 
+    if (action === "image" && payload?.file) {
+      void handleImageFiles([payload.file], textarea);
+      return;
+    }
+
     const selectionStart = textarea.selectionStart;
     const selectionEnd = textarea.selectionEnd;
     const selectedText = body.slice(selectionStart, selectionEnd);
@@ -717,10 +925,17 @@ export function WriteView({
               </div>
 
               <p
-                className="text-xs font-medium text-zinc-400 sm:text-right"
+                className={cn(
+                  "text-xs font-medium sm:text-right",
+                  imageUploadStatus?.kind === "error"
+                    ? "text-rose-600"
+                    : imageUploadStatus?.kind === "success"
+                      ? "text-emerald-700"
+                      : "text-zinc-400",
+                )}
                 aria-live="polite"
               >
-                {statusMessage}
+                {imageUploadStatus?.message ?? statusMessage}
               </p>
 
               {submitErrors.form ? (
@@ -754,13 +969,23 @@ export function WriteView({
                         )
                       }
                       onClick={(event) => syncWikiMenu(event.currentTarget)}
+                      onDragEnter={handleEditorDragEnter}
+                      onDragLeave={() => setIsDraggingImage(false)}
+                      onDragOver={handleEditorDragOver}
+                      onDrop={handleEditorDrop}
                       onKeyDown={handleEditorKeyDown}
                       onKeyUp={handleEditorKeyUp}
+                      onPaste={handleEditorPaste}
                       onScroll={(event) => syncWikiMenu(event.currentTarget)}
                       onSelect={(event) => syncWikiMenu(event.currentTarget)}
                       placeholder="Share your ideas, code, and insights…"
                       className="min-h-[520px] w-full resize-none px-6 py-6 text-[16px] leading-8 tracking-normal text-zinc-900 outline-none placeholder:text-zinc-400"
                     />
+                    {isDraggingImage ? (
+                      <div className="pointer-events-none absolute inset-3 grid place-items-center rounded-lg border-2 border-dashed border-emerald-400 bg-emerald-50/85 text-sm font-semibold text-emerald-800">
+                        Drop image to upload
+                      </div>
+                    ) : null}
                     {wikiMenu ? (
                       <WikiLinkMenu
                         candidates={wikiCandidates}
@@ -1159,6 +1384,37 @@ function normalizeTopics(values: string[]) {
     .filter(
       (value, index, list) => Boolean(value) && list.indexOf(value) === index,
     );
+}
+
+function getImageFiles(files: FileList) {
+  return Array.from(files).filter((file) => file.type.startsWith("image/"));
+}
+
+function hasImageTransfer(dataTransfer: DataTransfer) {
+  const items = Array.from(dataTransfer.items ?? []);
+  if (items.some((item) => item.kind === "file" && item.type.startsWith("image/"))) {
+    return true;
+  }
+
+  return Array.from(dataTransfer.types).includes("Files");
+}
+
+function buildStandaloneMarkdownInsertion(
+  source: string,
+  markdown: string,
+  selectionStart: number,
+  selectionEnd: number,
+) {
+  const before = source.slice(0, selectionStart);
+  const after = source.slice(selectionEnd);
+  const needsLeadingNewline = before.length > 0 && !before.endsWith("\n\n");
+  const needsTrailingNewline = after.length > 0 && !after.startsWith("\n\n");
+
+  return {
+    text: `${needsLeadingNewline ? "\n\n" : ""}${markdown}${
+      needsTrailingNewline ? "\n\n" : ""
+    }`,
+  };
 }
 
 function defaultStatusMessage(mode: WriteViewMode) {

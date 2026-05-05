@@ -268,7 +268,7 @@ function renderInlineContent(
 ): ReactNode[] {
   const nodes: ReactNode[] = [];
   const pattern =
-    /(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)|\[\[([^\[\]\n]+)]])/g;
+    /(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|!\[([^\]]*)\]\(([^)]+)\)|\[([^\]]+)\]\(([^)]+)\)|\[\[([^\[\]\n]+)]])/g;
   let lastIndex = 0;
 
   for (const match of text.matchAll(pattern)) {
@@ -302,20 +302,28 @@ function renderInlineContent(
           {match[4]}
         </code>,
       );
-    } else if (match[5] && match[6]) {
+    } else if (match[5] !== undefined && match[6]) {
+      nodes.push(
+        <MarkdownImage
+          key={`${keyPrefix}-${matchIndex}`}
+          alt={match[5]}
+          src={match[6]}
+        />,
+      );
+    } else if (match[7] && match[8]) {
       nodes.push(
         <a
           key={`${keyPrefix}-${matchIndex}`}
-          href={match[6]}
+          href={match[8]}
           target="_blank"
           rel="noreferrer"
           className="font-medium text-[#1f3f9f] underline decoration-[#1f3f9f]/30 underline-offset-4"
         >
-          {match[5]}
+          {match[7]}
         </a>,
       );
-    } else if (match[7]) {
-      const label = match[7].trim();
+    } else if (match[9]) {
+      const label = match[9].trim();
       const wikiLink = wikiLinksByLabel.get(label);
 
       if (wikiLink?.href) {
@@ -357,6 +365,34 @@ function renderInlineContent(
   }
 
   return nodes.length > 0 ? nodes : [text];
+}
+
+function MarkdownImage({ alt, src }: { alt: string; src: string }) {
+  if (src.startsWith("uploading://")) {
+    return (
+      <span className="my-4 block rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-sm font-medium text-zinc-500">
+        Uploading image...
+      </span>
+    );
+  }
+
+  if (src.startsWith("upload-failed://")) {
+    return (
+      <span className="my-4 block rounded-lg border border-rose-200 bg-rose-50 px-4 py-5 text-sm font-medium text-rose-700">
+        Image upload failed.
+      </span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      className="my-4 block max-h-[720px] max-w-full rounded-lg border border-zinc-200 object-contain"
+    />
+  );
 }
 
 function renderInlineLines(
