@@ -15,7 +15,12 @@ import { useFormStatus } from "react-dom";
 import type { SuggestionActionState } from "@/features/suggest/api/suggestionActions";
 import { cn } from "@/shared/lib/cn";
 import { buildDiffRows, type DiffRow } from "@/shared/lib/diffRows";
-import { formatSelection, type ToolbarAction } from "@/shared/lib/markdown";
+import {
+  formatSelection,
+  getImageFallbackText,
+  type ToolbarAction,
+  type ToolbarActionPayload,
+} from "@/shared/lib/markdown";
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 
 type ComposerMode = "edit" | "preview";
@@ -130,7 +135,10 @@ export function NewSuggestionView({
     });
   }
 
-  function insertFormatting(action: ToolbarAction) {
+  function insertFormatting(
+    action: ToolbarAction,
+    payload?: ToolbarActionPayload,
+  ) {
     const textarea = editorRef.current;
     if (!textarea) {
       return;
@@ -145,6 +153,7 @@ export function NewSuggestionView({
       selectedText,
       selectionStart,
       selectionEnd,
+      { fallbackText: getImageFallbackText(payload) },
     );
 
     setBody(nextValue);
@@ -156,7 +165,10 @@ export function NewSuggestionView({
     });
   }
 
-  function insertDescriptionFormatting(action: ToolbarAction) {
+  function insertDescriptionFormatting(
+    action: ToolbarAction,
+    payload?: ToolbarActionPayload,
+  ) {
     const textarea = descriptionRef.current;
     if (!textarea) {
       return;
@@ -171,6 +183,7 @@ export function NewSuggestionView({
       selectedText,
       selectionStart,
       selectionEnd,
+      { fallbackText: getImageFallbackText(payload) },
     );
 
     setDescription(nextValue);

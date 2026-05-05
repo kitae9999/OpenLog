@@ -29,7 +29,14 @@ export function Header({
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-[1083px] items-center justify-between gap-4 px-4 sm:px-8">
-        <div className="flex items-center gap-8">
+        <div
+          className={cn(
+            "flex items-center gap-8",
+            onSidebarToggle
+              ? "sm:ml-[clamp(-52px,calc((1051px-100vw)/2),-16px)]"
+              : null,
+          )}
+        >
           <div className="flex items-center gap-3">
             {onSidebarToggle ? (
               <button

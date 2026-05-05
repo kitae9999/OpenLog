@@ -21,7 +21,12 @@ import {
   type WriteActionState,
 } from "@/app/write/action-state";
 import { cn } from "@/shared/lib/cn";
-import { formatSelection, type ToolbarAction } from "@/shared/lib/markdown";
+import {
+  formatSelection,
+  getImageFallbackText,
+  type ToolbarAction,
+  type ToolbarActionPayload,
+} from "@/shared/lib/markdown";
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import { Footer, Header } from "@/widgets/chrome/ui";
 
@@ -530,7 +535,10 @@ export function WriteView({
     addTopic(topicInput);
   }
 
-  function insertFormatting(action: ToolbarAction) {
+  function insertFormatting(
+    action: ToolbarAction,
+    payload?: ToolbarActionPayload,
+  ) {
     const textarea = editorRef.current;
     if (!textarea) {
       return;
@@ -545,6 +553,7 @@ export function WriteView({
       selectedText,
       selectionStart,
       selectionEnd,
+      { fallbackText: getImageFallbackText(payload) },
     );
 
     setBody(nextValue);

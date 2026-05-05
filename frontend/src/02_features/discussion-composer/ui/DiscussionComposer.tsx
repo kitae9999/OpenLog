@@ -5,7 +5,9 @@ import { cn } from "@/shared/lib/cn";
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import {
   formatSelection,
+  getImageFallbackText,
   type ToolbarAction,
+  type ToolbarActionPayload,
 } from "@/shared/lib/markdown";
 
 type SubmitResult =
@@ -41,7 +43,10 @@ export function DiscussionComposer({
   const isEmpty = value.trim().length === 0;
   const canSubmit = Boolean(onSubmit) && !isEmpty && !isPending;
 
-  function insertFormatting(action: ToolbarAction) {
+  function insertFormatting(
+    action: ToolbarAction,
+    payload?: ToolbarActionPayload,
+  ) {
     const textarea = editorRef.current;
     if (!textarea) {
       return;
@@ -56,6 +61,7 @@ export function DiscussionComposer({
       selectedText,
       selectionStart,
       selectionEnd,
+      { fallbackText: getImageFallbackText(payload) },
     );
 
     setValue(nextValue);

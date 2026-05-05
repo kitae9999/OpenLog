@@ -2,11 +2,16 @@ export type ToolbarAction =
   | "bold"
   | "italic"
   | "link"
+  | "image"
   | "inline-code"
   | "code-block"
   | "quote"
   | "unordered-list"
   | "ordered-list";
+
+export type ToolbarActionPayload = {
+  file?: File;
+};
 
 export function formatSelection(
   action: ToolbarAction,
@@ -14,6 +19,9 @@ export function formatSelection(
   selectedText: string,
   selectionStart: number,
   selectionEnd: number,
+  options?: {
+    fallbackText?: string;
+  },
 ) {
   if (isBlockAction(action)) {
     const blockInsert = formatBlockInsertion(
@@ -29,7 +37,8 @@ export function formatSelection(
     }
   }
 
-  const fallbackSelection = selectedText || placeholderForAction(action);
+  const fallbackSelection =
+    selectedText || options?.fallbackText || placeholderForAction(action);
   let replacement = fallbackSelection;
   let nextSelectionStart = selectionStart;
   let nextSelectionEnd = selectionEnd;
@@ -50,13 +59,20 @@ export function formatSelection(
       nextSelectionStart = selectionStart + 1;
       nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
       break;
+    case "image":
+      replacement = `![${fallbackSelection}](https://example.com/image.webp)`;
+      nextSelectionStart = selectionStart + 2;
+      nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
+      break;
     case "inline-code":
       replacement = `\`${fallbackSelection}\``;
       nextSelectionStart = selectionStart + 1;
       nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
       break;
     case "code-block":
-      replacement = `\`\`\`\n${fallbackSelection}\n\`\`\``;
+      replacement = selectedText
+        ? `\`\`\`\n${fallbackSelection}\n\`\`\``
+        : "```\n\n```";
       nextSelectionStart = selectionStart + 4;
       nextSelectionEnd = nextSelectionStart + fallbackSelection.length;
       break;
@@ -85,6 +101,15 @@ export function formatSelection(
   };
 }
 
+export function getImageFallbackText(payload?: ToolbarActionPayload) {
+  const fileName = payload?.file?.name.trim();
+  if (!fileName) {
+    return undefined;
+  }
+
+  return fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
+}
+
 function placeholderForAction(action: ToolbarAction) {
   switch (action) {
     case "bold":
@@ -93,10 +118,12 @@ function placeholderForAction(action: ToolbarAction) {
       return "subtle emphasis";
     case "link":
       return "reference";
+    case "image":
+      return "image description";
     case "inline-code":
       return "npm run lint";
     case "code-block":
-      return "const answer = 42;";
+      return "";
     case "quote":
       return "Highlight a key takeaway.";
     case "unordered-list":
@@ -193,9 +220,9 @@ function buildBlockReplacement(
   switch (action) {
     case "code-block":
       return {
-        content: `\`\`\`\n${placeholder}\n\`\`\``,
+        content: "```\n\n```",
         selectionOffsetStart: 4,
-        selectionLength: placeholder.length,
+        selectionLength: 0,
       };
     case "quote":
       return {
