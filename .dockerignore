@@ -3,7 +3,10 @@
 _docs
 build
 frontend
-backend/build
+backend/build/*
+!backend/build/libs/
+backend/build/libs/*
+!backend/build/libs/app.jar
 **/.DS_Store
 **/.idea
 **/.next

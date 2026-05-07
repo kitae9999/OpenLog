@@ -59,8 +59,15 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Run backend tests
-        run: ./gradlew :backend:test
+      - name: Build and test backend
+        run: ./gradlew :backend:test :backend:bootJar
+
+      - name: Prepare backend jar for Docker
+        run: |
+          rm -f backend/build/libs/app.jar
+          JAR_PATH="$(find backend/build/libs -maxdepth 1 -name '*.jar' ! -name '*-plain.jar' ! -name 'app.jar' | head -n 1)"
+          test -n "$JAR_PATH"
+          cp "$JAR_PATH" backend/build/libs/app.jar
 
       - name: Compute image name
         id: meta
