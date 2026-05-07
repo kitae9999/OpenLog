@@ -16,7 +16,6 @@ export type Post = {
   versionLabel?: string;
   readTimeLabel?: string;
   tags: string[];
-  coverSrc: string;
   likes: number;
   liked?: boolean;
   comments: number;
@@ -121,7 +120,6 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
         publishedAtLabel: "2026. 2. 25.",
         readTimeLabel: "5 min read",
         tags: ["CSS", "Tooling"],
-        coverSrc: assets.postCover,
         likes: 890,
         comments: 12,
       },
@@ -235,7 +233,6 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
         publishedAtLabel: "2026. 2. 28.",
         readTimeLabel: "8 min read",
         tags: ["React", "Web Development", "Performance"],
-        coverSrc: assets.featuredCover,
         likes: 1240,
         comments: 24,
       },

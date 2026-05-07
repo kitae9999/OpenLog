@@ -88,7 +88,6 @@ export default async function PublicPostSuggestsPage({
               publishedAtLabel: detail.publishedAtLabel,
               versionLabel: formatPostVersionLabel(detail.version),
               tags: detail.topics,
-              coverSrc: assets.postCover,
               likes: detail.likes,
               liked: detail.liked,
               comments: detail.comments,

@@ -10,6 +10,7 @@ export type RecentPostSummary = {
   authorUsername: string;
   authorName: string;
   authorAvatarSrc: string | null;
+  thumbnailSrc: string | null;
   likes: number;
   comments: number;
 };

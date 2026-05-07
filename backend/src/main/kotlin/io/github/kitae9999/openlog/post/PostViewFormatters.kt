@@ -7,6 +7,19 @@ private val PUBLISHED_AT_FORMATTER = DateTimeFormatter.ofPattern("yyyy. M. d.")
 
 fun formatPublishedAtLabel(post: Post): String = post.createdAt.format(PUBLISHED_AT_FORMATTER)
 
+fun extractFirstMarkdownImageSrc(content: String): String? {
+    val imageSrc = MARKDOWN_IMAGE_PATTERN.find(content)
+        ?.groupValues
+        ?.getOrNull(1)
+        ?.trim()
+
+    return imageSrc?.takeIf {
+        it.isNotEmpty() &&
+            !it.startsWith("uploading://") &&
+            !it.startsWith("upload-failed://")
+    }
+}
+
 fun resolveAuthorName(post: Post): String {
     val author = post.author
     return when {
@@ -16,3 +29,5 @@ fun resolveAuthorName(post: Post): String {
         else -> "OpenLog member"
     }
 }
+
+private val MARKDOWN_IMAGE_PATTERN = Regex("""!\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)""")

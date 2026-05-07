@@ -11,7 +11,7 @@ export type FeedPost = {
   dateLabel: string;
   commentCount: string;
   likeCount: string;
-  thumbnailSrc: string;
+  thumbnailSrc?: string | null;
   href: string;
 };
 

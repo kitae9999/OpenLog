@@ -5,4 +5,5 @@ data class PublicUserPostSummaryResponse(
     val title: String,
     val description: String,
     val publishedAtLabel: String,
+    val thumbnailSrc: String?,
 )
