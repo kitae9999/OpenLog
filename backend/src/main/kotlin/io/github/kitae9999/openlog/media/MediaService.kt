@@ -13,6 +13,7 @@ import io.github.kitae9999.openlog.media.command.CreateMediaUploadUrlCommand
 import io.github.kitae9999.openlog.media.entity.MediaAsset
 import io.github.kitae9999.openlog.media.entity.MediaPurpose
 import io.github.kitae9999.openlog.media.entity.MediaStatus
+import io.github.kitae9999.openlog.media.exception.MediaStorageException
 import io.github.kitae9999.openlog.media.repository.MediaAssetRepository
 import io.github.kitae9999.openlog.media.result.MediaUploadUrlResult
 import io.github.kitae9999.openlog.post.entity.Post
@@ -57,20 +58,29 @@ class MediaService(
                 sizeBytes = command.sizeBytes,
             )
         )
-        val assetId = requireNotNull(mediaAsset.id)
+        val assetId = mediaAsset.publicId
 
         val blobInfo = BlobInfo.newBuilder(bucket, objectKey)
             .setContentType(command.contentType)
             .build()
-        val uploadUrl = storage.signUrl(
-            blobInfo,
-            uploadExpirationMinutes,
-            TimeUnit.MINUTES,
-            SignUrlOption.httpMethod(HttpMethod.PUT),
-            SignUrlOption.withContentType(),
-            SignUrlOption.withV4Signature(),
-            storageSignedUrlSigner.signWithOption(),
-        )
+        val uploadUrl = try {
+            storage.signUrl(
+                blobInfo,
+                uploadExpirationMinutes,
+                TimeUnit.MINUTES,
+                SignUrlOption.httpMethod(HttpMethod.PUT),
+                SignUrlOption.withContentType(),
+                SignUrlOption.withV4Signature(),
+                storageSignedUrlSigner.signWithOption(),
+            )
+        } catch (e: MediaStorageException) {
+            throw e
+        } catch (e: RuntimeException) {
+            throw MediaStorageException(
+                "이미지 업로드 URL을 생성할 수 없습니다. GCS credentials와 signed URL signer 설정을 확인해주세요.",
+                e,
+            )
+        }
 
         return MediaUploadUrlResult(
             assetId = assetId,
@@ -80,10 +90,8 @@ class MediaService(
     }
 
     @Transactional(readOnly = true)
-    fun createReadUrl(assetId: Long, viewerUserId: Long?): String {
-        val mediaAsset = mediaAssetRepository.findById(assetId).orElseThrow {
-            NotFoundException("이미지를 찾을 수 없습니다.")
-        }
+    fun createReadUrl(assetId: UUID, viewerUserId: Long?): String {
+        val mediaAsset = findByPublicId(assetId)
 
         if (mediaAsset.status == MediaStatus.DELETED) {
             throw NotFoundException("이미지를 찾을 수 없습니다.")
@@ -94,21 +102,28 @@ class MediaService(
         }
 
         val blobInfo = BlobInfo.newBuilder(mediaAsset.bucket, mediaAsset.objectKey).build()
-        return storage.signUrl(
-            blobInfo,
-            readExpirationMinutes,
-            TimeUnit.MINUTES,
-            SignUrlOption.httpMethod(HttpMethod.GET),
-            SignUrlOption.withV4Signature(),
-            storageSignedUrlSigner.signWithOption(),
-        ).toString()
+        return try {
+            storage.signUrl(
+                blobInfo,
+                readExpirationMinutes,
+                TimeUnit.MINUTES,
+                SignUrlOption.httpMethod(HttpMethod.GET),
+                SignUrlOption.withV4Signature(),
+                storageSignedUrlSigner.signWithOption(),
+            ).toString()
+        } catch (e: MediaStorageException) {
+            throw e
+        } catch (e: RuntimeException) {
+            throw MediaStorageException(
+                "이미지 읽기 URL을 생성할 수 없습니다. GCS credentials와 signed URL signer 설정을 확인해주세요.",
+                e,
+            )
+        }
     }
 
     @Transactional
-    fun markUploadCompleted(assetId: Long, currentUser: User) {
-        val mediaAsset = mediaAssetRepository.findById(assetId).orElseThrow {
-            NotFoundException("이미지를 찾을 수 없습니다.")
-        }
+    fun markUploadCompleted(assetId: UUID, currentUser: User) {
+        val mediaAsset = findByPublicId(assetId)
 
         if (mediaAsset.owner.id != currentUser.id) {
             throw ForbiddenException("이미지를 수정할 권한이 없습니다.")
@@ -127,15 +142,15 @@ class MediaService(
         val postId = requireNotNull(post.id)
         val activeAssetIds = extractAssetIds(content)
         val attachedAssets = mediaAssetRepository.findAllByPostId(postId)
-        val attachedAssetIds = attachedAssets.mapNotNull { it.id }.toSet()
+        val attachedAssetIds = attachedAssets.map { it.publicId }.toSet()
         var changed = false
 
         if (activeAssetIds.isEmpty()) {
             return attachedAssets.isNotEmpty()
         }
 
-        val assetsById = mediaAssetRepository.findAllByIdIn(activeAssetIds)
-            .associateBy { requireNotNull(it.id) }
+        val assetsById = mediaAssetRepository.findAllByPublicIdIn(activeAssetIds)
+            .associateBy { it.publicId }
 
         for (assetId in activeAssetIds) {
             val mediaAsset = assetsById[assetId] ?: throw NotFoundException("이미지를 찾을 수 없습니다.")
@@ -236,14 +251,21 @@ class MediaService(
         }
     }
 
-    private fun extractAssetIds(content: String): Set<Long> {
+    private fun findByPublicId(publicId: UUID): MediaAsset {
+        return mediaAssetRepository.findByPublicId(publicId)
+            ?: throw NotFoundException("이미지를 찾을 수 없습니다.")
+    }
+
+    private fun extractAssetIds(content: String): Set<UUID> {
         return ASSET_URL_PATTERN.findAll(content)
-            .mapNotNull { match -> match.groupValues[1].toLongOrNull() }
+            .mapNotNull { match ->
+                runCatching { UUID.fromString(match.groupValues[1]) }.getOrNull()
+            }
             .toSet()
     }
 
     companion object {
         private const val CLEANUP_BATCH_SIZE = 100
-        private val ASSET_URL_PATTERN = Regex("""/api/media/assets/(\d+)""")
+        private val ASSET_URL_PATTERN = Regex("""/api/media/assets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})""")
     }
 }

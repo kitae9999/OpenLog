@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import java.net.URI
+import java.util.UUID
 
 @RestController
 @RequestMapping("media")
@@ -44,7 +45,7 @@ class MediaController(
     @GetMapping("assets/{assetId}")
     fun redirectToAsset(
         request: HttpServletRequest,
-        @PathVariable assetId: Long,
+        @PathVariable assetId: UUID,
     ): ResponseEntity<Void> {
         val signedUrl = mediaService.createReadUrl(assetId, resolveUserIdOrNull(request))
 
@@ -57,7 +58,7 @@ class MediaController(
     @PatchMapping("assets/{assetId}/completion")
     fun completeUpload(
         request: HttpServletRequest,
-        @PathVariable assetId: Long,
+        @PathVariable assetId: UUID,
     ): ResponseEntity<Void> {
         val currentUser = currentUserResolver.resolveCurrentUser(request)
         mediaService.markUploadCompleted(assetId, currentUser)

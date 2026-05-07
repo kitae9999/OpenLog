@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import java.time.LocalDateTime
+import java.util.UUID
 
 @Entity
 @Table(name = "media_assets")
@@ -21,6 +22,7 @@ class MediaAsset(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
+    publicId: UUID = UUID.randomUUID(),
     owner: User,
     purpose: MediaPurpose,
     bucket: String,
@@ -29,6 +31,9 @@ class MediaAsset(
     sizeBytes: Long,
     status: MediaStatus = MediaStatus.PENDING,
 ) {
+    @Column(name = "public_id", nullable = false, unique = true)
+    val publicId: UUID = publicId
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "owner_user_id", nullable = false)
     var owner: User = owner
