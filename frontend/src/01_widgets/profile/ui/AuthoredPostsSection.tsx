@@ -155,11 +155,14 @@ function AuthoredPostList({
 
   return (
     <div>
-      {posts.map((post, index) => (
+      {posts.map((post) => (
         <Link
           key={post.slug}
           href={buildPublicPostPath(username, post.slug)}
-          className="group grid grid-cols-[minmax(0,1fr)_64px] items-start gap-4 rounded-xl border-b border-zinc-200/80 px-2 py-4 transition hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10"
+          className={cn(
+            "group grid items-start gap-4 rounded-xl border-b border-zinc-200/80 px-2 py-4 transition hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10",
+            post.thumbnailSrc ? "grid-cols-[minmax(0,1fr)_64px]" : "",
+          )}
         >
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-xs text-zinc-500">
@@ -186,15 +189,17 @@ function AuthoredPostList({
             </div>
           </div>
 
-          <div className="relative size-16 overflow-hidden rounded-[4px] bg-zinc-200">
-            <Image
-              src={index % 2 === 0 ? assets.featuredCover : assets.postCover}
-              alt={`${post.title} thumbnail`}
-              fill
-              sizes="64px"
-              className="object-cover transition duration-300 group-hover:scale-[1.03]"
-            />
-          </div>
+          {post.thumbnailSrc ? (
+            <div className="relative size-16 overflow-hidden rounded-[4px] bg-zinc-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={post.thumbnailSrc}
+                alt={`${post.title} thumbnail`}
+                loading="lazy"
+                className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+              />
+            </div>
+          ) : null}
         </Link>
       ))}
     </div>

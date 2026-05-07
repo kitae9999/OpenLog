@@ -110,6 +110,7 @@ class UserService(
                 title = post.title,
                 description = post.description,
                 publishedAtLabel = formatPublishedAtLabel(post),
+                thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
             )
         }
     }
