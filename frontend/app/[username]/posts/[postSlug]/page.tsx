@@ -71,7 +71,7 @@ export default async function PublicPostPage({
           profileHref={profileHref}
         />
 
-        <main className="mx-auto w-full max-w-[1083px] pb-16 pt-6 sm:px-8">
+        <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
           <PostArticle
             post={{
               title: detail.title,
@@ -144,7 +144,7 @@ export default async function PublicPostPage({
         profileHref={profileHref}
       />
 
-      <main className="mx-auto w-full max-w-[1083px] pb-16 pt-6 sm:px-8">
+      <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <PostArticle
           post={entry.post}
           contributors={contributors}
