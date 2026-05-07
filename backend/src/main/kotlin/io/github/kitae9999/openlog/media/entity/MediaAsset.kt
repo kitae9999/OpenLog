@@ -80,4 +80,25 @@ class MediaAsset(
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null
         protected set
+
+    fun markUploaded() {
+        if (status == MediaStatus.DELETED) {
+            return
+        }
+
+        status = MediaStatus.UPLOADED
+        uploadedAt = LocalDateTime.now()
+    }
+
+    fun attachTo(post: Post, nextObjectKey: String) {
+        this.post = post
+        this.objectKey = nextObjectKey
+        status = MediaStatus.ATTACHED
+        attachedAt = LocalDateTime.now()
+    }
+
+    fun markDeleted() {
+        status = MediaStatus.DELETED
+        deletedAt = LocalDateTime.now()
+    }
 }

@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -51,6 +52,17 @@ class MediaController(
             .header(HttpHeaders.CACHE_CONTROL, "private, max-age=300")
             .location(URI.create(signedUrl))
             .build()
+    }
+
+    @PatchMapping("assets/{assetId}/completion")
+    fun completeUpload(
+        request: HttpServletRequest,
+        @PathVariable assetId: Long,
+    ): ResponseEntity<Void> {
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
+        mediaService.markUploadCompleted(assetId, currentUser)
+
+        return ResponseEntity.noContent().build()
     }
 
     private fun resolveUserIdOrNull(request: HttpServletRequest): Long? {

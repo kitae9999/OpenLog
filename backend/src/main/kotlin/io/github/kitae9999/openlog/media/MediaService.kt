@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.media
 
 import com.google.cloud.storage.BlobInfo
+import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.HttpMethod
 import com.google.cloud.storage.Storage
 import com.google.cloud.storage.Storage.SignUrlOption
@@ -13,10 +14,13 @@ import io.github.kitae9999.openlog.media.entity.MediaPurpose
 import io.github.kitae9999.openlog.media.entity.MediaStatus
 import io.github.kitae9999.openlog.media.repository.MediaAssetRepository
 import io.github.kitae9999.openlog.media.result.MediaUploadUrlResult
+import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.user.entity.User
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -96,6 +100,88 @@ class MediaService(
         ).toString()
     }
 
+    @Transactional
+    fun markUploadCompleted(assetId: Long, currentUser: User) {
+        val mediaAsset = mediaAssetRepository.findById(assetId).orElseThrow {
+            NotFoundException("이미지를 찾을 수 없습니다.")
+        }
+
+        if (mediaAsset.owner.id != currentUser.id) {
+            throw ForbiddenException("이미지를 수정할 권한이 없습니다.")
+        }
+
+        val exists = storage.get(BlobId.of(mediaAsset.bucket, mediaAsset.objectKey))?.exists() == true
+        if (!exists) {
+            throw BadRequestException("업로드된 이미지 객체를 찾을 수 없습니다.")
+        }
+
+        mediaAsset.markUploaded()
+    }
+
+    @Transactional
+    fun syncPostAssets(post: Post, content: String, ownerId: Long): Boolean {
+        val postId = requireNotNull(post.id)
+        val activeAssetIds = extractAssetIds(content)
+        val attachedAssets = mediaAssetRepository.findAllByPostId(postId)
+        val attachedAssetIds = attachedAssets.mapNotNull { it.id }.toSet()
+        var changed = false
+
+        if (activeAssetIds.isEmpty()) {
+            return attachedAssets.isNotEmpty()
+        }
+
+        val assetsById = mediaAssetRepository.findAllByIdIn(activeAssetIds)
+            .associateBy { requireNotNull(it.id) }
+
+        for (assetId in activeAssetIds) {
+            val mediaAsset = assetsById[assetId] ?: throw NotFoundException("이미지를 찾을 수 없습니다.")
+            if (mediaAsset.owner.id != ownerId) {
+                throw ForbiddenException("이미지를 사용할 권한이 없습니다.")
+            }
+            if (mediaAsset.status == MediaStatus.DELETED) {
+                throw BadRequestException("삭제된 이미지는 사용할 수 없습니다.")
+            }
+            if (mediaAsset.post != null && mediaAsset.post?.id != postId) {
+                throw BadRequestException("다른 글에 연결된 이미지는 사용할 수 없습니다.")
+            }
+
+            val nextObjectKey = buildAttachedObjectKey(mediaAsset, postId)
+            if (mediaAsset.objectKey != nextObjectKey) {
+                storage.copy(
+                    Storage.CopyRequest.newBuilder()
+                        .setSource(BlobId.of(mediaAsset.bucket, mediaAsset.objectKey))
+                        .setTarget(BlobId.of(mediaAsset.bucket, nextObjectKey))
+                        .build()
+                )
+                storage.delete(BlobId.of(mediaAsset.bucket, mediaAsset.objectKey))
+            }
+
+            if (mediaAsset.post?.id != postId || mediaAsset.status != MediaStatus.ATTACHED || mediaAsset.objectKey != nextObjectKey) {
+                mediaAsset.attachTo(post, nextObjectKey)
+                changed = true
+            }
+        }
+
+        return changed || activeAssetIds != attachedAssetIds
+    }
+
+    @Transactional
+    fun cleanupOrphanAssets(): Int {
+        val expiredBefore = LocalDateTime.now().minusHours(24)
+        val targets = mediaAssetRepository.findAllByPostIsNullAndStatusInAndCreatedAtBefore(
+            statuses = listOf(MediaStatus.PENDING, MediaStatus.UPLOADED),
+            createdAt = expiredBefore,
+            pageable = PageRequest.of(0, CLEANUP_BATCH_SIZE),
+        )
+
+        for (mediaAsset in targets) {
+            storage.delete(BlobId.of(mediaAsset.bucket, mediaAsset.objectKey))
+            mediaAsset.markDeleted()
+        }
+
+        return targets.size
+    }
+
     private fun configuredBucketName(): String {
         val bucket = bucketName.trim()
         if (bucket.isBlank()) {
@@ -131,5 +217,29 @@ class MediaService(
             MediaPurpose.POST_BODY_IMAGE -> "post-assets/tmp/users/$userId/$fileId.webp"
             MediaPurpose.POST_COVER_IMAGE -> "post-assets/tmp/users/$userId/covers/$fileId.webp"
         }
+    }
+
+    private fun buildAttachedObjectKey(mediaAsset: MediaAsset, postId: Long): String {
+        if (!mediaAsset.objectKey.startsWith("post-assets/tmp/")) {
+            return mediaAsset.objectKey
+        }
+
+        val fileName = mediaAsset.objectKey.substringAfterLast("/")
+        return when (mediaAsset.purpose) {
+            MediaPurpose.POST_BODY_IMAGE -> "post-assets/posts/$postId/images/$fileName"
+            MediaPurpose.POST_COVER_IMAGE -> "post-assets/posts/$postId/cover/$fileName"
+            MediaPurpose.PROFILE_IMAGE -> mediaAsset.objectKey
+        }
+    }
+
+    private fun extractAssetIds(content: String): Set<Long> {
+        return ASSET_URL_PATTERN.findAll(content)
+            .mapNotNull { match -> match.groupValues[1].toLongOrNull() }
+            .toSet()
+    }
+
+    companion object {
+        private const val CLEANUP_BATCH_SIZE = 100
+        private val ASSET_URL_PATTERN = Regex("""/api/media/assets/(\d+)""")
     }
 }

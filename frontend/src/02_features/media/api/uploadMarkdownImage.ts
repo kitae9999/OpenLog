@@ -52,12 +52,29 @@ export async function uploadMarkdownImage(file: File) {
     throw new Error("Upload completed without an image URL.");
   }
 
+  await completeUpload(uploadTarget.assetId);
+
   return {
     assetId:
       uploadTarget.assetId === undefined ? undefined : String(uploadTarget.assetId),
     markdownUrl,
     altText: prepared.altText,
   } satisfies UploadedMarkdownImage;
+}
+
+async function completeUpload(assetId: UploadUrlResponse["assetId"]) {
+  if (assetId === undefined) {
+    return;
+  }
+
+  const response = await fetch(
+    `/api/media/assets/${encodeURIComponent(String(assetId))}/completion`,
+    { method: "PATCH" },
+  );
+
+  if (!response.ok) {
+    throw new Error("Could not confirm image upload.");
+  }
 }
 
 export function getUploadImageAltText(file: File) {

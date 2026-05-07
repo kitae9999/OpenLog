@@ -3,6 +3,7 @@ package io.github.kitae9999.openlog.post
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.media.MediaService
 import io.github.kitae9999.openlog.post.command.PostLinkWriteCommand
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.entity.Post
@@ -61,6 +62,9 @@ class PostServiceTest {
     @Mock
     private lateinit var commentRepository: CommentRepository
 
+    @Mock
+    private lateinit var mediaService: MediaService
+
     private lateinit var postService: PostService
 
     @BeforeEach
@@ -73,6 +77,7 @@ class PostServiceTest {
             topicRepository = topicRepository,
             postLikeRepository = postLikeRepository,
             commentRepository = commentRepository,
+            mediaService = mediaService,
         )
         lenient().`when`(postLinkRepository.findAllBySourcePostId(anyLong())).thenReturn(emptyList())
     }
