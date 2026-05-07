@@ -33,6 +33,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("com.google.api-client:google-api-client:2.7.0")
+    implementation(platform("com.google.cloud:libraries-bom:26.80.0"))
+    implementation("com.google.cloud:google-cloud-storage")
     implementation("io.jsonwebtoken:jjwt-api:0.12.7")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")

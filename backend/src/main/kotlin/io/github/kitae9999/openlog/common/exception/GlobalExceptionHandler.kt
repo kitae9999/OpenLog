@@ -3,6 +3,8 @@ package io.github.kitae9999.openlog.common.exception
 import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.auth.exception.UnauthorizedException
+import io.github.kitae9999.openlog.media.exception.MediaStorageException
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -11,6 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
+    private val logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
+
     @ExceptionHandler(InvalidOAuthStateException::class) // ::class는 클래스 참조 넘김
     fun handleInvalidOAuthState(e: InvalidOAuthStateException): ResponseEntity<ErrorResponse>{
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
@@ -90,6 +94,18 @@ class GlobalExceptionHandler {
             ErrorResponse(
                 code = "FORBIDDEN",
                 message = e.message ?: "권한이 없는 요청입니다."
+            )
+        )
+    }
+
+    @ExceptionHandler(MediaStorageException::class)
+    fun handleMediaStorageException(e: MediaStorageException): ResponseEntity<ErrorResponse> {
+        logger.warn("Media storage request failed: {}", e.message, e)
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+            ErrorResponse(
+                code = "MEDIA_STORAGE_UNAVAILABLE",
+                message = e.message ?: "이미지 저장소를 사용할 수 없습니다.",
             )
         )
     }

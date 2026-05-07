@@ -4,6 +4,7 @@ import io.github.kitae9999.openlog.comment.repository.CommentRepository
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.media.MediaService
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
 import io.github.kitae9999.openlog.post.dto.RecentPostResponse
@@ -33,6 +34,7 @@ class PostService(
     private val topicRepository: TopicRepository,
     private val postLikeRepository: PostLikeRepository,
     private val commentRepository: CommentRepository,
+    private val mediaService: MediaService,
 ) {
     @Transactional(readOnly = true)
     fun getRecentPosts(cursor: String?, size: Int): RecentPostCursorResponse {
@@ -99,6 +101,7 @@ class PostService(
         )
 
         syncPostLinks(savedPost, postWriteCommand)
+        mediaService.syncPostAssets(savedPost, content, userId)
 
         val normalizedTopics = normalizeTopics(topics)
         if (normalizedTopics.isEmpty()) {
@@ -160,12 +163,13 @@ class PostService(
         val isPostChanged = post.updatePost(nextSlug, title, description, content)
         val isTopicsChanged = replacePostTopics(post, topics)
         val isLinksChanged = syncPostLinks(post, postWriteCommand)
+        val isMediaChanged = mediaService.syncPostAssets(post, content, userId)
 
-        if (!isPostChanged && (isTopicsChanged || isLinksChanged)) { // Post의 제목, 설명, 본문이 바뀌지 않고 부가 관계만 바뀌었다면 Post 엔티티의 updatedAt만 최신화
+        if (!isPostChanged && (isTopicsChanged || isLinksChanged || isMediaChanged)) { // Post의 제목, 설명, 본문이 바뀌지 않고 부가 관계만 바뀌었다면 Post 엔티티의 updatedAt만 최신화
             post.touchUpdatedAt()
         }
 
-        if (isPostChanged || isTopicsChanged || isLinksChanged) {
+        if (isPostChanged || isTopicsChanged || isLinksChanged || isMediaChanged) {
             suggestionRepository.markOpenSuggestionsOutdated(postId)
         }
 
