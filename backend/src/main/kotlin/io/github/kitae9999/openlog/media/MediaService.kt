@@ -8,6 +8,7 @@ import com.google.cloud.storage.Storage.SignUrlOption
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.media.config.StorageSignedUrlSigner
 import io.github.kitae9999.openlog.media.command.CreateMediaUploadUrlCommand
 import io.github.kitae9999.openlog.media.entity.MediaAsset
 import io.github.kitae9999.openlog.media.entity.MediaPurpose
@@ -28,7 +29,8 @@ import java.util.concurrent.TimeUnit
 class MediaService(
     private val mediaAssetRepository: MediaAssetRepository,
     private val storage: Storage,
-    @Value("\${media.gcs.bucket-name:}")
+    private val storageSignedUrlSigner: StorageSignedUrlSigner,
+    @Value("\${media.gcs.bucket-name:\${GCS_BUCKET_NAME:}}")
     private val bucketName: String,
     @Value("\${media.signed-url.upload-expiration-minutes:15}")
     private val uploadExpirationMinutes: Long,
@@ -67,6 +69,7 @@ class MediaService(
             SignUrlOption.httpMethod(HttpMethod.PUT),
             SignUrlOption.withContentType(),
             SignUrlOption.withV4Signature(),
+            storageSignedUrlSigner.signWithOption(),
         )
 
         return MediaUploadUrlResult(
@@ -97,6 +100,7 @@ class MediaService(
             TimeUnit.MINUTES,
             SignUrlOption.httpMethod(HttpMethod.GET),
             SignUrlOption.withV4Signature(),
+            storageSignedUrlSigner.signWithOption(),
         ).toString()
     }
 
