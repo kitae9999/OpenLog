@@ -67,6 +67,7 @@ class PostService(
                     authorUsername = requireNotNull(post.author.username),
                     authorName = resolveAuthorName(post),
                     authorAvatarSrc = post.author.profileImageUrl,
+                    thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
                     likes = likeCounts[postId]?.toInt() ?: 0,
                     comments = commentCounts[postId]?.toInt() ?: 0,
                 )

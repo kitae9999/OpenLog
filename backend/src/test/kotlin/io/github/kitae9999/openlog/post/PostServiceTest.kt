@@ -115,7 +115,7 @@ class PostServiceTest {
             slug = "hello-openlog",
             title = "Hello OpenLog",
             description = "A short intro",
-            content = "Content",
+            content = "Intro\n\n![Cover](https://example.com/cover.webp)\n\nContent",
         )
         given(postRepository.findAllByOrderByCreatedAtDescIdDesc(PageRequest.of(0, 11)))
             .willReturn(listOf(post))
@@ -143,6 +143,7 @@ class PostServiceTest {
         assertThat(summary.authorUsername).isEqualTo("alice")
         assertThat(summary.authorName).isEqualTo("Alice")
         assertThat(summary.authorAvatarSrc).isEqualTo("https://example.com/alice.png")
+        assertThat(summary.thumbnailSrc).isEqualTo("https://example.com/cover.webp")
         assertThat(summary.likes).isEqualTo(3)
         assertThat(summary.comments).isEqualTo(2)
     }

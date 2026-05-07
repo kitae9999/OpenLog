@@ -10,6 +10,7 @@ import io.github.kitae9999.openlog.post.dto.PostDetailResponse
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
 import io.github.kitae9999.openlog.post.dto.RecentPostResponse
 import io.github.kitae9999.openlog.post.dto.PostWikiLinkResponse
+import io.github.kitae9999.openlog.post.extractFirstMarkdownImageSrc
 import io.github.kitae9999.openlog.post.formatPublishedAtLabel
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
@@ -73,6 +74,7 @@ class UserService(
                     authorUsername = requireNotNull(post.author.username),
                     authorName = resolveAuthorName(post),
                     authorAvatarSrc = post.author.profileImageUrl,
+                    thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
                     likes = likeCounts[postId]?.toInt() ?: 0,
                     comments = commentCounts[postId]?.toInt() ?: 0,
                 )

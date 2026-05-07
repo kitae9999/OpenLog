@@ -178,19 +178,6 @@ export function PostArticle({
             ) : null}
           </header>
 
-          <div className="mt-7 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm">
-            <div className="relative aspect-[16/9] w-full">
-              <Image
-                src={post.coverSrc}
-                alt="Post cover"
-                fill
-                priority
-                sizes="(min-width: 1024px) 768px, 100vw"
-                className="object-cover"
-              />
-            </div>
-          </div>
-
           {children}
 
           <div className="mt-10 flex justify-center lg:hidden">

@@ -346,11 +346,16 @@ function HomeSidebar({
 }
 
 function ArticleCard({ post }: { post: FeedPost }) {
+  const thumbnailSrc = post.thumbnailSrc;
+
   return (
     <article className="py-8">
       <Link
         href={post.href}
-        className="group grid gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 sm:grid-cols-[minmax(0,1fr)_184px] sm:items-center"
+        className={cn(
+          "group grid gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+          thumbnailSrc ? "sm:grid-cols-[minmax(0,1fr)_184px] sm:items-center" : "",
+        )}
       >
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[13px] text-zinc-600">
@@ -373,15 +378,17 @@ function ArticleCard({ post }: { post: FeedPost }) {
           </p>
         </div>
 
-        <div className="relative h-[126px] w-full overflow-hidden rounded-md border border-zinc-200 bg-zinc-100 sm:h-[118px]">
-          <Image
-            src={post.thumbnailSrc}
-            alt=""
-            fill
-            sizes="(min-width: 640px) 184px, 100vw"
-            className="object-cover transition duration-300 group-hover:scale-[1.03]"
-          />
-        </div>
+        {thumbnailSrc ? (
+          <div className="relative h-[126px] w-full overflow-hidden rounded-md border border-zinc-200 bg-zinc-100 sm:h-[118px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={thumbnailSrc}
+              alt=""
+              loading="lazy"
+              className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+            />
+          </div>
+        ) : null}
       </Link>
 
       <div className="mt-5 flex flex-wrap items-center gap-3 text-[13px] text-zinc-500">
@@ -407,13 +414,6 @@ function getPostsForTab(tab: TabKey) {
   return feedPosts;
 }
 
-const FEED_THUMBNAILS = [
-  "/feed/operational-notes.svg",
-  "/feed/review-cadence.svg",
-  "/feed/knowledge-graph.svg",
-  "/feed/quiet-interfaces.svg",
-] as const;
-
 function toFeedPost(post: RecentPostSummary): FeedPost {
   return {
     id: String(post.id),
@@ -424,7 +424,7 @@ function toFeedPost(post: RecentPostSummary): FeedPost {
     dateLabel: post.publishedAtLabel,
     commentCount: formatCompactCount(post.comments),
     likeCount: formatCompactCount(post.likes),
-    thumbnailSrc: FEED_THUMBNAILS[post.id % FEED_THUMBNAILS.length],
+    thumbnailSrc: post.thumbnailSrc,
     href: buildPublicPostPath(post.authorUsername, post.slug),
   };
 }
