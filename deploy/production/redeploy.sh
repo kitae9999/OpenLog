@@ -8,9 +8,11 @@ fi
 
 includes_service() {
   local service
+  local target="${1}"
+  shift
 
   for service in "$@"; do
-    if [[ "$service" == "debezium" ]]; then
+    if [[ "$service" == "$target" ]]; then
       return 0
     fi
   done
@@ -30,7 +32,7 @@ docker compose \
   -f docker-compose.production.yml \
   up -d "$@"
 
-if includes_service "$@"; then
+if includes_service "debezium" "$@"; then
   debezium_ready=false
 
   for _ in {1..30}; do
@@ -48,6 +50,14 @@ if includes_service "$@"; then
   fi
 
   ./debezium/register-openlog-postgres-connector.sh >/dev/null
+fi
+
+if includes_service "backend" "$@" || includes_service "nginx" "$@"; then
+  docker compose \
+    -p openlog \
+    --env-file production.env \
+    -f docker-compose.production.yml \
+    restart nginx
 fi
 
 docker image prune -f >/dev/null 2>&1 || true
