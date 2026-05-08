@@ -3,9 +3,14 @@ package io.github.kitae9999.openlog.notification
 import io.github.kitae9999.openlog.common.event.payload.PostPublishedEventPayload
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.follow.FollowRepository
+import io.github.kitae9999.openlog.notification.dto.NotificationActorResponse
+import io.github.kitae9999.openlog.notification.dto.NotificationListResponse
+import io.github.kitae9999.openlog.notification.dto.NotificationResponse
 import io.github.kitae9999.openlog.notification.entity.Notification
 import io.github.kitae9999.openlog.notification.entity.NotificationType
+import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import tools.jackson.databind.JsonNode
@@ -22,13 +27,27 @@ class NotificationService (
     private val userRepository: UserRepository,
     private val objectMapper: ObjectMapper,
 ) {
+    @Transactional(readOnly = true)
+    fun getNotifications(recipientId: Long, size: Int): NotificationListResponse {
+        val safeSize = size.coerceIn(1, NOTIFICATIONS_PAGE_SIZE) // size 변수를 지정한 범위의 값으로 자름
+        val notifications = notificationRepository.findAllByRecipient_IdOrderByCreatedAtDescIdDesc(
+            recipientId = recipientId,
+            pageable = PageRequest.of(0, safeSize),
+        )
+
+        return NotificationListResponse(
+            notifications = notifications.map { it.toResponse() },
+            size = safeSize,
+            unreadCount = notificationRepository.countByRecipient_IdAndReadAtIsNull(recipientId),
+        )
+    }
 
     @Transactional
     fun sendPostPublishedNotification(eventId: UUID, payload: PostPublishedEventPayload){
         val authorId = payload.author.id
         val author = userRepository.findById(authorId).getOrNull() ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val post = payload.post
-        val notificationPayload = objectMapper.valueToTree<JsonNode>(payload)
+        val notificationPayload = objectMapper.valueToTree<JsonNode>(payload) // JsonNode 타입으로 변환
         val createdAt = OffsetDateTime.ofInstant(payload.eventCreatedAt, ZoneOffset.UTC)
 
         val follows = followRepository.findAllByFollowedUser_IdOrderByCreatedAtDesc(authorId)
@@ -47,5 +66,32 @@ class NotificationService (
         }
 
         notificationRepository.saveAll(notifications)
+    }
+
+    private fun Notification.toResponse(): NotificationResponse {
+        return NotificationResponse(
+            id = requireNotNull(id),
+            type = type,
+            targetDomain = targetDomain,
+            targetId = targetId,
+            payload = payload,
+            actor = actor?.toActorResponse(),
+            readAt = readAt,
+            createdAt = createdAt,
+            unread = readAt == null,
+        )
+    }
+
+    private fun User.toActorResponse(): NotificationActorResponse {
+        return NotificationActorResponse(
+            id = requireNotNull(id),
+            username = username,
+            nickname = nickname,
+            profileImageUrl = profileImageUrl,
+        )
+    }
+
+    private companion object {
+        private const val NOTIFICATIONS_PAGE_SIZE = 20
     }
 }
