@@ -3,7 +3,7 @@ package io.github.kitae9999.openlog.common.event.payload
 import java.time.Instant
 
 data class PostPublishedEventPayload(
-    val post: PostPublushedPostPayload,
+    val post: PostPublishedPostPayload,
     val author: PostPublishedAuthorPayload,
     val eventCreatedAt: Instant,
 )
@@ -15,7 +15,7 @@ data class PostPublishedAuthorPayload(
     val profileImageUrl: String?,
 )
 
-data class PostPublushedPostPayload(
+data class PostPublishedPostPayload(
     val id: Long,
     val title: String,
     val slug: String,

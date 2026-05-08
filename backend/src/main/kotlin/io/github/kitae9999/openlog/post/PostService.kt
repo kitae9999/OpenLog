@@ -6,7 +6,7 @@ import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.common.event.payload.PostPublishedAuthorPayload
 import io.github.kitae9999.openlog.common.event.payload.PostPublishedEventPayload
-import io.github.kitae9999.openlog.common.event.payload.PostPublushedPostPayload
+import io.github.kitae9999.openlog.common.event.payload.PostPublishedPostPayload
 import io.github.kitae9999.openlog.common.outbox.OutboxEventWriter
 import io.github.kitae9999.openlog.media.MediaService
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
@@ -137,7 +137,7 @@ class PostService(
             entityId = postId.toString(),
             eventType = "POST_PUBLISHED",
             payload = PostPublishedEventPayload(
-                post = PostPublushedPostPayload(
+                post = PostPublishedPostPayload(
                     id = postId,
                     title = savedPost.title,
                     slug = savedPost.slug,
