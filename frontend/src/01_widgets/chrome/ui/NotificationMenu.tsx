@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { assets } from "@/shared/config/assets";
+import { cn } from "@/shared/lib/cn";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 
 type NotificationActor = {
@@ -39,6 +40,11 @@ type NotificationItem = {
 
 type NotificationListResponse = {
   notifications: NotificationItem[];
+  unreadCount: number;
+};
+
+type NotificationReadResponse = {
+  notification: NotificationItem;
   unreadCount: number;
 };
 
@@ -136,6 +142,34 @@ export function NotificationMenu() {
     };
   }, [isOpen]);
 
+  function handleNotificationSelect(notification: NotificationItem) {
+    setIsOpen(false);
+
+    if (!notification.unread) {
+      return;
+    }
+
+    setNotifications((current) =>
+      current.map((item) =>
+        item.id === notification.id
+          ? { ...item, readAt: new Date().toISOString(), unread: false }
+          : item,
+      ),
+    );
+    setUnreadCount((current) => Math.max(0, current - 1));
+
+    void markNotificationRead(notification.id)
+      .then((data) => {
+        setNotifications((current) =>
+          current.map((item) =>
+            item.id === data.notification.id ? data.notification : item,
+          ),
+        );
+        setUnreadCount(data.unreadCount);
+      })
+      .catch(() => undefined);
+  }
+
   return (
     <div ref={menuRef} className="relative">
       <button
@@ -192,7 +226,7 @@ export function NotificationMenu() {
                   <NotificationRow
                     key={notification.id}
                     notification={notification}
-                    onNavigate={() => setIsOpen(false)}
+                    onSelect={handleNotificationSelect}
                   />
                 ))
               : null}
@@ -216,12 +250,26 @@ async function fetchNotifications(size: number, signal: AbortSignal) {
   return (await response.json()) as NotificationListResponse;
 }
 
+async function markNotificationRead(notificationId: number) {
+  const response = await fetch(`/api/notifications/${notificationId}/read`, {
+    method: "PATCH",
+    cache: "no-store",
+    keepalive: true,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to mark notification as read.");
+  }
+
+  return (await response.json()) as NotificationReadResponse;
+}
+
 function NotificationRow({
   notification,
-  onNavigate,
+  onSelect,
 }: {
   notification: NotificationItem;
-  onNavigate: () => void;
+  onSelect: (notification: NotificationItem) => void;
 }) {
   const viewModel = getNotificationViewModel(notification);
   const avatarSrc =
@@ -229,7 +277,12 @@ function NotificationRow({
     notification.payload.author?.profileImageUrl ??
     assets.defaultAvatar;
   const content = (
-    <div className="flex min-w-0 gap-3 rounded-lg px-3 py-3 transition hover:bg-zinc-50">
+    <div
+      className={cn(
+        "flex min-w-0 cursor-pointer gap-3 rounded-lg px-3 py-3 transition hover:bg-zinc-50",
+        notification.unread ? null : "opacity-60 hover:opacity-80",
+      )}
+    >
       <Image
         src={avatarSrc}
         alt=""
@@ -263,11 +316,27 @@ function NotificationRow({
   );
 
   return viewModel.href ? (
-    <Link href={viewModel.href} role="menuitem" onClick={onNavigate}>
+    <Link
+      href={viewModel.href}
+      role="menuitem"
+      onClick={() => onSelect(notification)}
+    >
       {content}
     </Link>
   ) : (
-    <div role="menuitem">{content}</div>
+    <div
+      role="menuitem"
+      tabIndex={0}
+      onClick={() => onSelect(notification)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(notification);
+        }
+      }}
+    >
+      {content}
+    </div>
   );
 }
 

@@ -9,5 +9,8 @@ interface NotificationRepository: JpaRepository<Notification, Long> {
     @EntityGraph(attributePaths = ["actor"])
     fun findAllByRecipient_IdOrderByCreatedAtDescIdDesc(recipientId: Long, pageable: Pageable): List<Notification>
 
+    @EntityGraph(attributePaths = ["actor"])
+    fun findByIdAndRecipient_Id(notificationId: Long, recipientId: Long): Notification?
+
     fun countByRecipient_IdAndReadAtIsNull(recipientId: Long): Long
 }

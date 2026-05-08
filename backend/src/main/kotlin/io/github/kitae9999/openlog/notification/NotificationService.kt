@@ -5,6 +5,7 @@ import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.follow.FollowRepository
 import io.github.kitae9999.openlog.notification.dto.NotificationActorResponse
 import io.github.kitae9999.openlog.notification.dto.NotificationListResponse
+import io.github.kitae9999.openlog.notification.dto.NotificationReadResponse
 import io.github.kitae9999.openlog.notification.dto.NotificationResponse
 import io.github.kitae9999.openlog.notification.entity.Notification
 import io.github.kitae9999.openlog.notification.entity.NotificationType
@@ -35,6 +36,21 @@ class NotificationService (
         return NotificationListResponse(
             notifications = notifications.map { it.toResponse() },
             size = safeSize,
+            unreadCount = notificationRepository.countByRecipient_IdAndReadAtIsNull(recipientId),
+        )
+    }
+
+    @Transactional
+    fun markNotificationRead(recipientId: Long, notificationId: Long): NotificationReadResponse {
+        val notification = notificationRepository.findByIdAndRecipient_Id(
+            notificationId = notificationId,
+            recipientId = recipientId,
+        ) ?: throw NotFoundException("알림을 찾을 수 없습니다.")
+
+        notification.markRead()
+
+        return NotificationReadResponse(
+            notification = notification.toResponse(),
             unreadCount = notificationRepository.countByRecipient_IdAndReadAtIsNull(recipientId),
         )
     }

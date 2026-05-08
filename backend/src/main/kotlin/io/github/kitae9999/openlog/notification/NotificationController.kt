@@ -2,8 +2,11 @@ package io.github.kitae9999.openlog.notification
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
 import io.github.kitae9999.openlog.notification.dto.NotificationListResponse
+import io.github.kitae9999.openlog.notification.dto.NotificationReadResponse
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -24,6 +27,19 @@ class NotificationController(
         return notificationService.getNotifications(
             recipientId = requireNotNull(currentUser.id),
             size = size,
+        )
+    }
+
+    @PatchMapping("{notificationId}/read")
+    fun markNotificationRead(
+        request: HttpServletRequest,
+        @PathVariable notificationId: Long,
+    ): NotificationReadResponse {
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
+
+        return notificationService.markNotificationRead(
+            recipientId = requireNotNull(currentUser.id),
+            notificationId = notificationId,
         )
     }
 }

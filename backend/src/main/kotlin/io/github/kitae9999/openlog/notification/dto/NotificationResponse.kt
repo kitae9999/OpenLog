@@ -9,6 +9,11 @@ data class NotificationListResponse(
     val unreadCount: Long,
 )
 
+data class NotificationReadResponse(
+    val notification: NotificationResponse,
+    val unreadCount: Long,
+)
+
 data class NotificationResponse(
     val id: Long,
     val type: NotificationType,
