@@ -21,7 +21,7 @@ class OutboxEventWriter(
         occurredAt: Instant = Instant.now(),
     ): UUID {
         val eventId = UUID.randomUUID()
-        val payloadJson = objectMapper.writeValueAsString(payload)
+        val payloadJson = objectMapper.writeValueAsString(payload) // json 형식의 문자열로 변환
 
         jdbcTemplate.update(
             """
