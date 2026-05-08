@@ -14,7 +14,6 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
-import tools.jackson.databind.JsonNode
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -30,7 +29,7 @@ class Notification(
     type: NotificationType,
     targetDomain: String,
     targetId: String,
-    payload: JsonNode,
+    payload: Map<String, Any?>,
     createdAt: OffsetDateTime = OffsetDateTime.now(),
 ) {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -62,7 +61,7 @@ class Notification(
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
-    var payload: JsonNode = payload
+    var payload: Map<String, Any?> = payload
         protected set
 
     @Column(name = "read_at")

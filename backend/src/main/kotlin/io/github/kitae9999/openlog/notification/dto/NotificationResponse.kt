@@ -1,7 +1,6 @@
 package io.github.kitae9999.openlog.notification.dto
 
 import io.github.kitae9999.openlog.notification.entity.NotificationType
-import tools.jackson.databind.JsonNode
 import java.time.OffsetDateTime
 
 data class NotificationListResponse(
@@ -15,7 +14,7 @@ data class NotificationResponse(
     val type: NotificationType,
     val targetDomain: String,
     val targetId: String,
-    val payload: JsonNode,
+    val payload: Map<String, Any?>,
     val actor: NotificationActorResponse?,
     val readAt: OffsetDateTime?,
     val createdAt: OffsetDateTime,

@@ -13,8 +13,6 @@ import io.github.kitae9999.openlog.user.repository.UserRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import tools.jackson.databind.JsonNode
-import tools.jackson.databind.ObjectMapper
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -25,7 +23,6 @@ class NotificationService (
     private val notificationRepository: NotificationRepository,
     private val followRepository: FollowRepository,
     private val userRepository: UserRepository,
-    private val objectMapper: ObjectMapper,
 ) {
     @Transactional(readOnly = true)
     fun getNotifications(recipientId: Long, size: Int): NotificationListResponse {
@@ -47,7 +44,7 @@ class NotificationService (
         val authorId = payload.author.id
         val author = userRepository.findById(authorId).getOrNull() ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val post = payload.post
-        val notificationPayload = objectMapper.valueToTree<JsonNode>(payload) // JsonNode 타입으로 변환
+        val notificationPayload = payload.toNotificationPayload()
         val createdAt = OffsetDateTime.ofInstant(payload.eventCreatedAt, ZoneOffset.UTC)
 
         val follows = followRepository.findAllByFollowedUser_IdOrderByCreatedAtDesc(authorId)
@@ -88,6 +85,23 @@ class NotificationService (
             username = username,
             nickname = nickname,
             profileImageUrl = profileImageUrl,
+        )
+    }
+
+    private fun PostPublishedEventPayload.toNotificationPayload(): Map<String, Any?> {
+        return mapOf(
+            "post" to mapOf(
+                "id" to post.id,
+                "title" to post.title,
+                "slug" to post.slug,
+            ),
+            "author" to mapOf(
+                "id" to author.id,
+                "username" to author.username,
+                "nickname" to author.nickname,
+                "profileImageUrl" to author.profileImageUrl,
+            ),
+            "eventCreatedAt" to eventCreatedAt.toString(),
         )
     }
 
