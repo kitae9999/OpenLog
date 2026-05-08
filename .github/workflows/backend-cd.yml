@@ -140,9 +140,9 @@ jobs:
           PRODUCTION_GHCR_USERNAME: ${{ secrets.PRODUCTION_GHCR_USERNAME }}
         run: |
           if [[ "${{ needs.changes.outputs.nginx_changed }}" == "true" ]]; then
-            SERVICES="kafka backend nginx"
+            SERVICES="kafka debezium backend nginx"
           else
-            SERVICES="kafka backend"
+            SERVICES="kafka debezium backend"
           fi
 
           ssh "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}" "
