@@ -3,6 +3,16 @@ services:
     image: postgres:16-alpine
     container_name: openlog-postgres
     restart: unless-stopped
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_wal_senders=10
+      - -c
+      - max_replication_slots=10
+      - -c
+      - max_slot_wal_keep_size=2048MB
     environment:
       POSTGRES_DB: openlog_local
       POSTGRES_USER: postgres
@@ -48,6 +58,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
     volumes:
       - openlog-kafka-data:/var/lib/kafka/data
     healthcheck:
@@ -55,6 +66,53 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  debezium:
+    image: quay.io/debezium/connect:${DEBEZIUM_CONNECT_VERSION:-3.4}
+    container_name: openlog-debezium
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - '8083:8083'
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: ${DEBEZIUM_CONNECT_GROUP_ID:-openlog-debezium}
+      CONFIG_STORAGE_TOPIC: ${DEBEZIUM_CONNECT_CONFIG_STORAGE_TOPIC:-openlog_connect_configs}
+      OFFSET_STORAGE_TOPIC: ${DEBEZIUM_CONNECT_OFFSET_STORAGE_TOPIC:-openlog_connect_offsets}
+      STATUS_STORAGE_TOPIC: ${DEBEZIUM_CONNECT_STATUS_STORAGE_TOPIC:-openlog_connect_statuses}
+      ADVERTISED_HOST_NAME: debezium
+      HEAP_OPTS: ${DEBEZIUM_CONNECT_HEAP_OPTS:--Xms256M -Xmx512M}
+      LOG_LEVEL: ${DEBEZIUM_CONNECT_LOG_LEVEL:-INFO}
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_CONFIG_PROVIDERS: env
+      CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
+      CONNECT_TOPIC_CREATION_ENABLE: "true"
+      CONNECT_TOPIC_CREATION_DEFAULT_REPLICATION_FACTOR: 1
+      CONNECT_TOPIC_CREATION_DEFAULT_PARTITIONS: 3
+      CONNECT_TOPIC_CREATION_DEFAULT_CLEANUP_POLICY: delete
+      DEBEZIUM_DATABASE_HOSTNAME: ${DEBEZIUM_DATABASE_HOSTNAME:-postgres}
+      DEBEZIUM_DATABASE_PORT: ${DEBEZIUM_DATABASE_PORT:-5432}
+      DEBEZIUM_DATABASE_USER: ${DEBEZIUM_DATABASE_USER:-postgres}
+      DEBEZIUM_DATABASE_PASSWORD: ${DEBEZIUM_DATABASE_PASSWORD:-0000}
+      DEBEZIUM_DATABASE_DBNAME: ${DEBEZIUM_DATABASE_DBNAME:-openlog_local}
+      DEBEZIUM_TOPIC_PREFIX: ${DEBEZIUM_TOPIC_PREFIX:-openlog}
+      DEBEZIUM_SLOT_NAME: ${DEBEZIUM_SLOT_NAME:-openlog_debezium}
+      DEBEZIUM_PUBLICATION_NAME: ${DEBEZIUM_PUBLICATION_NAME:-openlog_publication}
+      DEBEZIUM_SNAPSHOT_MODE: ${DEBEZIUM_SNAPSHOT_MODE:-initial}
+      DEBEZIUM_OUTBOX_TABLE_INCLUDE_LIST: ${DEBEZIUM_OUTBOX_TABLE_INCLUDE_LIST:-public.outbox_events}
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8083/connectors >/dev/null" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
 volumes:
   openlog-postgres-data:

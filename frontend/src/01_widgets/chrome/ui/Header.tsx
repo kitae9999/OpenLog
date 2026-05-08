@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GuestActions } from "@/features/auth/ui";
 import { logoMarkClassName, logoWordmarkClassName } from "./brand";
+import { NotificationMenu } from "./NotificationMenu";
 import { ProfileMenu } from "./ProfileMenu";
 import { SearchBar } from "./SearchBar";
 
@@ -80,21 +80,7 @@ export function Header({
                 </Link>
               ) : null}
 
-              <button
-                type="button"
-                aria-label="Notifications"
-                className="group relative grid size-9 place-items-center rounded-full text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-              >
-                <Image
-                  src="/Bell.svg"
-                  alt=""
-                  width={20}
-                  height={20}
-                  aria-hidden="true"
-                  className="size-5 opacity-80 transition group-hover:brightness-0"
-                />
-                <span className="absolute right-[9px] top-[9px] size-2 rounded-full border-2 border-white bg-red-500" />
-              </button>
+              <NotificationMenu />
 
               <ProfileMenu
                 profileHref={profileHref ?? "/"}

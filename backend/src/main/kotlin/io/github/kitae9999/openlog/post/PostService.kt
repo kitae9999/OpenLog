@@ -4,6 +4,10 @@ import io.github.kitae9999.openlog.comment.repository.CommentRepository
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.common.event.payload.PostPublishedAuthorPayload
+import io.github.kitae9999.openlog.common.event.payload.PostPublishedEventPayload
+import io.github.kitae9999.openlog.common.event.payload.PostPublishedPostPayload
+import io.github.kitae9999.openlog.common.outbox.OutboxEventWriter
 import io.github.kitae9999.openlog.media.MediaService
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
@@ -23,6 +27,7 @@ import io.github.kitae9999.openlog.user.entity.User
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 import kotlin.jvm.optionals.getOrNull
 
 @Service
@@ -35,6 +40,7 @@ class PostService(
     private val postLikeRepository: PostLikeRepository,
     private val commentRepository: CommentRepository,
     private val mediaService: MediaService,
+    private val outboxEventWriter: OutboxEventWriter,
 ) {
     @Transactional(readOnly = true)
     fun getRecentPosts(cursor: String?, size: Int): RecentPostCursorResponse {
@@ -105,27 +111,46 @@ class PostService(
         mediaService.syncPostAssets(savedPost, content, userId)
 
         val normalizedTopics = normalizeTopics(topics)
-        if (normalizedTopics.isEmpty()) {
-            return PostWriteResponse(
-                authorUsername = authorUsername,
-                slug = savedPost.slug,
+        if (normalizedTopics.isNotEmpty()) {
+            val existingTopics = topicRepository.findByNameIn(normalizedTopics)
+            val existingNames = existingTopics.mapTo(mutableSetOf()) { it.name }
+            val newTopics = normalizedTopics
+                .filterNot(existingNames::contains)
+                .map { Topic(name = it) }
+            val savedTopics = existingTopics + topicRepository.saveAll(newTopics)
+
+            postTopicRepository.saveAll(
+                savedTopics.map { topic ->
+                    PostTopic(
+                        post = savedPost,
+                        topic = topic,
+                    )
+                }
             )
         }
 
-        val existingTopics = topicRepository.findByNameIn(normalizedTopics)
-        val existingNames = existingTopics.mapTo(mutableSetOf()) { it.name }
-        val newTopics = normalizedTopics
-            .filterNot(existingNames::contains)
-            .map { Topic(name = it) }
-        val savedTopics = existingTopics + topicRepository.saveAll(newTopics)
+        val postId = requireNotNull(savedPost.id)
+        val eventCreatedAt = Instant.now()
 
-        postTopicRepository.saveAll(
-            savedTopics.map { topic ->
-                PostTopic(
-                    post = savedPost,
-                    topic = topic,
-                )
-            }
+        outboxEventWriter.write(
+            eventDomain = "post",
+            entityId = postId.toString(),
+            eventType = "POST_PUBLISHED",
+            payload = PostPublishedEventPayload(
+                post = PostPublishedPostPayload(
+                    id = postId,
+                    title = savedPost.title,
+                    slug = savedPost.slug,
+                ),
+                author = PostPublishedAuthorPayload(
+                    id = userId,
+                    username = authorUsername,
+                    nickname = user.nickname,
+                    profileImageUrl = user.profileImageUrl,
+                ),
+                eventCreatedAt = eventCreatedAt,
+            ),
+            occurredAt = eventCreatedAt,
         )
 
         return PostWriteResponse(

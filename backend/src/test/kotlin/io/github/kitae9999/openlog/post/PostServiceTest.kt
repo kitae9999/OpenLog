@@ -3,6 +3,7 @@ package io.github.kitae9999.openlog.post
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.common.outbox.OutboxEventWriter
 import io.github.kitae9999.openlog.media.MediaService
 import io.github.kitae9999.openlog.post.command.PostLinkWriteCommand
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
@@ -65,6 +66,9 @@ class PostServiceTest {
     @Mock
     private lateinit var mediaService: MediaService
 
+    @Mock
+    private lateinit var outboxEventWriter: OutboxEventWriter
+
     private lateinit var postService: PostService
 
     @BeforeEach
@@ -78,6 +82,7 @@ class PostServiceTest {
             postLikeRepository = postLikeRepository,
             commentRepository = commentRepository,
             mediaService = mediaService,
+            outboxEventWriter = outboxEventWriter,
         )
         lenient().`when`(postLinkRepository.findAllBySourcePostId(anyLong())).thenReturn(emptyList())
     }
@@ -86,7 +91,9 @@ class PostServiceTest {
     fun `createPost saves post without blog dependency`() {
         val user = User(id = 1L, username = "alice")
         given(postRepository.existsByAuthorIdAndSlug(1L, "hello-openlog")).willReturn(false)
-        given(postRepository.save(any(Post::class.java))).willAnswer { invocation -> invocation.getArgument(0) }
+        given(postRepository.save(any(Post::class.java))).willAnswer { invocation ->
+            invocation.getArgument<Post>(0).copyWithId(10L)
+        }
 
         val response = postService.createPost(user, createRequest())
 
@@ -192,7 +199,9 @@ class PostServiceTest {
         val user = User(id = 1L, username = "alice")
         given(postRepository.existsByAuthorIdAndSlug(1L, "hello-openlog")).willReturn(true)
         given(postRepository.existsByAuthorIdAndSlug(1L, "hello-openlog-2")).willReturn(false)
-        given(postRepository.save(any(Post::class.java))).willAnswer { invocation -> invocation.getArgument(0) }
+        given(postRepository.save(any(Post::class.java))).willAnswer { invocation ->
+            invocation.getArgument<Post>(0).copyWithId(10L)
+        }
 
         val response = postService.createPost(user, createRequest())
 
@@ -669,6 +678,15 @@ class PostServiceTest {
         content = content,
         topics = topics,
         links = links,
+    )
+
+    private fun Post.copyWithId(id: Long) = Post(
+        id = id,
+        author = author,
+        slug = slug,
+        title = title,
+        description = description,
+        content = content,
     )
 
     @Suppress("UNCHECKED_CAST")
