@@ -1,0 +1,1205 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shlex
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path.cwd()
+CONFIG_PATH = ROOT / "harness.json"
+
+DEFAULT_CONFIG: dict[str, Any] = {
+    "version": 1,
+    "commands": {
+        "targeted_test": "./scripts/test-target",
+        "full_check": "./scripts/check",
+    },
+    "paths": {
+        "state_dir": ".agent",
+        "task_dir": ".agent/tasks",
+        "state_file": ".agent/tdd-state.json",
+        "log_dir": ".agent/logs",
+        "report_file": ".agent/report.md",
+    },
+    "policy": {
+        "require_start_before_red": True,
+        "require_plan_before_red": True,
+        "require_red_before_green": True,
+        "require_red_confirm_before_green": True,
+        "require_green_before_check": True,
+        "require_check_before_done": True,
+        "warn_without_test_file_change": True,
+        "warn_on_test_weakening": True,
+    },
+    "test_file_patterns": [
+        "/test/",
+        "/tests/",
+        "__tests__",
+        ".test.",
+        ".spec.",
+        "_test.",
+        "_spec.",
+        "Test.",
+        "Spec.",
+    ],
+    "risk_rules": [
+        {
+            "name": "auth_or_permissions",
+            "patterns": ["auth", "permission", "permissions", "role", "roles", "policy"],
+            "suggestion": "Include authorization, ownership, tenant, and negative-path tests.",
+        },
+        {
+            "name": "api_contract",
+            "patterns": ["api/", "routes/", "controllers/", "handlers/", "endpoints/"],
+            "suggestion": "Include status code, response shape, and compatibility checks.",
+        },
+        {
+            "name": "database_or_migration",
+            "patterns": ["migration", "migrations/", "schema", "prisma", "sequelize", "db/"],
+            "suggestion": "Include migration, rollback, idempotency, and data preservation checks.",
+        },
+        {
+            "name": "ui_flow",
+            "patterns": ["components/", "pages/", "app/", "routes/", "views/", "screens/"],
+            "suggestion": "Consider component interaction and approved Playwright/browser flow coverage.",
+        },
+        {
+            "name": "billing_or_side_effect",
+            "patterns": ["billing", "payment", "invoice", "webhook", "email", "notification"],
+            "suggestion": "Mock external side effects and verify idempotency/audit behavior.",
+        },
+    ],
+    "test_weakening_patterns": [
+        ".skip(",
+        ".only(",
+        "test.skip",
+        "describe.skip",
+        "it.skip",
+        "pytest.mark.skip",
+        "@pytest.mark.skip",
+        "#[ignore]",
+    ],
+}
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def load_config() -> dict[str, Any]:
+    if not CONFIG_PATH.exists():
+        return DEFAULT_CONFIG
+    try:
+        data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        fail(f"Invalid harness.json: {exc}")
+    return deep_merge(DEFAULT_CONFIG, data)
+
+
+def configured_path(config: dict[str, Any], name: str) -> Path:
+    return ROOT / config["paths"][name]
+
+
+def task_scoped_config(config: dict[str, Any], task_id: str) -> dict[str, Any]:
+    task_slug = slug(task_id)
+    task_root = Path(str(config["paths"].get("task_dir", ".agent/tasks"))) / task_slug
+    scoped = dict(config)
+    scoped["paths"] = dict(config["paths"])
+    scoped["paths"].update(
+        {
+            "state_dir": str(task_root),
+            "state_file": str(task_root / "state.json"),
+            "log_dir": str(task_root / "logs"),
+            "report_file": str(task_root / "report.md"),
+            "spec_file": str(task_root / "SPEC.md"),
+            "todo_file": str(task_root / "TODO.md"),
+        }
+    )
+    scoped["_runtime"] = {
+        "state_scope": "task",
+        "task_id": task_id,
+        "task_slug": task_slug,
+    }
+    return scoped
+
+
+def legacy_compat_config(config: dict[str, Any]) -> dict[str, Any]:
+    scoped = dict(config)
+    scoped["_runtime"] = {"state_scope": "legacy-compat"}
+    return scoped
+
+
+def unscoped_config(config: dict[str, Any]) -> dict[str, Any]:
+    scoped = dict(config)
+    scoped["_runtime"] = {"state_scope": "unscoped"}
+    return scoped
+
+
+def runtime_config(config: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    if getattr(args, "command_name", "") == "start":
+        return task_scoped_config(config, str(args.id))
+
+    task_id = str(getattr(args, "task", "") or "")
+    if not task_id:
+        task_id = os.environ.get("TDD_HARNESS_TASK", "") or os.environ.get("TDD_TASK_ID", "")
+    if task_id:
+        return task_scoped_config(config, task_id)
+
+    # Transitional compatibility: allow an already-running legacy cycle to
+    # finish, but never create new legacy state for `start`.
+    legacy_state = configured_path(config, "state_file")
+    if getattr(args, "command_name", "") not in {"doctor", "paths"} and legacy_state.exists():
+        return legacy_compat_config(config)
+
+    return unscoped_config(config)
+
+
+def ensure_dirs(config: dict[str, Any]) -> None:
+    configured_path(config, "state_dir").mkdir(parents=True, exist_ok=True)
+    configured_path(config, "log_dir").mkdir(parents=True, exist_ok=True)
+
+
+def relative_path(path: Path) -> str:
+    return str(path.relative_to(ROOT))
+
+
+def copy_template_if_missing(src: Path, dst: Path) -> None:
+    if dst.exists():
+        return
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if src.exists():
+        dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+    else:
+        dst.write_text("", encoding="utf-8")
+
+
+def ensure_task_docs(config: dict[str, Any], spec_source: str) -> None:
+    runtime = config.get("_runtime", {})
+    if runtime.get("state_scope") != "task":
+        return
+    spec_file = configured_path(config, "spec_file")
+    todo_file = configured_path(config, "todo_file")
+    copy_template_if_missing(ROOT / spec_source, spec_file)
+    copy_template_if_missing(ROOT / "TODO.md", todo_file)
+
+
+def task_paths(config: dict[str, Any]) -> dict[str, str]:
+    paths = {
+        "state": relative_path(configured_path(config, "state_file")),
+        "logs": relative_path(configured_path(config, "log_dir")),
+        "report": relative_path(configured_path(config, "report_file")),
+    }
+    if "spec_file" in config["paths"]:
+        paths["spec"] = relative_path(configured_path(config, "spec_file"))
+    if "todo_file" in config["paths"]:
+        paths["todo"] = relative_path(configured_path(config, "todo_file"))
+    return paths
+
+
+def print_paths(config: dict[str, Any], state: dict[str, Any] | None = None) -> None:
+    runtime = config.get("_runtime", {})
+    paths = task_paths(config)
+    print(f"Task: {runtime.get('task_id') or (state or {}).get('task_id') or '(not set)'}")
+    if "spec" in paths:
+        print(f"Spec: {paths['spec']}")
+    if "todo" in paths:
+        print(f"Todo: {paths['todo']}")
+    print(f"State: {paths['state']}")
+    print(f"Logs: {paths['logs']}")
+    print(f"Report: {paths['report']}")
+
+
+def load_state(config: dict[str, Any]) -> dict[str, Any]:
+    path = configured_path(config, "state_file")
+    if not path.exists():
+        return {
+            "version": 1,
+            "task_id": None,
+            "spec": None,
+            "phase": "new",
+            "started_at": None,
+            "updated_at": None,
+            "events": [],
+        }
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        fail(f"Invalid state file {path}: {exc}")
+
+
+def save_state(config: dict[str, Any], state: dict[str, Any]) -> None:
+    ensure_dirs(config)
+    state["updated_at"] = utc_now()
+    path = configured_path(config, "state_file")
+    path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def fail(message: str, code: int = 2) -> None:
+    print(f"tdd-cycle: {message}", file=sys.stderr)
+    raise SystemExit(code)
+
+
+def normalize_remainder(parts: list[str]) -> list[str]:
+    if parts and parts[0] == "--":
+        return parts[1:]
+    return parts
+
+
+def command_from_config(config: dict[str, Any], name: str) -> list[str]:
+    command = config["commands"].get(name)
+    if not command:
+        fail(f"Missing command config: commands.{name}")
+    if isinstance(command, list):
+        return [str(part) for part in command]
+    return shlex.split(str(command))
+
+
+def shell_join(parts: list[str]) -> str:
+    return " ".join(shlex.quote(part) for part in parts)
+
+
+def slug(value: str) -> str:
+    out = []
+    for char in value.lower():
+        if char.isalnum():
+            out.append(char)
+        elif char in ("-", "_", "."):
+            out.append(char)
+        else:
+            out.append("-")
+    result = "".join(out).strip("-")
+    return result or "command"
+
+
+def last_event(state: dict[str, Any], phase: str, status: str = "passed") -> dict[str, Any] | None:
+    for event in reversed(state.get("events", [])):
+        if event.get("phase") == phase and event.get("status") == status:
+            return event
+    return None
+
+
+def require_started(config: dict[str, Any], state: dict[str, Any], phase: str) -> None:
+    if not config["policy"].get("require_start_before_red", True):
+        return
+    if not state.get("task_id"):
+        fail(f"Run './scripts/tdd-cycle start --id <task-id>' before {phase}.")
+
+
+def append_event(
+    state: dict[str, Any],
+    *,
+    phase: str,
+    status: str,
+    message: str,
+    command: list[str] | None = None,
+    exit_code: int | None = None,
+    log_file: Path | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    event: dict[str, Any] = {
+        "time": utc_now(),
+        "phase": phase,
+        "status": status,
+        "message": message,
+    }
+    if command is not None:
+        event["command"] = shell_join(command)
+    if exit_code is not None:
+        event["exit_code"] = exit_code
+    if log_file is not None:
+        event["log_file"] = str(log_file.relative_to(ROOT))
+    if metadata:
+        event["metadata"] = metadata
+    state.setdefault("events", []).append(event)
+    state["phase"] = phase
+
+
+def run_command(config: dict[str, Any], phase: str, command: list[str]) -> tuple[int, Path]:
+    ensure_dirs(config)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    log_file = configured_path(config, "log_dir") / f"{stamp}-{phase}-{slug(command[0])}.log"
+
+    print(f"$ {shell_join(command)}")
+    with log_file.open("w", encoding="utf-8") as log:
+        log.write(f"# phase: {phase}\n")
+        log.write(f"# time: {utc_now()}\n")
+        log.write(f"# cwd: {ROOT}\n")
+        log.write(f"# command: {shell_join(command)}\n\n")
+        log.flush()
+
+        process = subprocess.Popen(
+            command,
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            env=os.environ.copy(),
+        )
+        assert process.stdout is not None
+        for line in process.stdout:
+            print(line, end="")
+            log.write(line)
+        exit_code = process.wait()
+        log.write(f"\n# exit_code: {exit_code}\n")
+
+    print(f"\nlog: {log_file.relative_to(ROOT)}")
+    return exit_code, log_file
+
+
+def is_git_repo() -> bool:
+    result = subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"],
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    return result.returncode == 0
+
+
+def git_lines(args: list[str]) -> list[str]:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def changed_files() -> list[str]:
+    if not is_git_repo():
+        return []
+    files: set[str] = set()
+    files.update(git_lines(["diff", "--name-only"]))
+    files.update(git_lines(["diff", "--cached", "--name-only"]))
+    files.update(git_lines(["ls-files", "--others", "--exclude-standard"]))
+    return sorted(files)
+
+
+def looks_like_test(path: str, patterns: list[str]) -> bool:
+    candidate = "/" + path.replace("\\", "/")
+    return any(pattern in candidate for pattern in patterns)
+
+
+def read_text_if_exists(path: Path) -> str:
+    if not path.exists():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return ""
+
+
+def has_event(state: dict[str, Any], phase: str, status: str = "passed") -> bool:
+    return last_event(state, phase, status) is not None
+
+
+def package_json() -> dict[str, Any]:
+    path = ROOT / "package.json"
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def package_scripts() -> dict[str, str]:
+    data = package_json()
+    scripts = data.get("scripts", {})
+    if not isinstance(scripts, dict):
+        return {}
+    return {str(key): str(value) for key, value in scripts.items()}
+
+
+def package_dependencies() -> dict[str, str]:
+    data = package_json()
+    dependencies: dict[str, str] = {}
+    for section in ("dependencies", "devDependencies", "optionalDependencies"):
+        value = data.get(section, {})
+        if isinstance(value, dict):
+            dependencies.update({str(key): str(version) for key, version in value.items()})
+    return dependencies
+
+
+def any_path_exists(patterns: list[str]) -> bool:
+    return any(any(ROOT.glob(pattern)) for pattern in patterns)
+
+
+def detect_playwright() -> dict[str, Any]:
+    scripts = package_scripts()
+    deps = package_dependencies()
+    script_hits = {
+        name: command
+        for name, command in scripts.items()
+        if "playwright" in name.lower() or "playwright" in command.lower() or "e2e" in name.lower()
+    }
+    config_hits = sorted(
+        str(path.relative_to(ROOT))
+        for pattern in ("playwright.config.*", "e2e/playwright.config.*", "tests/playwright.config.*")
+        for path in ROOT.glob(pattern)
+    )
+    dependency_hits = sorted(
+        name for name in deps if name in {"@playwright/test", "playwright"}
+    )
+    return {
+        "detected": bool(script_hits or config_hits or dependency_hits),
+        "scripts": script_hits,
+        "configs": config_hits,
+        "dependencies": dependency_hits,
+    }
+
+
+def executable_status(path: str) -> str:
+    target = ROOT / path
+    if not target.exists():
+        return "missing"
+    if os.access(target, os.X_OK):
+        return "executable"
+    return "not executable"
+
+
+def doctor_findings(config: dict[str, Any]) -> dict[str, Any]:
+    scripts = package_scripts()
+    package = package_json()
+    state_scope = config.get("_runtime", {}).get("state_scope", "unscoped")
+    if state_scope == "unscoped":
+        state_file = ".agent/tasks/<task-id>/state.json"
+        log_dir = ".agent/tasks/<task-id>/logs"
+        report_file = ".agent/tasks/<task-id>/report.md"
+    else:
+        state_file = str(configured_path(config, "state_file").relative_to(ROOT))
+        log_dir = str(configured_path(config, "log_dir").relative_to(ROOT))
+        report_file = str(configured_path(config, "report_file").relative_to(ROOT))
+    checks = {
+        "git_repo": is_git_repo(),
+        "harness_json": (ROOT / "harness.json").exists(),
+        "agents_md": (ROOT / "AGENTS.md").exists(),
+        "tdd_harness_md": (ROOT / "TDD_HARNESS.md").exists(),
+        "spec_md": (ROOT / "SPEC.md").exists(),
+        "todo_md": (ROOT / "TODO.md").exists(),
+        "agent_gitignored": ".agent" in read_text_if_exists(ROOT / ".gitignore"),
+        "script_tdd_cycle": executable_status("scripts/tdd-cycle"),
+        "script_check": executable_status("scripts/check"),
+        "script_test_target": executable_status("scripts/test-target"),
+        "package_json": bool(package),
+        "pyproject_or_pytest": (ROOT / "pyproject.toml").exists() or (ROOT / "pytest.ini").exists(),
+        "cargo_toml": (ROOT / "Cargo.toml").exists(),
+        "go_mod": (ROOT / "go.mod").exists(),
+        "ci_workflows": any_path_exists([".github/workflows/*.yml", ".github/workflows/*.yaml"]),
+        "tests_dir": (ROOT / "tests").exists() or (ROOT / "test").exists(),
+        "playwright": detect_playwright(),
+        "package_scripts": scripts,
+        "state_scope": state_scope,
+        "state_file": state_file,
+        "log_dir": log_dir,
+        "report_file": report_file,
+    }
+    if "spec_file" in config["paths"]:
+        checks["task_spec_file"] = str(configured_path(config, "spec_file").relative_to(ROOT))
+    if "todo_file" in config["paths"]:
+        checks["task_todo_file"] = str(configured_path(config, "todo_file").relative_to(ROOT))
+    warnings: list[str] = []
+    for path in ("scripts/tdd-cycle", "scripts/check", "scripts/test-target"):
+        status = checks[f"script_{path.split('/')[-1].replace('-', '_')}"]
+        if status != "executable":
+            warnings.append(f"{path} is {status}.")
+    if not checks["agent_gitignored"]:
+        warnings.append(".agent is not listed in .gitignore.")
+    if not checks["tdd_harness_md"]:
+        warnings.append("TDD_HARNESS.md is missing.")
+    if package and not any(name in scripts for name in ("test", "lint", "typecheck")):
+        warnings.append("package.json exists but no test/lint/typecheck script was detected.")
+    if not checks["tests_dir"] and not checks["pyproject_or_pytest"] and not checks["cargo_toml"] and not checks["go_mod"] and not package:
+        warnings.append("No project test framework was detected; scripts/check will validate harness scripts only.")
+    checks["warnings"] = warnings
+    return checks
+
+
+def git_diff_for_paths(paths: list[str]) -> str:
+    if not paths or not is_git_repo():
+        return ""
+    result = subprocess.run(
+        ["git", "diff", "--", *paths],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    if result.returncode != 0:
+        return ""
+    return result.stdout
+
+
+def count_assertions(lines: list[str]) -> int:
+    tokens = ("assert", "expect(", "toBe", "toEqual", "toContain", "should", "require.")
+    return sum(1 for line in lines if any(token in line for token in tokens))
+
+
+def test_weakening_findings(config: dict[str, Any], files: list[str]) -> list[str]:
+    if not is_git_repo() or not config["policy"].get("warn_on_test_weakening", True):
+        return []
+
+    patterns = [str(item) for item in config.get("test_file_patterns", [])]
+    test_files = [path for path in files if looks_like_test(path, patterns)]
+    if not test_files:
+        return []
+
+    diff = git_diff_for_paths(test_files)
+    if not diff:
+        return []
+
+    findings: list[str] = []
+    added: list[str] = []
+    removed: list[str] = []
+    weakening_patterns = [str(item) for item in config.get("test_weakening_patterns", [])]
+
+    for line in diff.splitlines():
+        if line.startswith("+++") or line.startswith("---"):
+            continue
+        if line.startswith("+"):
+            text = line[1:]
+            added.append(text)
+            for pattern in weakening_patterns:
+                if pattern in text:
+                    findings.append(f"Added potential test weakening pattern `{pattern}`: {text.strip()}")
+        elif line.startswith("-"):
+            removed.append(line[1:])
+
+    removed_assertions = count_assertions(removed)
+    added_assertions = count_assertions(added)
+    if removed_assertions > added_assertions:
+        findings.append(
+            f"Assertion-like lines decreased in test diff: removed {removed_assertions}, added {added_assertions}."
+        )
+
+    if any(path.endswith(".snap") for path in test_files):
+        findings.append("Snapshot file changed; confirm the snapshot update is intentional and behavior-relevant.")
+
+    return findings
+
+
+def risk_hints(config: dict[str, Any], files: list[str]) -> list[str]:
+    hints: list[str] = []
+    lower_files = [path.lower() for path in files]
+    for rule in config.get("risk_rules", []):
+        name = str(rule.get("name", "risk"))
+        suggestion = str(rule.get("suggestion", "Review this change carefully."))
+        patterns = [str(pattern).lower() for pattern in rule.get("patterns", [])]
+        matches = [
+            path for path, lower in zip(files, lower_files)
+            if any(pattern in lower for pattern in patterns)
+        ]
+        if matches:
+            hints.append(f"{name}: {suggestion} Matched: {', '.join(matches[:5])}.")
+    return hints
+
+
+def report_markdown(config: dict[str, Any], state: dict[str, Any]) -> str:
+    files = changed_files()
+    patterns = [str(item) for item in config.get("test_file_patterns", [])]
+    test_files = [path for path in files if looks_like_test(path, patterns)]
+    weakening = test_weakening_findings(config, files)
+    risks = risk_hints(config, files)
+    warnings: list[str] = []
+
+    if not is_git_repo():
+        warnings.append("Not a git repository; changed-file review was skipped.")
+    elif config["policy"].get("warn_without_test_file_change", True) and not test_files:
+        warnings.append("No changed file matched the configured test-file patterns.")
+
+    if config["policy"].get("require_plan_before_red", True) and not last_event(state, "plan"):
+        warnings.append("No passing plan gate was recorded.")
+    if not last_event(state, "red"):
+        warnings.append("No passing red gate was recorded.")
+    if config["policy"].get("require_red_confirm_before_green", True) and not last_event(state, "confirm-red"):
+        warnings.append("No semantic red confirmation was recorded.")
+    if not last_event(state, "green"):
+        warnings.append("No passing green gate was recorded.")
+    if not last_event(state, "check"):
+        warnings.append("No passing full check was recorded.")
+    warnings.extend(weakening)
+
+    lines = [
+        "# TDD Harness Report",
+        "",
+        f"- Task: {state.get('task_id') or '(not set)'}",
+        f"- Spec: {state.get('spec') or '(not set)'}",
+        f"- Todo: {state.get('todo') or '(not set)'}",
+        f"- Phase: {state.get('phase')}",
+        f"- Generated: {utc_now()}",
+        "",
+        "## Gate Events",
+        "",
+        "| Phase | Status | Exit | Command | Log |",
+        "|---|---|---:|---|---|",
+    ]
+
+    for event in state.get("events", []):
+        command = event.get("command", "")
+        log_file = event.get("log_file", "")
+        exit_code = event.get("exit_code", "")
+        lines.append(
+            f"| {event.get('phase', '')} | {event.get('status', '')} | {exit_code} | "
+            f"`{command}` | {log_file} |"
+        )
+
+    lines.extend(["", "## Changed Files", ""])
+    if files:
+        lines.extend(f"- `{path}`" for path in files)
+    else:
+        lines.append("- No changed files detected, or git is unavailable.")
+
+    lines.extend(["", "## Test-Looking Changed Files", ""])
+    if test_files:
+        lines.extend(f"- `{path}`" for path in test_files)
+    else:
+        lines.append("- None detected.")
+
+    lines.extend(["", "## Risk Hints", ""])
+    if risks:
+        lines.extend(f"- {hint}" for hint in risks)
+    else:
+        lines.append("- None.")
+
+    lines.extend(["", "## Test Weakening Findings", ""])
+    if weakening:
+        lines.extend(f"- {finding}" for finding in weakening)
+    else:
+        lines.append("- None.")
+
+    lines.extend(["", "## Warnings", ""])
+    if warnings:
+        lines.extend(f"- {warning}" for warning in warnings)
+    else:
+        lines.append("- None.")
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def cmd_start(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    ensure_dirs(config)
+    ensure_task_docs(config, args.spec)
+    state = load_state(config)
+    if state.get("task_id") and not args.reset:
+        fail("A task is already started. Use --reset to replace the current state.")
+
+    paths = task_paths(config)
+    state = {
+        "version": 1,
+        "task_id": args.id,
+        "spec": paths.get("spec", args.spec),
+        "todo": paths.get("todo"),
+        "phase": "start",
+        "started_at": utc_now(),
+        "updated_at": utc_now(),
+        "events": [],
+    }
+    append_event(
+        state,
+        phase="start",
+        status="passed",
+        message="TDD cycle started.",
+        metadata={
+            "spec": paths.get("spec", args.spec),
+            "todo": paths.get("todo"),
+            "state_scope": config.get("_runtime", {}).get("state_scope", "task"),
+            "task_slug": config.get("_runtime", {}).get("task_slug"),
+        },
+    )
+    save_state(config, state)
+    print("started task")
+    print_paths(config, state)
+    return 0
+
+
+def cmd_paths(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    if config.get("_runtime", {}).get("state_scope") != "task":
+        fail("Pass '--task <task-id>' to print task-local paths.")
+    state = load_state(config)
+    print_paths(config, state)
+    return 0
+
+
+def cmd_plan(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    state = load_state(config)
+    require_started(config, state, "plan")
+
+    questions = list(args.question or [])
+    assumptions = list(args.assumption or [])
+    metadata = {
+        "summary": args.summary,
+        "targeted_test_command": args.test_command,
+        "playwright": args.playwright,
+        "questions": questions,
+        "assumptions": assumptions,
+    }
+
+    if questions:
+        append_event(
+            state,
+            phase="plan",
+            status="blocked",
+            message="Plan gate blocked by developer decision questions.",
+            metadata=metadata,
+        )
+        save_state(config, state)
+        print("plan gate blocked by questions:")
+        for question in questions:
+            print(f"- {question}")
+        fail("Ask the developer before writing tests or running red.", code=1)
+
+    append_event(
+        state,
+        phase="plan",
+        status="passed",
+        message="Plan gate passed.",
+        metadata=metadata,
+    )
+    save_state(config, state)
+    print("plan gate passed")
+    if args.summary:
+        print(f"summary: {args.summary}")
+    if args.test_command:
+        print(f"targeted test: {args.test_command}")
+    if args.playwright != "unspecified":
+        print(f"playwright/browser verification: {args.playwright}")
+    return 0
+
+
+def cmd_ui_decision(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    state = load_state(config)
+    require_started(config, state, "ui-decision")
+    metadata = {
+        "playwright": args.playwright,
+        "reason": args.reason,
+        "command": args.command,
+    }
+    append_event(
+        state,
+        phase="ui-decision",
+        status="passed",
+        message="UI/browser verification decision recorded.",
+        metadata=metadata,
+    )
+    save_state(config, state)
+    print(f"ui/browser verification: {args.playwright}")
+    if args.command:
+        print(f"command: {args.command}")
+    return 0
+
+
+def cmd_red(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    state = load_state(config)
+    require_started(config, state, "red")
+    if config["policy"].get("require_plan_before_red", True) and not has_event(state, "plan"):
+        fail("Run a passing plan gate before red.")
+
+    command = normalize_remainder(args.command) or command_from_config(config, "targeted_test")
+    exit_code, log_file = run_command(config, "red", command)
+
+    if exit_code == 0:
+        append_event(
+            state,
+            phase="red",
+            status="failed",
+            message="Red gate failed because the targeted test unexpectedly passed.",
+            command=command,
+            exit_code=exit_code,
+            log_file=log_file,
+        )
+        save_state(config, state)
+        fail("Red gate expected failure, but command exited 0.", code=1)
+
+    append_event(
+        state,
+        phase="red",
+        status="passed",
+        message="Red gate passed: targeted command failed as expected. Inspect log for semantic failure.",
+        command=command,
+        exit_code=exit_code,
+        log_file=log_file,
+    )
+    save_state(config, state)
+    print("red gate passed: targeted command failed as expected")
+    return 0
+
+
+def cmd_confirm_red(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    state = load_state(config)
+    require_started(config, state, "confirm-red")
+    if not last_event(state, "red"):
+        fail("Run a passing red gate before confirming semantic red.")
+
+    good_categories = {"expected-failure", "assertion-failure", "missing-behavior"}
+    status = "passed" if args.category in good_categories else "failed"
+    message = (
+        "Semantic red confirmed."
+        if status == "passed"
+        else "Semantic red rejected; failure does not prove the intended missing behavior."
+    )
+    append_event(
+        state,
+        phase="confirm-red",
+        status=status,
+        message=message,
+        metadata={
+            "category": args.category,
+            "reason": args.reason,
+        },
+    )
+    save_state(config, state)
+    if status != "passed":
+        fail("Fix the test/setup and rerun red before implementation.", code=1)
+    print("semantic red confirmed")
+    print(f"category: {args.category}")
+    print(f"reason: {args.reason}")
+    return 0
+
+
+def cmd_green(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    state = load_state(config)
+    require_started(config, state, "green")
+    if config["policy"].get("require_red_before_green", True) and not last_event(state, "red"):
+        fail("Run a passing red gate before green.")
+    if config["policy"].get("require_red_confirm_before_green", True) and not last_event(state, "confirm-red"):
+        fail("Run './scripts/tdd-cycle confirm-red --category <category> --reason <reason>' before green.")
+
+    command = normalize_remainder(args.command) or command_from_config(config, "targeted_test")
+    exit_code, log_file = run_command(config, "green", command)
+
+    if exit_code != 0:
+        append_event(
+            state,
+            phase="green",
+            status="failed",
+            message="Green gate failed because the targeted command did not pass.",
+            command=command,
+            exit_code=exit_code,
+            log_file=log_file,
+        )
+        save_state(config, state)
+        fail("Green gate expected success, but command failed.", code=1)
+
+    append_event(
+        state,
+        phase="green",
+        status="passed",
+        message="Green gate passed: targeted command succeeded.",
+        command=command,
+        exit_code=exit_code,
+        log_file=log_file,
+    )
+    save_state(config, state)
+    print("green gate passed")
+    return 0
+
+
+def cmd_check(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    state = load_state(config)
+    require_started(config, state, "check")
+    if config["policy"].get("require_green_before_check", True) and not last_event(state, "green"):
+        fail("Run a passing green gate before full check.")
+
+    command = normalize_remainder(args.command) or command_from_config(config, "full_check")
+    exit_code, log_file = run_command(config, "check", command)
+
+    if exit_code != 0:
+        append_event(
+            state,
+            phase="check",
+            status="failed",
+            message="Full check failed.",
+            command=command,
+            exit_code=exit_code,
+            log_file=log_file,
+        )
+        save_state(config, state)
+        fail("Full check failed.", code=1)
+
+    append_event(
+        state,
+        phase="check",
+        status="passed",
+        message="Full check passed.",
+        command=command,
+        exit_code=exit_code,
+        log_file=log_file,
+    )
+    save_state(config, state)
+    print("full check passed")
+    return 0
+
+
+def cmd_review(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    state = load_state(config)
+    require_started(config, state, "review")
+    report_file = configured_path(config, "report_file")
+    ensure_dirs(config)
+
+    files = changed_files()
+    patterns = [str(item) for item in config.get("test_file_patterns", [])]
+    test_files = [path for path in files if looks_like_test(path, patterns)]
+
+    append_event(
+        state,
+        phase="review",
+        status="passed",
+        message="Review report written.",
+        metadata={
+            "changed_files": files,
+            "test_files": test_files,
+            "report_file": str(report_file.relative_to(ROOT)),
+        },
+    )
+    save_state(config, state)
+    report_file.write_text(report_markdown(config, state), encoding="utf-8")
+    print(f"report: {report_file.relative_to(ROOT)}")
+    if files:
+        print("changed files:")
+        for path in files:
+            print(f"- {path}")
+    if config["policy"].get("warn_without_test_file_change", True) and is_git_repo() and not test_files:
+        print("warning: no changed file matched configured test-file patterns", file=sys.stderr)
+    return 0
+
+
+def cmd_done(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    state = load_state(config)
+    require_started(config, state, "done")
+    if config["policy"].get("require_check_before_done", True) and not last_event(state, "check"):
+        fail("Run a passing full check before done.")
+
+    report_file = configured_path(config, "report_file")
+    ensure_dirs(config)
+
+    append_event(
+        state,
+        phase="done",
+        status="passed",
+        message="Task marked done.",
+        metadata={"report_file": str(report_file.relative_to(ROOT))},
+    )
+    save_state(config, state)
+    report_file.write_text(report_markdown(config, state), encoding="utf-8")
+    print("done")
+    print(f"report: {report_file.relative_to(ROOT)}")
+    return 0
+
+
+def cmd_status(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    state = load_state(config)
+    print(json.dumps(state, indent=2, sort_keys=True))
+    return 0
+
+
+def cmd_doctor(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    findings = doctor_findings(config)
+    state = {
+        "task_id": None,
+        "phase": "done",
+        "events": [],
+    }
+    if config.get("_runtime", {}).get("state_scope") in {"task", "legacy-compat"}:
+        state = load_state(config)
+    if state.get("task_id") and state.get("phase") != "done":
+        append_event(
+            state,
+            phase="doctor",
+            status="passed",
+            message="Harness doctor completed.",
+            metadata=findings,
+        )
+        save_state(config, state)
+
+    if args.json:
+        print(json.dumps(findings, indent=2, sort_keys=True))
+        return 0
+
+    print("Harness Doctor")
+    print("")
+    for key, value in findings.items():
+        if key in {"package_scripts", "playwright", "warnings"}:
+            continue
+        print(f"- {key}: {value}")
+
+    print("")
+    print("Package scripts:")
+    scripts = findings.get("package_scripts", {})
+    if scripts:
+        for name, command in scripts.items():
+            print(f"- {name}: {command}")
+    else:
+        print("- none")
+
+    print("")
+    print("Playwright/browser detection:")
+    playwright = findings.get("playwright", {})
+    print(f"- detected: {playwright.get('detected')}")
+    if playwright.get("dependencies"):
+        print(f"- dependencies: {', '.join(playwright['dependencies'])}")
+    if playwright.get("configs"):
+        print(f"- configs: {', '.join(playwright['configs'])}")
+    if playwright.get("scripts"):
+        for name, command in playwright["scripts"].items():
+            print(f"- script {name}: {command}")
+
+    warnings = findings.get("warnings", [])
+    print("")
+    print("Warnings:")
+    if warnings:
+        for warning in warnings:
+            print(f"- {warning}")
+    else:
+        print("- none")
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="./scripts/tdd-cycle",
+        description="TDD phase gate runner for agentic coding.",
+    )
+    subparsers = parser.add_subparsers(dest="command_name", required=True)
+
+    def add_task_selector(subparser: argparse.ArgumentParser) -> None:
+        subparser.add_argument(
+            "--task",
+            default="",
+            help=(
+                "Task id for task-local state created by 'start --id <task-id>'. "
+                "Can also be set with TDD_HARNESS_TASK or TDD_TASK_ID."
+            ),
+        )
+
+    start = subparsers.add_parser("start", help="Start a new TDD task.")
+    start.add_argument("--id", required=True, help="Task identifier, such as auth-rate-limit.")
+    start.add_argument("--spec", default="SPEC.md", help="Root spec template to copy into the task-local SPEC.md.")
+    start.add_argument(
+        "--parallel",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    start.add_argument("--reset", action="store_true", help="Replace existing harness state.")
+    start.set_defaults(func=cmd_start)
+
+    paths = subparsers.add_parser("paths", help="Print task-local harness paths.")
+    add_task_selector(paths)
+    paths.set_defaults(func=cmd_paths)
+
+    plan = subparsers.add_parser("plan", help="Record the test plan before red.")
+    add_task_selector(plan)
+    plan.add_argument("--summary", default="", help="Short summary of inferred use cases and test plan.")
+    plan.add_argument("--test-command", default="", help="Focused test command planned for red and green.")
+    plan.add_argument(
+        "--playwright",
+        choices=["yes", "no", "not-applicable", "unspecified"],
+        default="unspecified",
+        help="Browser verification decision for UI/frontend-originated flows.",
+    )
+    plan.add_argument("--question", action="append", default=[], help="Blocking developer question. Repeatable.")
+    plan.add_argument("--assumption", action="append", default=[], help="Non-blocking assumption. Repeatable.")
+    plan.set_defaults(func=cmd_plan)
+
+    ui_decision = subparsers.add_parser("ui-decision", help="Record UI/browser verification decision.")
+    add_task_selector(ui_decision)
+    ui_decision.add_argument(
+        "--playwright",
+        required=True,
+        choices=["yes", "no", "not-applicable"],
+        help="Whether Playwright/browser verification should be included.",
+    )
+    ui_decision.add_argument("--reason", default="", help="Reason for the UI verification decision.")
+    ui_decision.add_argument("--command", default="", help="Existing browser-test command to use, if any.")
+    ui_decision.set_defaults(func=cmd_ui_decision)
+
+    red = subparsers.add_parser("red", help="Run targeted command expecting failure.")
+    add_task_selector(red)
+    red.add_argument("command", nargs=argparse.REMAINDER)
+    red.set_defaults(func=cmd_red)
+
+    confirm_red = subparsers.add_parser("confirm-red", help="Confirm that red failed for the intended reason.")
+    add_task_selector(confirm_red)
+    confirm_red.add_argument(
+        "--category",
+        required=True,
+        choices=[
+            "expected-failure",
+            "assertion-failure",
+            "missing-behavior",
+            "syntax-error",
+            "import-error",
+            "fixture-error",
+            "environment-error",
+            "timeout",
+            "unknown",
+        ],
+        help="Classification of the red failure.",
+    )
+    confirm_red.add_argument("--reason", required=True, help="Why the red failure proves or does not prove the gap.")
+    confirm_red.set_defaults(func=cmd_confirm_red)
+
+    green = subparsers.add_parser("green", help="Run targeted command expecting success.")
+    add_task_selector(green)
+    green.add_argument("command", nargs=argparse.REMAINDER)
+    green.set_defaults(func=cmd_green)
+
+    check = subparsers.add_parser("check", help="Run full verification expecting success.")
+    add_task_selector(check)
+    check.add_argument("command", nargs=argparse.REMAINDER)
+    check.set_defaults(func=cmd_check)
+
+    review = subparsers.add_parser("review", help="Write a final review report.")
+    add_task_selector(review)
+    review.set_defaults(func=cmd_review)
+
+    done = subparsers.add_parser("done", help="Mark the task done after full check.")
+    add_task_selector(done)
+    done.set_defaults(func=cmd_done)
+
+    status = subparsers.add_parser("status", help="Print current harness state.")
+    add_task_selector(status)
+    status.set_defaults(func=cmd_status)
+
+    doctor = subparsers.add_parser("doctor", help="Inspect harness and project verification readiness.")
+    add_task_selector(doctor)
+    doctor.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+    doctor.set_defaults(func=cmd_doctor)
+
+    return parser
+
+
+def main() -> int:
+    config = load_config()
+    parser = build_parser()
+    args = parser.parse_args()
+    config = runtime_config(config, args)
+    return int(args.func(args, config))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

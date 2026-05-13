@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "commands": {
+    "targeted_test": "./scripts/test-target",
+    "full_check": "./scripts/check"
+  },
+  "paths": {
+    "state_dir": ".agent",
+    "task_dir": ".agent/tasks"
+  },
+  "policy": {
+    "require_start_before_red": true,
+    "require_plan_before_red": true,
+    "require_red_before_green": true,
+    "require_red_confirm_before_green": true,
+    "require_green_before_check": true,
+    "require_check_before_done": true,
+    "warn_without_test_file_change": true,
+    "warn_on_test_weakening": true
+  },
+  "test_file_patterns": [
+    "/test/",
+    "/tests/",
+    "__tests__",
+    ".test.",
+    ".spec.",
+    "_test.",
+    "_spec.",
+    "Test.",
+    "Spec."
+  ],
+  "risk_rules": [
+    {
+      "name": "auth_or_permissions",
+      "patterns": ["auth", "permission", "permissions", "role", "roles", "policy"],
+      "suggestion": "Include authorization, ownership, tenant, and negative-path tests."
+    },
+    {
+      "name": "api_contract",
+      "patterns": ["api/", "routes/", "controllers/", "handlers/", "endpoints/"],
+      "suggestion": "Include status code, response shape, and compatibility checks."
+    },
+    {
+      "name": "database_or_migration",
+      "patterns": ["migration", "migrations/", "schema", "prisma", "sequelize", "db/"],
+      "suggestion": "Include migration, rollback, idempotency, and data preservation checks."
+    },
+    {
+      "name": "ui_flow",
+      "patterns": ["components/", "pages/", "app/", "routes/", "views/", "screens/"],
+      "suggestion": "Consider component interaction and approved Playwright/browser flow coverage."
+    },
+    {
+      "name": "billing_or_side_effect",
+      "patterns": ["billing", "payment", "invoice", "webhook", "email", "notification"],
+      "suggestion": "Mock external side effects and verify idempotency/audit behavior."
+    }
+  ],
+  "test_weakening_patterns": [
+    ".skip(",
+    ".only(",
+    "test.skip",
+    "describe.skip",
+    "it.skip",
+    "pytest.mark.skip",
+    "@pytest.mark.skip",
+    "#[ignore]"
+  ]
+}

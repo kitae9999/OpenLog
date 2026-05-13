@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${1:-}" == "--" ]]; then
+  shift
+fi
+
+if [[ "$#" -gt 0 ]]; then
+  exec "$@"
+fi
+
+if [[ -n "${HARNESS_TARGET_TEST:-}" ]]; then
+  exec bash -lc "$HARNESS_TARGET_TEST"
+fi
+
+if [[ -n "${TARGET_TEST:-}" ]]; then
+  exec bash -lc "$TARGET_TEST"
+fi
+
+cat >&2 <<'EOF'
+No targeted test command was provided.
+
+Examples:
+  ./scripts/tdd-cycle red -- ./scripts/test-target pytest tests/test_auth.py::test_rate_limit
+  ./scripts/tdd-cycle green -- ./scripts/test-target pnpm vitest run src/auth/auth.test.ts
+
+Alternatively set HARNESS_TARGET_TEST or TARGET_TEST.
+EOF
+
+exit 64
+

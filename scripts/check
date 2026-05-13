@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -n "${HARNESS_FULL_CHECK:-}" ]]; then
+  exec bash -lc "$HARNESS_FULL_CHECK"
+fi
+
+ran=0
+detected_project=0
+
+has_package_script() {
+  local script_name="$1"
+  python3 - "$script_name" <<'PY'
+import json
+import pathlib
+import sys
+
+script = sys.argv[1]
+path = pathlib.Path("package.json")
+if not path.exists():
+    raise SystemExit(1)
+
+data = json.loads(path.read_text())
+scripts = data.get("scripts", {})
+raise SystemExit(0 if script in scripts else 1)
+PY
+}
+
+node_runner() {
+  if [[ -f pnpm-lock.yaml ]]; then
+    echo "pnpm"
+  elif [[ -f yarn.lock ]]; then
+    echo "yarn"
+  elif [[ -f bun.lock || -f bun.lockb ]]; then
+    echo "bun"
+  else
+    echo "npm"
+  fi
+}
+
+run_node_script() {
+  local runner="$1"
+  local script_name="$2"
+  case "$runner" in
+    pnpm) pnpm run "$script_name" ;;
+    yarn) yarn run "$script_name" ;;
+    bun) bun run "$script_name" ;;
+    npm) npm run "$script_name" ;;
+    *) echo "Unknown package runner: $runner" >&2; return 2 ;;
+  esac
+}
+
+if [[ -f package.json ]]; then
+  detected_project=1
+  node_ran=0
+  runner="$(node_runner)"
+  for script_name in lint typecheck test; do
+    if has_package_script "$script_name"; then
+      run_node_script "$runner" "$script_name"
+      ran=1
+      node_ran=1
+    fi
+  done
+  if [[ "$node_ran" -eq 0 ]]; then
+    echo "package.json detected, but no lint/typecheck/test scripts were found." >&2
+    echo "Edit scripts/check or set HARNESS_FULL_CHECK." >&2
+    exit 65
+  fi
+fi
+
+if [[ -f Cargo.toml ]]; then
+  detected_project=1
+  cargo fmt --check
+  cargo clippy --all-targets -- -D warnings
+  cargo test
+  ran=1
+fi
+
+if [[ -f go.mod ]]; then
+  detected_project=1
+  go test ./...
+  ran=1
+fi
+
+if [[ -f pyproject.toml || -f pytest.ini || -d tests ]]; then
+  detected_project=1
+  if command -v pytest >/dev/null 2>&1; then
+    pytest
+    ran=1
+  elif python3 -m pytest --version >/dev/null 2>&1; then
+    python3 -m pytest
+    ran=1
+  elif [[ -d tests ]]; then
+    unittest_output="$(python3 -m unittest discover -s tests -p 'test_*.py' 2>&1)"
+    unittest_status="$?"
+    printf '%s\n' "$unittest_output"
+    if [[ "$unittest_status" -ne 0 ]]; then
+      exit "$unittest_status"
+    fi
+    if grep -q "Ran 0 tests" <<<"$unittest_output"; then
+      echo "unittest discovery found 0 tests." >&2
+      echo "Install pytest, add unittest-discoverable tests, edit scripts/check, or set HARNESS_FULL_CHECK." >&2
+      exit 65
+    fi
+    ran=1
+  else
+    echo "Python project markers detected, but neither pytest nor unittest-discoverable tests were available." >&2
+    echo "Edit scripts/check or set HARNESS_FULL_CHECK." >&2
+    exit 65
+  fi
+fi
+
+if [[ "$ran" -eq 0 ]]; then
+  if [[ "$detected_project" -eq 1 ]]; then
+    echo "Project markers were detected, but no full check ran." >&2
+    echo "Edit scripts/check or set HARNESS_FULL_CHECK." >&2
+    exit 65
+  fi
+  python3 -c "import pathlib; compile(pathlib.Path('scripts/tdd-cycle').read_text(), 'scripts/tdd-cycle', 'exec')"
+  if [[ -f scripts/install-harness ]]; then
+    python3 -c "import pathlib; compile(pathlib.Path('scripts/install-harness').read_text(), 'scripts/install-harness', 'exec')"
+  fi
+  if [[ -f scripts/update-harness ]]; then
+    python3 -c "import pathlib; compile(pathlib.Path('scripts/update-harness').read_text(), 'scripts/update-harness', 'exec')"
+  fi
+  if [[ -f bin/tdd-agent-harness ]]; then
+    bash -n bin/tdd-agent-harness
+  fi
+  if [[ -f Formula/tdd-agent-harness.rb ]] && command -v ruby >/dev/null 2>&1; then
+    ruby -c Formula/tdd-agent-harness.rb >/dev/null
+  fi
+  bash -n scripts/check
+  bash -n scripts/test-target
+  echo "No project-specific check was detected; validated harness scripts only."
+fi

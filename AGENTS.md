@@ -20,3 +20,12 @@
 - Task: `_docs/tasks/`
 - Worklog: `_docs/worklog/`
 - PR: `_docs/PR/`
+
+## TDD Harness Mode
+
+Do not apply TDD Harness Mode by default.
+
+When the developer explicitly asks for TDD, TDD Harness Mode, or
+red/green/check/review, read `TDD_HARNESS.md` and follow it.
+
+For ordinary coding requests, follow the normal repository instructions.
