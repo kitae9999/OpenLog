@@ -66,6 +66,82 @@ OpenLog는 이런 사용자에게 잘 맞습니다.
 - 자신의 기여를 포트폴리오처럼 남기고 싶은 기여자
 - 문서와 블로그의 장점을 함께 가진 플랫폼을 원하는 팀과 커뮤니티
 
+## CLI and MCP
+
+OpenLog는 공식 CLI와 MCP server를 npm 패키지로 제공합니다.
+
+CLI는 웹에서 승인한 로그인 결과를 로컬에 저장하고, MCP server는 Codex나 Claude Code 같은 MCP client가 로그인한 OpenLog 계정의 데이터를 조회하거나 글을 발행할 수 있게 합니다.
+
+### CLI 사용
+
+```bash
+npx -y @kitae9999/openlog-cli login
+npx -y @kitae9999/openlog-cli whoami
+npx -y @kitae9999/openlog-cli mcp
+```
+
+- `openlog login`: device login을 시작하고 브라우저에서 OpenLog 승인 화면을 엽니다.
+- `openlog whoami`: 현재 저장된 로그인 계정을 확인합니다.
+- `openlog logout`: 로컬에 저장된 OpenLog 인증 정보를 삭제합니다.
+- `openlog mcp`: stdio 기반 OpenLog MCP server를 실행합니다.
+
+전역 설치 후에는 `openlog` 명령을 직접 사용할 수 있습니다.
+
+```bash
+npm install -g @kitae9999/openlog-cli
+openlog login
+openlog mcp
+```
+
+### MCP client 설정
+
+MCP client에는 다음처럼 등록할 수 있습니다.
+
+```json
+{
+  "mcpServers": {
+    "openlog": {
+      "command": "npx",
+      "args": ["-y", "@kitae9999/openlog-cli", "mcp"]
+    }
+  }
+}
+```
+
+CLI에서 지원하는 자동 등록 명령도 제공합니다.
+
+```bash
+openlog mcp install codex
+openlog mcp install claude-code
+```
+
+### MCP tools
+
+- `get_auth_status`: 로컬 CLI 로그인 상태 확인
+- `get_me`: 현재 로그인 사용자 조회
+- `list_my_notifications`: 내 알림 목록 조회
+- `list_my_posts`: 내가 작성한 글 목록 조회
+- `list_my_liked_posts`: 내가 좋아요한 글 목록 조회
+- `get_post_detail`: 특정 글 상세 조회
+- `upload_post_image`: 로컬 이미지를 WebP로 변환해 OpenLog 글 본문 이미지로 업로드
+- `publish_post`: 로그인 계정으로 새 글 발행
+
+`publish_post`는 기본적으로 preview만 반환하며, 실제 발행은 `confirm: true` 또는 명시적인 `skipConfirmation: true`가 있을 때만 수행합니다.
+
+### 로컬 개발 환경 연결
+
+운영 API 대신 로컬 서버를 사용할 때는 환경 변수를 지정합니다.
+
+```bash
+OPENLOG_API_BASE_URL=http://localhost:8080/api \
+OPENLOG_WEB_BASE_URL=http://localhost:3030 \
+npx -y @kitae9999/openlog-cli mcp
+```
+
+- `OPENLOG_API_BASE_URL`: CLI/MCP가 호출할 OpenLog API base URL
+- `OPENLOG_WEB_BASE_URL`: `publish_post` 응답에 포함할 웹 URL base
+- `OPENLOG_AUTH_FILE`: 기본 `~/.openlog/auth.json` 대신 사용할 인증 파일 경로
+
 ## Vision
 
 OpenLog의 목표는 “좋은 글이 쌓이는 서비스”를 넘어서,  
