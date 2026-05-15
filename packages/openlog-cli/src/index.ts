@@ -3,9 +3,11 @@
 import { deleteAuthFile, readAuthFile } from "./auth-store.js";
 import { login } from "./login.js";
 import { runMcpServer } from "./mcp-server.js";
+import { installMcp, printMcpInstallHelp } from "./mcp-install.js";
 import { ApiError, OpenLogApiClient } from "./api-client.js";
 
 const command = process.argv[2] ?? "help";
+const subcommand = process.argv[3];
 
 try {
   if (command === "login") {
@@ -16,8 +18,19 @@ try {
   } else if (command === "whoami") {
     await whoami();
   } else if (command === "mcp") {
-    printMcpStartupHint();
-    await runMcpServer();
+    if (subcommand === "install") {
+      await installMcpCommand();
+    } else if (
+      subcommand === undefined ||
+      subcommand === "serve" ||
+      subcommand === "start"
+    ) {
+      printMcpStartupHint();
+      await runMcpServer();
+    } else {
+      printMcpInstallHelp();
+      process.exit(1);
+    }
   } else {
     printHelp();
     process.exit(command === "help" || command === "--help" || command === "-h" ? 0 : 1);
@@ -25,6 +38,25 @@ try {
 } catch (error) {
   console.error(formatCliError(error));
   process.exit(1);
+}
+
+async function installMcpCommand(): Promise<void> {
+  const client = process.argv[4];
+  const printOnly = process.argv.includes("--print");
+
+  if (
+    client !== "codex" &&
+    client !== "claude-code" &&
+    client !== "claude"
+  ) {
+    printMcpInstallHelp();
+    process.exit(1);
+  }
+
+  await installMcp({
+    client,
+    printOnly,
+  });
 }
 
 async function whoami(): Promise<void> {
@@ -80,6 +112,10 @@ Usage:
   openlog logout   Remove local OpenLog credentials
   openlog whoami   Print the current OpenLog user
   openlog mcp      Start the OpenLog MCP stdio server
+  openlog mcp install codex
+                  Register OpenLog MCP with Codex
+  openlog mcp install claude-code
+                  Register OpenLog MCP with Claude Code
 
 Environment:
   OPENLOG_API_BASE_URL  Override the OpenLog API base URL
