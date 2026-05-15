@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, type StdioOptions } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -71,8 +71,15 @@ async function installCodex(serverConfig: ServerConfig): Promise<void> {
   }
   args.push("--", serverConfig.command, ...serverConfig.args);
 
-  const result = await runCommand("codex", args);
-  if (result === "executed") {
+  let registeredWithCodexCli = false;
+  try {
+    registeredWithCodexCli =
+      (await runCommand("codex", args, { stdio: "pipe" })) === "executed";
+  } catch (error) {
+    warnCodexFallback(error);
+  }
+
+  if (registeredWithCodexCli) {
     console.log("OpenLog MCP server registered with Codex.");
     console.log("Run `/mcp` inside Codex to confirm it is connected.");
     return;
@@ -185,13 +192,38 @@ function tomlString(value: string): string {
   return JSON.stringify(value);
 }
 
+class CommandFailedError extends Error {
+  constructor(
+    command: string,
+    readonly exitCode: number | null,
+    readonly stderr: string,
+  ) {
+    super(`${command} exited with code ${exitCode ?? "unknown"}.`);
+  }
+}
+
+type RunCommandOptions = {
+  stdio?: "inherit" | "pipe";
+};
+
 async function runCommand(
   command: string,
   args: string[],
+  options: RunCommandOptions = {},
 ): Promise<"executed" | "missing"> {
   return new Promise((resolve, reject) => {
+    const stdioMode = options.stdio ?? "inherit";
+    const stdio: StdioOptions =
+      stdioMode === "pipe" ? ["ignore", "ignore", "pipe"] : "inherit";
+    let stderr = "";
+
     const child = spawn(command, args, {
-      stdio: "inherit",
+      stdio,
+    });
+
+    child.stderr?.setEncoding("utf8");
+    child.stderr?.on("data", (chunk: string) => {
+      stderr += chunk;
     });
 
     child.on("error", (error: NodeJS.ErrnoException) => {
@@ -209,7 +241,36 @@ async function runCommand(
         return;
       }
 
-      reject(new Error(`${command} exited with code ${code}.`));
+      reject(new CommandFailedError(command, code, stderr));
     });
   });
+}
+
+function warnCodexFallback(error: unknown): void {
+  const reason = summarizeCommandError(error);
+  const suffix = reason.length > 0 ? ` (${reason})` : "";
+  console.warn(
+    `Codex CLI registration failed${suffix}. Falling back to ~/.codex/config.toml.`,
+  );
+}
+
+function summarizeCommandError(error: unknown): string {
+  if (error instanceof CommandFailedError) {
+    const firstStderrLine = error.stderr
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0);
+
+    return truncateReason(firstStderrLine ?? error.message);
+  }
+
+  if (error instanceof Error) {
+    return truncateReason(error.message);
+  }
+
+  return truncateReason(String(error));
+}
+
+function truncateReason(reason: string): string {
+  return reason.length > 180 ? `${reason.slice(0, 177)}...` : reason;
 }
