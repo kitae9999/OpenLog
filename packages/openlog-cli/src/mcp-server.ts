@@ -8,7 +8,7 @@ import { getApiBaseUrl } from "./config.js";
 export async function runMcpServer(): Promise<void> {
   const server = new McpServer({
     name: "openlog",
-    version: "0.1.0",
+    version: "0.1.1",
   });
 
   server.registerTool(
@@ -94,6 +94,38 @@ export async function runMcpServer(): Promise<void> {
         client.get(`/users/me/liked-posts?${params}`),
       );
     },
+  );
+
+  server.registerTool(
+    "list_my_posts",
+    {
+      title: "List My OpenLog Posts",
+      description: "Return posts authored by the authenticated OpenLog user.",
+      inputSchema: {
+        size: z.number().int().min(1).max(100).default(20),
+      },
+    },
+    async ({ size }) =>
+      withAuthenticatedClient(async (client) => {
+        const me = await client.get<{ username?: string | null }>("/auth/me");
+        const username = me.username?.trim();
+
+        if (!username) {
+          throw new Error("Complete OpenLog onboarding before listing your posts.");
+        }
+
+        const posts = await client.get<unknown[]>(
+          `/users/${encodeURIComponent(username)}/posts`,
+        );
+
+        return {
+          username,
+          total: posts.length,
+          size,
+          hasMore: posts.length > size,
+          posts: posts.slice(0, size),
+        };
+      }),
   );
 
   server.registerTool(

@@ -99,6 +99,7 @@ Available tools:
   get_auth_status
   get_me
   list_my_notifications
+  list_my_posts
   list_my_liked_posts
   get_post_detail
 `);

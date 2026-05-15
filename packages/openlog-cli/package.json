@@ -1,6 +1,6 @@
 {
   "name": "@kitae9999/openlog-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "Official OpenLog CLI and MCP server.",
   "type": "module",

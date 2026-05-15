@@ -8,6 +8,15 @@ npx -y @kitae9999/openlog-cli whoami
 npx -y @kitae9999/openlog-cli mcp
 ```
 
+MCP tools:
+
+- `get_auth_status`
+- `get_me`
+- `list_my_notifications`
+- `list_my_posts`
+- `list_my_liked_posts`
+- `get_post_detail`
+
 MCP client configuration:
 
 ```json
