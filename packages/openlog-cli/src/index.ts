@@ -3,7 +3,7 @@
 import { deleteAuthFile, readAuthFile } from "./auth-store.js";
 import { login } from "./login.js";
 import { runMcpServer } from "./mcp-server.js";
-import { OpenLogApiClient } from "./api-client.js";
+import { ApiError, OpenLogApiClient } from "./api-client.js";
 
 const command = process.argv[2] ?? "help";
 
@@ -16,13 +16,14 @@ try {
   } else if (command === "whoami") {
     await whoami();
   } else if (command === "mcp") {
+    printMcpStartupHint();
     await runMcpServer();
   } else {
     printHelp();
     process.exit(command === "help" || command === "--help" || command === "-h" ? 0 : 1);
   }
 } catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
+  console.error(formatCliError(error));
   process.exit(1);
 }
 
@@ -42,6 +43,35 @@ async function whoami(): Promise<void> {
   console.log(JSON.stringify(me, null, 2));
 }
 
+function printMcpStartupHint(): void {
+  if (!process.stderr.isTTY) {
+    return;
+  }
+
+  console.error(`OpenLog MCP server is running over stdio.
+
+This terminal is now reserved for MCP protocol traffic.
+Press Ctrl+C to stop it.
+
+To use it from an MCP client, add:
+{
+  "mcpServers": {
+    "openlog": {
+      "command": "openlog",
+      "args": ["mcp"]
+    }
+  }
+}
+
+Available tools:
+  get_auth_status
+  get_me
+  list_my_notifications
+  list_my_liked_posts
+  get_post_detail
+`);
+}
+
 function printHelp(): void {
   console.log(`OpenLog CLI
 
@@ -57,3 +87,14 @@ Environment:
 `);
 }
 
+function formatCliError(error: unknown): string {
+  if (error instanceof ApiError && error.status === 404) {
+    const hint = error.url.includes("localhost:8080/auth/")
+      ? "\n\nLocal hint: if your backend uses SERVER_SERVLET_CONTEXT_PATH=/api, run with OPENLOG_API_BASE_URL=http://localhost:8080/api."
+      : "";
+
+    return `${error.message}\nRequested: ${error.url}${hint}`;
+  }
+
+  return error instanceof Error ? error.message : String(error);
+}

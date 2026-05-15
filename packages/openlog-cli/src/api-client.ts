@@ -3,6 +3,7 @@ import { getApiBaseUrl } from "./config.js";
 export class ApiError extends Error {
   constructor(
     readonly status: number,
+    readonly url: string,
     message: string,
   ) {
     super(message);
@@ -45,7 +46,8 @@ export class OpenLogApiClient {
   }
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {
-    const response = await fetch(`${this.apiBaseUrl}${path}`, {
+    const url = `${this.apiBaseUrl}${path}`;
+    const response = await fetch(url, {
       ...init,
       headers: {
         ...(init.headers ?? {}),
@@ -56,7 +58,7 @@ export class OpenLogApiClient {
     });
 
     if (!response.ok) {
-      throw new ApiError(response.status, await readErrorMessage(response));
+      throw new ApiError(response.status, url, await readErrorMessage(response));
     }
 
     if (response.status === 204) {
@@ -75,4 +77,3 @@ async function readErrorMessage(response: Response): Promise<string> {
     return `OpenLog API request failed with ${response.status}`;
   }
 }
-
