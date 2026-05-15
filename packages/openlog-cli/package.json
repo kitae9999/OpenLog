@@ -1,0 +1,38 @@
+{
+  "name": "@kitae9999/openlog-cli",
+  "version": "0.2.0",
+  "private": false,
+  "description": "Official OpenLog CLI and MCP server.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kitae9999/OpenLog.git",
+    "directory": "packages/openlog-cli"
+  },
+  "bin": {
+    "openlog": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod 755 dist/index.js",
+    "dev": "tsx src/index.ts",
+    "prepack": "npm run build",
+    "start": "node dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "sharp": "^0.34.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "tsx": "^4.22.0",
+    "typescript": "^6.0.3"
+  }
+}
