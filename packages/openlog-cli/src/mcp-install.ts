@@ -2,7 +2,12 @@ import { spawn, type StdioOptions } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { DEFAULT_API_BASE_URL, getApiBaseUrl } from "./config.js";
+import {
+  DEFAULT_API_BASE_URL,
+  DEFAULT_WEB_BASE_URL,
+  getApiBaseUrl,
+  getWebBaseUrl,
+} from "./config.js";
 
 type McpInstallClient = "codex" | "claude-code" | "claude";
 
@@ -46,15 +51,19 @@ Aliases:
   claude      Same as claude-code
 
 Notes:
-  If OPENLOG_API_BASE_URL is set, it is added to the client config.
+  If OPENLOG_API_BASE_URL or OPENLOG_WEB_BASE_URL is set, it is added to the client config.
 `);
 }
 
 function buildServerConfig(): ServerConfig {
   const apiBaseUrl = getApiBaseUrl();
+  const webBaseUrl = getWebBaseUrl();
   const env: Record<string, string> = {};
   if (apiBaseUrl !== DEFAULT_API_BASE_URL) {
     env.OPENLOG_API_BASE_URL = apiBaseUrl;
+  }
+  if (webBaseUrl !== DEFAULT_WEB_BASE_URL) {
+    env.OPENLOG_WEB_BASE_URL = webBaseUrl;
   }
 
   return {

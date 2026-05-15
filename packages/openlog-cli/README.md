@@ -15,6 +15,8 @@ MCP tools:
 - `list_my_notifications`
 - `list_my_posts`
 - `list_my_liked_posts`
+- `upload_post_image`
+- `publish_post`
 - `get_post_detail`
 
 MCP client configuration:
@@ -30,4 +32,5 @@ MCP client configuration:
 }
 ```
 
-Set `OPENLOG_API_BASE_URL` to point at a non-production API.
+Set `OPENLOG_API_BASE_URL` to point at a non-production API. Set
+`OPENLOG_WEB_BASE_URL` to control absolute post URLs returned by `publish_post`.

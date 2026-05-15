@@ -101,6 +101,8 @@ Available tools:
   list_my_notifications
   list_my_posts
   list_my_liked_posts
+  upload_post_image
+  publish_post
   get_post_detail
 `);
 }
@@ -120,6 +122,7 @@ Usage:
 
 Environment:
   OPENLOG_API_BASE_URL  Override the OpenLog API base URL
+  OPENLOG_WEB_BASE_URL  Override the OpenLog web base URL for published post links
   OPENLOG_AUTH_FILE     Override the local auth file path
 `);
 }

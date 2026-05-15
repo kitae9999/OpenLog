@@ -3,12 +3,20 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { OpenLogApiClient } from "./api-client.js";
 import { readAuthFile } from "./auth-store.js";
-import { getApiBaseUrl } from "./config.js";
+import { getApiBaseUrl, getWebBaseUrl } from "./config.js";
+import { uploadPostImage } from "./post-image-upload.js";
+
+const WRITE_TOOL_ANNOTATIONS = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: true,
+};
 
 export async function runMcpServer(): Promise<void> {
   const server = new McpServer({
     name: "openlog",
-    version: "0.1.1",
+    version: "0.2.0",
   });
 
   server.registerTool(
@@ -129,6 +137,99 @@ export async function runMcpServer(): Promise<void> {
   );
 
   server.registerTool(
+    "upload_post_image",
+    {
+      title: "Upload OpenLog Post Image",
+      description:
+        "Convert a local image file to WebP, upload it to OpenLog, and return markdown for post content.",
+      annotations: WRITE_TOOL_ANNOTATIONS,
+      inputSchema: {
+        filePath: z.string().min(1),
+        altText: z.string().optional(),
+      },
+    },
+    async ({ filePath, altText }) =>
+      withAuthenticatedClient((client) =>
+        uploadPostImage(client, {
+          filePath,
+          altText,
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "publish_post",
+    {
+      title: "Publish OpenLog Post",
+      description:
+        "Publish a new post to the authenticated OpenLog account. Requires confirm: true unless skipConfirmation: true is explicitly provided.",
+      annotations: WRITE_TOOL_ANNOTATIONS,
+      inputSchema: {
+        title: z.string().min(1),
+        description: z.string().min(1),
+        content: z.string().min(1),
+        topics: z.array(z.string()).default([]),
+        links: z
+          .array(
+            z.object({
+              label: z.string().min(1),
+              targetSlug: z.string().min(1),
+            }),
+          )
+          .default([]),
+        confirm: z.boolean().optional(),
+        skipConfirmation: z.boolean().optional(),
+      },
+    },
+    async ({
+      title,
+      description,
+      content,
+      topics,
+      links,
+      confirm,
+      skipConfirmation,
+    }) =>
+      withAuthenticatedClient(async (client) => {
+        const post = normalizePostInput({
+          title,
+          description,
+          content,
+          topics,
+          links,
+        });
+
+        if (confirm !== true && skipConfirmation !== true) {
+          return {
+            requiresConfirmation: true,
+            preview: {
+              title: post.title,
+              description: post.description,
+              contentPreview: createContentPreview(post.content),
+              contentLength: post.content.length,
+              topics: post.topics,
+              links: post.links,
+            },
+            nextStep:
+              "Call publish_post again with confirm: true, or skipConfirmation: true if the user explicitly requested publishing without confirmation.",
+          };
+        }
+
+        const published = await client.post<PostWriteResponse>("/posts", post);
+        const postPath = buildPublicPostPath(
+          published.authorUsername,
+          published.slug,
+        );
+
+        return {
+          ...published,
+          path: postPath,
+          url: new URL(postPath, `${getWebBaseUrl()}/`).toString(),
+        };
+      }),
+  );
+
+  server.registerTool(
     "get_post_detail",
     {
       title: "Get OpenLog Post Detail",
@@ -148,6 +249,87 @@ export async function runMcpServer(): Promise<void> {
   );
 
   await server.connect(new StdioServerTransport());
+}
+
+type PostWriteResponse = {
+  authorUsername: string;
+  slug: string;
+};
+
+type PostLinkInput = {
+  label: string;
+  targetSlug: string;
+};
+
+type PostWriteInput = {
+  title: string;
+  description: string;
+  content: string;
+  topics: string[];
+  links: PostLinkInput[];
+};
+
+function normalizePostInput(input: PostWriteInput): PostWriteInput {
+  const title = input.title.trim();
+  const description = input.description.trim();
+  const content = input.content.trim();
+
+  if (!title) {
+    throw new Error("title is required.");
+  }
+
+  if (!description) {
+    throw new Error("description is required.");
+  }
+
+  if (!content) {
+    throw new Error("content is required.");
+  }
+
+  return {
+    title,
+    description,
+    content,
+    topics: normalizeTopics(input.topics),
+    links: normalizeLinks(input.links),
+  };
+}
+
+function normalizeTopics(topics: string[]): string[] {
+  const normalized = topics
+    .map((topic) => topic.trim().toLowerCase())
+    .filter(Boolean);
+
+  return [...new Set(normalized)];
+}
+
+function normalizeLinks(links: PostLinkInput[]): PostLinkInput[] {
+  const normalized: PostLinkInput[] = [];
+  const seen = new Set<string>();
+
+  for (const link of links) {
+    const label = link.label.trim();
+    const targetSlug = link.targetSlug.trim();
+    const key = `${label}\u0000${targetSlug}`;
+
+    if (!label || !targetSlug || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    normalized.push({ label, targetSlug });
+  }
+
+  return normalized;
+}
+
+function createContentPreview(content: string): string {
+  const preview = content.replace(/\s+/g, " ").trim();
+  return preview.length > 500 ? `${preview.slice(0, 497)}...` : preview;
+}
+
+function buildPublicPostPath(username: string, slug: string): string {
+  return `/@${encodeURIComponent(username)}/posts/${encodeURIComponent(slug)}`;
 }
 
 async function createAuthenticatedClient(): Promise<OpenLogApiClient> {

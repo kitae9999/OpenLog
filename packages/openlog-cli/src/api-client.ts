@@ -45,6 +45,14 @@ export class OpenLogApiClient {
     });
   }
 
+  async patchNoContent(path: string, body?: unknown): Promise<void> {
+    await this.request<void>(path, {
+      method: "PATCH",
+      headers: body ? { "content-type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
   private async request<T>(path: string, init: RequestInit): Promise<T> {
     const url = `${this.apiBaseUrl}${path}`;
     const response = await fetch(url, {
