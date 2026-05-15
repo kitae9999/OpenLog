@@ -4,8 +4,13 @@
   "private": false,
   "description": "Official OpenLog CLI and MCP server.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kitae9999/OpenLog.git",
+    "directory": "packages/openlog-cli"
+  },
   "bin": {
-    "openlog": "./dist/index.js"
+    "openlog": "dist/index.js"
   },
   "scripts": {
     "build": "tsc && chmod 755 dist/index.js",
