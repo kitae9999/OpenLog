@@ -1,6 +1,10 @@
 package io.github.kitae9999.openlog.auth
 
 import io.github.kitae9999.openlog.auth.dto.CompleteOnboardingRequest
+import io.github.kitae9999.openlog.auth.dto.DeviceApproveRequest
+import io.github.kitae9999.openlog.auth.dto.DeviceStartResponse
+import io.github.kitae9999.openlog.auth.dto.DeviceTokenRequest
+import io.github.kitae9999.openlog.auth.dto.DeviceTokenResponse
 import io.github.kitae9999.openlog.auth.dto.MeResponse
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.user.entity.User
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import java.net.URI
 import java.time.Duration
 
@@ -26,6 +31,7 @@ import java.time.Duration
 @RequestMapping("auth")
 class AuthController(
     private val authService: AuthService,
+    private val deviceAuthService: DeviceAuthService,
     private val currentUserResolver: CurrentUserResolver,
     private val jwtTokenService: JwtTokenService,
     private val accessTokenCookieFactory: AccessTokenCookieFactory,
@@ -72,10 +78,34 @@ class AuthController(
         return onboardedUser.toMeResponse()
     }
 
+    @PostMapping("device/start")
+    fun startDeviceLogin(): DeviceStartResponse {
+        return deviceAuthService.start()
+    }
+
+    @PostMapping("device/approve")
+    fun approveDeviceLogin(
+        request: HttpServletRequest,
+        @RequestBody deviceApproveRequest: DeviceApproveRequest,
+    ): ResponseEntity<Void> {
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
+        deviceAuthService.approve(deviceApproveRequest.userCode, currentUser)
+
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("device/token")
+    fun getDeviceToken(
+        @RequestBody deviceTokenRequest: DeviceTokenRequest,
+    ): DeviceTokenResponse {
+        return deviceAuthService.token(deviceTokenRequest.deviceCode)
+    }
+
     @GetMapping("google")
     fun redirectToGoogleOAuth(
+        @RequestParam(required = false) returnTo: String?,
     ): ResponseEntity<Void>{
-        val authRequest = authService.createGoogleAuthRequest()
+        val authRequest = authService.createGoogleAuthRequest(returnTo)
 
         val flowCookie = ResponseCookie.from("oauth_flow_id",authRequest.flowId)
             .httpOnly(true)
@@ -91,13 +121,34 @@ class AuthController(
             .build()
     }
 
+    @GetMapping("github")
+    fun redirectToGithubOAuth(
+        request: HttpServletRequest,
+        @RequestParam(required = false) returnTo: String?,
+    ): ResponseEntity<Void> {
+        normalizeFrontendReturnTo(returnTo)?.let {
+            request.session.setAttribute(GITHUB_RETURN_TO_SESSION_ATTRIBUTE, it)
+        }
+
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .location(
+                URI.create(
+                    ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/oauth2/authorization/github")
+                        .build()
+                        .toUriString()
+                )
+            )
+            .build()
+    }
+
     @GetMapping("google/callback")
     fun hangleGoogleCallback(
         @RequestParam code: String,
         @RequestParam state: String,
         @CookieValue("oauth_flow_id") flowId: String
     ): ResponseEntity<Void> {
-        authService.validateGoogleState(flowId, state)
+        val oauthState = authService.consumeGoogleState(flowId, state)
 
         val deleteCookie = ResponseCookie.from("oauth_flow_id", "")
             .httpOnly(true)
@@ -127,15 +178,7 @@ class AuthController(
 
         return ResponseEntity.status(HttpStatus.FOUND)
             .header(HttpHeaders.SET_COOKIE, deleteCookie.toString(), authCookie.toString())
-            .location(
-                URI.create(
-                    if (currentUser.isOnboardingComplete()) {
-                        frontendHomeUrl
-                    } else {
-                        URI.create(frontendHomeUrl).resolve("/onboarding").toString()
-                    },
-                )
-            )
+            .location(URI.create(resolvePostLoginRedirect(currentUser, oauthState.returnTo)))
             .build()
     }
 
@@ -151,6 +194,35 @@ class AuthController(
         )
     }
 
+    private fun resolvePostLoginRedirect(user: User, returnTo: String?): String {
+        val frontendHome = URI.create(frontendHomeUrl)
 
+        if (!user.isOnboardingComplete()) {
+            return frontendHome.resolve("/onboarding").toString()
+        }
 
+        return normalizeFrontendReturnTo(returnTo)
+            ?.let { frontendHome.resolve(it).toString() }
+            ?: frontendHome.toString()
+    }
+
+    private fun normalizeFrontendReturnTo(returnTo: String?): String? {
+        val trimmedReturnTo = returnTo?.trim()?.takeIf { it.isNotBlank() }
+            ?: return null
+
+        return if (
+            trimmedReturnTo.startsWith("/") &&
+            !trimmedReturnTo.startsWith("//") &&
+            !trimmedReturnTo.contains("\r") &&
+            !trimmedReturnTo.contains("\n")
+        ) {
+            trimmedReturnTo
+        } else {
+            null
+        }
+    }
+
+    private companion object {
+        const val GITHUB_RETURN_TO_SESSION_ATTRIBUTE = "oauth_return_to"
+    }
 }

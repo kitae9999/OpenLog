@@ -43,11 +43,17 @@ class AuthService(
     companion object {
         private  val OAUTH_STATE_TTL: Duration = Duration.ofMinutes(5)
         private const val GOOGLE_STATE_KEY_PREFIX = "oauth:google:state"
+        private const val GOOGLE_STATE_VALUE_SEPARATOR = "\n"
     }
 
     data class GoogleAuthRequest(
         val flowId: String,
         val authUrl: String,
+    )
+
+    data class GoogleOAuthState(
+        val state: String,
+        val returnTo: String?,
     )
 
     data class GoogleUserInfoResponse(
@@ -123,13 +129,14 @@ class AuthService(
     /**
      * auth 이벤트 발생 시 state 발행 및 레디스 저장
      */
-    fun createGoogleAuthRequest(): GoogleAuthRequest {
+    fun createGoogleAuthRequest(returnTo: String? = null): GoogleAuthRequest {
         val flowId = UUID.randomUUID().toString()
         val state = UUID.randomUUID().toString()
+        val normalizedReturnTo = normalizeFrontendReturnTo(returnTo)
 
         redisTemplate.opsForValue().set(
             buildStateKey(flowId),
-            state,
+            listOf(state, normalizedReturnTo.orEmpty()).joinToString(GOOGLE_STATE_VALUE_SEPARATOR),
             OAUTH_STATE_TTL
         )
 
@@ -141,15 +148,22 @@ class AuthService(
     }
 
 
-    fun validateGoogleState(flowId: String?, state: String){
+    fun validateGoogleState(flowId: String?, state: String) {
+        consumeGoogleState(flowId, state)
+    }
+
+    fun consumeGoogleState(flowId: String?, state: String): GoogleOAuthState {
         if (flowId.isNullOrBlank()){
             throw InvalidOAuthStateException()
         }
 
-        val savedState = redisTemplate.opsForValue().getAndDelete(buildStateKey(flowId))
-        if (savedState == null || savedState != state ){
+        val savedValue = redisTemplate.opsForValue().getAndDelete(buildStateKey(flowId))
+        val savedOAuthState = savedValue?.toGoogleOAuthState()
+        if (savedOAuthState == null || savedOAuthState.state != state ){
             throw InvalidOAuthStateException()
         }
+
+        return savedOAuthState
     }
 
     @Transactional
@@ -236,4 +250,29 @@ class AuthService(
 
     private fun buildStateKey(flowId: String): String =
         "$GOOGLE_STATE_KEY_PREFIX$flowId"
+
+    private fun String.toGoogleOAuthState(): GoogleOAuthState {
+        val parts = split(GOOGLE_STATE_VALUE_SEPARATOR, limit = 2)
+
+        return GoogleOAuthState(
+            state = parts[0],
+            returnTo = parts.getOrNull(1)?.takeIf { it.isNotBlank() },
+        )
+    }
+
+    private fun normalizeFrontendReturnTo(returnTo: String?): String? {
+        val trimmedReturnTo = returnTo?.trim()?.takeIf { it.isNotBlank() }
+            ?: return null
+
+        return if (
+            trimmedReturnTo.startsWith("/") &&
+            !trimmedReturnTo.startsWith("//") &&
+            !trimmedReturnTo.contains("\r") &&
+            !trimmedReturnTo.contains("\n")
+        ) {
+            trimmedReturnTo
+        } else {
+            null
+        }
+    }
 }

@@ -45,15 +45,42 @@ class GithubOAuthSuccessHandler(
         )
         val issuedJwt = jwtTokenService.createAccessToken(currentUser)
         val authCookie = accessTokenCookieFactory.create(issuedJwt)
+        val returnTo = request.session.getAttribute(GITHUB_RETURN_TO_SESSION_ATTRIBUTE) as? String
+        request.session.removeAttribute(GITHUB_RETURN_TO_SESSION_ATTRIBUTE)
 
         response.addHeader(HttpHeaders.SET_COOKIE, authCookie.toString())
-        response.sendRedirect(
-            if (currentUser.isOnboardingComplete()) {
-                frontendHomeUrl
-            } else {
-                URI.create(frontendHomeUrl).resolve("/onboarding").toString()
-            },
-        )
+        response.sendRedirect(resolvePostLoginRedirect(currentUser, returnTo))
     }
 
+    private fun resolvePostLoginRedirect(user: io.github.kitae9999.openlog.user.entity.User, returnTo: String?): String {
+        val frontendHome = URI.create(frontendHomeUrl)
+
+        if (!user.isOnboardingComplete()) {
+            return frontendHome.resolve("/onboarding").toString()
+        }
+
+        return normalizeFrontendReturnTo(returnTo)
+            ?.let { frontendHome.resolve(it).toString() }
+            ?: frontendHome.toString()
+    }
+
+    private fun normalizeFrontendReturnTo(returnTo: String?): String? {
+        val trimmedReturnTo = returnTo?.trim()?.takeIf { it.isNotBlank() }
+            ?: return null
+
+        return if (
+            trimmedReturnTo.startsWith("/") &&
+            !trimmedReturnTo.startsWith("//") &&
+            !trimmedReturnTo.contains("\r") &&
+            !trimmedReturnTo.contains("\n")
+        ) {
+            trimmedReturnTo
+        } else {
+            null
+        }
+    }
+
+    private companion object {
+        const val GITHUB_RETURN_TO_SESSION_ATTRIBUTE = "oauth_return_to"
+    }
 }
