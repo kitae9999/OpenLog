@@ -158,6 +158,7 @@ class SuggestService(
         postId: Long,
         suggestionId: Long
     ): Suggestion {
+        lockPostForSuggestionManagement(postId)
         val suggestion = suggestionRepository.findManageableWithPostAuthorByIdAndPostId(suggestionId, postId)
             ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
 
@@ -177,6 +178,7 @@ class SuggestService(
         postId: Long,
         suggestionId: Long
     ): Suggestion {
+        lockPostForSuggestionManagement(postId)
         val suggestion = suggestionRepository.findManageableWithPostAuthorByIdAndPostId(suggestionId, postId)
             ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
 
@@ -189,6 +191,11 @@ class SuggestService(
         }
 
         return suggestion
+    }
+
+    private fun lockPostForSuggestionManagement(postId: Long) {
+        postRepository.findByIdForUpdate(postId)
+            ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
     }
 
     @Transactional

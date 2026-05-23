@@ -3,6 +3,7 @@ package io.github.kitae9999.openlog.postlike
 import io.github.kitae9999.openlog.postlike.entity.PostLike
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
@@ -11,6 +12,33 @@ interface PostLikeRepository : JpaRepository<PostLike, Long> {
     fun findByPostIdAndUserId(postId: Long, userId: Long): PostLike?
     fun existsByPostIdAndUserId(postId: Long, userId: Long): Boolean
     fun countByPostId(postId: Long): Long
+
+    @Modifying
+    @Query(
+        value = """
+            INSERT INTO post_likes (post_id, user_id)
+            VALUES (:postId, :userId)
+            ON CONFLICT (post_id, user_id) DO NOTHING
+        """,
+        nativeQuery = true,
+    )
+    fun insertIgnoringDuplicate(
+        @Param("postId") postId: Long,
+        @Param("userId") userId: Long,
+    ): Int
+
+    @Modifying
+    @Query(
+        """
+        delete from PostLike pl
+        where pl.post.id = :postId
+          and pl.user.id = :userId
+        """
+    )
+    fun deleteByPostIdAndUserId(
+        @Param("postId") postId: Long,
+        @Param("userId") userId: Long,
+    ): Int
 
     @Query(
         """

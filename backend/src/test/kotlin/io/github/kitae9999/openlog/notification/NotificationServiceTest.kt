@@ -35,6 +35,9 @@ class NotificationServiceTest {
     @Mock
     private lateinit var userRepository: UserRepository
 
+    @Mock
+    private lateinit var notificationJdbcWriter: NotificationJdbcWriter
+
     private lateinit var notificationService: NotificationService
 
     @BeforeEach
@@ -43,6 +46,7 @@ class NotificationServiceTest {
             notificationRepository = notificationRepository,
             followRepository = followRepository,
             userRepository = userRepository,
+            notificationJdbcWriter = notificationJdbcWriter,
         )
     }
 
@@ -75,8 +79,8 @@ class NotificationServiceTest {
         )
 
         @Suppress("UNCHECKED_CAST")
-        val notifications = mockingDetails(notificationRepository).invocations
-            .single { it.method.name == "saveAll" }
+        val notifications = mockingDetails(notificationJdbcWriter).invocations
+            .single { it.method.name == "insertIgnoringDuplicates" }
             .arguments
             .single() as List<Notification>
 
