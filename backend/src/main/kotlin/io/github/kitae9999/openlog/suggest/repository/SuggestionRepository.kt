@@ -2,13 +2,16 @@ package io.github.kitae9999.openlog.suggest.repository
 
 import io.github.kitae9999.openlog.suggest.entity.Suggestion
 import io.github.kitae9999.openlog.suggest.entity.SuggestionStatus
+import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
 interface SuggestionRepository: JpaRepository<Suggestion, Long> {
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
         """
         select s

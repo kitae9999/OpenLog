@@ -1,9 +1,11 @@
 package io.github.kitae9999.openlog.post.repository
 
 import io.github.kitae9999.openlog.post.entity.Post
+import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
@@ -14,6 +16,16 @@ interface PostRepository: JpaRepository<Post, Long> {
     fun findByAuthorIdAndSlug(authorId: Long, slug: String): Post?
     fun findAllByAuthorIdAndTitle(authorId: Long, title: String): List<Post>
     fun findAllByAuthorIdOrderByCreatedAtDesc(authorId: Long): List<Post>
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query(
+        """
+        select p
+        from Post p
+        where p.id = :postId
+        """
+    )
+    fun findByIdForUpdate(@Param("postId") postId: Long): Post?
 
     @EntityGraph(attributePaths = ["author"])
     fun findAllByOrderByCreatedAtDescIdDesc(pageable: Pageable): List<Post>

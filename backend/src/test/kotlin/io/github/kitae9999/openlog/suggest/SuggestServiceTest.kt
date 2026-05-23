@@ -180,6 +180,7 @@ class SuggestServiceTest {
     }
 
     private fun givenManageableSuggestion(suggestion: Suggestion) {
+        given(postRepository.findByIdForUpdate(10L)).willReturn(suggestion.post)
         given(
             suggestionRepository.findManageableWithPostAuthorByIdAndPostId(
                 suggestionId = 100L,
