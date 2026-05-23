@@ -24,6 +24,7 @@ class NotificationService (
     private val notificationRepository: NotificationRepository,
     private val followRepository: FollowRepository,
     private val userRepository: UserRepository,
+    private val notificationJdbcWriter: NotificationJdbcWriter,
 ) {
     @Transactional(readOnly = true)
     fun getNotifications(recipientId: Long, size: Int): NotificationListResponse {
@@ -78,7 +79,7 @@ class NotificationService (
             )
         }
 
-        notificationRepository.saveAll(notifications)
+        notificationJdbcWriter.insertIgnoringDuplicates(notifications)
     }
 
     private fun Notification.toResponse(): NotificationResponse {
