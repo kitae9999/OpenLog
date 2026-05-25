@@ -17,13 +17,7 @@ import type {
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
-import {
-  feedPosts,
-  followingPosts,
-  tabs,
-  type FeedPost,
-  type TabKey,
-} from "./data";
+import { feedPosts, tabs, type FeedPost, type TabKey } from "./data";
 
 export function HomeFeedShell({
   activeTab,
@@ -31,6 +25,9 @@ export function HomeFeedShell({
   initialHomePosts,
   initialHomeNextCursor,
   initialHomeHasNext,
+  initialFollowingPosts,
+  initialFollowingNextCursor,
+  initialFollowingHasNext,
   initialLikedPosts,
   initialLikedNextCursor,
   initialLikedHasNext,
@@ -43,6 +40,9 @@ export function HomeFeedShell({
   initialHomePosts: RecentPostSummary[];
   initialHomeNextCursor: string | null;
   initialHomeHasNext: boolean;
+  initialFollowingPosts: RecentPostSummary[];
+  initialFollowingNextCursor: string | null;
+  initialFollowingHasNext: boolean;
   initialLikedPosts: RecentPostSummary[];
   initialLikedNextCursor: string | null;
   initialLikedHasNext: boolean;
@@ -54,18 +54,26 @@ export function HomeFeedShell({
   const [homePosts, setHomePosts] = useState<FeedPost[]>(() =>
     initialHomePosts.map(toFeedPost),
   );
+  const [followingFeedPosts, setFollowingFeedPosts] = useState<FeedPost[]>(() =>
+    initialFollowingPosts.map(toFeedPost),
+  );
   const [likedFeedPosts, setLikedFeedPosts] = useState<FeedPost[]>(() =>
     initialLikedPosts.map(toFeedPost),
   );
   const [homeNextCursor, setHomeNextCursor] = useState<string | null>(
     initialHomeNextCursor,
   );
+  const [followingNextCursor, setFollowingNextCursor] = useState<string | null>(
+    initialFollowingNextCursor,
+  );
   const [likedNextCursor, setLikedNextCursor] = useState<string | null>(
     initialLikedNextCursor,
   );
   const [hasNextHomePage, setHasNextHomePage] = useState(initialHomeHasNext);
-  const [hasNextLikedPage, setHasNextLikedPage] =
-    useState(initialLikedHasNext);
+  const [hasNextFollowingPage, setHasNextFollowingPage] = useState(
+    initialFollowingHasNext,
+  );
+  const [hasNextLikedPage, setHasNextLikedPage] = useState(initialLikedHasNext);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -73,15 +81,19 @@ export function HomeFeedShell({
   const posts =
     activeTab === "home"
       ? homePosts
-      : activeTab === "liked"
-        ? likedFeedPosts
-        : getPostsForTab(activeTab);
+      : activeTab === "following"
+        ? followingFeedPosts
+        : activeTab === "liked"
+          ? likedFeedPosts
+          : feedPosts;
   const hasNextActivePage =
     activeTab === "home"
       ? hasNextHomePage
-      : activeTab === "liked"
-        ? hasNextLikedPage
-        : false;
+      : activeTab === "following"
+        ? hasNextFollowingPage
+        : activeTab === "liked"
+          ? hasNextLikedPage
+          : false;
 
   useEffect(() => {
     const query = window.matchMedia("(min-width: 1024px)");
@@ -128,16 +140,39 @@ export function HomeFeedShell({
     setLoadError(null);
   }, [initialLikedPosts, initialLikedNextCursor, initialLikedHasNext]);
 
+  useEffect(() => {
+    setFollowingFeedPosts(initialFollowingPosts.map(toFeedPost));
+    setFollowingNextCursor(initialFollowingNextCursor);
+    setHasNextFollowingPage(initialFollowingHasNext);
+    setLoadError(null);
+  }, [
+    initialFollowingPosts,
+    initialFollowingNextCursor,
+    initialFollowingHasNext,
+  ]);
+
   const loadMorePosts = useCallback(async () => {
     const endpoint =
       activeTab === "home"
         ? "/api/posts"
-        : activeTab === "liked"
-          ? "/api/users/me/liked-posts"
-          : null;
-    const cursor = activeTab === "home" ? homeNextCursor : likedNextCursor;
+        : activeTab === "following"
+          ? "/api/users/me/following/posts"
+          : activeTab === "liked"
+            ? "/api/users/me/liked-posts"
+            : null;
+    const cursor =
+      activeTab === "home"
+        ? homeNextCursor
+        : activeTab === "following"
+          ? followingNextCursor
+          : likedNextCursor;
 
-    if (!endpoint || !hasNextActivePage || !cursor || isLoadingMoreRef.current) {
+    if (
+      !endpoint ||
+      !hasNextActivePage ||
+      !cursor ||
+      isLoadingMoreRef.current
+    ) {
       return;
     }
 
@@ -159,12 +194,16 @@ export function HomeFeedShell({
       const page = (await response.json()) as RecentPostCursorPage;
 
       if (activeTab === "home") {
-        setHomePosts((current) => [
+        setHomePosts((current) => [...current, ...page.posts.map(toFeedPost)]);
+        setHomeNextCursor(page.nextCursor);
+        setHasNextHomePage(page.hasNext);
+      } else if (activeTab === "following") {
+        setFollowingFeedPosts((current) => [
           ...current,
           ...page.posts.map(toFeedPost),
         ]);
-        setHomeNextCursor(page.nextCursor);
-        setHasNextHomePage(page.hasNext);
+        setFollowingNextCursor(page.nextCursor);
+        setHasNextFollowingPage(page.hasNext);
       } else {
         setLikedFeedPosts((current) => [
           ...current,
@@ -179,10 +218,21 @@ export function HomeFeedShell({
       isLoadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [activeTab, hasNextActivePage, homeNextCursor, likedNextCursor]);
+  }, [
+    activeTab,
+    followingNextCursor,
+    hasNextActivePage,
+    homeNextCursor,
+    likedNextCursor,
+  ]);
 
   useEffect(() => {
-    if ((activeTab !== "home" && activeTab !== "liked") || !hasNextActivePage) {
+    if (
+      (activeTab !== "home" &&
+        activeTab !== "following" &&
+        activeTab !== "liked") ||
+      !hasNextActivePage
+    ) {
       return;
     }
 
@@ -261,7 +311,9 @@ export function HomeFeedShell({
               ))}
             </div>
 
-            {activeTab === "home" || activeTab === "liked" ? (
+            {activeTab === "home" ||
+            activeTab === "following" ||
+            activeTab === "liked" ? (
               <div
                 ref={sentinelRef}
                 className="flex min-h-24 items-center justify-center py-6 text-sm text-zinc-500"
@@ -274,7 +326,9 @@ export function HomeFeedShell({
                     : posts.length === 0
                       ? activeTab === "liked" && !isLoggedIn
                         ? "Log in to see liked posts."
-                        : "No posts yet."
+                        : activeTab === "following" && !isLoggedIn
+                          ? "Log in to see following posts."
+                          : "No posts yet."
                       : hasNextActivePage
                         ? ""
                         : "No more posts."}
@@ -354,7 +408,9 @@ function ArticleCard({ post }: { post: FeedPost }) {
         href={post.href}
         className={cn(
           "group grid gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-          thumbnailSrc ? "sm:grid-cols-[minmax(0,1fr)_184px] sm:items-center" : "",
+          thumbnailSrc
+            ? "sm:grid-cols-[minmax(0,1fr)_184px] sm:items-center"
+            : "",
         )}
       >
         <div className="min-w-0">
@@ -404,14 +460,6 @@ function ArticleCard({ post }: { post: FeedPost }) {
       </div>
     </article>
   );
-}
-
-function getPostsForTab(tab: TabKey) {
-  if (tab === "following") {
-    return followingPosts;
-  }
-
-  return feedPosts;
 }
 
 function toFeedPost(post: RecentPostSummary): FeedPost {

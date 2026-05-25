@@ -1,5 +1,6 @@
 import { Footer } from "@/widgets/chrome/ui";
 import type { TabKey } from "./data";
+import { getFollowingPosts } from "@/entities/post/api/getFollowingPosts";
 import { getLikedPosts } from "@/entities/post/api/getLikedPosts";
 import { getRecentPosts } from "@/entities/post/api/getRecentPosts";
 import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
@@ -18,6 +19,10 @@ export async function HomeFeed({
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
   const recentPosts =
     activeTab === "home" ? await getRecentPosts(null, 10) : undefined;
+  const followingPosts =
+    activeTab === "following" && data
+      ? await getFollowingPosts(null, 10)
+      : undefined;
   const likedPosts =
     activeTab === "liked" && data ? await getLikedPosts(null, 10) : undefined;
 
@@ -30,6 +35,9 @@ export async function HomeFeed({
       initialHomePosts={recentPosts?.posts ?? []}
       initialHomeNextCursor={recentPosts?.nextCursor ?? null}
       initialHomeHasNext={recentPosts?.hasNext ?? false}
+      initialFollowingPosts={followingPosts?.posts ?? []}
+      initialFollowingNextCursor={followingPosts?.nextCursor ?? null}
+      initialFollowingHasNext={followingPosts?.hasNext ?? false}
       initialLikedPosts={likedPosts?.posts ?? []}
       initialLikedNextCursor={likedPosts?.nextCursor ?? null}
       initialLikedHasNext={likedPosts?.hasNext ?? false}

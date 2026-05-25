@@ -7,9 +7,10 @@ import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.follow.FollowRepository
 import io.github.kitae9999.openlog.follow.entity.FollowId
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
+import io.github.kitae9999.openlog.post.dto.PostWikiLinkResponse
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
 import io.github.kitae9999.openlog.post.dto.RecentPostResponse
-import io.github.kitae9999.openlog.post.dto.PostWikiLinkResponse
+import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.extractFirstMarkdownImageSrc
 import io.github.kitae9999.openlog.post.formatPublishedAtLabel
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
@@ -39,9 +40,45 @@ class UserService(
     private val followRepository: FollowRepository,
 ) {
     @Transactional
-    fun getLikedPosts(userId: Long, cursor: String?, size: Int): RecentPostCursorResponse {
-        val safeSize = size.coerceIn(1, LIKED_POSTS_PAGE_SIZE)
+    fun getFollowingPosts(userId: Long, cursor: String?, size: Int): RecentPostCursorResponse {
+        val safeSize = size.coerceIn(1, FOLLOWING_POSTS_PAGE_SIZE)
         val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
+        val followingPosts = if (cursorMarker == null) {
+            postRepository.findFollowingPostsByUserId(
+                userId = userId,
+                pageable = PageRequest.of(0, safeSize + 1),
+            )
+        } else {
+            postRepository.findFollowingPostsAfterCursor(
+                userId = userId,
+                createdAt = cursorMarker.createdAt,
+                id = cursorMarker.id,
+                pageable = PageRequest.of(0, safeSize + 1),
+            )
+        }
+        val hasNext = followingPosts.size > safeSize
+        val pageItems = followingPosts.take(safeSize)
+        val postIds = pageItems.mapNotNull { it.id }
+        val likeCounts = getPostLikeCounts(postIds)
+        val commentCounts = getPostCommentCounts(postIds)
+
+        return RecentPostCursorResponse(
+            posts = pageItems.map { post ->
+                toRecentPostResponse(post, likeCounts, commentCounts)
+            },
+            size = safeSize,
+            nextCursor = pageItems.lastOrNull() // 가져온 목록의 마지막 포스트, 없을 시 에러 반환
+                ?.takeIf { hasNext }
+                ?.let { post -> DateTimeIdCursorCodec.encode(post.createdAt, requireNotNull(post.id)) },
+            hasNext = hasNext,
+        )
+    }
+
+    @Transactional
+    fun getLikedPosts(userId: Long, cursor: String?, size: Int): RecentPostCursorResponse {
+        val safeSize = size.coerceIn(1, LIKED_POSTS_PAGE_SIZE) // size의 범위 제한
+        val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
+
         val postLikes = if (cursorMarker == null) {
             postLikeRepository.findLikedPostsByUserId(
                 userId = userId,
@@ -64,20 +101,7 @@ class UserService(
         return RecentPostCursorResponse(
             posts = pageItems.map { postLike ->
                 val post = postLike.post
-                val postId = requireNotNull(post.id)
-                RecentPostResponse(
-                    id = postId,
-                    slug = post.slug,
-                    title = post.title,
-                    description = post.description,
-                    publishedAtLabel = formatPublishedAtLabel(post),
-                    authorUsername = requireNotNull(post.author.username),
-                    authorName = resolveAuthorName(post),
-                    authorAvatarSrc = post.author.profileImageUrl,
-                    thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
-                    likes = likeCounts[postId]?.toInt() ?: 0,
-                    comments = commentCounts[postId]?.toInt() ?: 0,
-                )
+                toRecentPostResponse(post, likeCounts, commentCounts)
             },
             size = safeSize,
             nextCursor = pageItems.lastOrNull()
@@ -242,7 +266,30 @@ class UserService(
         return commentRepository.countAllByPostIdIn(postIds).associate { it.postId to it.count }
     }
 
+    private fun toRecentPostResponse(
+        post: Post,
+        likeCounts: Map<Long, Long>,
+        commentCounts: Map<Long, Long>,
+    ): RecentPostResponse {
+        val postId = requireNotNull(post.id)
+
+        return RecentPostResponse(
+            id = postId,
+            slug = post.slug,
+            title = post.title,
+            description = post.description,
+            publishedAtLabel = formatPublishedAtLabel(post),
+            authorUsername = requireNotNull(post.author.username),
+            authorName = resolveAuthorName(post),
+            authorAvatarSrc = post.author.profileImageUrl,
+            thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
+            likes = likeCounts[postId]?.toInt() ?: 0,
+            comments = commentCounts[postId]?.toInt() ?: 0,
+        )
+    }
+
     private companion object {
+        const val FOLLOWING_POSTS_PAGE_SIZE = 10
         const val LIKED_POSTS_PAGE_SIZE = 10
     }
 }

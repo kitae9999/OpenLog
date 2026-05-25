@@ -24,6 +24,18 @@ class UserController(
     private val userService: UserService,
     private val currentUserResolver: CurrentUserResolver,
 ) {
+    @GetMapping("me/following/posts")
+    fun getFollowingPosts(
+        request: HttpServletRequest,
+        @RequestParam(required = false) cursor: String?,
+        @RequestParam(defaultValue = "10") size: Int,
+    ): RecentPostCursorResponse {
+        val currentUser = currentUserResolver.resolveCurrentUser(request)
+        val followingPosts = userService.getFollowingPosts(requireNotNull(currentUser.id), cursor, size)
+
+        return followingPosts
+    }
+
     @GetMapping("me/liked-posts")
     fun getLikedPosts(
         request: HttpServletRequest,
