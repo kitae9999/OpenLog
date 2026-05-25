@@ -3,14 +3,15 @@ resource "google_compute_instance" "app" {
   machine_type = "e2-standard-2"
   zone         = "asia-northeast3-a"
 
+  can_ip_forward             = false
+  deletion_protection        = false
+  enable_display             = false
+  key_revocation_action_type = "NONE"
+
   tags = [
     "http-server",
     "https-server",
   ]
-
-  labels = {
-    "goog-ops-agent-policy" = "v2-template-1-7-0"
-  }
 
   metadata = {
     "enable-osconfig" = "TRUE"
@@ -50,6 +51,14 @@ resource "google_compute_instance" "app" {
     enable_integrity_monitoring = true
     enable_secure_boot          = false
     enable_vtpm                 = true
+  }
+
+  confidential_instance_config {
+    enable_confidential_compute = false
+  }
+
+  reservation_affinity {
+    type = "ANY_RESERVATION"
   }
 
   lifecycle {

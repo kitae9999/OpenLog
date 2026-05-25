@@ -33,8 +33,9 @@ resource "google_compute_firewall" "default_allow_https" {
 }
 
 resource "google_compute_firewall" "default_allow_ssh" {
-  name    = "default-allow-ssh"
-  network = "default"
+  name        = "default-allow-ssh"
+  network     = "default"
+  description = "Allow SSH from anywhere"
 
   direction = "INGRESS"
   priority  = 65534
@@ -48,8 +49,9 @@ resource "google_compute_firewall" "default_allow_ssh" {
 }
 
 resource "google_compute_firewall" "default_allow_rdp" {
-  name    = "default-allow-rdp"
-  network = "default"
+  name        = "default-allow-rdp"
+  network     = "default"
+  description = "Allow RDP from anywhere"
 
   direction = "INGRESS"
   priority  = 65534
@@ -63,8 +65,9 @@ resource "google_compute_firewall" "default_allow_rdp" {
 }
 
 resource "google_compute_firewall" "default_allow_icmp" {
-  name    = "default-allow-icmp"
-  network = "default"
+  name        = "default-allow-icmp"
+  network     = "default"
+  description = "Allow ICMP from anywhere"
 
   direction = "INGRESS"
   priority  = 65534
@@ -77,8 +80,9 @@ resource "google_compute_firewall" "default_allow_icmp" {
 }
 
 resource "google_compute_firewall" "default_allow_internal" {
-  name    = "default-allow-internal"
-  network = "default"
+  name        = "default-allow-internal"
+  network     = "default"
+  description = "Allow internal traffic on the default network"
 
   direction = "INGRESS"
   priority  = 65534
