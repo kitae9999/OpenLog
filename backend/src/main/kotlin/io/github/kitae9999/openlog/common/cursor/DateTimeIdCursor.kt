@@ -15,6 +15,9 @@ object DateTimeIdCursorCodec {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(rawCursor.toByteArray())
     }
 
+    /**
+     * cursor 쿼리파라미터 해석해서 createdAt과 id를 갖는 인스턴스로 반환
+     */
     fun decode(cursor: String): DateTimeIdCursor {
         val decodedCursor = runCatching {
             String(Base64.getUrlDecoder().decode(cursor))

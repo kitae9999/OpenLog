@@ -30,6 +30,47 @@ interface PostRepository: JpaRepository<Post, Long> {
     @EntityGraph(attributePaths = ["author"])
     fun findAllByOrderByCreatedAtDescIdDesc(pageable: Pageable): List<Post>
 
+    @EntityGraph(attributePaths = ["author"])
+    @Query(
+        """
+        select p
+        from Post p
+        where p.author.id in (
+            select f.followedUser.id
+            from Follow f
+            where f.followingUser.id = :userId
+        )
+        order by p.createdAt desc, p.id desc
+        """
+    )
+    fun findFollowingPostsByUserId(
+        @Param("userId") userId: Long,
+        pageable: Pageable,
+    ): List<Post>
+
+    @EntityGraph(attributePaths = ["author"])
+    @Query(
+        """
+        select p
+        from Post p
+        where p.author.id in (
+            select f.followedUser.id
+            from Follow f
+            where f.followingUser.id = :userId
+        )
+          and (
+            p.createdAt < :createdAt
+            or (p.createdAt = :createdAt and p.id < :id)
+          )
+        order by p.createdAt desc, p.id desc
+        """
+    )
+    fun findFollowingPostsAfterCursor(
+        @Param("userId") userId: Long,
+        @Param("createdAt") createdAt: LocalDateTime,
+        @Param("id") id: Long,
+        pageable: Pageable,
+    ): List<Post>
 
     /**
      * createdAt과 커서값인 포스트의 pk값보다 작은 즉, 더 이전에 작성된 포스트들 불러옴
