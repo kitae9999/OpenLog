@@ -33,7 +33,7 @@ resource "google_compute_instance" "app" {
   }
 
   service_account {
-    email = "openlog-storage@openlog-490106.iam.gserviceaccount.com"
+    email = google_service_account.storage.email
     scopes = [
       "https://www.googleapis.com/auth/cloud-platform",
     ]
