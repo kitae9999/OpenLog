@@ -26,6 +26,7 @@ import {
   type TabKey,
 } from "./data";
 import { WorkspaceView } from "./WorkspaceView";
+import { FeedArticleCard } from "./FeedArticleCard";
 
 export function HomeFeedShell({
   activeTab,
@@ -309,7 +310,9 @@ export function HomeFeedShell({
             "min-w-0 flex-1 transition-[margin] duration-300 ease-out",
             activeTab === "workspace" || activeTab === "explore"
               ? "bg-zinc-50"
-              : "bg-white",
+              : activeTab === "home" && isLoggedIn
+                ? "bg-zinc-50"
+                : "bg-white",
             isSidebarOpen ? "lg:ml-[282px]" : "lg:ml-0",
           )}
         >
@@ -325,10 +328,12 @@ export function HomeFeedShell({
               "mx-auto w-full pb-16 pt-6",
               activeTab === "workspace" || activeTab === "explore"
                 ? "max-w-[1180px] px-4 sm:px-6 lg:px-8 xl:px-10"
-                : "max-w-[1012px] px-5 sm:px-8 lg:px-12",
+                : activeTab === "home" && isLoggedIn
+                  ? "max-w-[1180px] px-4 sm:px-6 lg:px-8 xl:px-10"
+                  : "max-w-[1012px] px-5 sm:px-8 lg:px-12",
             )}
           >
-            {activeTab === "home" ? (
+            {activeTab === "home" && !isLoggedIn ? (
               <div className="flex items-center gap-2 border-b border-zinc-200/80 pb-4 text-[15px] font-semibold text-zinc-950">
                 <IconClock className="size-5 text-zinc-600" />
                 <h1>Recent</h1>
@@ -339,6 +344,25 @@ export function HomeFeedShell({
               <WorkspaceView isLoggedIn={isLoggedIn} />
             ) : activeTab === "explore" ? (
               <ExploreView posts={posts} />
+            ) : activeTab === "home" && isLoggedIn ? (
+              <>
+                <PostsView posts={posts} />
+                <div
+                  ref={sentinelRef}
+                  className="flex min-h-24 items-center justify-center py-6 text-sm text-zinc-500"
+                  aria-live="polite"
+                >
+                  {isLoadingMore
+                    ? "Loading posts..."
+                    : loadError
+                      ? loadError
+                      : posts.length === 0
+                        ? "No posts yet."
+                        : hasNextActivePage
+                          ? ""
+                          : "No more posts."}
+                </div>
+              </>
             ) : (
               <>
                 <div className="divide-y divide-zinc-200/80">
@@ -408,15 +432,6 @@ function HomeSidebar({
       )}
     >
       <nav className="flex h-full flex-col overflow-y-auto px-3 py-4">
-        <div className="mb-4 flex items-center gap-2 px-2 pb-2">
-          <span className="grid size-7 place-items-center rounded-lg bg-black text-[16px] font-bold leading-none text-white [font-family:Georgia,serif]">
-            O
-          </span>
-          <span className="text-[20px] font-bold leading-none text-zinc-950 [font-family:Georgia,serif]">
-            OpenLog
-          </span>
-        </div>
-
         <button
           type="button"
           className="mb-4 flex w-full items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-left transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
@@ -581,6 +596,35 @@ function SidebarLink({
   );
 }
 
+function PostsView({ posts }: { posts: FeedPost[] }) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
+      <div className="flex gap-6 border-b border-zinc-200/70 px-5">
+        {["Published", "Drafts"].map((tab, index) => (
+          <button
+            key={tab}
+            type="button"
+            className={cn(
+              "relative py-3 text-[13.5px] font-medium transition-colors",
+              index === 0
+                ? "text-zinc-950 after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-0.5 after:bg-zinc-950"
+                : "text-zinc-500 hover:text-zinc-950",
+            )}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      <div className="divide-y divide-zinc-200/70">
+        {posts.map((post) => (
+          <FeedArticleCard key={post.id} post={post} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ExploreView({ posts }: { posts: FeedPost[] }) {
   return (
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,1fr)]">
@@ -604,7 +648,7 @@ function ExploreView({ posts }: { posts: FeedPost[] }) {
 
         <div className="divide-y divide-zinc-200/70">
           {posts.map((post) => (
-            <ArticleCard key={post.id} post={post} />
+            <FeedArticleCard key={post.id} post={post} />
           ))}
         </div>
       </section>
