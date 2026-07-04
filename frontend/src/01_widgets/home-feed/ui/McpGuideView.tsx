@@ -219,23 +219,25 @@ function LocaleToggle({
     <div
       role="group"
       aria-label="Guide language"
-      className="inline-flex shrink-0 gap-0.5 rounded-full border border-zinc-200 bg-white p-0.5"
+      className="inline-flex shrink-0 items-center gap-2 text-[11.5px] font-bold tracking-[0.06em]"
     >
-      {MCP_GUIDE_LOCALES.map((item) => (
-        <button
-          key={item.key}
-          type="button"
-          aria-pressed={locale === item.key}
-          onClick={() => onChange(item.key)}
-          className={cn(
-            "rounded-full px-3 py-1 text-[11.5px] font-bold tracking-[0.06em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-            locale === item.key
-              ? "bg-zinc-950 text-white"
-              : "text-zinc-400 hover:text-zinc-950",
-          )}
-        >
-          {item.label}
-        </button>
+      {MCP_GUIDE_LOCALES.map((item, index) => (
+        <span key={item.key} className="inline-flex items-center gap-2">
+          {index > 0 ? <span className="font-normal text-zinc-300">/</span> : null}
+          <button
+            type="button"
+            aria-pressed={locale === item.key}
+            onClick={() => onChange(item.key)}
+            className={cn(
+              "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+              locale === item.key
+                ? "text-zinc-950"
+                : "text-zinc-400 hover:text-zinc-600",
+            )}
+          >
+            {item.label}
+          </button>
+        </span>
       ))}
     </div>
   );

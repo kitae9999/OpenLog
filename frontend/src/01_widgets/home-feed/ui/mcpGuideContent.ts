@@ -132,9 +132,9 @@ export const mcpGuideCopy = {
     footerPackage: "Package:",
   },
   ko: {
-    breadcrumbSettings: "설정",
-    breadcrumbCurrent: "MCP 가이드",
-    title: "MCP 가이드",
+    breadcrumbSettings: "Settings",
+    breadcrumbCurrent: "MCP Guide",
+    title: "MCP Guide",
     subtitle:
       "Claude Code, Codex 등 MCP client를 OpenLog에 연결하는 방법입니다. CLI가 로그인 정보를 로컬에 저장하고, MCP server가 stdio로 tool을 노출해 agent가 워크스페이스 데이터를 읽고 글을 발행할 수 있습니다.",
     sections: {
