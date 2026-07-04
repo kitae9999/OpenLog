@@ -208,6 +208,39 @@ dev·빌드 모두 통과. CI의 pnpm 캐시 키 갱신은 TODO로 남김.
     taskId: "workspace-view",
     branch: "feat/workspace-ui",
   },
+  {
+    id: "turbopack-hmr",
+    tone: "amber",
+    label: "Issue",
+    title: "Turbopack HMR이 간헐적으로 끊김",
+    description: "dev 서버 장시간 실행 후 HMR websocket이 끊기고 full reload 필요.",
+    meta: "open 2d · fix/pnpm",
+    href: "/write",
+    taskId: "pnpm-migration",
+    branch: "fix/pnpm",
+  },
+  {
+    id: "gcs-lock-retry",
+    tone: "amber",
+    label: "Issue",
+    title: "GCS state 잠금 충돌 시 재시도 없음",
+    description: "동시 plan 실행 시 lock error 후 자동 retry 없이 CI job fail.",
+    meta: "open 5d",
+    href: "/write",
+    taskId: "terraform-gcs",
+    branch: "feat/terraform-gcs",
+  },
+  {
+    id: "mobile-sidebar-focus",
+    tone: "amber",
+    label: "Issue",
+    title: "모바일 사이드바 포커스 트랩 없음",
+    description: "overlay open 상태에서 Tab이 배경으로 빠져나감.",
+    meta: "open 6d",
+    href: "/write",
+    taskId: "workspace-view",
+    branch: "feat/workspace-ui",
+  },
 ];
 
 export const workspaceDecisions = [
@@ -685,11 +718,109 @@ export const workspaceIssues: WorkspaceIssue[] = [
 ];
 
 export const logsSubnavItems = [
-  { label: "All", badge: undefined },
-  { label: "Issues", badge: "3" },
-  { label: "Fixes", badge: undefined },
-  { label: "Decisions", badge: undefined },
+  { key: "all", label: "All" },
+  { key: "issues", label: "Issues" },
+  { key: "fixes", label: "Fixes" },
+  { key: "decisions", label: "Decisions" },
 ] as const;
+
+export type LogListTypeFilter = (typeof logsSubnavItems)[number]["key"];
+
+export type LogTaskFilter = "all" | "unassigned" | string;
+
+export function getLogListTitle(type: LogListTypeFilter) {
+  switch (type) {
+    case "issues":
+      return "Issues";
+    case "fixes":
+      return "Fixes";
+    case "decisions":
+      return "Decisions";
+    default:
+      return "Logs";
+  }
+}
+
+export function getLogsHref(type: LogListTypeFilter = "all") {
+  if (type === "all") {
+    return "/logs";
+  }
+
+  return `/logs/${type}`;
+}
+
+export function buildLogsListHref(
+  type: LogListTypeFilter,
+  taskFilter: LogTaskFilter = "all",
+) {
+  const base = getLogsHref(type);
+  if (taskFilter === "all") {
+    return base;
+  }
+
+  return `${base}?task=${encodeURIComponent(taskFilter)}`;
+}
+
+function matchesLogTypeFilter(
+  log: WorkspaceLogItem,
+  type: LogListTypeFilter,
+) {
+  switch (type) {
+    case "issues":
+      return log.label.toLowerCase() === "issue";
+    case "fixes":
+      return log.label.toLowerCase() === "fix";
+    case "decisions":
+      return log.label.toLowerCase() === "decision";
+    default:
+      return true;
+  }
+}
+
+export function getLogsFiltered(
+  type: LogListTypeFilter,
+  taskFilter: LogTaskFilter = "all",
+) {
+  return workspaceLogs.filter((log) => {
+    if (!matchesLogTypeFilter(log, type)) {
+      return false;
+    }
+
+    if (taskFilter === "unassigned") {
+      return !log.taskId;
+    }
+
+    if (taskFilter !== "all" && log.taskId !== taskFilter) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+export function countLogsByType(type: LogListTypeFilter) {
+  return getLogsFiltered(type).length;
+}
+
+export function countOpenIssues() {
+  return countLogsByType("issues");
+}
+
+export function getTaskFiltersForLogs(type: LogListTypeFilter) {
+  const taskIds = new Set<string>();
+
+  for (const log of getLogsFiltered(type)) {
+    if (log.taskId) {
+      taskIds.add(log.taskId);
+    }
+  }
+
+  return workspaceWorkItems.filter((task) => taskIds.has(task.id));
+}
+
+export function countUnassignedLogsForType(type: LogListTypeFilter) {
+  return getLogsFiltered(type, "unassigned").length;
+}
 
 export const workspaceOutputs = [
   {

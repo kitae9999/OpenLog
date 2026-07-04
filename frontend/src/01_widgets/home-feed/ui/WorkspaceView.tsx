@@ -5,6 +5,7 @@ import {
   countLogsForTask,
   countUnassignedLogs,
   getLogHref,
+  getLogsHref,
   getTaskById,
   getTaskHref,
   getTasksHref,
@@ -266,7 +267,7 @@ function RecentLogsCard() {
   const unassignedCount = countUnassignedLogs();
 
   return (
-    <DashboardCard title="RECENT LOGS" action={<HeaderLink href="/write" />}>
+    <DashboardCard title="RECENT LOGS" action={<HeaderLink href={getLogsHref()} label="View all" />}>
       {unassignedCount > 0 ? (
         <p className="px-[18px] pt-1 text-[11.5px] text-zinc-400">
           {unassignedCount} unassigned · review when ready

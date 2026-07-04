@@ -19,13 +19,18 @@ import { cn } from "@/shared/lib/cn";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import {
   countDoingTasks,
+  countLogsByType,
+  countOpenIssues,
   feedPosts,
+  getLogsHref,
   getTabHref,
   getTasksHref,
   logsSubnavItems,
   recommendedTopics,
   topContributors,
+  workspaceLogs,
   type FeedPost,
+  type LogListTypeFilter,
   type TabKey,
 } from "./data";
 import { WorkspaceView } from "./WorkspaceView";
@@ -421,12 +426,14 @@ export function HomeSidebar({
   isOpen,
   onNavigate,
   workspaceNav = "dashboard",
+  logsFilter = "all",
 }: {
   activeTab: TabKey;
   isLoggedIn: boolean;
   isOpen: boolean;
   onNavigate: () => void;
   workspaceNav?: "dashboard" | "tasks" | "logs";
+  logsFilter?: LogListTypeFilter;
 }) {
   return (
     <aside
@@ -472,7 +479,7 @@ export function HomeSidebar({
             onNavigate={onNavigate}
           />
           <SidebarLogsGroup
-            isLoggedIn={isLoggedIn}
+            logsFilter={logsFilter}
             active={workspaceNav === "logs"}
             onNavigate={onNavigate}
           />
@@ -547,11 +554,11 @@ export function HomeSidebar({
 }
 
 function SidebarLogsGroup({
-  isLoggedIn,
+  logsFilter = "all",
   active = false,
   onNavigate,
 }: {
-  isLoggedIn: boolean;
+  logsFilter?: LogListTypeFilter;
   active?: boolean;
   onNavigate: () => void;
 }) {
@@ -559,10 +566,9 @@ function SidebarLogsGroup({
 
   return (
     <>
-      <button
-        type="button"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((current) => !current)}
+      <Link
+        href={getLogsHref(logsFilter)}
+        onClick={onNavigate}
         className={cn(
           "flex h-8 w-full items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
           active
@@ -578,33 +584,58 @@ function SidebarLogsGroup({
         />
         <span className="min-w-0 flex-1 truncate text-left">Logs</span>
         <span className="rounded-full bg-zinc-100 px-2 text-[11px] font-semibold tabular-nums text-zinc-500">
-          14
+          {workspaceLogs.length}
         </span>
-        <IconChevronDown
-          className={cn(
-            "size-3 shrink-0 text-zinc-400 transition-transform duration-150",
-            !isOpen && "-rotate-90",
-          )}
-        />
-      </button>
+        <button
+          type="button"
+          aria-label={isOpen ? "Collapse logs menu" : "Expand logs menu"}
+          aria-expanded={isOpen}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setIsOpen((current) => !current);
+          }}
+          className="grid size-6 shrink-0 place-items-center rounded-md text-zinc-400 transition hover:bg-zinc-200/70 hover:text-zinc-700"
+        >
+          <IconChevronDown
+            className={cn(
+              "size-3 transition-transform duration-150",
+              !isOpen && "-rotate-90",
+            )}
+          />
+        </button>
+      </Link>
 
       {isOpen ? (
         <div className="mb-1 ml-[22px] flex flex-col gap-px border-l border-zinc-200 pl-[7px]">
-          {logsSubnavItems.map((item) => (
-            <Link
-              key={item.label}
-              href={getTabHref("workspace", isLoggedIn)}
-              onClick={onNavigate}
-              className="flex items-center gap-2 rounded-lg px-[9px] py-[5px] text-[12.5px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            >
-              <span className="min-w-0 flex-1 truncate">{item.label}</span>
-              {item.badge ? (
-                <span className="rounded-full bg-amber-50 px-[7px] text-[10.5px] font-semibold tabular-nums text-amber-700">
-                  {item.badge}
-                </span>
-              ) : null}
-            </Link>
-          ))}
+          {logsSubnavItems.map((item) => {
+            const count = countLogsByType(item.key);
+            const badge =
+              item.key === "issues" && countOpenIssues() > 0
+                ? String(countOpenIssues())
+                : undefined;
+
+            return (
+              <Link
+                key={item.key}
+                href={getLogsHref(item.key)}
+                onClick={onNavigate}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-[9px] py-[5px] text-[12.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                  active && logsFilter === item.key
+                    ? "bg-zinc-100 font-semibold text-zinc-950"
+                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
+                )}
+              >
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                {badge ? (
+                  <span className="rounded-full bg-amber-50 px-[7px] text-[10.5px] font-semibold tabular-nums text-amber-700">
+                    {badge}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
         </div>
       ) : null}
     </>
