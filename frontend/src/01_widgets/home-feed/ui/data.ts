@@ -85,14 +85,14 @@ export const workspaceMetrics: WorkspaceMetric[] = [
     emphasis: "1",
   },
   {
-    label: "OPEN TODOS",
+    label: "TODAY TODO",
     value: "5",
     description: "2 stale > 3d",
     emphasis: "2",
     tone: "warning",
   },
   {
-    label: "READY TO PUBLISH",
+    label: "OUTPUTS READY",
     value: "2",
     description: "drafts generated",
   },

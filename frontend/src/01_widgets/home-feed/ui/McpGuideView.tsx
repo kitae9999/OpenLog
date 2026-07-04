@@ -140,7 +140,7 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
             </div>
             <p className="text-[12.5px] text-zinc-500">
               <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px]">
-                publish_post
+                publish_output
               </code>{" "}
               {copy.sections.tools.footnoteBefore}{" "}
               <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px]">

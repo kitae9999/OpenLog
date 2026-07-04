@@ -56,15 +56,22 @@ export const mcpGuideTools = [
   {
     name: "upload_post_image",
     description: {
-      en: "Upload a local image as WebP and return markdown for post content.",
-      ko: "로컬 이미지를 WebP로 변환·업로드하고 본문용 markdown을 반환합니다.",
+      en: "Upload a local image as WebP and return markdown for output content.",
+      ko: "로컬 이미지를 WebP로 변환·업로드하고 output 본문용 markdown을 반환합니다.",
     },
   },
   {
-    name: "publish_post",
+    name: "create_output",
     description: {
-      en: "Publish a new post. Returns a preview unless confirm: true or skipConfirmation: true is set.",
-      ko: "새 글을 발행합니다. confirm: true 또는 skipConfirmation: true 없이는 미리보기만 반환합니다.",
+      en: "Create an output draft from logs, tasks, or direct content.",
+      ko: "log, task 또는 직접 작성한 내용으로 output 초안을 만듭니다.",
+    },
+  },
+  {
+    name: "publish_output",
+    description: {
+      en: "Publish a post_draft output as a public post after review.",
+      ko: "검토한 post_draft output을 공개 post로 발행합니다.",
     },
   },
 ] as const;
@@ -75,7 +82,7 @@ export const mcpGuideCopy = {
     breadcrumbCurrent: "MCP Guide",
     title: "MCP Guide",
     subtitle:
-      "Connect Claude Code, Codex, or any MCP client to OpenLog. The CLI stores your login locally; the MCP server exposes tools over stdio so agents can read workspace data and publish posts.",
+      "Connect Claude Code, Codex, or any MCP client to OpenLog. The CLI stores your login locally; the MCP server exposes tools over stdio so agents can read workspace data and publish outputs.",
     sections: {
       login: {
         title: "1. Log in with the CLI",
@@ -107,7 +114,7 @@ export const mcpGuideCopy = {
         title: "5. Local development",
         body: "Point the CLI at a local API and web origin:",
         envApi: "API base URL the CLI and MCP call.",
-        envWeb: "Web origin used in publish_post response URLs.",
+        envWeb: "Web origin used in publish_output response URLs.",
         envAuthBefore: "Optional path instead of default",
         envAuthAfter: ".",
       },
@@ -136,7 +143,7 @@ export const mcpGuideCopy = {
     breadcrumbCurrent: "MCP Guide",
     title: "MCP Guide",
     subtitle:
-      "Claude Code, Codex 등 MCP client를 OpenLog에 연결하는 방법입니다. CLI가 로그인 정보를 로컬에 저장하고, MCP server가 stdio로 tool을 노출해 agent가 워크스페이스 데이터를 읽고 글을 발행할 수 있습니다.",
+      "Claude Code, Codex 등 MCP client를 OpenLog에 연결하는 방법입니다. CLI가 로그인 정보를 로컬에 저장하고, MCP server가 stdio로 tool을 노출해 agent가 워크스페이스 데이터를 읽고 output을 발행할 수 있습니다.",
     sections: {
       login: {
         title: "1. CLI로 로그인",
@@ -167,7 +174,7 @@ export const mcpGuideCopy = {
         title: "5. 로컬 개발",
         body: "로컬 API와 web origin을 지정합니다:",
         envApi: "CLI와 MCP가 호출하는 API base URL.",
-        envWeb: "publish_post 응답 URL에 쓰는 web origin.",
+        envWeb: "publish_output 응답 URL에 쓰는 web origin.",
         envAuthBefore: "기본",
         envAuthAfter: " 대신 쓸 인증 파일 경로(선택).",
       },

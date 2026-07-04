@@ -13,6 +13,8 @@ import io.github.kitae9999.openlog.auth.repository.OauthAccountRepository
 import io.github.kitae9999.openlog.common.exception.UsernameAlreadyTakenException
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
+import io.github.kitae9999.openlog.workspace.entity.Workspace
+import io.github.kitae9999.openlog.workspace.repository.WorkspaceRepository
 import jakarta.transaction.Transactional
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
@@ -39,11 +41,13 @@ class AuthService(
     restClientBuilder: RestClient.Builder,
     private val userRepository: UserRepository,
     private val oauthAccountRepository: OauthAccountRepository,
+    private val workspaceRepository: WorkspaceRepository,
 ) {
     companion object {
         private  val OAUTH_STATE_TTL: Duration = Duration.ofMinutes(5)
         private const val GOOGLE_STATE_KEY_PREFIX = "oauth:google:state"
         private const val GOOGLE_STATE_VALUE_SEPARATOR = "\n"
+        private const val DEFAULT_WORKSPACE_SLUG = "default"
     }
 
     data class GoogleAuthRequest(
@@ -200,6 +204,7 @@ class AuthService(
                 email = email,
             )
         )
+        ensureDefaultWorkspace(user)
 
         oauthAccountRepository.save(
             OauthAccount(
@@ -210,6 +215,21 @@ class AuthService(
         )
 
         return user
+    }
+
+    private fun ensureDefaultWorkspace(user: User) {
+        val userId = requireNotNull(user.id)
+        if (workspaceRepository.existsByOwnerIdAndSlug(userId, DEFAULT_WORKSPACE_SLUG)) {
+            return
+        }
+
+        workspaceRepository.save(
+            Workspace(
+                owner = user,
+                slug = DEFAULT_WORKSPACE_SLUG,
+                name = user.nickname?.takeIf { it.isNotBlank() } ?: "My Workspace",
+            )
+        )
     }
 
     @Transactional
