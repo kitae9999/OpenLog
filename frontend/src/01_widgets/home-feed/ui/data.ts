@@ -147,26 +147,58 @@ export const workspaceDecisions = [
   },
 ] as const;
 
-export type WorkspaceTask = {
+export type WorkspaceWorkStatus = "doing" | "done" | "todo";
+
+export type WorkspaceWorkItem = {
+  id: string;
+  title: string;
+  description: string;
+  status: WorkspaceWorkStatus;
+  actionBadge?: string;
+};
+
+export const workspaceWorkItems: WorkspaceWorkItem[] = [
+  {
+    id: "workspace-view",
+    title: "홈 피드 → 워크스페이스 뷰 전환",
+    description: "doing · 5 logs · fix/pnpm",
+    status: "doing",
+    actionBadge: "Active",
+  },
+  {
+    id: "pnpm-migration",
+    title: "pnpm 마이그레이션",
+    description: "doing · 7 logs · 2 open issues",
+    status: "doing",
+  },
+  {
+    id: "terraform-gcs",
+    title: "Terraform state GCS 이전",
+    description: "done Jun 30 · 4 logs",
+    status: "done",
+    actionBadge: "Generate output",
+  },
+  {
+    id: "post-visibility",
+    title: "post visibility 필드 도입",
+    description: "todo · created from issue",
+    status: "todo",
+  },
+];
+
+export type WorkspaceTodoItem = {
   id: string;
   title: string;
   description?: string;
   done?: boolean;
-  dueLabel?: string;
 };
 
-export const workspaceTasks: WorkspaceTask[] = [
+export const workspaceTodos: WorkspaceTodoItem[] = [
   {
     id: "pnpm-cache",
     title: "CI에서 pnpm 캐시 키 갱신",
-    description: "from log · Turbopack 빌드 실패",
+    description: "from log",
     done: true,
-    dueLabel: "14:32",
-  },
-  {
-    id: "post-visibility",
-    title: "post visibility 필드 설계",
-    description: "due today · blocks workspace 전환",
   },
   {
     id: "guest-prompt",
@@ -175,26 +207,66 @@ export const workspaceTasks: WorkspaceTask[] = [
   {
     id: "dashboard-grid",
     title: "대시보드 위젯 그리드 구현",
-    description: "suggested by AI · 이번 세션 계획에서",
+    description: "suggested by AI",
   },
 ];
 
-export type WorkspaceWeekDay = {
-  label: string;
-  day: number;
+export type WorkspaceGrassCell = {
+  day: number | null;
+  logCount: number;
   isToday?: boolean;
-  logDots: number;
-  hasPlanned?: boolean;
+  isFuture?: boolean;
 };
 
-export const workspaceWeekDays: WorkspaceWeekDay[] = [
-  { label: "MON", day: 29, logDots: 2 },
-  { label: "TUE", day: 30, logDots: 3 },
-  { label: "WED", day: 1, logDots: 1 },
-  { label: "THU", day: 2, logDots: 2 },
-  { label: "FRI", day: 3, logDots: 1 },
-  { label: "SAT", day: 4, isToday: true, logDots: 2 },
-  { label: "SUN", day: 5, logDots: 0, hasPlanned: true },
+export const workspaceMonthLabel = "July 2026";
+
+/** GitHub-style: each column is Mon→Sun (7 cells). */
+export const workspaceMonthGrass: WorkspaceGrassCell[][] = [
+  [
+    { day: null, logCount: 0 },
+    { day: null, logCount: 0 },
+    { day: 1, logCount: 1 },
+    { day: 2, logCount: 3 },
+    { day: 3, logCount: 1 },
+    { day: 4, logCount: 2, isToday: true },
+    { day: 5, logCount: 0, isFuture: true },
+  ],
+  [
+    { day: 6, logCount: 0, isFuture: true },
+    { day: 7, logCount: 0, isFuture: true },
+    { day: 8, logCount: 0, isFuture: true },
+    { day: 9, logCount: 0, isFuture: true },
+    { day: 10, logCount: 0, isFuture: true },
+    { day: 11, logCount: 0, isFuture: true },
+    { day: 12, logCount: 0, isFuture: true },
+  ],
+  [
+    { day: 13, logCount: 0, isFuture: true },
+    { day: 14, logCount: 0, isFuture: true },
+    { day: 15, logCount: 0, isFuture: true },
+    { day: 16, logCount: 0, isFuture: true },
+    { day: 17, logCount: 0, isFuture: true },
+    { day: 18, logCount: 0, isFuture: true },
+    { day: 19, logCount: 0, isFuture: true },
+  ],
+  [
+    { day: 20, logCount: 0, isFuture: true },
+    { day: 21, logCount: 0, isFuture: true },
+    { day: 22, logCount: 0, isFuture: true },
+    { day: 23, logCount: 0, isFuture: true },
+    { day: 24, logCount: 0, isFuture: true },
+    { day: 25, logCount: 0, isFuture: true },
+    { day: 26, logCount: 0, isFuture: true },
+  ],
+  [
+    { day: 27, logCount: 0, isFuture: true },
+    { day: 28, logCount: 0, isFuture: true },
+    { day: 29, logCount: 0, isFuture: true },
+    { day: 30, logCount: 0, isFuture: true },
+    { day: 31, logCount: 0, isFuture: true },
+    { day: null, logCount: 0 },
+    { day: null, logCount: 0 },
+  ],
 ];
 
 export type WorkspaceIssue = {

@@ -5,11 +5,15 @@ import {
   workspaceIssues,
   workspaceLogs,
   workspaceMemories,
-  workspaceTasks,
-  workspaceWeekDays,
+  workspaceTodos,
+  workspaceMonthGrass,
+  workspaceMonthLabel,
+  workspaceWorkItems,
   type WorkspaceLogItem,
-  type WorkspaceTask,
+  type WorkspaceTodoItem,
   type WorkspaceTone,
+  type WorkspaceWorkItem,
+  type WorkspaceWorkStatus,
 } from "./data";
 import { WorkspaceGuestPrompt } from "./WorkspaceGuestPrompt";
 
@@ -22,12 +26,13 @@ export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
     <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <div className="min-w-0 space-y-3.5">
         <NowWorkingCard />
-        <TasksCard />
+        <WorkTasksCard />
         <RecentLogsCard />
       </div>
 
       <div className="min-w-0 space-y-3.5">
-        <ThisWeekCard />
+        <TodosCard />
+        <MonthActivityCard />
         <GraphCard />
         <OpenIssuesCard />
         <MemoryCard />
@@ -85,69 +90,138 @@ function NowWorkingCard() {
   );
 }
 
-function TasksCard() {
-  const [activeTab, setActiveTab] = useState<"today" | "week">("today");
-
+function WorkTasksCard() {
   return (
     <DashboardCard
       title="TASKS"
-      action={
-        <MiniTabs
-          active={activeTab}
-          onChange={setActiveTab}
-          items={[
-            { key: "today", label: "Today" },
-            { key: "week", label: "This week" },
-          ]}
-        />
-      }
+      action={<HeaderLink href="/write" />}
     >
       <PanelList>
-        {workspaceTasks.map((task) => (
-          <TaskRow key={task.id} task={task} />
+        {workspaceWorkItems.map((item) => (
+          <WorkItemRow key={item.id} item={item} />
         ))}
       </PanelList>
       <Link
         href="/write"
         className="block border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >
-        + Add task
+        + New task
       </Link>
     </DashboardCard>
   );
 }
 
-function TaskRow({ task }: { task: WorkspaceTask }) {
+function WorkItemRow({ item }: { item: WorkspaceWorkItem }) {
+  return (
+    <PanelItem align="start">
+      <TaskStatusDot status={item.status} />
+      <div className="min-w-0 flex-1">
+        <h3 className="text-[13px] font-semibold leading-[1.45] text-zinc-950">
+          {item.title}
+        </h3>
+        <p className="mt-0.5 text-[12px] text-zinc-500">{item.description}</p>
+      </div>
+      {item.actionBadge ? (
+        <ActionBadge
+          label={item.actionBadge}
+          tone={item.actionBadge === "Generate output" ? "blue" : "zinc"}
+        />
+      ) : null}
+    </PanelItem>
+  );
+}
+
+function TaskStatusDot({ status }: { status: WorkspaceWorkStatus }) {
+  return (
+    <span
+      className={cn(
+        "mt-[5px] size-[9px] shrink-0 rounded-full",
+        status === "doing" && "border-2 border-blue-600",
+        status === "done" && "bg-green-600",
+        status === "todo" && "border-2 border-zinc-300",
+      )}
+    />
+  );
+}
+
+function ActionBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "zinc" | "blue";
+}) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+        tone === "zinc" && "border-zinc-200 bg-zinc-50 text-zinc-600",
+        tone === "blue" && "border-blue-200 bg-blue-50 text-blue-700",
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
+function TodosCard() {
+  const [activeTab, setActiveTab] = useState<"today" | "week">("today");
+
+  return (
+    <DashboardCard
+      title="TODOS"
+      action={
+        <MiniTabs
+          active={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { key: "today", label: "Today" },
+            { key: "week", label: "Week" },
+          ]}
+        />
+      }
+    >
+      <PanelList>
+        {workspaceTodos.map((todo) => (
+          <TodoRow key={todo.id} todo={todo} />
+        ))}
+      </PanelList>
+      <Link
+        href="/write"
+        className="block border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+      >
+        + Add todo
+      </Link>
+    </DashboardCard>
+  );
+}
+
+function TodoRow({ todo }: { todo: WorkspaceTodoItem }) {
   return (
     <PanelItem align="start">
       <span
         className={cn(
           "mt-[2.5px] flex size-[15px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px]",
-          task.done
+          todo.done
             ? "border-zinc-950 bg-zinc-950 text-white"
             : "border-zinc-300 bg-white",
         )}
       >
-        {task.done ? <IconCheck className="size-[9px]" /> : null}
+        {todo.done ? <IconCheck className="size-[9px]" /> : null}
       </span>
       <div className="min-w-0 flex-1">
         <h3
           className={cn(
             "text-[13px] font-semibold leading-[1.45] text-zinc-950",
-            task.done && "text-zinc-400 line-through",
+            todo.done && "text-zinc-400 line-through",
           )}
         >
-          {task.title}
+          {todo.title}
         </h3>
-        {task.description ? (
-          <p className="mt-0.5 text-[12px] text-zinc-500">{task.description}</p>
+        {todo.description ? (
+          <p className="mt-0.5 text-[12px] text-zinc-500">{todo.description}</p>
         ) : null}
       </div>
-      {task.dueLabel ? (
-        <span className="shrink-0 pt-0.5 text-[11px] tabular-nums text-zinc-400">
-          {task.dueLabel}
-        </span>
-      ) : null}
     </PanelItem>
   );
 }
@@ -164,50 +238,127 @@ function RecentLogsCard() {
   );
 }
 
-function ThisWeekCard() {
+function MonthActivityCard() {
   return (
-    <DashboardCard title="THIS WEEK" action={<HeaderLink href="/write" label="Planner" />}>
-      <div className="grid grid-cols-7 gap-0.5 px-3 pb-1 pt-3 text-center">
-        {workspaceWeekDays.map((day) => (
-          <div key={`${day.label}-${day.day}`} className="min-w-0">
-            <span className="block text-[9.5px] font-semibold tracking-[0.08em] text-zinc-400">
-              {day.label}
-            </span>
-            <span
-              className={cn(
-                "mx-auto mt-1 inline-grid size-6 place-items-center rounded-full text-[12.5px] font-semibold tabular-nums",
-                day.isToday
-                  ? "bg-zinc-950 text-white"
-                  : "text-zinc-950",
+    <DashboardCard
+      title="THIS MONTH"
+      action={<HeaderLink href="/write" label="Planner" />}
+    >
+      <p className="px-[18px] pt-1 text-[12px] font-medium text-zinc-500">
+        {workspaceMonthLabel}
+      </p>
+      <div className="overflow-x-auto px-4 pb-1 pt-2.5">
+        <div className="inline-flex min-w-full justify-center gap-[3px]">
+          {workspaceMonthGrass.map((week, weekIndex) => (
+            <div key={weekIndex} className="flex flex-col gap-[3px]">
+              {week.map((cell, dayIndex) =>
+                cell.day === null ? (
+                  <span
+                    key={dayIndex}
+                    className="size-[11px] shrink-0"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <GrassCell
+                    key={dayIndex}
+                    day={cell.day}
+                    logCount={cell.logCount}
+                    isToday={cell.isToday}
+                    isFuture={cell.isFuture}
+                    size="sm"
+                  />
+                ),
               )}
-            >
-              {day.day}
-            </span>
-            <div className="mt-[5px] flex h-[5px] items-center justify-center gap-[2.5px]">
-              {Array.from({ length: day.logDots }).map((_, index) => (
-                <span
-                  key={index}
-                  className="size-[4.5px] rounded-full bg-zinc-300"
-                />
-              ))}
-              {day.hasPlanned ? (
-                <span className="size-[4.5px] rounded-full border border-zinc-400 bg-transparent" />
-              ) : null}
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
+      <GrassLegend />
+    </DashboardCard>
+  );
+}
+
+const GRASS_EMPTY = "bg-zinc-100";
+const GRASS_FUTURE = "border border-dashed border-orange-200/70 bg-orange-50/40";
+const GRASS_LEVELS = [
+  GRASS_EMPTY,
+  "bg-[#fce8e0]",
+  "bg-[#f0c4b0]",
+  "bg-[#da7756]",
+  "bg-[#a85638]",
+] as const;
+
+function getGrassLevel(logCount: number) {
+  if (logCount <= 0) return 0;
+  if (logCount === 1) return 1;
+  if (logCount === 2) return 2;
+  if (logCount === 3) return 3;
+  return 4;
+}
+
+function GrassCell({
+  day,
+  logCount,
+  isToday,
+  isFuture,
+  size = "md",
+}: {
+  day?: number;
+  logCount: number;
+  isToday?: boolean;
+  isFuture?: boolean;
+  size?: "sm" | "md";
+}) {
+  const dateLabel = day ? `Jul ${day}` : "";
+  const countLabel =
+    logCount === 0
+      ? isFuture
+        ? "Planned"
+        : "No logs"
+      : `${logCount} log${logCount === 1 ? "" : "s"}`;
+  const label = day ? `${dateLabel} · ${countLabel}` : countLabel;
+
+  return (
+    <div
+      title={label}
+      aria-label={label}
+      className={cn(
+        "shrink-0 rounded-[2px]",
+        size === "sm" ? "size-[11px]" : "aspect-square w-full max-w-[38px] rounded-[3px]",
+        getGrassTone(logCount, isFuture),
+        isToday &&
+          (size === "sm"
+            ? "ring-1 ring-[#a85638] ring-offset-1 ring-offset-white"
+            : "ring-2 ring-[#a85638] ring-offset-2 ring-offset-white"),
+      )}
+    />
+  );
+}
+
+function getGrassTone(logCount: number, isFuture?: boolean) {
+  if (logCount === 0) {
+    return isFuture ? GRASS_FUTURE : GRASS_EMPTY;
+  }
+
+  return GRASS_LEVELS[getGrassLevel(logCount)];
+}
+
+function GrassLegend() {
+  const levels = [0, 1, 2, 3, 4] as const;
+
+  return (
+    <div className="flex items-center justify-end gap-1.5 px-[18px] pb-3.5 pt-2 text-[10px] text-zinc-400">
+      <span>Less</span>
+      <div className="flex items-center gap-[3px]">
+        {levels.map((level) => (
+          <span
+            key={level}
+            className={cn("size-[11px] rounded-[2px]", GRASS_LEVELS[level])}
+          />
         ))}
       </div>
-      <div className="flex items-center gap-3.5 px-[18px] pb-3.5 pt-1.5 text-[10.5px] text-zinc-400">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-[5px] rounded-full bg-zinc-300" />
-          logs
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-[5px] rounded-full border border-zinc-400 bg-transparent" />
-          planned
-        </span>
-      </div>
-    </DashboardCard>
+      <span>More</span>
+    </div>
   );
 }
 

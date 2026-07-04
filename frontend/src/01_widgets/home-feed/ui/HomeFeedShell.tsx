@@ -459,6 +459,13 @@ function HomeSidebar({
             icon={<IconDashboard className="size-[15px]" />}
             onNavigate={onNavigate}
           />
+          <SidebarLink
+            href={getTabHref("workspace", isLoggedIn)}
+            label="Tasks"
+            badge="2"
+            icon={<IconTasks className="size-[15px]" />}
+            onNavigate={onNavigate}
+          />
           <SidebarLogsGroup isLoggedIn={isLoggedIn} onNavigate={onNavigate} />
           <SidebarLink
             href={getTabHref("workspace", isLoggedIn)}
@@ -923,6 +930,20 @@ function IconFileText({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeWidth="1.8"
       />
+    </svg>
+  );
+}
+
+function IconTasks({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   );
 }
