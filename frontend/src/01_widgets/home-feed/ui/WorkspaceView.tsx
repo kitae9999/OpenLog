@@ -15,10 +15,10 @@ import {
   workspaceWorkItems,
   type WorkspaceLogItem,
   type WorkspaceTodoItem,
-  type WorkspaceTone,
   type WorkspaceWorkItem,
   type WorkspaceWorkStatus,
 } from "./data";
+import { LogTypeLabel } from "./LogTypeLabel";
 import { WorkspaceGuestPrompt } from "./WorkspaceGuestPrompt";
 
 export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
@@ -578,13 +578,13 @@ function WorkspaceLogRow({
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <ToneBadge tone={item.tone}>{item.label}</ToneBadge>
             <h3 className="text-[14px] font-semibold text-zinc-950">{item.title}</h3>
           </div>
           <p className="mt-0.5 text-[12.5px] leading-5 text-zinc-500">
             {item.description}
           </p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11.5px] text-zinc-400">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-zinc-400">
+            <LogTypeLabel>{item.label}</LogTypeLabel>
             {task ? (
               <TaskLinkChip
                 label={task.title}
@@ -599,9 +599,15 @@ function WorkspaceLogRow({
         <button
           type="button"
           onClick={onToggle}
-          className="shrink-0 self-center text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          aria-label={expanded ? "Close log details" : `Open ${item.title}`}
+          aria-expanded={expanded}
+          className="shrink-0 self-center text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
-          {expanded ? "Close" : "Open"}
+          {expanded ? (
+            <span className="text-[12.5px] font-medium">Close</span>
+          ) : (
+            <IconArrowRight className="size-4" />
+          )}
         </button>
       </div>
       {expanded ? (
@@ -812,28 +818,6 @@ function MiniTabs<T extends string>({
         </button>
       ))}
     </div>
-  );
-}
-
-function ToneBadge({
-  tone,
-  children,
-}: {
-  tone: WorkspaceTone;
-  children: ReactNode;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold",
-        tone === "blue" && "border-blue-200 bg-blue-50 text-blue-700",
-        tone === "green" && "border-green-200 bg-green-50 text-green-700",
-        tone === "amber" && "border-amber-200 bg-amber-50 text-amber-700",
-        tone === "zinc" && "border-zinc-200 bg-zinc-50 text-zinc-600",
-      )}
-    >
-      {children}
-    </span>
   );
 }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
+import { LogTypeLabel } from "./LogTypeLabel";
 import {
   countUnassignedLogs,
   getLogsForTask,
@@ -11,7 +12,6 @@ import {
   type WorkspaceLogItem,
   type WorkspaceWorkItem,
   type WorkspaceWorkStatus,
-  type WorkspaceTone,
 } from "./data";
 
 export function TaskDetailView({ task }: { task: WorkspaceWorkItem }) {
@@ -212,13 +212,13 @@ function TaskLogRow({ log }: { log: WorkspaceLogItem }) {
     <article className="flex items-start gap-3 border-t border-zinc-100 py-3 first:border-t-0">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <ToneBadge tone={log.tone}>{log.label}</ToneBadge>
           <h3 className="text-[14px] font-semibold text-zinc-950">{log.title}</h3>
         </div>
         <p className="mt-0.5 text-[12.5px] leading-5 text-zinc-500">
           {log.description}
         </p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11.5px] text-zinc-400">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-zinc-400">
+          <LogTypeLabel>{log.label}</LogTypeLabel>
           <span>{formatLogMeta(log.meta)}</span>
           {log.branch ? <CodePill>{log.branch}</CodePill> : null}
           {log.commit ? <CodePill>{log.commit}</CodePill> : null}
@@ -226,9 +226,10 @@ function TaskLogRow({ log }: { log: WorkspaceLogItem }) {
       </div>
       <Link
         href={log.href}
-        className="shrink-0 self-center text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950"
+        aria-label={`Open ${log.title}`}
+        className="shrink-0 self-center text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >
-        Open
+        <IconArrowRight className="size-4" />
       </Link>
     </article>
   );
@@ -268,29 +269,7 @@ function TaskStatusDot({ status }: { status: WorkspaceWorkStatus }) {
   );
 }
 
-function ToneBadge({
-  tone,
-  children,
-}: {
-  tone: WorkspaceTone;
-  children: ReactNode;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold",
-        tone === "blue" && "border-blue-200 bg-blue-50 text-blue-700",
-        tone === "green" && "border-green-200 bg-green-50 text-green-700",
-        tone === "amber" && "border-amber-200 bg-amber-50 text-amber-700",
-        tone === "zinc" && "border-zinc-200 bg-zinc-50 text-zinc-600",
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-function CodePill({ children }: { children: React.ReactNode }) {
+function CodePill({ children }: { children: ReactNode }) {
   return (
     <code className="rounded-md bg-zinc-100 px-[7px] py-0.5 font-mono text-[10.5px] text-zinc-500">
       {children}
@@ -325,5 +304,24 @@ function LinkButton({
     >
       {children}
     </Link>
+  );
+}
+
+function IconArrowRight({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M5 12h14M13 6l6 6-6 6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
   );
 }
