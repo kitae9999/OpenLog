@@ -356,6 +356,59 @@ npm lockfile과 CI 캐시를 pnpm workspace로 통일합니다. Turbopack·모�
 
 export const activeWorkspaceTaskId = "workspace-view";
 
+export type UserWorkspace = {
+  id: string;
+  name: string;
+  repositoryFullName: string;
+  /** Single-letter mark shown in the switcher. */
+  initial: string;
+};
+
+export const defaultWorkspaceId = "openlog";
+
+export const userWorkspaces: UserWorkspace[] = [
+  {
+    id: "openlog",
+    name: "openlog",
+    repositoryFullName: "kitae9999/openlog",
+    initial: "o",
+  },
+  {
+    id: "openlog-cli",
+    name: "openlog-cli",
+    repositoryFullName: "kitae9999/openlog-cli",
+    initial: "c",
+  },
+  {
+    id: "dev-notes",
+    name: "dev-notes",
+    repositoryFullName: "kitae9999/dev-notes",
+    initial: "d",
+  },
+];
+
+export function getWorkspaceById(workspaceId: string) {
+  return userWorkspaces.find((workspace) => workspace.id === workspaceId);
+}
+
+export function getDefaultWorkspace() {
+  return getWorkspaceById(defaultWorkspaceId) ?? userWorkspaces[0]!;
+}
+
+export const workspaceRepository = {
+  owner: "kitae9999",
+  name: "openlog",
+  defaultBranch: "main",
+} as const;
+
+export function getWorkspaceRepositoryFullName() {
+  return `${workspaceRepository.owner}/${workspaceRepository.name}`;
+}
+
+export function getWorkspaceRepositoryUrl() {
+  return `https://github.com/${workspaceRepository.owner}/${workspaceRepository.name}`;
+}
+
 export function getTaskById(taskId: string) {
   return workspaceWorkItems.find((task) => task.id === taskId);
 }
@@ -476,6 +529,10 @@ export function getTaskHref(taskId: string) {
 
 export function getTasksHref() {
   return "/tasks";
+}
+
+export function getMcpGuideHref() {
+  return "/settings/mcp-guide";
 }
 
 export function getTaskEditHref(taskId: string) {

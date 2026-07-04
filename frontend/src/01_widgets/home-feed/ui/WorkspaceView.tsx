@@ -23,6 +23,7 @@ import {
 } from "./data";
 import { LogTypeLabel } from "./LogTypeLabel";
 import { WorkspaceGuestPrompt } from "./WorkspaceGuestPrompt";
+import { WorkspaceRepositoryLink } from "./WorkspaceRepositoryLink";
 
 export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
   if (!isLoggedIn) {
@@ -30,19 +31,22 @@ export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
   }
 
   return (
-    <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-      <div className="min-w-0 space-y-3.5">
-        <NowWorkingCard />
-        <WorkTasksCard />
-        <RecentLogsCard />
-      </div>
+    <div className="space-y-3.5">
+      <WorkspaceRepositoryLink />
+      <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-3.5">
+          <NowWorkingCard />
+          <WorkTasksCard />
+          <RecentLogsCard />
+        </div>
 
-      <div className="min-w-0 space-y-3.5">
-        <TodosCard />
-        <MonthActivityCard />
-        <GraphCard />
-        <OpenIssuesCard />
-        <MemoryCard />
+        <div className="min-w-0 space-y-3.5">
+          <TodosCard />
+          <MonthActivityCard />
+          <GraphCard />
+          <OpenIssuesCard />
+          <MemoryCard />
+        </div>
       </div>
     </div>
   );

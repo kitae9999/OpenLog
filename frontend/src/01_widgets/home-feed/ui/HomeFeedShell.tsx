@@ -23,6 +23,7 @@ import {
   countOpenIssues,
   feedPosts,
   getLogsHref,
+  getMcpGuideHref,
   getTabHref,
   getTasksHref,
   logsSubnavItems,
@@ -34,6 +35,7 @@ import {
   type TabKey,
 } from "./data";
 import { WorkspaceView } from "./WorkspaceView";
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { FeedArticleCard } from "./FeedArticleCard";
 
 export function HomeFeedShell({
@@ -427,6 +429,7 @@ export function HomeSidebar({
   onNavigate,
   workspaceNav = "dashboard",
   logsFilter = "all",
+  settingsNav,
 }: {
   activeTab: TabKey;
   isLoggedIn: boolean;
@@ -434,6 +437,7 @@ export function HomeSidebar({
   onNavigate: () => void;
   workspaceNav?: "dashboard" | "tasks" | "logs";
   logsFilter?: LogListTypeFilter;
+  settingsNav?: "mcp-guide";
 }) {
   return (
     <aside
@@ -444,23 +448,7 @@ export function HomeSidebar({
       )}
     >
       <nav className="flex h-full flex-col overflow-y-auto px-3 py-4">
-        <button
-          type="button"
-          className="mb-4 flex w-full items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-left transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-        >
-          <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-zinc-100 text-[13px] font-bold text-zinc-600 [font-family:Georgia,serif]">
-            o
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-semibold text-zinc-950">
-              openlog
-            </span>
-            <span className="block truncate font-mono text-[10.5px] text-zinc-400">
-              kitae9999/openlog
-            </span>
-          </span>
-          <IconChevronDown className="size-3.5 shrink-0 text-zinc-400" />
-        </button>
+        <WorkspaceSwitcher isLoggedIn={isLoggedIn} onNavigate={onNavigate} />
 
         <SidebarSection label="WORKSPACE">
           <SidebarLink
@@ -530,6 +518,16 @@ export function HomeSidebar({
             label="Explore"
             active={activeTab === "explore"}
             icon={<IconCompass className="size-[15px]" />}
+            onNavigate={onNavigate}
+          />
+        </SidebarSection>
+
+        <SidebarSection label="SETTINGS">
+          <SidebarLink
+            href={getMcpGuideHref()}
+            label="MCP Guide"
+            active={settingsNav === "mcp-guide"}
+            icon={<IconMcpGuide className="size-[15px]" />}
             onNavigate={onNavigate}
           />
         </SidebarSection>
@@ -1125,6 +1123,40 @@ function IconCompass({ className }: { className?: string }) {
       <path
         d="m15.5 8.5-2 5-5 2 2-5 5-2Z"
         stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconMcpGuide({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M8 6h8M8 10h8M8 14h5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+      <rect
+        x="4"
+        y="4"
+        width="16"
+        height="16"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M16 18l2 2 4-4"
+        stroke="currentColor"
+        strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="1.8"
       />
