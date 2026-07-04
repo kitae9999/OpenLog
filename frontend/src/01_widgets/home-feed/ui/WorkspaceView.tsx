@@ -2,10 +2,12 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
-  activeWorkspaceTaskId,
   countLogsForTask,
+  countUnassignedLogs,
+  getLogHref,
   getTaskById,
   getTaskHref,
+  getTasksHref,
   workspaceIssues,
   workspaceLogs,
   workspaceMemories,
@@ -22,31 +24,6 @@ import { LogTypeLabel } from "./LogTypeLabel";
 import { WorkspaceGuestPrompt } from "./WorkspaceGuestPrompt";
 
 export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
-  const [logTaskOverrides, setLogTaskOverrides] = useState<Record<string, string>>(
-    {},
-  );
-
-  const resolveLogTaskId = (log: WorkspaceLogItem) =>
-    logTaskOverrides[log.id] ?? log.taskId;
-
-  const handleAssignLog = (logId: string, taskId: string) => {
-    setLogTaskOverrides((current) => ({ ...current, [logId]: taskId }));
-    setSelectedTaskId(taskId);
-  };
-
-  const handleSelectTask = (taskId: string | null) => {
-    setSelectedTaskId(taskId);
-    if (taskId) {
-      setSelectedLogId(null);
-    }
-  };
-
-  const handleSelectLog = (logId: string | null) => {
-    setSelectedLogId((current) => (current === logId ? null : logId));
-  };
-
   if (!isLoggedIn) {
     return <WorkspaceGuestPrompt />;
   }
@@ -55,15 +32,8 @@ export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
     <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <div className="min-w-0 space-y-3.5">
         <NowWorkingCard />
-        <WorkTasksCard resolveLogTaskId={resolveLogTaskId} />
-        <RecentLogsCard
-          selectedTaskId={selectedTaskId}
-          selectedLogId={selectedLogId}
-          onSelectTask={handleSelectTask}
-          onSelectLog={handleSelectLog}
-          onAssignLog={handleAssignLog}
-          resolveLogTaskId={resolveLogTaskId}
-        />
+        <WorkTasksCard />
+        <RecentLogsCard />
       </div>
 
       <div className="min-w-0 space-y-3.5">
@@ -126,33 +96,19 @@ function NowWorkingCard() {
   );
 }
 
-function WorkTasksCard({
-  resolveLogTaskId,
-}: {
-  resolveLogTaskId: (log: WorkspaceLogItem) => string | undefined;
-}) {
-  const logsByTask = workspaceLogs.reduce<Record<string, WorkspaceLogItem[]>>(
-    (groups, log) => {
-      const taskId = resolveLogTaskId(log);
-      if (!taskId) return groups;
-      groups[taskId] = [...(groups[taskId] ?? []), log];
-      return groups;
-    },
-    {},
-  );
-
+function WorkTasksCard() {
   return (
     <DashboardCard
       title="TASKS"
       titleAside={<TaskStatusLegend />}
-      action={<HeaderLink href="/write" />}
+      action={<HeaderLink href={getTasksHref()} label="View all" />}
     >
       <PanelList>
         {workspaceWorkItems.map((item) => (
           <WorkItemRow
             key={item.id}
             item={item}
-            logCount={logsByTask[item.id]?.length ?? countLogsForTask(item.id)}
+            logCount={countLogsForTask(item.id)}
           />
         ))}
       </PanelList>
@@ -306,24 +262,8 @@ function TodoRow({ todo }: { todo: WorkspaceTodoItem }) {
   );
 }
 
-function RecentLogsCard({
-  selectedTaskId,
-  selectedLogId,
-  onSelectTask,
-  onSelectLog,
-  onAssignLog,
-  resolveLogTaskId,
-}: {
-  selectedTaskId: string | null;
-  selectedLogId: string | null;
-  onSelectTask: (taskId: string | null) => void;
-  onSelectLog: (logId: string | null) => void;
-  onAssignLog: (logId: string, taskId: string) => void;
-  resolveLogTaskId: (log: WorkspaceLogItem) => string | undefined;
-}) {
-  const unassignedCount = workspaceLogs.filter(
-    (log) => !resolveLogTaskId(log),
-  ).length;
+function RecentLogsCard() {
+  const unassignedCount = countUnassignedLogs();
 
   return (
     <DashboardCard title="RECENT LOGS" action={<HeaderLink href="/write" />}>
@@ -333,27 +273,13 @@ function RecentLogsCard({
         </p>
       ) : null}
       <div className="pb-1.5 pt-1.5">
-        {workspaceLogs.map((item) => {
-          const taskId = resolveLogTaskId(item);
-          return (
-            <WorkspaceLogRow
-              key={item.id}
-              item={item}
-              task={taskId ? getTaskById(taskId) : undefined}
-              highlighted={selectedTaskId != null && taskId === selectedTaskId}
-              expanded={selectedLogId === item.id}
-              siblingCount={
-                taskId
-                  ? workspaceLogs.filter((log) => resolveLogTaskId(log) === taskId)
-                      .length - 1
-                  : 0
-              }
-              onSelectTask={onSelectTask}
-              onToggle={() => onSelectLog(item.id)}
-              onAssign={() => onAssignLog(item.id, activeWorkspaceTaskId)}
-            />
-          );
-        })}
+        {workspaceLogs.map((item) => (
+          <WorkspaceLogRow
+            key={item.id}
+            item={item}
+            task={item.taskId ? getTaskById(item.taskId) : undefined}
+          />
+        ))}
       </div>
     </DashboardCard>
   );
@@ -552,29 +478,12 @@ function OpenIssuesCard() {
 function WorkspaceLogRow({
   item,
   task,
-  highlighted,
-  expanded,
-  siblingCount,
-  onSelectTask,
-  onToggle,
-  onAssign,
 }: {
   item: WorkspaceLogItem;
   task?: WorkspaceWorkItem;
-  highlighted?: boolean;
-  expanded?: boolean;
-  siblingCount: number;
-  onSelectTask: (taskId: string | null) => void;
-  onToggle: () => void;
-  onAssign: () => void;
 }) {
   return (
-    <article
-      className={cn(
-        "border-t border-zinc-100 px-[18px] py-3 first:border-t-0",
-        highlighted && "bg-orange-50/40",
-      )}
-    >
+    <article className="border-t border-zinc-100 px-[18px] py-3 first:border-t-0">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -585,129 +494,33 @@ function WorkspaceLogRow({
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-zinc-400">
             <LogTypeLabel>{item.label}</LogTypeLabel>
-            {task ? (
-              <TaskLinkChip
-                label={task.title}
-                onClick={() => onSelectTask(task.id)}
-              />
-            ) : null}
+            {task ? <TaskLink label={task.title} href={getTaskHref(task.id)} /> : null}
             {item.branch ? <CodePill>{item.branch}</CodePill> : null}
             <span>{item.meta}</span>
             {item.commit ? <CodePill>{item.commit}</CodePill> : null}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label={expanded ? "Close log details" : `Open ${item.title}`}
-          aria-expanded={expanded}
+        <Link
+          href={getLogHref(item.id)}
+          aria-label={`Open ${item.title}`}
           className="shrink-0 self-center text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
-          {expanded ? (
-            <span className="text-[12.5px] font-medium">Close</span>
-          ) : (
-            <IconArrowRight className="size-4" />
-          )}
-        </button>
+          <IconArrowRight className="size-4" />
+        </Link>
       </div>
-      {expanded ? (
-        <LogTaskPanel
-          task={task}
-          captureBranch={item.branch}
-          siblingCount={Math.max(0, siblingCount)}
-          onSelectTask={onSelectTask}
-          onAssign={onAssign}
-        />
-      ) : null}
     </article>
   );
 }
 
-function TaskLinkChip({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
+function TaskLink({ label, href }: { label: string; href: string }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <Link
+      href={href}
       title={label}
       className="inline-flex max-w-[148px] items-center truncate rounded-md bg-zinc-100 px-[7px] py-0.5 text-[10.5px] font-semibold text-zinc-600 transition hover:bg-zinc-200 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
     >
       {label}
-    </button>
-  );
-}
-
-function LogTaskPanel({
-  task,
-  captureBranch,
-  siblingCount,
-  onSelectTask,
-  onAssign,
-}: {
-  task?: WorkspaceWorkItem;
-  captureBranch?: string;
-  siblingCount: number;
-  onSelectTask: (taskId: string | null) => void;
-  onAssign: () => void;
-}) {
-  const activeTask = getTaskById(activeWorkspaceTaskId);
-
-  return (
-    <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-3">
-      {task ? (
-        <div className="space-y-2">
-          <p className="text-[12px] text-zinc-500">
-            Part of{" "}
-            <button
-              type="button"
-              onClick={() => onSelectTask(task.id)}
-              className="font-semibold text-zinc-950 underline-offset-2 hover:underline"
-            >
-              {task.title}
-            </button>
-          </p>
-          {captureBranch ? (
-            <p className="text-[11px] text-zinc-400">
-              Captured on{" "}
-              <span className="font-mono text-zinc-500">{captureBranch}</span>
-            </p>
-          ) : null}
-          {siblingCount > 0 ? (
-            <button
-              type="button"
-              onClick={() => onSelectTask(task.id)}
-              className="text-[12px] font-medium text-zinc-500 hover:text-zinc-950"
-            >
-              {siblingCount} more log{siblingCount === 1 ? "" : "s"} in this task
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <span className="text-[12px] text-zinc-500">No task</span>
-          {activeTask ? (
-            <button
-              type="button"
-              onClick={onAssign}
-              className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[12px] font-semibold text-zinc-700 transition hover:bg-zinc-100"
-            >
-              Assign to {activeTask.title}
-            </button>
-          ) : null}
-          {captureBranch ? (
-            <span className="text-[11px] text-zinc-400">
-              on{" "}
-              <span className="font-mono text-zinc-500">{captureBranch}</span>
-            </span>
-          ) : null}
-        </div>
-      )}
-    </div>
+    </Link>
   );
 }
 

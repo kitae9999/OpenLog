@@ -3,27 +3,21 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
-import { getTaskById } from "./data";
-import { TaskDetailView } from "./TaskDetailView";
+import { TasksListView } from "./TasksListView";
 import { HomeSidebar } from "./HomeFeedShell";
-import { mergeTaskWithOverrides } from "./taskOverrides";
 
-export function TaskDetailShell({
-  taskId,
+export function TasksListShell({
   isLoggedIn,
   profileImageUrl,
   profileHref,
   footer,
 }: {
-  taskId: string;
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const baseTask = getTaskById(taskId);
-  const [task, setTask] = useState(baseTask);
 
   useEffect(() => {
     const query = window.matchMedia("(min-width: 1024px)");
@@ -39,18 +33,6 @@ export function TaskDetailShell({
       query.removeEventListener("change", syncSidebar);
     };
   }, []);
-
-  useEffect(() => {
-    if (!baseTask) {
-      return;
-    }
-
-    setTask(mergeTaskWithOverrides(baseTask));
-  }, [baseTask, taskId]);
-
-  if (!task) {
-    return null;
-  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50 text-zinc-950">
@@ -92,10 +74,10 @@ export function TaskDetailShell({
           )}
         >
           <section
-            aria-label="Task detail"
+            aria-label="Tasks"
             className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 xl:px-10"
           >
-            <TaskDetailView task={task} />
+            <TasksListView isLoggedIn={isLoggedIn} />
           </section>
         </main>
       </div>

@@ -18,8 +18,10 @@ import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import {
+  countDoingTasks,
   feedPosts,
   getTabHref,
+  getTasksHref,
   logsSubnavItems,
   recommendedTopics,
   topContributors,
@@ -424,7 +426,7 @@ export function HomeSidebar({
   isLoggedIn: boolean;
   isOpen: boolean;
   onNavigate: () => void;
-  workspaceNav?: "dashboard" | "tasks";
+  workspaceNav?: "dashboard" | "tasks" | "logs";
 }) {
   return (
     <aside
@@ -462,14 +464,18 @@ export function HomeSidebar({
             onNavigate={onNavigate}
           />
           <SidebarLink
-            href={getTabHref("workspace", isLoggedIn)}
+            href={getTasksHref()}
             label="Tasks"
-            badge="2"
+            badge={countDoingTasks() > 0 ? String(countDoingTasks()) : undefined}
             active={workspaceNav === "tasks"}
             icon={<IconTasks className="size-[15px]" />}
             onNavigate={onNavigate}
           />
-          <SidebarLogsGroup isLoggedIn={isLoggedIn} onNavigate={onNavigate} />
+          <SidebarLogsGroup
+            isLoggedIn={isLoggedIn}
+            active={workspaceNav === "logs"}
+            onNavigate={onNavigate}
+          />
           <SidebarLink
             href={getTabHref("workspace", isLoggedIn)}
             label="Planner"
@@ -542,9 +548,11 @@ export function HomeSidebar({
 
 function SidebarLogsGroup({
   isLoggedIn,
+  active = false,
   onNavigate,
 }: {
   isLoggedIn: boolean;
+  active?: boolean;
   onNavigate: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -555,9 +563,19 @@ function SidebarLogsGroup({
         type="button"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
-        className="flex h-8 w-full items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        className={cn(
+          "flex h-8 w-full items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+          active
+            ? "bg-zinc-100 font-semibold text-zinc-950"
+            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
+        )}
       >
-        <IconFileText className="size-[15px] shrink-0 text-zinc-400" />
+        <IconFileText
+          className={cn(
+            "size-[15px] shrink-0",
+            active ? "text-zinc-950" : "text-zinc-400",
+          )}
+        />
         <span className="min-w-0 flex-1 truncate text-left">Logs</span>
         <span className="rounded-full bg-zinc-100 px-2 text-[11px] font-semibold tabular-nums text-zinc-500">
           14

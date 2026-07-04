@@ -4,11 +4,11 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
 import { getTaskById } from "./data";
-import { TaskDetailView } from "./TaskDetailView";
+import { TaskEditView } from "./TaskEditView";
 import { HomeSidebar } from "./HomeFeedShell";
 import { mergeTaskWithOverrides } from "./taskOverrides";
 
-export function TaskDetailShell({
+export function TaskEditShell({
   taskId,
   isLoggedIn,
   profileImageUrl,
@@ -92,10 +92,10 @@ export function TaskDetailShell({
           )}
         >
           <section
-            aria-label="Task detail"
+            aria-label="Edit task"
             className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 xl:px-10"
           >
-            <TaskDetailView task={task} />
+            <TaskEditView task={task} />
           </section>
         </main>
       </div>

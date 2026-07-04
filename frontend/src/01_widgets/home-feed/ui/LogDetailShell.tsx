@@ -3,27 +3,27 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
-import { getTaskById } from "./data";
-import { TaskDetailView } from "./TaskDetailView";
+import { getLogById } from "./data";
+import { LogDetailView } from "./LogDetailView";
 import { HomeSidebar } from "./HomeFeedShell";
-import { mergeTaskWithOverrides } from "./taskOverrides";
+import { mergeLogWithOverrides } from "./logOverrides";
 
-export function TaskDetailShell({
-  taskId,
+export function LogDetailShell({
+  logId,
   isLoggedIn,
   profileImageUrl,
   profileHref,
   footer,
 }: {
-  taskId: string;
+  logId: string;
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const baseTask = getTaskById(taskId);
-  const [task, setTask] = useState(baseTask);
+  const baseLog = getLogById(logId);
+  const [log, setLog] = useState(baseLog);
 
   useEffect(() => {
     const query = window.matchMedia("(min-width: 1024px)");
@@ -41,14 +41,14 @@ export function TaskDetailShell({
   }, []);
 
   useEffect(() => {
-    if (!baseTask) {
+    if (!baseLog) {
       return;
     }
 
-    setTask(mergeTaskWithOverrides(baseTask));
-  }, [baseTask, taskId]);
+    setLog(mergeLogWithOverrides(baseLog));
+  }, [baseLog, logId]);
 
-  if (!task) {
+  if (!log) {
     return null;
   }
 
@@ -75,7 +75,7 @@ export function TaskDetailShell({
 
         <HomeSidebar
           activeTab="workspace"
-          workspaceNav="tasks"
+          workspaceNav="logs"
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
           onNavigate={() => {
@@ -92,10 +92,10 @@ export function TaskDetailShell({
           )}
         >
           <section
-            aria-label="Task detail"
+            aria-label="Log detail"
             className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 xl:px-10"
           >
-            <TaskDetailView task={task} />
+            <LogDetailView log={log} />
           </section>
         </main>
       </div>

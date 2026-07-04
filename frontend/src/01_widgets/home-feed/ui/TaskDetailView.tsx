@@ -1,14 +1,18 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
+import { MarkdownContent } from "@/shared/ui/markdown";
 import { LogTypeLabel } from "./LogTypeLabel";
 import {
   countUnassignedLogs,
   getLogsForTask,
+  getOutputsForTask,
   getSpawnedTodosForTask,
   getTabHref,
   getTaskBranches,
+  getTaskEditHref,
   getTaskMeta,
+  getLogHref,
   type WorkspaceLogItem,
   type WorkspaceWorkItem,
   type WorkspaceWorkStatus,
@@ -16,6 +20,7 @@ import {
 
 export function TaskDetailView({ task }: { task: WorkspaceWorkItem }) {
   const logs = getLogsForTask(task.id);
+  const outputs = getOutputsForTask(task.id);
   const branches = getTaskBranches(task.id);
   const meta = getTaskMeta(task.id);
   const spawnedTodos = getSpawnedTodosForTask(task.id);
@@ -26,6 +31,7 @@ export function TaskDetailView({ task }: { task: WorkspaceWorkItem }) {
       : task.status === "done"
         ? "done"
         : "todo";
+  const hasBody = task.body.trim().length > 0;
 
   return (
     <div>
@@ -67,6 +73,14 @@ export function TaskDetailView({ task }: { task: WorkspaceWorkItem }) {
               <dd className="inline font-semibold text-zinc-700">{logs.length}</dd>{" "}
               logs linked
             </div>
+            {outputs.length > 0 ? (
+              <div>
+                <dd className="inline font-semibold text-zinc-700">
+                  {outputs.length}
+                </dd>{" "}
+                outputs
+              </div>
+            ) : null}
             {branches.length > 0 ? (
               <div>
                 <dd className="inline font-semibold text-zinc-700">
@@ -91,62 +105,41 @@ export function TaskDetailView({ task }: { task: WorkspaceWorkItem }) {
                 Mark done
               </LinkButton>
             ) : null}
-            <LinkButton href="/write" tone="ghost" size="sm">
-              Edit title
+            <LinkButton href={getTaskEditHref(task.id)} tone="ghost" size="sm">
+              Edit
             </LinkButton>
           </div>
         </header>
 
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_256px]">
-          <section className="min-w-0 px-6 pb-6 pt-1">
-            <div className="flex items-center justify-between gap-3 pt-3.5">
-              <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                LOGS
-              </h2>
-              {unassignedCount > 0 ? (
-                <Link
-                  href="/write"
-                  className="text-[12px] font-medium text-zinc-500 transition hover:text-zinc-950"
-                >
-                  Unassigned ({unassignedCount})
-                </Link>
-              ) : null}
-            </div>
-            <div className="pb-1.5 pt-1.5">
-              {logs.length === 0 ? (
-                <p className="py-6 text-[13px] text-zinc-500">
-                  No logs linked yet.
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(300px,340px)]">
+          <section className="min-w-0 px-6 py-5">
+            {hasBody ? (
+              <div className="max-w-none text-[15px] leading-7 text-zinc-800">
+                <MarkdownContent markdown={task.body} variant="compact" />
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-5 py-8 text-center">
+                <p className="text-[14px] font-medium text-zinc-600">
+                  No task document yet.
                 </p>
-              ) : (
-                logs.map((log) => <TaskLogRow key={log.id} log={log} />)
-              )}
-            </div>
-            <Link
-              href="/write"
-              className="inline-flex text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950"
-            >
-              + Link existing log
-            </Link>
+                <p className="mt-1 text-[13px] text-zinc-500">
+                  Add context, goals, and scope in markdown — like a PR
+                  description.
+                </p>
+                <div className="mt-4">
+                  <LinkButton
+                    href={getTaskEditHref(task.id)}
+                    tone="outline"
+                    size="sm"
+                  >
+                    Write task document
+                  </LinkButton>
+                </div>
+              </div>
+            )}
           </section>
 
-          <aside className="flex flex-col gap-2 border-t border-zinc-100 bg-zinc-50 px-[18px] py-5 lg:border-l lg:border-t-0">
-            <SidebarBlock label="OUTPUTS">
-              {task.status === "done" ? (
-                <>
-                  <p className="text-[12px] text-zinc-500">
-                    PR doc draft · {logs.length} logs
-                  </p>
-                  <LinkButton href="/write" tone="outline" size="sm">
-                    Generate PR doc
-                  </LinkButton>
-                </>
-              ) : (
-                <p className="text-[12px] text-zinc-400">
-                  No drafts yet. Mark done to generate.
-                </p>
-              )}
-            </SidebarBlock>
-
+          <aside className="hidden flex-col gap-2 border-l border-zinc-100 bg-zinc-50 px-[18px] py-5 lg:flex">
             {branches.length > 0 ? (
               <SidebarBlock label="BRANCHES">
                 <p className="text-[11.5px] text-zinc-400">
@@ -195,11 +188,138 @@ export function TaskDetailView({ task }: { task: WorkspaceWorkItem }) {
                     Generate PR doc
                   </LinkButton>
                 )}
+                <LinkButton href={getTaskEditHref(task.id)} tone="ghost" size="sm">
+                  Edit
+                </LinkButton>
                 <LinkButton href="/write" tone="ghost" size="sm">
                   Delete task
                 </LinkButton>
               </div>
             </SidebarBlock>
+          </aside>
+
+          <div className="col-span-full border-b border-zinc-100" />
+
+          <section className="min-w-0 px-6 pb-6 pt-1">
+            <div className="flex items-center justify-between gap-3 pt-3.5">
+              <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                LOGS
+              </h2>
+              {unassignedCount > 0 ? (
+                <Link
+                  href="/write"
+                  className="text-[12px] font-medium text-zinc-500 transition hover:text-zinc-950"
+                >
+                  Unassigned ({unassignedCount})
+                </Link>
+              ) : null}
+            </div>
+            <div className="pb-1.5 pt-1.5">
+              {logs.length === 0 ? (
+                <p className="py-6 text-[13px] text-zinc-500">
+                  No logs linked yet.
+                </p>
+              ) : (
+                logs.map((log) => <TaskLogRow key={log.id} log={log} />)
+              )}
+            </div>
+            <Link
+              href="/write"
+              className="inline-flex text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950"
+            >
+              + Link existing log
+            </Link>
+          </section>
+
+          <aside className="flex flex-col gap-2 border-t border-zinc-100 bg-zinc-50 px-[18px] pb-6 pt-1 lg:border-l lg:border-t-0">
+            <div className="flex items-center justify-between gap-3 pt-3.5">
+              <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                OUTPUTS
+              </h2>
+            </div>
+            <div className="pb-1.5 pt-1.5">
+              {outputs.length === 0 ? (
+                <>
+                  <p className="text-[12px] text-zinc-500">
+                    {task.status === "done"
+                      ? "No outputs yet. Generate a PR doc from linked logs."
+                      : "No drafts yet. Mark done to generate."}
+                  </p>
+                  {task.status === "done" ? (
+                    <div className="mt-2">
+                      <LinkButton href="/write" tone="outline" size="sm">
+                        Generate PR doc
+                      </LinkButton>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <div className="space-y-0">
+                  {outputs.map((output) => (
+                    <TaskOutputRow key={output.id} output={output} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 border-t border-zinc-200/70 pt-4 lg:hidden">
+              {branches.length > 0 ? (
+                <SidebarBlock label="BRANCHES">
+                  <p className="text-[11.5px] text-zinc-400">
+                    Captured across logs — not a task property.
+                  </p>
+                  <ul className="space-y-1.5">
+                    {branches.map(({ branch, count }) => (
+                      <li
+                        key={branch}
+                        className="flex flex-wrap items-center gap-2"
+                      >
+                        <CodePill>{branch}</CodePill>
+                        <span className="text-[11px] text-zinc-400">
+                          {count} log{count === 1 ? "" : "s"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </SidebarBlock>
+              ) : null}
+
+              {spawnedTodos.length > 0 ? (
+                <SidebarBlock label="SPAWNED TODOS">
+                  <ul className="space-y-2">
+                    {spawnedTodos.map(({ todo, link }) => (
+                      <li key={todo.id}>
+                        <p className="text-[12px] text-zinc-600">{todo.title}</p>
+                        <p className="mt-0.5 text-[11px] text-zinc-400">
+                          from log
+                          {link.dueLabel ? ` · ${link.dueLabel}` : ""}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </SidebarBlock>
+              ) : null}
+
+              <SidebarBlock label="ACTIONS">
+                <div className="flex flex-col gap-2">
+                  {task.status !== "done" ? (
+                    <LinkButton href="/write" tone="outline" size="sm">
+                      Mark done
+                    </LinkButton>
+                  ) : (
+                    <LinkButton href="/write" tone="outline" size="sm">
+                      Generate PR doc
+                    </LinkButton>
+                  )}
+                  <LinkButton href={getTaskEditHref(task.id)} tone="ghost" size="sm">
+                    Edit
+                  </LinkButton>
+                  <LinkButton href="/write" tone="ghost" size="sm">
+                    Delete task
+                  </LinkButton>
+                </div>
+              </SidebarBlock>
+            </div>
           </aside>
         </div>
       </article>
@@ -225,8 +345,34 @@ function TaskLogRow({ log }: { log: WorkspaceLogItem }) {
         </div>
       </div>
       <Link
-        href={log.href}
+        href={getLogHref(log.id)}
         aria-label={`Open ${log.title}`}
+        className="shrink-0 self-center text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+      >
+        <IconArrowRight className="size-4" />
+      </Link>
+    </article>
+  );
+}
+
+function TaskOutputRow({
+  output,
+}: {
+  output: { id: string; title: string; description: string };
+}) {
+  return (
+    <article className="flex items-start gap-3 border-t border-zinc-200/70 py-3 first:border-t-0">
+      <div className="min-w-0 flex-1">
+        <h3 className="text-[14px] font-semibold text-zinc-950">
+          {output.title}
+        </h3>
+        <p className="mt-0.5 text-[12.5px] leading-5 text-zinc-500">
+          {output.description}
+        </p>
+      </div>
+      <Link
+        href="/write"
+        aria-label={`Open ${output.title}`}
         className="shrink-0 self-center text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >
         <IconArrowRight className="size-4" />

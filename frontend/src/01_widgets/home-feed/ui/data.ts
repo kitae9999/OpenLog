@@ -29,6 +29,8 @@ export type WorkspaceLogItem = {
   taskId?: string;
   /** Branch at capture time — independent of task. */
   branch?: string;
+  /** Markdown recipe body. Falls back to generated content from description/recipe. */
+  body?: string;
 };
 
 export type WorkspaceMetric = {
@@ -109,6 +111,38 @@ export const workspaceLogs: WorkspaceLogItem[] = [
     href: "/write",
     taskId: "pnpm-migration",
     branch: "fix/pnpm",
+    body: `## Problem
+
+npm에서 pnpm으로 전환한 뒤 next dev --turbopack 실행 시 모듈 해석 실패. 레포 루트가 아닌 frontend 하위에서만 재현.
+
+\`\`\`
+Error: Next.js package not found
+  at resolveWorkspaceRoot (turbopack/…)
+  lockfile detected at ../../pnpm-lock.yaml
+\`\`\`
+
+## Cause
+
+Turbopack이 workspace 루트를 lockfile 위치로 추론하는데, 레포 루트의 pnpm-lock.yaml을 잡으면서 frontend 앱 기준 모듈 경로가 어긋남.
+
+## Fix
+
+next.config.ts에서 turbopack root를 frontend로 명시해 추론을 우회.
+
+\`\`\`ts
+// next.config.ts
+const nextConfig = {
+  turbopack: { root: __dirname },
+};
+\`\`\`
+
+## Verification
+
+dev·빌드 모두 통과. CI의 pnpm 캐시 키 갱신은 TODO로 남김.
+
+## Related commits
+
+\`e092268\` · fix: turbopack 버그 수정`,
   },
   {
     id: "workspace-tab-routing",
@@ -200,6 +234,7 @@ export type WorkspaceWorkItem = {
   id: string;
   title: string;
   status: WorkspaceWorkStatus;
+  body: string;
 };
 
 export const workspaceWorkItems: WorkspaceWorkItem[] = [
@@ -207,21 +242,82 @@ export const workspaceWorkItems: WorkspaceWorkItem[] = [
     id: "workspace-view",
     title: "홈 피드 → 워크스페이스 뷰 전환",
     status: "doing",
+    body: `## Context
+
+홈 피드 중심 UX에서 **워크스페이스 대시보드**로 피벗합니다. 로그인 사용자의 \`/\` 진입점을 작업 맥락이 한눈에 보이는 대시보드로 바꾸는 작업입니다.
+
+## Goal
+
+- 로그인 시 \`/\` → Workspace 탭
+- TASKS · RECENT LOGS · TODOS 위젯 배치
+- Task / Log 상세 페이지 라우팅
+
+## Scope
+
+**In**
+- WorkspaceView 대시보드 카드
+- Task detail · Log detail 라우트
+- 사이드바 Workspace 네비게이션
+
+**Out**
+- 실제 API 연동
+- Planner · Graph 풀 페이지
+
+## Notes
+
+디자인 기준: \`_docs/design/workspace-layout-preview.html\``,
   },
   {
     id: "pnpm-migration",
     title: "pnpm 마이그레이션",
     status: "doing",
+    body: `## Context
+
+npm lockfile과 CI 캐시를 pnpm workspace로 통일합니다. Turbopack·모노레포 경로 이슈가 함께 따라옵니다.
+
+## Goal
+
+- 루트 \`pnpm-lock.yaml\` 기준으로 install/dev/build 통일
+- CI 캐시 키 갱신
+- frontend dev 서버 정상 기동
+
+## Scope
+
+**In**
+- package manager 전환
+- next.config turbopack root 명시
+
+**Out**
+- publishable packages 분리
+- Nx/Turbo 도입`,
   },
   {
     id: "terraform-gcs",
     title: "Terraform state GCS 이전",
     status: "done",
+    body: `## Context
+
+로컬 \`.terraform\` state를 팀 공유 GCS backend로 이전합니다.
+
+## Goal
+
+- remote state bucket + versioning
+- CI plan/apply 파이프라인 연동
+
+## Scope
+
+**In**
+- backend \`gcs\` block
+- state lock (GCS native)
+
+**Out**
+- multi-env workspace split`,
   },
   {
     id: "post-visibility",
     title: "post visibility 필드 도입",
     status: "todo",
+    body: "",
   },
 ];
 
@@ -239,8 +335,174 @@ export function countLogsForTask(taskId: string) {
   return getLogsForTask(taskId).length;
 }
 
+export function getLogHref(logId: string) {
+  return `/logs/${logId}`;
+}
+
+export function getLogEditHref(logId: string) {
+  return `/logs/${logId}/edit`;
+}
+
+export function recipeToMarkdown(
+  recipe: WorkspaceLogRecipe,
+  log?: WorkspaceLogItem,
+): string {
+  const sections: string[] = [`## Problem\n\n${recipe.problem}`];
+
+  if (recipe.problemCode) {
+    sections.push(`\`\`\`\n${recipe.problemCode}\n\`\`\``);
+  }
+  if (recipe.cause) {
+    sections.push(`## Cause\n\n${recipe.cause}`);
+  }
+  if (recipe.fix) {
+    sections.push(`## Fix\n\n${recipe.fix}`);
+  }
+  if (recipe.fixCode) {
+    sections.push(`\`\`\`\n${recipe.fixCode}\n\`\`\``);
+  }
+  if (recipe.verification) {
+    sections.push(`## Verification\n\n${recipe.verification}`);
+  }
+  if (log?.commit) {
+    const commitLine = `\`${log.commit}\`${recipe.commitMessage ? ` · ${recipe.commitMessage}` : ""}`;
+    sections.push(`## Related commits\n\n${commitLine}`);
+  }
+
+  return sections.join("\n\n");
+}
+
+export function getLogBody(log: WorkspaceLogItem): string {
+  if (log.body?.trim()) {
+    return log.body;
+  }
+
+  const recipe = getLogRecipe(log.id);
+  if (recipe) {
+    return recipeToMarkdown(recipe, log);
+  }
+
+  return `## Summary\n\n${log.description}`;
+}
+
+export function getLogById(logId: string) {
+  return workspaceLogs.find((log) => log.id === logId);
+}
+
+export type WorkspaceLogRecipe = {
+  problem: string;
+  problemCode?: string;
+  cause?: string;
+  fix?: string;
+  fixCode?: string;
+  verification?: string;
+  commitMessage?: string;
+  source?: string;
+  visibility?: string;
+};
+
+export const workspaceLogRecipes: Record<string, WorkspaceLogRecipe> = {
+  "turbopack-pnpm": {
+    problem:
+      "npm에서 pnpm으로 전환한 뒤 next dev --turbopack 실행 시 모듈 해석 실패. 레포 루트가 아닌 frontend 하위에서만 재현.",
+    problemCode: `Error: Next.js package not found
+  at resolveWorkspaceRoot (turbopack/…)
+  lockfile detected at ../../pnpm-lock.yaml`,
+    cause:
+      "Turbopack이 workspace 루트를 lockfile 위치로 추론하는데, 레포 루트의 pnpm-lock.yaml을 잡으면서 frontend 앱 기준 모듈 경로가 어긋남.",
+    fix: "next.config.ts에서 turbopack root를 frontend로 명시해 추론을 우회.",
+    fixCode: `// next.config.ts
+const nextConfig = {
+  turbopack: { root: __dirname },
+};`,
+    verification: "dev·빌드 모두 통과. CI의 pnpm 캐시 키 갱신은 TODO로 남김.",
+    commitMessage: "fix: turbopack 버그 수정",
+    source: "git diff + Claude Code session",
+    visibility: "Private",
+  },
+};
+
+export function getLogRecipe(logId: string): WorkspaceLogRecipe | undefined {
+  const detailed = workspaceLogRecipes[logId];
+  if (detailed) return detailed;
+
+  const log = getLogById(logId);
+  if (!log) return undefined;
+
+  return {
+    problem: log.description,
+    source: log.meta.includes("auto-captured") ? "auto-captured" : undefined,
+    visibility: "Private",
+    commitMessage: log.commit ? `commit ${log.commit}` : undefined,
+  };
+}
+
 export function getTaskHref(taskId: string) {
   return `/tasks/${taskId}`;
+}
+
+export function getTasksHref() {
+  return "/tasks";
+}
+
+export function getTaskEditHref(taskId: string) {
+  return `/tasks/${taskId}/edit`;
+}
+
+export type TaskListFilter = "all" | WorkspaceWorkStatus;
+
+export function getTasksFiltered(filter: TaskListFilter) {
+  if (filter === "all") {
+    return workspaceWorkItems;
+  }
+
+  return workspaceWorkItems.filter((task) => task.status === filter);
+}
+
+export function countTasksByStatus(status: WorkspaceWorkStatus) {
+  return workspaceWorkItems.filter((task) => task.status === status).length;
+}
+
+export function countDoingTasks() {
+  return countTasksByStatus("doing");
+}
+
+export function getTaskExcerpt(body: string, maxLength = 100) {
+  const plain = body
+    .replace(/^#+\s+/gm, "")
+    .replace(/[*`_~[\]()]/g, "")
+    .trim();
+  const firstLine =
+    plain
+      .split("\n")
+      .map((line) => line.trim())
+      .find((line) => line.length > 0) ?? "";
+
+  if (firstLine.length <= maxLength) {
+    return firstLine;
+  }
+
+  return `${firstLine.slice(0, maxLength).trim()}…`;
+}
+
+export type WorkspaceTaskOutput = {
+  id: string;
+  taskId: string;
+  title: string;
+  description: string;
+};
+
+export const workspaceTaskOutputs: WorkspaceTaskOutput[] = [
+  {
+    id: "terraform-gcs-pr",
+    taskId: "terraform-gcs",
+    title: "PR document",
+    description: "from 2 logs",
+  },
+];
+
+export function getOutputsForTask(taskId: string) {
+  return workspaceTaskOutputs.filter((output) => output.taskId === taskId);
 }
 
 export type WorkspaceTaskMeta = {
