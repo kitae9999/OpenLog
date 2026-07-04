@@ -141,14 +141,19 @@ text-sm font-medium, 비활성 text-zinc-500 → hover/활성 text-zinc-950
 │ 프로젝트 스위처   │        search(⌘K) · avatar │
 │ WORKSPACE nav   ├────────────────────────────┤
 │ PUBLISHING nav  │ main (bg zinc-50, p-5~6)    │
-│ DISCOVER nav    │  스탯 타일 → 1.6fr : 1fr 그리드│
+│ DISCOVER nav    │  1.6fr : 1fr 위젯 그리드     │
 │ MCP 상태(하단)   │                            │
 └─────────────────┴────────────────────────────┘
 ```
 
 - 사이드바: `white` bg, `border-r zinc-200/70`. 활성 항목 `bg-zinc-100 text-zinc-950 font-semibold` (기존 사이드바 탭 패턴).
+- WORKSPACE 네비게이션: Dashboard / **Logs (토글 확장: All · Issues · Fixes · Decisions)** / Planner / Graph / Outputs / Memory.
+  하위 항목은 좌측 가이드 라인(`border-l zinc-200`) + 들여쓰기로 표현. Issues 뱃지는 open 카운트(amber).
 - 브랜치·커밋은 항상 mono 폰트 + zinc 필로 표시.
-- 대시보드 우선순위: NOW WORKING(히어로) → RECENT LOGS → 우측 레일(DECISIONS / OPEN TODOS / OUTPUTS / PROJECT MEMORY).
+- 대시보드 구성 (좌 → 우, 위 → 아래가 사용 순서):
+  - 좌측: NOW WORKING(컴팩트 히어로) → TASKS(Today/This week 체크리스트, MCP 노출) → RECENT LOGS
+  - 우측 레일: THIS WEEK(7일 스트립: 과거=로그 활동 dot, 미래=계획 hollow dot) → GRAPH(미니 그래프 + 풀 뷰 진입, KnowledgeGraphCard 패턴) → OPEN ISSUES → PROJECT MEMORY
+- 대시보드 위젯 원칙: **지금 행동 가능한 것** 또는 **한눈에 읽히는 상태**만. 탐색이 필요한 건 전용 페이지(Planner, Graph, Logs)로.
 
 ### Explore (로그인)
 

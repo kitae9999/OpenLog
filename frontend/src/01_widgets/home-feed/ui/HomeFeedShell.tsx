@@ -20,6 +20,7 @@ import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import {
   feedPosts,
   getTabHref,
+  logsSubnavItems,
   recommendedTopics,
   topContributors,
   type FeedPost,
@@ -458,17 +459,17 @@ function HomeSidebar({
             icon={<IconDashboard className="size-[15px]" />}
             onNavigate={onNavigate}
           />
+          <SidebarLogsGroup isLoggedIn={isLoggedIn} onNavigate={onNavigate} />
           <SidebarLink
             href={getTabHref("workspace", isLoggedIn)}
-            label="Logs"
-            badge="14"
-            icon={<IconFileText className="size-[15px]" />}
+            label="Planner"
+            icon={<IconPlanner className="size-[15px]" />}
             onNavigate={onNavigate}
           />
           <SidebarLink
             href={getTabHref("workspace", isLoggedIn)}
-            label="Decisions"
-            icon={<IconDecision className="size-[15px]" />}
+            label="Graph"
+            icon={<IconGraph className="size-[15px]" />}
             onNavigate={onNavigate}
           />
           <SidebarLink
@@ -526,6 +527,59 @@ function HomeSidebar({
         </div>
       </nav>
     </aside>
+  );
+}
+
+function SidebarLogsGroup({
+  isLoggedIn,
+  onNavigate,
+}: {
+  isLoggedIn: boolean;
+  onNavigate: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((current) => !current)}
+        className="flex h-8 w-full items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+      >
+        <IconFileText className="size-[15px] shrink-0 text-zinc-400" />
+        <span className="min-w-0 flex-1 truncate text-left">Logs</span>
+        <span className="rounded-full bg-zinc-100 px-2 text-[11px] font-semibold tabular-nums text-zinc-500">
+          14
+        </span>
+        <IconChevronDown
+          className={cn(
+            "size-3 shrink-0 text-zinc-400 transition-transform duration-150",
+            !isOpen && "-rotate-90",
+          )}
+        />
+      </button>
+
+      {isOpen ? (
+        <div className="mb-1 ml-[22px] flex flex-col gap-px border-l border-zinc-200 pl-[7px]">
+          {logsSubnavItems.map((item) => (
+            <Link
+              key={item.label}
+              href={getTabHref("workspace", isLoggedIn)}
+              onClick={onNavigate}
+              className="flex items-center gap-2 rounded-lg px-[9px] py-[5px] text-[12.5px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              {item.badge ? (
+                <span className="rounded-full bg-amber-50 px-[7px] text-[10.5px] font-semibold tabular-nums text-amber-700">
+                  {item.badge}
+                </span>
+              ) : null}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -873,7 +927,34 @@ function IconFileText({ className }: { className?: string }) {
   );
 }
 
-function IconDecision({ className }: { className?: string }) {
+function IconPlanner({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect
+        x="4"
+        y="5"
+        width="16"
+        height="16"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M8 3v4M16 3v4M4 10h16"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconGraph({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"

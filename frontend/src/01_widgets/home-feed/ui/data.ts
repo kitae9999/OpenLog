@@ -147,19 +147,81 @@ export const workspaceDecisions = [
   },
 ] as const;
 
-export const workspaceTodos = [
+export type WorkspaceTask = {
+  id: string;
+  title: string;
+  description?: string;
+  done?: boolean;
+  dueLabel?: string;
+};
+
+export const workspaceTasks: WorkspaceTask[] = [
   {
-    title: "post visibility 필드 설계",
-    description: "워크스페이스 전환의 선행 작업",
-  },
-  {
-    title: "WorkspaceGuestPrompt 반응형 처리",
-    description: "",
-  },
-  {
+    id: "pnpm-cache",
     title: "CI에서 pnpm 캐시 키 갱신",
-    description: "stale 3d",
+    description: "from log · Turbopack 빌드 실패",
+    done: true,
+    dueLabel: "14:32",
   },
+  {
+    id: "post-visibility",
+    title: "post visibility 필드 설계",
+    description: "due today · blocks workspace 전환",
+  },
+  {
+    id: "guest-prompt",
+    title: "WorkspaceGuestPrompt 반응형 처리",
+  },
+  {
+    id: "dashboard-grid",
+    title: "대시보드 위젯 그리드 구현",
+    description: "suggested by AI · 이번 세션 계획에서",
+  },
+];
+
+export type WorkspaceWeekDay = {
+  label: string;
+  day: number;
+  isToday?: boolean;
+  logDots: number;
+  hasPlanned?: boolean;
+};
+
+export const workspaceWeekDays: WorkspaceWeekDay[] = [
+  { label: "MON", day: 29, logDots: 2 },
+  { label: "TUE", day: 30, logDots: 3 },
+  { label: "WED", day: 1, logDots: 1 },
+  { label: "THU", day: 2, logDots: 2 },
+  { label: "FRI", day: 3, logDots: 1 },
+  { label: "SAT", day: 4, isToday: true, logDots: 2 },
+  { label: "SUN", day: 5, logDots: 0, hasPlanned: true },
+];
+
+export type WorkspaceIssue = {
+  title: string;
+  description: string;
+};
+
+export const workspaceIssues: WorkspaceIssue[] = [
+  {
+    title: "Turbopack HMR이 간헐적으로 끊김",
+    description: "open 2d · fix/pnpm",
+  },
+  {
+    title: "GCS state 잠금 충돌 시 재시도 없음",
+    description: "open 5d",
+  },
+  {
+    title: "모바일 사이드바 포커스 트랩 없음",
+    description: "open 6d",
+  },
+];
+
+export const logsSubnavItems = [
+  { label: "All", badge: undefined },
+  { label: "Issues", badge: "3" },
+  { label: "Fixes", badge: undefined },
+  { label: "Decisions", badge: undefined },
 ] as const;
 
 export const workspaceOutputs = [
@@ -191,12 +253,6 @@ export const workspaceMemories = [
     description: "CLI가 웹 승인 결과를 로컬 저장. 토큰 갱신은 서버 주도.",
     source: "auth",
     reads: "12 reads",
-  },
-  {
-    title: "지식 그래프 기능은 보류",
-    description: "코어 로그 플로우 검증 전까지 확장 기능 동결.",
-    source: "decision",
-    reads: "4 reads",
   },
   {
     title: "Turbopack root는 명시적으로 고정",
