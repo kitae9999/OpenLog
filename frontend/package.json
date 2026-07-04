@@ -2,8 +2,10 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.26.2",
   "scripts": {
-    "dev": "next dev -p 3030",
+    "dev": "next dev --webpack -p 3030",
+    "dev:turbopack": "next dev -p 3030",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
