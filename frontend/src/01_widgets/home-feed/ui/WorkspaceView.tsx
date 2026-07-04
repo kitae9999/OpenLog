@@ -2,6 +2,10 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
+  activeWorkspaceTaskId,
+  countLogsForTask,
+  getTaskById,
+  getTaskHref,
   workspaceIssues,
   workspaceLogs,
   workspaceMemories,
@@ -18,6 +22,31 @@ import {
 import { WorkspaceGuestPrompt } from "./WorkspaceGuestPrompt";
 
 export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
+  const [logTaskOverrides, setLogTaskOverrides] = useState<Record<string, string>>(
+    {},
+  );
+
+  const resolveLogTaskId = (log: WorkspaceLogItem) =>
+    logTaskOverrides[log.id] ?? log.taskId;
+
+  const handleAssignLog = (logId: string, taskId: string) => {
+    setLogTaskOverrides((current) => ({ ...current, [logId]: taskId }));
+    setSelectedTaskId(taskId);
+  };
+
+  const handleSelectTask = (taskId: string | null) => {
+    setSelectedTaskId(taskId);
+    if (taskId) {
+      setSelectedLogId(null);
+    }
+  };
+
+  const handleSelectLog = (logId: string | null) => {
+    setSelectedLogId((current) => (current === logId ? null : logId));
+  };
+
   if (!isLoggedIn) {
     return <WorkspaceGuestPrompt />;
   }
@@ -26,8 +55,15 @@ export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
     <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <div className="min-w-0 space-y-3.5">
         <NowWorkingCard />
-        <WorkTasksCard />
-        <RecentLogsCard />
+        <WorkTasksCard resolveLogTaskId={resolveLogTaskId} />
+        <RecentLogsCard
+          selectedTaskId={selectedTaskId}
+          selectedLogId={selectedLogId}
+          onSelectTask={handleSelectTask}
+          onSelectLog={handleSelectLog}
+          onAssignLog={handleAssignLog}
+          resolveLogTaskId={resolveLogTaskId}
+        />
       </div>
 
       <div className="min-w-0 space-y-3.5">
@@ -90,15 +126,34 @@ function NowWorkingCard() {
   );
 }
 
-function WorkTasksCard() {
+function WorkTasksCard({
+  resolveLogTaskId,
+}: {
+  resolveLogTaskId: (log: WorkspaceLogItem) => string | undefined;
+}) {
+  const logsByTask = workspaceLogs.reduce<Record<string, WorkspaceLogItem[]>>(
+    (groups, log) => {
+      const taskId = resolveLogTaskId(log);
+      if (!taskId) return groups;
+      groups[taskId] = [...(groups[taskId] ?? []), log];
+      return groups;
+    },
+    {},
+  );
+
   return (
     <DashboardCard
       title="TASKS"
+      titleAside={<TaskStatusLegend />}
       action={<HeaderLink href="/write" />}
     >
       <PanelList>
         {workspaceWorkItems.map((item) => (
-          <WorkItemRow key={item.id} item={item} />
+          <WorkItemRow
+            key={item.id}
+            item={item}
+            logCount={logsByTask[item.id]?.length ?? countLogsForTask(item.id)}
+          />
         ))}
       </PanelList>
       <Link
@@ -111,7 +166,20 @@ function WorkTasksCard() {
   );
 }
 
-function WorkItemRow({ item }: { item: WorkspaceWorkItem }) {
+function WorkItemRow({
+  item,
+  logCount,
+}: {
+  item: WorkspaceWorkItem;
+  logCount: number;
+}) {
+  const statusLabel =
+    item.status === "doing"
+      ? "doing"
+      : item.status === "done"
+        ? "done"
+        : "todo";
+
   return (
     <PanelItem align="start">
       <TaskStatusDot status={item.status} />
@@ -119,47 +187,59 @@ function WorkItemRow({ item }: { item: WorkspaceWorkItem }) {
         <h3 className="text-[13px] font-semibold leading-[1.45] text-zinc-950">
           {item.title}
         </h3>
-        <p className="mt-0.5 text-[12px] text-zinc-500">{item.description}</p>
+        <p className="mt-0.5 text-[12px] text-zinc-500">
+          {statusLabel} · {logCount} log{logCount === 1 ? "" : "s"}
+        </p>
       </div>
-      {item.actionBadge ? (
-        <ActionBadge
-          label={item.actionBadge}
-          tone={item.actionBadge === "Generate output" ? "blue" : "zinc"}
-        />
-      ) : null}
+      <Link
+        href={getTaskHref(item.id)}
+        aria-label={`Open ${item.title}`}
+        className="shrink-0 self-center text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+      >
+        <IconArrowRight className="size-4" />
+      </Link>
     </PanelItem>
   );
 }
 
-function TaskStatusDot({ status }: { status: WorkspaceWorkStatus }) {
+function TaskStatusDot({
+  status,
+  size = "md",
+  className,
+}: {
+  status: WorkspaceWorkStatus;
+  size?: "sm" | "md";
+  className?: string;
+}) {
   return (
     <span
       className={cn(
-        "mt-[5px] size-[9px] shrink-0 rounded-full",
+        "shrink-0 rounded-full",
+        size === "sm" ? "size-[7px]" : "mt-[5px] size-[9px]",
         status === "doing" && "border-2 border-blue-600",
         status === "done" && "bg-green-600",
         status === "todo" && "border-2 border-zinc-300",
+        className,
       )}
     />
   );
 }
 
-function ActionBadge({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: "zinc" | "blue";
-}) {
+function TaskStatusLegend() {
+  const items: Array<{ status: WorkspaceWorkStatus; label: string }> = [
+    { status: "doing", label: "doing" },
+    { status: "done", label: "done" },
+    { status: "todo", label: "todo" },
+  ];
+
   return (
-    <span
-      className={cn(
-        "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-        tone === "zinc" && "border-zinc-200 bg-zinc-50 text-zinc-600",
-        tone === "blue" && "border-blue-200 bg-blue-50 text-blue-700",
-      )}
-    >
-      {label}
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium normal-case tracking-normal text-zinc-400">
+      {items.map((item) => (
+        <span key={item.status} className="inline-flex items-center gap-1">
+          <TaskStatusDot status={item.status} size="sm" />
+          {item.label}
+        </span>
+      ))}
     </span>
   );
 }
@@ -226,13 +306,54 @@ function TodoRow({ todo }: { todo: WorkspaceTodoItem }) {
   );
 }
 
-function RecentLogsCard() {
+function RecentLogsCard({
+  selectedTaskId,
+  selectedLogId,
+  onSelectTask,
+  onSelectLog,
+  onAssignLog,
+  resolveLogTaskId,
+}: {
+  selectedTaskId: string | null;
+  selectedLogId: string | null;
+  onSelectTask: (taskId: string | null) => void;
+  onSelectLog: (logId: string | null) => void;
+  onAssignLog: (logId: string, taskId: string) => void;
+  resolveLogTaskId: (log: WorkspaceLogItem) => string | undefined;
+}) {
+  const unassignedCount = workspaceLogs.filter(
+    (log) => !resolveLogTaskId(log),
+  ).length;
+
   return (
     <DashboardCard title="RECENT LOGS" action={<HeaderLink href="/write" />}>
+      {unassignedCount > 0 ? (
+        <p className="px-[18px] pt-1 text-[11.5px] text-zinc-400">
+          {unassignedCount} unassigned · review when ready
+        </p>
+      ) : null}
       <div className="pb-1.5 pt-1.5">
-        {workspaceLogs.map((item) => (
-          <WorkspaceLogRow key={item.id} item={item} />
-        ))}
+        {workspaceLogs.map((item) => {
+          const taskId = resolveLogTaskId(item);
+          return (
+            <WorkspaceLogRow
+              key={item.id}
+              item={item}
+              task={taskId ? getTaskById(taskId) : undefined}
+              highlighted={selectedTaskId != null && taskId === selectedTaskId}
+              expanded={selectedLogId === item.id}
+              siblingCount={
+                taskId
+                  ? workspaceLogs.filter((log) => resolveLogTaskId(log) === taskId)
+                      .length - 1
+                  : 0
+              }
+              onSelectTask={onSelectTask}
+              onToggle={() => onSelectLog(item.id)}
+              onAssign={() => onAssignLog(item.id, activeWorkspaceTaskId)}
+            />
+          );
+        })}
       </div>
     </DashboardCard>
   );
@@ -428,29 +549,159 @@ function OpenIssuesCard() {
   );
 }
 
-function WorkspaceLogRow({ item }: { item: WorkspaceLogItem }) {
+function WorkspaceLogRow({
+  item,
+  task,
+  highlighted,
+  expanded,
+  siblingCount,
+  onSelectTask,
+  onToggle,
+  onAssign,
+}: {
+  item: WorkspaceLogItem;
+  task?: WorkspaceWorkItem;
+  highlighted?: boolean;
+  expanded?: boolean;
+  siblingCount: number;
+  onSelectTask: (taskId: string | null) => void;
+  onToggle: () => void;
+  onAssign: () => void;
+}) {
   return (
-    <article className="flex items-start gap-3 border-t border-zinc-100 px-[18px] py-3 first:border-t-0">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <ToneBadge tone={item.tone}>{item.label}</ToneBadge>
-          <h3 className="text-[14px] font-semibold text-zinc-950">{item.title}</h3>
+    <article
+      className={cn(
+        "border-t border-zinc-100 px-[18px] py-3 first:border-t-0",
+        highlighted && "bg-orange-50/40",
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <ToneBadge tone={item.tone}>{item.label}</ToneBadge>
+            <h3 className="text-[14px] font-semibold text-zinc-950">{item.title}</h3>
+          </div>
+          <p className="mt-0.5 text-[12.5px] leading-5 text-zinc-500">
+            {item.description}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11.5px] text-zinc-400">
+            {task ? (
+              <TaskLinkChip
+                label={task.title}
+                onClick={() => onSelectTask(task.id)}
+              />
+            ) : null}
+            {item.branch ? <CodePill>{item.branch}</CodePill> : null}
+            <span>{item.meta}</span>
+            {item.commit ? <CodePill>{item.commit}</CodePill> : null}
+          </div>
         </div>
-        <p className="mt-0.5 text-[12.5px] leading-5 text-zinc-500">
-          {item.description}
-        </p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11.5px] text-zinc-400">
-          <span>{item.meta}</span>
-          {item.commit ? <CodePill>{item.commit}</CodePill> : null}
-        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          className="shrink-0 self-center text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          {expanded ? "Close" : "Open"}
+        </button>
       </div>
-      <Link
-        href={item.href}
-        className="shrink-0 self-center text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-      >
-        Open
-      </Link>
+      {expanded ? (
+        <LogTaskPanel
+          task={task}
+          captureBranch={item.branch}
+          siblingCount={Math.max(0, siblingCount)}
+          onSelectTask={onSelectTask}
+          onAssign={onAssign}
+        />
+      ) : null}
     </article>
+  );
+}
+
+function TaskLinkChip({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      className="inline-flex max-w-[148px] items-center truncate rounded-md bg-zinc-100 px-[7px] py-0.5 text-[10.5px] font-semibold text-zinc-600 transition hover:bg-zinc-200 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+    >
+      {label}
+    </button>
+  );
+}
+
+function LogTaskPanel({
+  task,
+  captureBranch,
+  siblingCount,
+  onSelectTask,
+  onAssign,
+}: {
+  task?: WorkspaceWorkItem;
+  captureBranch?: string;
+  siblingCount: number;
+  onSelectTask: (taskId: string | null) => void;
+  onAssign: () => void;
+}) {
+  const activeTask = getTaskById(activeWorkspaceTaskId);
+
+  return (
+    <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-3">
+      {task ? (
+        <div className="space-y-2">
+          <p className="text-[12px] text-zinc-500">
+            Part of{" "}
+            <button
+              type="button"
+              onClick={() => onSelectTask(task.id)}
+              className="font-semibold text-zinc-950 underline-offset-2 hover:underline"
+            >
+              {task.title}
+            </button>
+          </p>
+          {captureBranch ? (
+            <p className="text-[11px] text-zinc-400">
+              Captured on{" "}
+              <span className="font-mono text-zinc-500">{captureBranch}</span>
+            </p>
+          ) : null}
+          {siblingCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => onSelectTask(task.id)}
+              className="text-[12px] font-medium text-zinc-500 hover:text-zinc-950"
+            >
+              {siblingCount} more log{siblingCount === 1 ? "" : "s"} in this task
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="text-[12px] text-zinc-500">No task</span>
+          {activeTask ? (
+            <button
+              type="button"
+              onClick={onAssign}
+              className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[12px] font-semibold text-zinc-700 transition hover:bg-zinc-100"
+            >
+              Assign to {activeTask.title}
+            </button>
+          ) : null}
+          {captureBranch ? (
+            <span className="text-[11px] text-zinc-400">
+              on{" "}
+              <span className="font-mono text-zinc-500">{captureBranch}</span>
+            </span>
+          ) : null}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -482,21 +733,28 @@ function MemoryCard() {
 
 function DashboardCard({
   title,
+  titleAside,
   action,
   children,
 }: {
   title: string;
+  titleAside?: ReactNode;
   action?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
       <div className="flex items-center justify-between gap-3 px-[18px] pt-3.5">
-        <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-          {title}
-        </h2>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+          <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+            {title}
+          </h2>
+          {titleAside}
+        </div>
         {action ? (
-          <div className="flex items-center gap-2.5 text-zinc-400">{action}</div>
+          <div className="flex shrink-0 items-center gap-2.5 text-zinc-400">
+            {action}
+          </div>
         ) : null}
       </div>
       {children}
@@ -677,6 +935,25 @@ function IconBranch({ className }: { className?: string }) {
         d="M6 7.3v9.4M18 10.3c0 3-4 4.7-9 5.2"
         stroke="currentColor"
         strokeLinecap="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+function IconArrowRight({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M5 12h14M13 6l6 6-6 6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         strokeWidth="2"
       />
     </svg>

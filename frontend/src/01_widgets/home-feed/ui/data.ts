@@ -26,6 +26,9 @@ export type WorkspaceLogItem = {
   meta: string;
   commit?: string;
   href: string;
+  taskId?: string;
+  /** Branch at capture time — independent of task. */
+  branch?: string;
 };
 
 export type WorkspaceMetric = {
@@ -104,6 +107,34 @@ export const workspaceLogs: WorkspaceLogItem[] = [
     meta: "Today 14:20 · auto-captured · Claude Code",
     commit: "e092268",
     href: "/write",
+    taskId: "pnpm-migration",
+    branch: "fix/pnpm",
+  },
+  {
+    id: "workspace-tab-routing",
+    tone: "zinc",
+    label: "Log",
+    title: "로그인 분기로 workspace 탭 기본 라우팅",
+    description:
+      "getDefaultTab·getTabHref 추가. 로그인 시 / → workspace, 비로그인 시 home.",
+    meta: "Today 11:05 · auto-captured",
+    commit: "a41f2e1",
+    href: "/write",
+    taskId: "workspace-view",
+    branch: "fix/pnpm",
+  },
+  {
+    id: "workspace-decision",
+    tone: "blue",
+    label: "Decision",
+    title: "홈 피드를 개인 워크스페이스로 전환",
+    description:
+      "커뮤니티 피드 대신 로그인 시 workspace를 기본 탭으로. 비로그인은 Home.",
+    meta: "Jun 28",
+    commit: "d02a881",
+    href: "/write",
+    taskId: "workspace-view",
+    branch: "fix/pnpm",
   },
   {
     id: "terraform-state",
@@ -115,6 +146,8 @@ export const workspaceLogs: WorkspaceLogItem[] = [
     meta: "Jun 30",
     commit: "c6c0c12",
     href: "/write",
+    taskId: "terraform-gcs",
+    branch: "feat/terraform-gcs",
   },
   {
     id: "iam-permissions",
@@ -126,6 +159,20 @@ export const workspaceLogs: WorkspaceLogItem[] = [
     meta: "Jun 29",
     commit: "e571dcb",
     href: "/write",
+    branch: "main",
+  },
+  {
+    id: "workspace-shell-layout",
+    tone: "zinc",
+    label: "Log",
+    title: "HomeFeedShell footer 사이드바 오프셋",
+    description:
+      "사이드바 open 시 footer에 lg:ml-[282px] 적용해 겹침 제거.",
+    meta: "Jun 28",
+    commit: "b8c14fd",
+    href: "/write",
+    taskId: "workspace-view",
+    branch: "feat/workspace-ui",
   },
 ];
 
@@ -152,39 +199,125 @@ export type WorkspaceWorkStatus = "doing" | "done" | "todo";
 export type WorkspaceWorkItem = {
   id: string;
   title: string;
-  description: string;
   status: WorkspaceWorkStatus;
-  actionBadge?: string;
 };
 
 export const workspaceWorkItems: WorkspaceWorkItem[] = [
   {
     id: "workspace-view",
     title: "홈 피드 → 워크스페이스 뷰 전환",
-    description: "doing · 5 logs · fix/pnpm",
     status: "doing",
-    actionBadge: "Active",
   },
   {
     id: "pnpm-migration",
     title: "pnpm 마이그레이션",
-    description: "doing · 7 logs · 2 open issues",
     status: "doing",
   },
   {
     id: "terraform-gcs",
     title: "Terraform state GCS 이전",
-    description: "done Jun 30 · 4 logs",
     status: "done",
-    actionBadge: "Generate output",
   },
   {
     id: "post-visibility",
     title: "post visibility 필드 도입",
-    description: "todo · created from issue",
     status: "todo",
   },
 ];
+
+export const activeWorkspaceTaskId = "workspace-view";
+
+export function getTaskById(taskId: string) {
+  return workspaceWorkItems.find((task) => task.id === taskId);
+}
+
+export function getLogsForTask(taskId: string) {
+  return workspaceLogs.filter((log) => log.taskId === taskId);
+}
+
+export function countLogsForTask(taskId: string) {
+  return getLogsForTask(taskId).length;
+}
+
+export function getTaskHref(taskId: string) {
+  return `/tasks/${taskId}`;
+}
+
+export type WorkspaceTaskMeta = {
+  startedLabel: string;
+  lastActivityLabel: string;
+};
+
+export const workspaceTaskMeta: Record<string, WorkspaceTaskMeta> = {
+  "workspace-view": {
+    startedLabel: "Jun 28",
+    lastActivityLabel: "Today 11:05",
+  },
+  "pnpm-migration": {
+    startedLabel: "Jun 25",
+    lastActivityLabel: "Today 14:20",
+  },
+  "terraform-gcs": {
+    startedLabel: "Jun 27",
+    lastActivityLabel: "Jun 30",
+  },
+  "post-visibility": {
+    startedLabel: "Jul 2",
+    lastActivityLabel: "Jul 2",
+  },
+};
+
+export function getTaskMeta(taskId: string): WorkspaceTaskMeta {
+  return (
+    workspaceTaskMeta[taskId] ?? {
+      startedLabel: "—",
+      lastActivityLabel: "—",
+    }
+  );
+}
+
+export function getTaskBranches(taskId: string) {
+  const counts = new Map<string, number>();
+
+  for (const log of workspaceLogs) {
+    if (log.taskId !== taskId || !log.branch) continue;
+    counts.set(log.branch, (counts.get(log.branch) ?? 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([branch, count]) => ({ branch, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+export function countUnassignedLogs() {
+  return workspaceLogs.filter((log) => !log.taskId).length;
+}
+
+export type WorkspaceSpawnedTodo = {
+  taskId: string;
+  todoId: string;
+  dueLabel?: string;
+};
+
+export const workspaceSpawnedTodos: WorkspaceSpawnedTodo[] = [
+  {
+    taskId: "workspace-view",
+    todoId: "guest-prompt",
+    dueLabel: "due today",
+  },
+];
+
+export function getSpawnedTodosForTask(taskId: string) {
+  return workspaceSpawnedTodos
+    .map((link) => ({
+      link,
+      todo: workspaceTodos.find((item) => item.id === link.todoId),
+    }))
+    .filter(
+      (entry): entry is { link: WorkspaceSpawnedTodo; todo: WorkspaceTodoItem } =>
+        entry.link.taskId === taskId && entry.todo !== undefined,
+    );
+}
 
 export type WorkspaceTodoItem = {
   id: string;

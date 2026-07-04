@@ -413,16 +413,18 @@ export function HomeFeedShell({
   );
 }
 
-function HomeSidebar({
+export function HomeSidebar({
   activeTab,
   isLoggedIn,
   isOpen,
   onNavigate,
+  workspaceNav = "dashboard",
 }: {
   activeTab: TabKey;
   isLoggedIn: boolean;
   isOpen: boolean;
   onNavigate: () => void;
+  workspaceNav?: "dashboard" | "tasks";
 }) {
   return (
     <aside
@@ -455,7 +457,7 @@ function HomeSidebar({
           <SidebarLink
             href={getTabHref("workspace", isLoggedIn)}
             label="Dashboard"
-            active={activeTab === "workspace"}
+            active={activeTab === "workspace" && workspaceNav === "dashboard"}
             icon={<IconDashboard className="size-[15px]" />}
             onNavigate={onNavigate}
           />
@@ -463,6 +465,7 @@ function HomeSidebar({
             href={getTabHref("workspace", isLoggedIn)}
             label="Tasks"
             badge="2"
+            active={workspaceNav === "tasks"}
             icon={<IconTasks className="size-[15px]" />}
             onNavigate={onNavigate}
           />
