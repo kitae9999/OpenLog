@@ -4,51 +4,63 @@ import Image from "next/image";
 import { handleOAuth } from "@/features/auth/api/handleOAuth";
 
 const buttonClassName =
-  "flex h-12 w-full max-w-[382px] items-center justify-center gap-3 rounded-[14px] text-[16px] font-medium tracking-[-0.02em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20";
+  "inline-flex h-9 items-center justify-center gap-2 rounded-xl px-4 text-[13.5px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20";
 
 export function WorkspaceGuestPrompt() {
   return (
-    <div className="flex flex-col items-center px-4 py-16 text-center sm:py-20">
-      <div className="grid size-12 place-items-center rounded-[14px] bg-black text-[24px] font-bold leading-none text-white [font-family:Georgia,serif]">
-        O
+    <section className="rounded-2xl border border-zinc-200/70 bg-white px-5 py-6 sm:px-7">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
+            <div className="grid size-9 place-items-center rounded-lg bg-black text-[19px] font-bold leading-none text-white [font-family:Georgia,serif]">
+              O
+            </div>
+            <span className="text-[20px] font-bold tracking-[-0.01em] text-zinc-950 [font-family:Georgia,serif]">
+              OpenLog
+            </span>
+          </div>
+
+          <h2 className="mt-5 max-w-[560px] text-[22px] font-bold leading-tight tracking-[-0.01em] text-zinc-950 [font-family:Georgia,serif]">
+            작업하던 흐름이 그대로 글이 됩니다
+          </h2>
+          <p className="mt-2 max-w-[620px] text-[13.5px] leading-6 text-zinc-500">
+            OpenLog는 git과 코딩 세션에서 작업 로그를 모으고, 필요할 때
+            PR 문서와 공개 글로 바꿔주는 개발 워크플로우 로그입니다.
+          </p>
+          <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1 font-mono text-[11.5px] text-zinc-500">
+            <span className="text-zinc-400">$</span>
+            <span className="truncate">npx @kitae9999/openlog-cli login</span>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+          <button
+            type="button"
+            onClick={() => handleOAuth("GITHUB")}
+            className={`${buttonClassName} bg-zinc-950 text-white hover:bg-zinc-800`}
+          >
+            <IconGitHub className="size-4" />
+            Get started
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOAuth("GOOGLE")}
+            className={`${buttonClassName} border border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-50`}
+          >
+            <Image
+              src="/google.svg"
+              alt=""
+              width={16}
+              height={16}
+              aria-hidden="true"
+              className="size-4"
+            />
+            Sign in
+          </button>
+        </div>
       </div>
-
-      <h2 className="mt-6 max-w-[480px] text-[24px] font-bold leading-[1.2] tracking-tight text-zinc-950 sm:text-[30px] [font-family:Georgia,serif]">
-        Your writing workspace
-      </h2>
-
-      <p className="mt-3 max-w-[420px] text-[16px] leading-7 text-zinc-600">
-        Sign in to see drafts from AI sessions, open review suggestions, and
-        freshness alerts on your posts.
-      </p>
-
-      <div className="mt-8 flex w-full flex-col items-center gap-3">
-        <button
-          type="button"
-          onClick={() => handleOAuth("GOOGLE")}
-          className={`${buttonClassName} border border-[#e5e7eb] bg-white text-[#364153] hover:bg-zinc-50`}
-        >
-          <Image
-            src="/google.svg"
-            alt=""
-            width={20}
-            height={20}
-            aria-hidden="true"
-            className="size-5"
-          />
-          Continue with Google
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleOAuth("GITHUB")}
-          className={`${buttonClassName} bg-[#24292f] text-white hover:bg-[#1b2027]`}
-        >
-          <IconGitHub className="size-5" />
-          Continue with GitHub
-        </button>
-      </div>
-    </div>
+    </section>
   );
 }
 

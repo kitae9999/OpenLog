@@ -259,7 +259,12 @@ export function HomeFeedShell({
   }, [activeTab, hasNextActivePage, loadMorePosts]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white text-zinc-950">
+    <div
+      className={cn(
+        "flex min-h-dvh flex-col text-zinc-950",
+        activeTab === "workspace" ? "bg-zinc-50" : "bg-white",
+      )}
+    >
       <Header
         isLoggedIn={isLoggedIn}
         profileImageUrl={profileImageUrl}
@@ -293,6 +298,7 @@ export function HomeFeedShell({
         <main
           className={cn(
             "min-w-0 flex-1 transition-[margin] duration-300 ease-out",
+            activeTab === "workspace" ? "bg-zinc-50" : "bg-white",
             isSidebarOpen ? "lg:ml-[282px]" : "lg:ml-0",
           )}
         >
@@ -300,7 +306,12 @@ export function HomeFeedShell({
             aria-label={
               activeTab === "workspace" ? "Workspace" : "New posts"
             }
-            className="mx-auto w-full max-w-[1012px] px-5 pb-16 pt-6 sm:px-8 lg:px-12"
+            className={cn(
+              "mx-auto w-full pb-16 pt-6",
+              activeTab === "workspace"
+                ? "max-w-[1180px] px-4 sm:px-6 lg:px-8 xl:px-10"
+                : "max-w-[1012px] px-5 sm:px-8 lg:px-12",
+            )}
           >
             {activeTab === "home" ? (
               <div className="flex items-center gap-2 border-b border-zinc-200/80 pb-4 text-[15px] font-semibold text-zinc-950">
@@ -310,16 +321,7 @@ export function HomeFeedShell({
             ) : null}
 
             {activeTab === "workspace" ? (
-              <div className="flex items-center gap-2 border-b border-zinc-200/80 pb-4 text-[15px] font-semibold text-zinc-950">
-                <IconWorkspace className="size-5 text-zinc-600" />
-                <h1>Workspace</h1>
-              </div>
-            ) : null}
-
-            {activeTab === "workspace" ? (
-              <div className="pt-2">
-                <WorkspaceView isLoggedIn={isLoggedIn} />
-              </div>
+              <WorkspaceView isLoggedIn={isLoggedIn} />
             ) : (
               <>
                 <div className="divide-y divide-zinc-200/80">
@@ -643,4 +645,3 @@ function IconComment({ className }: { className?: string }) {
     </svg>
   );
 }
-

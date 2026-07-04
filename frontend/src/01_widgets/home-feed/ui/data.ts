@@ -15,23 +15,25 @@ export type FeedPost = {
   href: string;
 };
 
-export type WorkspaceItemKind = "draft" | "review" | "stale" | "published";
+export type WorkspaceTone = "blue" | "green" | "amber" | "zinc";
 
-export type WorkspaceItem = {
+export type WorkspaceLogItem = {
   id: string;
-  kind: WorkspaceItemKind;
+  tone: WorkspaceTone;
+  label: string;
   title: string;
   description: string;
   meta: string;
+  commit?: string;
   href: string;
-  progressLabel: string;
-  countLabel: string;
 };
 
 export type WorkspaceMetric = {
   label: string;
   value: string;
   description: string;
+  emphasis?: string;
+  tone?: "positive" | "warning";
 };
 
 const sidebarTabs: Array<{ key: TabKey; label: string }> = [
@@ -64,68 +66,144 @@ export const tabs = sidebarTabs;
 
 export const workspaceMetrics: WorkspaceMetric[] = [
   {
-    label: "Drafts",
+    label: "LOGS THIS WEEK",
+    value: "14",
+    description: "+5 vs last week",
+    emphasis: "+5",
+    tone: "positive",
+  },
+  {
+    label: "DECISIONS CAPTURED",
     value: "3",
-    description: "AI sessions waiting to become posts",
+    description: "1 awaiting review",
+    emphasis: "1",
   },
   {
-    label: "Suggestions",
+    label: "OPEN TODOS",
     value: "5",
-    description: "Open review threads on your writing",
+    description: "2 stale > 3d",
+    emphasis: "2",
+    tone: "warning",
   },
   {
-    label: "Freshness",
-    value: "87%",
-    description: "Public posts verified this quarter",
+    label: "READY TO PUBLISH",
+    value: "2",
+    description: "drafts generated",
   },
 ];
 
-export const workspaceItems: WorkspaceItem[] = [
+export const workspaceLogs: WorkspaceLogItem[] = [
   {
-    id: "mcp-til",
-    kind: "draft",
-    title: "Turn today's Codex session into a TIL draft",
+    id: "turbopack-pnpm",
+    tone: "green",
+    label: "Fix",
+    title: "pnpm 전환 중 Turbopack 빌드 실패",
     description:
-      "The error, fix path, and final code context are grouped into a publishable draft.",
-    meta: "Generated from CLI session · 12 min ago",
+      "workspace 루트 추론이 lockfile 위치와 어긋나 발생. turbopack root 명시로 해결.",
+    meta: "Today 14:20 · auto-captured · Claude Code",
+    commit: "e092268",
     href: "/write",
-    progressLabel: "Draft",
-    countLabel: "4 sections",
   },
   {
-    id: "ai-review",
-    kind: "review",
-    title: "AI review suggestions for the React 19 migration note",
+    id: "terraform-state",
+    tone: "blue",
+    label: "Decision",
+    title: "Terraform state를 GCS backend로 이전",
     description:
-      "Two suggested edits are waiting: one deprecated API note and one code import fix.",
-    meta: "AI reviewer · Open suggestions",
+      "로컬 state 충돌과 유실 위험 때문에 원격 backend로 이전. 잠금은 GCS 기본 잠금을 사용하기로 결정.",
+    meta: "Jun 30",
+    commit: "c6c0c12",
     href: "/write",
-    progressLabel: "Review",
-    countLabel: "2 PRs",
   },
   {
-    id: "stale-api",
-    kind: "stale",
-    title: "Re-verify freshness for the Next.js cache article",
+    id: "iam-permissions",
+    tone: "zinc",
+    label: "Log",
+    title: "IAM 최소 권한 정리 및 불일치 설정 수정",
     description:
-      "It has been 91 days since the last check. Refreshing the verified date makes search traffic more trustworthy.",
-    meta: "Freshness check · Due today",
+      "배포 서비스 계정에서 과한 권한 3개 제거. editor를 세분화된 role로 교체.",
+    meta: "Jun 29",
+    commit: "e571dcb",
     href: "/write",
-    progressLabel: "Stale",
-    countLabel: "91 days",
-  },
-  {
-    id: "published-openlog",
-    kind: "published",
-    title: "Writing debugging notes with OpenLog MCP",
-    description:
-      "Published publicly. Readers can inspect the article, and contributors can improve it through the same PR-style flow.",
-    meta: "Published · Verified Jul 4",
-    href: "/write",
-    progressLabel: "Public",
-    countLabel: "312 views",
   },
 ];
+
+export const workspaceDecisions = [
+  {
+    title: "홈 피드를 개인 워크스페이스로 전환",
+    description: "이번 세션 대화에서 감지됨",
+    status: "Review",
+  },
+  {
+    title: "패키지 매니저 pnpm 채택",
+    description: "브랜치명과 lockfile 변경에서 감지",
+    status: "Today",
+  },
+  {
+    title: "state 파일 GCS 저장",
+    description: "커밋 c6c0c12에서 감지",
+    status: "Jun 30",
+  },
+] as const;
+
+export const workspaceTodos = [
+  {
+    title: "post visibility 필드 설계",
+    description: "워크스페이스 전환의 선행 작업",
+  },
+  {
+    title: "WorkspaceGuestPrompt 반응형 처리",
+    description: "",
+  },
+  {
+    title: "CI에서 pnpm 캐시 키 갱신",
+    description: "stale 3d",
+  },
+] as const;
+
+export const workspaceOutputs = [
+  {
+    title: "PR document",
+    description: "from 3 logs",
+    kind: "pull-request",
+  },
+  {
+    title: "Public post",
+    description: "2 candidates",
+    kind: "post",
+  },
+  {
+    title: "Weekly recap",
+    description: "14 logs this week",
+    kind: "calendar",
+  },
+  {
+    title: "Release notes",
+    description: "since v0.5",
+    kind: "release",
+  },
+] as const;
+
+export const workspaceMemories = [
+  {
+    title: "인증은 device login flow로 처리",
+    description: "CLI가 웹 승인 결과를 로컬 저장. 토큰 갱신은 서버 주도.",
+    source: "auth",
+    reads: "12 reads",
+  },
+  {
+    title: "지식 그래프 기능은 보류",
+    description: "코어 로그 플로우 검증 전까지 확장 기능 동결.",
+    source: "decision",
+    reads: "4 reads",
+  },
+  {
+    title: "Turbopack root는 명시적으로 고정",
+    description: "모노레포에서 lockfile 추론에 의존하지 않기.",
+    source: "recipe",
+    reads: "2 reads",
+  },
+] as const;
 
 export const feedPosts: FeedPost[] = [
   {
