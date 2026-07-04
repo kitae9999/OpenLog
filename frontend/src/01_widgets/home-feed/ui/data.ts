@@ -1,6 +1,6 @@
 import { assets } from "@/shared/config/assets";
 
-export type TabKey = "workspace" | "home" | "following" | "liked";
+export type TabKey = "workspace" | "explore" | "home" | "following" | "liked";
 
 export type FeedPost = {
   id: string;
@@ -38,6 +38,7 @@ export type WorkspaceMetric = {
 
 const sidebarTabs: Array<{ key: TabKey; label: string }> = [
   { key: "workspace", label: "Workspace" },
+  { key: "explore", label: "Explore" },
   { key: "home", label: "Home" },
   { key: "following", label: "Following" },
   { key: "liked", label: "Liked" },
@@ -49,8 +50,8 @@ export function getDefaultTab(isLoggedIn: boolean): TabKey {
 
 export function getSidebarTabs(isLoggedIn: boolean) {
   const order: TabKey[] = isLoggedIn
-    ? ["workspace", "home", "following", "liked"]
-    : ["home", "workspace", "following", "liked"];
+    ? ["workspace", "explore", "home", "following", "liked"]
+    : ["home", "explore", "workspace", "following", "liked"];
 
   return order.map(
     (key) => sidebarTabs.find((tab) => tab.key === key)!,

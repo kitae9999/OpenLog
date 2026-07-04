@@ -17,7 +17,14 @@ import type {
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
-import { feedPosts, getSidebarTabs, getTabHref, type FeedPost, type TabKey } from "./data";
+import {
+  feedPosts,
+  getTabHref,
+  recommendedTopics,
+  topContributors,
+  type FeedPost,
+  type TabKey,
+} from "./data";
 import { WorkspaceView } from "./WorkspaceView";
 
 export function HomeFeedShell({
@@ -262,7 +269,9 @@ export function HomeFeedShell({
     <div
       className={cn(
         "flex min-h-dvh flex-col text-zinc-950",
-        activeTab === "workspace" ? "bg-zinc-50" : "bg-white",
+        activeTab === "workspace" || activeTab === "explore"
+          ? "bg-zinc-50"
+          : "bg-white",
       )}
     >
       <Header
@@ -298,17 +307,23 @@ export function HomeFeedShell({
         <main
           className={cn(
             "min-w-0 flex-1 transition-[margin] duration-300 ease-out",
-            activeTab === "workspace" ? "bg-zinc-50" : "bg-white",
+            activeTab === "workspace" || activeTab === "explore"
+              ? "bg-zinc-50"
+              : "bg-white",
             isSidebarOpen ? "lg:ml-[282px]" : "lg:ml-0",
           )}
         >
           <section
             aria-label={
-              activeTab === "workspace" ? "Workspace" : "New posts"
+              activeTab === "workspace"
+                ? "Workspace"
+                : activeTab === "explore"
+                  ? "Explore"
+                  : "New posts"
             }
             className={cn(
               "mx-auto w-full pb-16 pt-6",
-              activeTab === "workspace"
+              activeTab === "workspace" || activeTab === "explore"
                 ? "max-w-[1180px] px-4 sm:px-6 lg:px-8 xl:px-10"
                 : "max-w-[1012px] px-5 sm:px-8 lg:px-12",
             )}
@@ -322,6 +337,8 @@ export function HomeFeedShell({
 
             {activeTab === "workspace" ? (
               <WorkspaceView isLoggedIn={isLoggedIn} />
+            ) : activeTab === "explore" ? (
+              <ExploreView posts={posts} />
             ) : (
               <>
                 <div className="divide-y divide-zinc-200/80">
@@ -382,65 +399,277 @@ function HomeSidebar({
   isOpen: boolean;
   onNavigate: () => void;
 }) {
-  const sidebarTabs = getSidebarTabs(isLoggedIn);
-
   return (
     <aside
-      aria-label="Feed navigation"
+      aria-label="Workspace navigation"
       className={cn(
-        "fixed bottom-0 left-0 top-16 z-40 w-[282px] border-r border-t border-zinc-200/80 bg-white transition-transform duration-300 ease-out",
+        "fixed bottom-0 left-0 top-16 z-40 w-[282px] border-r border-t border-zinc-200/70 bg-white transition-transform duration-300 ease-out",
         isOpen ? "translate-x-0" : "-translate-x-full",
       )}
     >
-      <nav className="flex h-full flex-col px-5 py-8">
-        <div className="space-y-1">
-          {sidebarTabs.map((tab) => {
-            const isActive = tab.key === activeTab;
-
-            return (
-              <Link
-                key={tab.key}
-                href={getTabHref(tab.key, isLoggedIn)}
-                aria-current={isActive ? "page" : undefined}
-                onClick={onNavigate}
-                className={cn(
-                  "flex h-12 items-center gap-4 rounded-lg px-3 text-[15px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                  isActive
-                    ? "bg-zinc-100 text-zinc-950"
-                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950",
-                )}
-              >
-                <TabIcon tab={tab.key} />
-                {tab.label}
-              </Link>
-            );
-          })}
+      <nav className="flex h-full flex-col overflow-y-auto px-3 py-4">
+        <div className="mb-4 flex items-center gap-2 px-2 pb-2">
+          <span className="grid size-7 place-items-center rounded-lg bg-black text-[16px] font-bold leading-none text-white [font-family:Georgia,serif]">
+            O
+          </span>
+          <span className="text-[20px] font-bold leading-none text-zinc-950 [font-family:Georgia,serif]">
+            OpenLog
+          </span>
         </div>
 
-        <div className="mt-auto border-t border-zinc-200 pt-6 text-[13px] leading-6 text-zinc-500">
-          {isLoggedIn
-            ? "Drafts, reviews, and freshness checks for your writing."
-            : "New writing from the OpenLog community, arranged for steady reading."}
+        <button
+          type="button"
+          className="mb-4 flex w-full items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-left transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-zinc-100 text-[13px] font-bold text-zinc-600 [font-family:Georgia,serif]">
+            o
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-semibold text-zinc-950">
+              openlog
+            </span>
+            <span className="block truncate font-mono text-[10.5px] text-zinc-400">
+              kitae9999/openlog
+            </span>
+          </span>
+          <IconChevronDown className="size-3.5 shrink-0 text-zinc-400" />
+        </button>
+
+        <SidebarSection label="WORKSPACE">
+          <SidebarLink
+            href={getTabHref("workspace", isLoggedIn)}
+            label="Dashboard"
+            active={activeTab === "workspace"}
+            icon={<IconDashboard className="size-[15px]" />}
+            onNavigate={onNavigate}
+          />
+          <SidebarLink
+            href={getTabHref("workspace", isLoggedIn)}
+            label="Logs"
+            badge="14"
+            icon={<IconFileText className="size-[15px]" />}
+            onNavigate={onNavigate}
+          />
+          <SidebarLink
+            href={getTabHref("workspace", isLoggedIn)}
+            label="Decisions"
+            icon={<IconDecision className="size-[15px]" />}
+            onNavigate={onNavigate}
+          />
+          <SidebarLink
+            href={getTabHref("workspace", isLoggedIn)}
+            label="Outputs"
+            icon={<IconBox className="size-[15px]" />}
+            onNavigate={onNavigate}
+          />
+          <SidebarLink
+            href={getTabHref("workspace", isLoggedIn)}
+            label="Memory"
+            icon={<IconDatabase className="size-[15px]" />}
+            onNavigate={onNavigate}
+          />
+        </SidebarSection>
+
+        <SidebarSection label="PUBLISHING">
+          <SidebarLink
+            href={getTabHref("home", isLoggedIn)}
+            label="Posts"
+            active={
+              activeTab === "home" ||
+              activeTab === "following" ||
+              activeTab === "liked"
+            }
+            badge="2"
+            icon={<IconGlobe className="size-[15px]" />}
+            onNavigate={onNavigate}
+          />
+        </SidebarSection>
+
+        <SidebarSection label="DISCOVER">
+          <SidebarLink
+            href={getTabHref("explore", isLoggedIn)}
+            label="Explore"
+            active={activeTab === "explore"}
+            icon={<IconCompass className="size-[15px]" />}
+            onNavigate={onNavigate}
+          />
+        </SidebarSection>
+
+        <div className="mt-auto border-t border-zinc-200/70 px-2 pt-4 text-[11.5px] leading-5 text-zinc-500">
+          <div className="flex items-center gap-2 text-[12px] font-semibold text-zinc-950">
+            <span className="size-[7px] rounded-full bg-green-600" />
+            MCP connected
+          </div>
+          <div className="mt-1 text-zinc-400">
+            {isLoggedIn
+              ? "Claude Code · last read 4m ago"
+              : "Connect CLI to capture logs"}
+          </div>
+          <code className="font-mono text-[10.5px] text-zinc-400">
+            openlog-cli v0.4.2
+          </code>
         </div>
       </nav>
     </aside>
   );
 }
 
-function TabIcon({ tab }: { tab: TabKey }) {
-  if (tab === "workspace") {
-    return <IconWorkspace className="size-5" />;
-  }
+function SidebarSection({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mb-3">
+      <div className="px-2 pb-1.5 pt-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+        {label}
+      </div>
+      <div className="space-y-0.5">{children}</div>
+    </div>
+  );
+}
 
-  if (tab === "home") {
-    return <IconHome className="size-5" />;
-  }
+function SidebarLink({
+  href,
+  label,
+  icon,
+  active = false,
+  badge,
+  onNavigate,
+}: {
+  href: string;
+  label: string;
+  icon: ReactNode;
+  active?: boolean;
+  badge?: string;
+  onNavigate: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      onClick={onNavigate}
+      className={cn(
+        "flex h-8 items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active
+          ? "bg-zinc-100 font-semibold text-zinc-950"
+          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
+      )}
+    >
+      <span
+        className={cn(
+          "shrink-0",
+          active ? "text-zinc-950" : "text-zinc-400",
+        )}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {badge ? (
+        <span
+          className={cn(
+            "rounded-full px-2 text-[11px] font-semibold tabular-nums",
+            active ? "bg-white text-zinc-500" : "bg-zinc-100 text-zinc-500",
+          )}
+        >
+          {badge}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
 
-  if (tab === "following") {
-    return <IconUsers className="size-5" />;
-  }
+function ExploreView({ posts }: { posts: FeedPost[] }) {
+  return (
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,1fr)]">
+      <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
+        <div className="flex gap-6 border-b border-zinc-200/70 px-5">
+          {["Trending", "Recent", "Following"].map((tab, index) => (
+            <button
+              key={tab}
+              type="button"
+              className={cn(
+                "relative py-3 text-[13.5px] font-medium transition-colors",
+                index === 0
+                  ? "text-zinc-950 after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-0.5 after:bg-zinc-950"
+                  : "text-zinc-500 hover:text-zinc-950",
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
-  return <IconHeart className="size-5" />;
+        <div className="divide-y divide-zinc-200/70">
+          {posts.map((post) => (
+            <ArticleCard key={post.id} post={post} />
+          ))}
+        </div>
+      </section>
+
+      <aside className="space-y-4">
+        <section className="rounded-2xl border border-zinc-200/70 bg-white">
+          <div className="flex items-center justify-between px-5 pt-4">
+            <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+              TOP CONTRIBUTORS
+            </h2>
+            <IconPullRequest className="size-[15px] text-zinc-400" />
+          </div>
+          <div className="pb-2 pt-2">
+            {topContributors.map((person) => (
+              <div
+                key={person.name}
+                className="flex items-center gap-3 border-t border-zinc-100 px-5 py-3 first:border-t-0"
+              >
+                <Image
+                  src={person.avatar}
+                  alt=""
+                  width={32}
+                  height={32}
+                  className="size-8 shrink-0 rounded-full border border-zinc-200 object-cover"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13px] font-semibold text-zinc-950">
+                    {person.name}
+                  </div>
+                  <div className="truncate text-[11.5px] text-zinc-500">
+                    {person.summary}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11.5px] font-semibold text-blue-700 transition hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                >
+                  Follow
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-zinc-200/70 bg-white">
+          <div className="px-5 pt-4">
+            <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+              TRENDING TOPICS
+            </h2>
+          </div>
+          <div className="flex flex-wrap gap-2 px-5 pb-5 pt-3">
+            {recommendedTopics.map((topic) => (
+              <Link
+                key={topic}
+                href={`/topics/${encodeURIComponent(topic.toLowerCase())}`}
+                className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[12px] font-medium text-zinc-600 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                {topic}
+              </Link>
+            ))}
+          </div>
+        </section>
+      </aside>
+    </div>
+  );
 }
 
 function ArticleCard({ post }: { post: FeedPost }) {
@@ -528,7 +757,7 @@ function formatCompactCount(value: number) {
   }).format(value);
 }
 
-function IconWorkspace({ className }: { className?: string }) {
+function IconDashboard({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -538,15 +767,37 @@ function IconWorkspace({ className }: { className?: string }) {
     >
       <rect
         x="3.5"
-        y="4.5"
-        width="17"
-        height="15"
-        rx="2"
+        y="3.5"
+        width="7"
+        height="7"
+        rx="1.5"
         stroke="currentColor"
         strokeWidth="1.8"
       />
-      <path
-        d="M3.5 9.5h17M8.5 4.5v15"
+      <rect
+        x="13.5"
+        y="3.5"
+        width="7"
+        height="7"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <rect
+        x="3.5"
+        y="13.5"
+        width="7"
+        height="7"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <rect
+        x="13.5"
+        y="13.5"
+        width="7"
+        height="7"
+        rx="1.5"
         stroke="currentColor"
         strokeWidth="1.8"
       />
@@ -554,7 +805,7 @@ function IconWorkspace({ className }: { className?: string }) {
   );
 }
 
-function IconHome({ className }: { className?: string }) {
+function IconFileText({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -563,16 +814,43 @@ function IconHome({ className }: { className?: string }) {
       aria-hidden="true"
     >
       <path
-        d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z"
+        d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinejoin="round"
       />
+      <path
+        d="M9 13h6M9 17h6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
     </svg>
   );
 }
 
-function IconUsers({ className }: { className?: string }) {
+function IconDecision({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="6" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="6" cy="18" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="18" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M6 8.5v7M8.5 6.6c4 .8 7 2.6 7 4.9"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconBox({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -581,10 +859,116 @@ function IconUsers({ className }: { className?: string }) {
       aria-hidden="true"
     >
       <path
-        d="M8.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM2.5 20a6 6 0 0 1 12 0M17 10.5a3 3 0 1 0-1.2-5.75M16.5 14.5A5 5 0 0 1 21.5 20"
+        d="m21 8-9-5-9 5 9 5 9-5Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M3 8v8l9 5 9-5V8M12 13v8"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconDatabase({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <ellipse cx="12" cy="5.5" rx="8" ry="2.8" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M4 5.5V18c0 1.6 3.6 2.8 8 2.8s8-1.2 8-2.8V5.5"
         stroke="currentColor"
         strokeWidth="1.8"
+      />
+      <path
+        d="M4 12c0 1.6 3.6 2.8 8 2.8s8-1.2 8-2.8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconGlobe({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M3.5 12h17M12 3.5c2.3 2.3 3.5 5.2 3.5 8.5s-1.2 6.2-3.5 8.5c-2.3-2.3-3.5-5.2-3.5-8.5s1.2-6.2 3.5-8.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconCompass({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="m15.5 8.5-2 5-5 2 2-5 5-2Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconPullRequest({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="6" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="6" cy="18" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="18" cy="18" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M6 8.5v7M18 15.5V10a4 4 0 0 0-4-4h-2"
+        stroke="currentColor"
         strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconChevronDown({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="m6 9 6 6 6-6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
       />
     </svg>
   );

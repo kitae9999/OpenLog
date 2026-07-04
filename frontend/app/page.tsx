@@ -18,6 +18,7 @@ export default async function Home({
 function normalizeTab(value: string | undefined, isLoggedIn: boolean): TabKey {
   if (
     value === "workspace" ||
+    value === "explore" ||
     value === "home" ||
     value === "following" ||
     value === "liked"
