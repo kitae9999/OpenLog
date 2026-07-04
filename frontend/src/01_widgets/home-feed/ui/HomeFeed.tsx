@@ -1,5 +1,5 @@
 import { Footer } from "@/widgets/chrome/ui";
-import type { TabKey } from "./data";
+import { getDefaultTab, type TabKey } from "./data";
 import { getFollowingPosts } from "@/entities/post/api/getFollowingPosts";
 import { getLikedPosts } from "@/entities/post/api/getLikedPosts";
 import { getRecentPosts } from "@/entities/post/api/getRecentPosts";
@@ -9,7 +9,7 @@ import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { HomeFeedShell } from "./HomeFeedShell";
 
 export async function HomeFeed({
-  activeTab = "home",
+  activeTab,
   viewer,
 }: {
   activeTab?: TabKey;
@@ -17,20 +17,20 @@ export async function HomeFeed({
 }) {
   const data =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
+  const isLoggedIn = !!data;
+  const resolvedTab = activeTab ?? getDefaultTab(isLoggedIn);
   const recentPosts =
-    activeTab === "home" ? await getRecentPosts(null, 10) : undefined;
+    resolvedTab === "home" ? await getRecentPosts(null, 10) : undefined;
   const followingPosts =
-    activeTab === "following" && data
+    resolvedTab === "following" && data
       ? await getFollowingPosts(null, 10)
       : undefined;
   const likedPosts =
-    activeTab === "liked" && data ? await getLikedPosts(null, 10) : undefined;
-
-  const isLoggedIn = !!data; // data 있으면 true, 없으면 false
+    resolvedTab === "liked" && data ? await getLikedPosts(null, 10) : undefined;
 
   return (
     <HomeFeedShell
-      activeTab={activeTab}
+      activeTab={resolvedTab}
       isLoggedIn={isLoggedIn}
       initialHomePosts={recentPosts?.posts ?? []}
       initialHomeNextCursor={recentPosts?.nextCursor ?? null}

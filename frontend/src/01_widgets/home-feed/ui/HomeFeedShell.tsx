@@ -17,7 +17,8 @@ import type {
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
-import { feedPosts, tabs, type FeedPost, type TabKey } from "./data";
+import { feedPosts, getSidebarTabs, getTabHref, type FeedPost, type TabKey } from "./data";
+import { WorkspaceView } from "./WorkspaceView";
 
 export function HomeFeedShell({
   activeTab,
@@ -280,6 +281,7 @@ export function HomeFeedShell({
 
         <HomeSidebar
           activeTab={activeTab}
+          isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {
@@ -295,7 +297,9 @@ export function HomeFeedShell({
           )}
         >
           <section
-            aria-label="New posts"
+            aria-label={
+              activeTab === "workspace" ? "Workspace" : "New posts"
+            }
             className="mx-auto w-full max-w-[1012px] px-5 pb-16 pt-6 sm:px-8 lg:px-12"
           >
             {activeTab === "home" ? (
@@ -305,53 +309,79 @@ export function HomeFeedShell({
               </div>
             ) : null}
 
-            <div className="divide-y divide-zinc-200/80">
-              {posts.map((post) => (
-                <ArticleCard key={post.id} post={post} />
-              ))}
-            </div>
-
-            {activeTab === "home" ||
-            activeTab === "following" ||
-            activeTab === "liked" ? (
-              <div
-                ref={sentinelRef}
-                className="flex min-h-24 items-center justify-center py-6 text-sm text-zinc-500"
-                aria-live="polite"
-              >
-                {isLoadingMore
-                  ? "Loading posts..."
-                  : loadError
-                    ? loadError
-                    : posts.length === 0
-                      ? activeTab === "liked" && !isLoggedIn
-                        ? "Log in to see liked posts."
-                        : activeTab === "following" && !isLoggedIn
-                          ? "Log in to see following posts."
-                          : "No posts yet."
-                      : hasNextActivePage
-                        ? ""
-                        : "No more posts."}
+            {activeTab === "workspace" ? (
+              <div className="flex items-center gap-2 border-b border-zinc-200/80 pb-4 text-[15px] font-semibold text-zinc-950">
+                <IconWorkspace className="size-5 text-zinc-600" />
+                <h1>Workspace</h1>
               </div>
             ) : null}
+
+            {activeTab === "workspace" ? (
+              <div className="pt-2">
+                <WorkspaceView isLoggedIn={isLoggedIn} />
+              </div>
+            ) : (
+              <>
+                <div className="divide-y divide-zinc-200/80">
+                  {posts.map((post) => (
+                    <ArticleCard key={post.id} post={post} />
+                  ))}
+                </div>
+
+                {activeTab === "home" ||
+                activeTab === "following" ||
+                activeTab === "liked" ? (
+                  <div
+                    ref={sentinelRef}
+                    className="flex min-h-24 items-center justify-center py-6 text-sm text-zinc-500"
+                    aria-live="polite"
+                  >
+                    {isLoadingMore
+                      ? "Loading posts..."
+                      : loadError
+                        ? loadError
+                        : posts.length === 0
+                          ? activeTab === "liked" && !isLoggedIn
+                            ? "Log in to see liked posts."
+                            : activeTab === "following" && !isLoggedIn
+                              ? "Log in to see following posts."
+                              : "No posts yet."
+                          : hasNextActivePage
+                            ? ""
+                            : "No more posts."}
+                  </div>
+                ) : null}
+              </>
+            )}
           </section>
         </main>
       </div>
 
-      {footer}
+      <div
+        className={cn(
+          "transition-[margin] duration-300 ease-out",
+          isSidebarOpen ? "lg:ml-[282px]" : "lg:ml-0",
+        )}
+      >
+        {footer}
+      </div>
     </div>
   );
 }
 
 function HomeSidebar({
   activeTab,
+  isLoggedIn,
   isOpen,
   onNavigate,
 }: {
   activeTab: TabKey;
+  isLoggedIn: boolean;
   isOpen: boolean;
   onNavigate: () => void;
 }) {
+  const sidebarTabs = getSidebarTabs(isLoggedIn);
+
   return (
     <aside
       aria-label="Feed navigation"
@@ -362,13 +392,13 @@ function HomeSidebar({
     >
       <nav className="flex h-full flex-col px-5 py-8">
         <div className="space-y-1">
-          {tabs.map((tab) => {
+          {sidebarTabs.map((tab) => {
             const isActive = tab.key === activeTab;
 
             return (
               <Link
                 key={tab.key}
-                href={getTabHref(tab.key)}
+                href={getTabHref(tab.key, isLoggedIn)}
                 aria-current={isActive ? "page" : undefined}
                 onClick={onNavigate}
                 className={cn(
@@ -378,13 +408,7 @@ function HomeSidebar({
                     : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950",
                 )}
               >
-                {tab.key === "home" ? (
-                  <IconHome className="size-5" />
-                ) : tab.key === "following" ? (
-                  <IconUsers className="size-5" />
-                ) : (
-                  <IconHeart className="size-5" />
-                )}
+                <TabIcon tab={tab.key} />
                 {tab.label}
               </Link>
             );
@@ -392,11 +416,29 @@ function HomeSidebar({
         </div>
 
         <div className="mt-auto border-t border-zinc-200 pt-6 text-[13px] leading-6 text-zinc-500">
-          New writing from the OpenLog community, arranged for steady reading.
+          {isLoggedIn
+            ? "Drafts, reviews, and freshness checks for your writing."
+            : "New writing from the OpenLog community, arranged for steady reading."}
         </div>
       </nav>
     </aside>
   );
+}
+
+function TabIcon({ tab }: { tab: TabKey }) {
+  if (tab === "workspace") {
+    return <IconWorkspace className="size-5" />;
+  }
+
+  if (tab === "home") {
+    return <IconHome className="size-5" />;
+  }
+
+  if (tab === "following") {
+    return <IconUsers className="size-5" />;
+  }
+
+  return <IconHeart className="size-5" />;
 }
 
 function ArticleCard({ post }: { post: FeedPost }) {
@@ -484,8 +526,30 @@ function formatCompactCount(value: number) {
   }).format(value);
 }
 
-function getTabHref(tab: TabKey) {
-  return tab === "home" ? "/" : `/?tab=${tab}`;
+function IconWorkspace({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect
+        x="3.5"
+        y="4.5"
+        width="17"
+        height="15"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M3.5 9.5h17M8.5 4.5v15"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
 }
 
 function IconHome({ className }: { className?: string }) {
@@ -542,7 +606,6 @@ function IconHeart({ className }: { className?: string }) {
     </svg>
   );
 }
-
 function IconClock({ className }: { className?: string }) {
   return (
     <svg
@@ -580,3 +643,4 @@ function IconComment({ className }: { className?: string }) {
     </svg>
   );
 }
+

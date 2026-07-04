@@ -1,19 +1,29 @@
+import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 import { HomeFeed } from "@/widgets/home-feed/ui";
+import { getDefaultTab, type TabKey } from "@/widgets/home-feed/ui/data";
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams?: Promise<{ tab?: string }>; // 객체 구조 분해할당, searchParams는 Next가 자동으로 넘겨줌
+  searchParams?: Promise<{ tab?: string }>;
 }) {
   const sp = await searchParams;
-  const tab = normalizeTab(sp?.tab);
+  const user = await getUserOrRedirectToOnboarding();
+  const isLoggedIn = !!user;
+  const tab = normalizeTab(sp?.tab, isLoggedIn);
 
-  return <HomeFeed activeTab={tab} />;
+  return <HomeFeed activeTab={tab} viewer={user} />;
 }
 
-function normalizeTab(value: string | undefined) {
-  if (value === "home" || value === "following" || value === "liked") {
+function normalizeTab(value: string | undefined, isLoggedIn: boolean): TabKey {
+  if (
+    value === "workspace" ||
+    value === "home" ||
+    value === "following" ||
+    value === "liked"
+  ) {
     return value;
   }
-  return "home";
+
+  return getDefaultTab(isLoggedIn);
 }

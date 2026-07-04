@@ -1,6 +1,6 @@
 import { assets } from "@/shared/config/assets";
 
-export type TabKey = "home" | "following" | "liked";
+export type TabKey = "workspace" | "home" | "following" | "liked";
 
 export type FeedPost = {
   id: string;
@@ -15,13 +15,116 @@ export type FeedPost = {
   href: string;
 };
 
-export const tabs: Array<{
-  key: TabKey;
+export type WorkspaceItemKind = "draft" | "review" | "stale" | "published";
+
+export type WorkspaceItem = {
+  id: string;
+  kind: WorkspaceItemKind;
+  title: string;
+  description: string;
+  meta: string;
+  href: string;
+  progressLabel: string;
+  countLabel: string;
+};
+
+export type WorkspaceMetric = {
   label: string;
-}> = [
+  value: string;
+  description: string;
+};
+
+const sidebarTabs: Array<{ key: TabKey; label: string }> = [
+  { key: "workspace", label: "Workspace" },
   { key: "home", label: "Home" },
   { key: "following", label: "Following" },
   { key: "liked", label: "Liked" },
+];
+
+export function getDefaultTab(isLoggedIn: boolean): TabKey {
+  return isLoggedIn ? "workspace" : "home";
+}
+
+export function getSidebarTabs(isLoggedIn: boolean) {
+  const order: TabKey[] = isLoggedIn
+    ? ["workspace", "home", "following", "liked"]
+    : ["home", "workspace", "following", "liked"];
+
+  return order.map(
+    (key) => sidebarTabs.find((tab) => tab.key === key)!,
+  );
+}
+
+export function getTabHref(tab: TabKey, isLoggedIn: boolean) {
+  return tab === getDefaultTab(isLoggedIn) ? "/" : `/?tab=${tab}`;
+}
+
+/** @deprecated Use getSidebarTabs(isLoggedIn) instead */
+export const tabs = sidebarTabs;
+
+export const workspaceMetrics: WorkspaceMetric[] = [
+  {
+    label: "Drafts",
+    value: "3",
+    description: "AI sessions waiting to become posts",
+  },
+  {
+    label: "Suggestions",
+    value: "5",
+    description: "Open review threads on your writing",
+  },
+  {
+    label: "Freshness",
+    value: "87%",
+    description: "Public posts verified this quarter",
+  },
+];
+
+export const workspaceItems: WorkspaceItem[] = [
+  {
+    id: "mcp-til",
+    kind: "draft",
+    title: "Turn today's Codex session into a TIL draft",
+    description:
+      "The error, fix path, and final code context are grouped into a publishable draft.",
+    meta: "Generated from CLI session · 12 min ago",
+    href: "/write",
+    progressLabel: "Draft",
+    countLabel: "4 sections",
+  },
+  {
+    id: "ai-review",
+    kind: "review",
+    title: "AI review suggestions for the React 19 migration note",
+    description:
+      "Two suggested edits are waiting: one deprecated API note and one code import fix.",
+    meta: "AI reviewer · Open suggestions",
+    href: "/write",
+    progressLabel: "Review",
+    countLabel: "2 PRs",
+  },
+  {
+    id: "stale-api",
+    kind: "stale",
+    title: "Re-verify freshness for the Next.js cache article",
+    description:
+      "It has been 91 days since the last check. Refreshing the verified date makes search traffic more trustworthy.",
+    meta: "Freshness check · Due today",
+    href: "/write",
+    progressLabel: "Stale",
+    countLabel: "91 days",
+  },
+  {
+    id: "published-openlog",
+    kind: "published",
+    title: "Writing debugging notes with OpenLog MCP",
+    description:
+      "Published publicly. Readers can inspect the article, and contributors can improve it through the same PR-style flow.",
+    meta: "Published · Verified Jul 4",
+    href: "/write",
+    progressLabel: "Public",
+    countLabel: "312 views",
+  },
 ];
 
 export const feedPosts: FeedPost[] = [
