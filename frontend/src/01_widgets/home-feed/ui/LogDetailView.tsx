@@ -77,12 +77,6 @@ export function LogDetailView({ log }: { log: WorkspaceLogItem }) {
           </dl>
 
           <div className="mt-3.5 flex flex-wrap gap-2">
-            <LinkButton href="/write" tone="solid" size="sm">
-              Publish as post
-            </LinkButton>
-            <LinkButton href="/write" tone="outline" size="sm">
-              Include in PR doc
-            </LinkButton>
             <LinkButton href="/write" tone="outline" size="sm">
               Save to memory
             </LinkButton>
