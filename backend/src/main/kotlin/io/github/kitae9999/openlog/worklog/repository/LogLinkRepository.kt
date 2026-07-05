@@ -1,6 +1,6 @@
-package io.github.kitae9999.openlog.log.repository
+package io.github.kitae9999.openlog.worklog.repository
 
-import io.github.kitae9999.openlog.log.entity.LogLink
+import io.github.kitae9999.openlog.worklog.entity.LogLink
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface LogLinkRepository : JpaRepository<LogLink, Long> {

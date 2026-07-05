@@ -1,4 +1,4 @@
-package io.github.kitae9999.openlog.workspace.entity
+package io.github.kitae9999.openlog.worklog.entity
 
 import io.github.kitae9999.openlog.user.entity.User
 import jakarta.persistence.Column

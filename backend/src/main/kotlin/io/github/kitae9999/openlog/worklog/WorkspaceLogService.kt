@@ -1,21 +1,21 @@
-package io.github.kitae9999.openlog.log
+package io.github.kitae9999.openlog.worklog
 
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.log.dto.WorkspaceLogCursorResponse
-import io.github.kitae9999.openlog.log.dto.WorkspaceLogResponse
-import io.github.kitae9999.openlog.log.entity.LogKind
-import io.github.kitae9999.openlog.log.entity.LogStatus
-import io.github.kitae9999.openlog.log.entity.WorkspaceLog
-import io.github.kitae9999.openlog.log.repository.WorkspaceLogRepository
+import io.github.kitae9999.openlog.worklog.dto.WorkspaceLogCursorResponse
+import io.github.kitae9999.openlog.worklog.dto.WorkspaceLogResponse
+import io.github.kitae9999.openlog.worklog.entity.LogKind
+import io.github.kitae9999.openlog.worklog.entity.LogStatus
+import io.github.kitae9999.openlog.worklog.entity.WorkspaceLog
+import io.github.kitae9999.openlog.worklog.repository.WorkspaceLogRepository
 import io.github.kitae9999.openlog.task.entity.WorkspaceTask
 import io.github.kitae9999.openlog.task.repository.WorkspaceTaskRepository
 import io.github.kitae9999.openlog.user.entity.User
-import io.github.kitae9999.openlog.workspace.entity.Workspace
-import io.github.kitae9999.openlog.workspace.repository.WorkspaceRepository
+import io.github.kitae9999.openlog.worklog.entity.Workspace
+import io.github.kitae9999.openlog.worklog.repository.WorkspaceRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,62 +28,56 @@ class WorkspaceLogService(
     private val workspaceTaskRepository: WorkspaceTaskRepository,
 ) {
     @Transactional(readOnly = true)
-    fun getLogs(userId: Long, workspaceId: Long, cursor: String?, size: Int): WorkspaceLogCursorResponse {
-        resolveWorkspace(userId, workspaceId)
+    fun getLogs(
+        userId: Long,
+        workspaceId: Long,
+        taskId: Long?,
+        cursor: String?,
+        size: Int,
+    ): WorkspaceLogCursorResponse {
+        val workspace = resolveWorkspace(userId, workspaceId)
+        if (taskId != null) {
+            resolveTask(workspace, taskId)
+        }
 
         return findLogsByCursor(
             cursor = cursor,
             size = size,
             findFirstPage = { pageable ->
-                workspaceLogRepository.findAllByWorkspaceIdOrderByCreatedAtDescIdDesc(
-                    workspaceId = workspaceId,
-                    pageable = pageable,
-                )
+                if (taskId == null) {
+                    workspaceLogRepository.findAllByWorkspaceIdOrderByCreatedAtDescIdDesc(
+                        workspaceId = workspaceId,
+                        pageable = pageable,
+                    )
+                } else {
+                    workspaceLogRepository.findAllByTaskIdOrderByCreatedAtDescIdDesc(
+                        taskId = taskId,
+                        pageable = pageable,
+                    )
+                }
             },
             findAfterCursor = { cursorMarker, pageable ->
-                workspaceLogRepository.findWorkspaceLogsAfterCursor(
-                    workspaceId = workspaceId,
-                    createdAt = cursorMarker.createdAt,
-                    id = cursorMarker.id,
-                    pageable = pageable,
-                )
-            },
-        )
-    }
-
-    @Transactional(readOnly = true)
-    fun getLogsByTask(
-        userId: Long,
-        taskId: Long,
-        workspaceId: Long,
-        cursor: String?,
-        size: Int,
-    ): WorkspaceLogCursorResponse {
-        val workspace = resolveWorkspace(userId, workspaceId)
-        resolveTask(workspace, taskId)
-
-        return findLogsByCursor(
-            cursor = cursor,
-            size = size,
-            findFirstPage = { pageable ->  // kotlin 람다
-                workspaceLogRepository.findAllByTaskIdOrderByCreatedAtDescIdDesc(
-                    taskId = taskId,
-                    pageable = pageable,
-                )
-            },
-            findAfterCursor = { cursorMarker, pageable ->
-                workspaceLogRepository.findTaskLogsAfterCursor(
-                    taskId = taskId,
-                    createdAt = cursorMarker.createdAt,
-                    id = cursorMarker.id,
-                    pageable = pageable,
-                )
+                if (taskId == null) {
+                    workspaceLogRepository.findWorkspaceLogsAfterCursor(
+                        workspaceId = workspaceId,
+                        createdAt = cursorMarker.createdAt,
+                        id = cursorMarker.id,
+                        pageable = pageable,
+                    )
+                } else {
+                    workspaceLogRepository.findTaskLogsAfterCursor(
+                        taskId = taskId,
+                        createdAt = cursorMarker.createdAt,
+                        id = cursorMarker.id,
+                        pageable = pageable,
+                    )
+                }
             },
         )
     }
 
     @Transactional
-    fun createLog(user: User, workspaceId: Long, request: CreateLogRequest): WorkspaceLogResponse {
+    fun createLog(user: User, workspaceId: Long, request: CreateWorkspaceLogRequest): WorkspaceLogResponse {
         val workspace = resolveWorkspace(requireNotNull(user.id), workspaceId)
         val task = resolveTask(workspace, request.taskId)
         val title = request.title.trim()

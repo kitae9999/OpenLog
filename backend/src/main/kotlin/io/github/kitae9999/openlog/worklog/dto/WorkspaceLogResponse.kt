@@ -1,7 +1,7 @@
-package io.github.kitae9999.openlog.log.dto
+package io.github.kitae9999.openlog.worklog.dto
 
-import io.github.kitae9999.openlog.log.entity.LogKind
-import io.github.kitae9999.openlog.log.entity.LogStatus
+import io.github.kitae9999.openlog.worklog.entity.LogKind
+import io.github.kitae9999.openlog.worklog.entity.LogStatus
 
 data class WorkspaceLogResponse(
     val id: Long,

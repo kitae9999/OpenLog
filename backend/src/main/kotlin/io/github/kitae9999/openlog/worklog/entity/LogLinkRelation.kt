@@ -1,4 +1,4 @@
-package io.github.kitae9999.openlog.log.entity
+package io.github.kitae9999.openlog.worklog.entity
 
 enum class LogLinkRelation {
     FIXES,

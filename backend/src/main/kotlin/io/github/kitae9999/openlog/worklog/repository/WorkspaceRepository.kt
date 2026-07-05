@@ -1,6 +1,6 @@
-package io.github.kitae9999.openlog.workspace.repository
+package io.github.kitae9999.openlog.worklog.repository
 
-import io.github.kitae9999.openlog.workspace.entity.Workspace
+import io.github.kitae9999.openlog.worklog.entity.Workspace
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface WorkspaceRepository : JpaRepository<Workspace, Long> {

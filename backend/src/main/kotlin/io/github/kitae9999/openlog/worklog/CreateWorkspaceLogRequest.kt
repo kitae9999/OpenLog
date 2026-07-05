@@ -1,11 +1,11 @@
-package io.github.kitae9999.openlog.log
+package io.github.kitae9999.openlog.worklog
 
-import io.github.kitae9999.openlog.log.entity.LogKind
-import io.github.kitae9999.openlog.log.entity.LogStatus
+import io.github.kitae9999.openlog.worklog.entity.LogKind
+import io.github.kitae9999.openlog.worklog.entity.LogStatus
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 
-data class CreateLogRequest(
+data class CreateWorkspaceLogRequest(
     @field:NotNull(message = "로그 종류는 필수입니다.")
     val kind: LogKind,
 

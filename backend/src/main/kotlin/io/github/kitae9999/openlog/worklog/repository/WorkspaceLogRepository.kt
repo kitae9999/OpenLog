@@ -1,8 +1,8 @@
-package io.github.kitae9999.openlog.log.repository
+package io.github.kitae9999.openlog.worklog.repository
 
-import io.github.kitae9999.openlog.log.entity.LogKind
-import io.github.kitae9999.openlog.log.entity.LogStatus
-import io.github.kitae9999.openlog.log.entity.WorkspaceLog
+import io.github.kitae9999.openlog.worklog.entity.LogKind
+import io.github.kitae9999.openlog.worklog.entity.LogStatus
+import io.github.kitae9999.openlog.worklog.entity.WorkspaceLog
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository

@@ -1,7 +1,7 @@
 package io.github.kitae9999.openlog.task.entity
 
 import io.github.kitae9999.openlog.user.entity.User
-import io.github.kitae9999.openlog.workspace.entity.Workspace
+import io.github.kitae9999.openlog.worklog.entity.Workspace
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
