@@ -15,12 +15,12 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("{workspaceId}/logs")
+@RequestMapping
 class WorkspaceLogController(
     private val workspaceLogService: WorkspaceLogService,
     private val currentUserResolver: CurrentUserResolver
 ) {
-    @GetMapping
+    @GetMapping("{workspaceId}/logs")
     fun getLogs(
         request: HttpServletRequest,
         @PathVariable workspaceId: Long,
@@ -32,6 +32,25 @@ class WorkspaceLogController(
         return workspaceLogService.getLogs(requireNotNull(user.id), workspaceId, cursor, size)
     }
     
+    
+    @GetMapping("{workspaceId}/{taskId}/logs")
+    fun getLogsByTask(
+        request: HttpServletRequest,
+        @PathVariable workspaceId: Long,
+        @PathVariable taskId: Long,
+        @RequestParam(required = false) cursor: String?,
+        @RequestParam(defaultValue = "20") size: Int,
+    ): WorkspaceLogCursorResponse {
+        val user = currentUserResolver.resolveCurrentUser(request)
+
+        return workspaceLogService.getLogsByTask(
+            requireNotNull(user.id),
+            taskId,
+            workspaceId,
+            cursor,
+            size
+        )
+    }
     
     @PostMapping
     fun createLog(

@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.log
 
 import io.github.kitae9999.openlog.common.exception.BadRequestException
+import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
@@ -28,33 +29,56 @@ class WorkspaceLogService(
 ) {
     @Transactional(readOnly = true)
     fun getLogs(userId: Long, workspaceId: Long, cursor: String?, size: Int): WorkspaceLogCursorResponse {
-        val workspace = resolveWorkspace(userId, workspaceId)
-        
-        val safeSize = size.coerceIn(1, WORKSPACE_LOGS_PAGE_SIZE) // 범위 제한
-        val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode) // 커서가 있으면 decode
-        val logs = if (cursorMarker == null) {
-            workspaceLogRepository.findAllByWorkspaceIdOrderByCreatedAtDescIdDesc(
-                workspaceId = workspaceId,
-                pageable = PageRequest.of(0, safeSize + 1),
-            )
-        } else {
-            workspaceLogRepository.findWorkspaceLogsAfterCursor(
-                workspaceId = workspaceId,
-                createdAt = cursorMarker.createdAt,
-                id = cursorMarker.id,
-                pageable = PageRequest.of(0, safeSize + 1),
-            )
-        }
-        val hasNext = logs.size > safeSize
-        val pageLogs = logs.take(safeSize)
+        resolveWorkspace(userId, workspaceId)
 
-        return WorkspaceLogCursorResponse(
-            logs = pageLogs.map(::toResponse),
-            size = safeSize,
-            nextCursor = pageLogs.lastOrNull()
-                ?.takeIf { hasNext } // takeIf는 조건이 맞을 때만 값 반환, 아니면 null
-                ?.let { log -> DateTimeIdCursorCodec.encode(log.createdAt, requireNotNull(log.id)) },
-            hasNext = hasNext,
+        return findLogsByCursor(
+            cursor = cursor,
+            size = size,
+            findFirstPage = { pageable ->
+                workspaceLogRepository.findAllByWorkspaceIdOrderByCreatedAtDescIdDesc(
+                    workspaceId = workspaceId,
+                    pageable = pageable,
+                )
+            },
+            findAfterCursor = { cursorMarker, pageable ->
+                workspaceLogRepository.findWorkspaceLogsAfterCursor(
+                    workspaceId = workspaceId,
+                    createdAt = cursorMarker.createdAt,
+                    id = cursorMarker.id,
+                    pageable = pageable,
+                )
+            },
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getLogsByTask(
+        userId: Long,
+        taskId: Long,
+        workspaceId: Long,
+        cursor: String?,
+        size: Int,
+    ): WorkspaceLogCursorResponse {
+        val workspace = resolveWorkspace(userId, workspaceId)
+        resolveTask(workspace, taskId)
+
+        return findLogsByCursor(
+            cursor = cursor,
+            size = size,
+            findFirstPage = { pageable ->  // kotlin 람다
+                workspaceLogRepository.findAllByTaskIdOrderByCreatedAtDescIdDesc(
+                    taskId = taskId,
+                    pageable = pageable,
+                )
+            },
+            findAfterCursor = { cursorMarker, pageable ->
+                workspaceLogRepository.findTaskLogsAfterCursor(
+                    taskId = taskId,
+                    createdAt = cursorMarker.createdAt,
+                    id = cursorMarker.id,
+                    pageable = pageable,
+                )
+            },
         )
     }
 
@@ -117,6 +141,38 @@ class WorkspaceLogService(
         }
 
         return task
+    }
+
+    private fun findLogsByCursor(
+        cursor: String?,
+        size: Int,
+        findFirstPage: (PageRequest) -> List<WorkspaceLog>,
+        findAfterCursor: (DateTimeIdCursor, PageRequest) -> List<WorkspaceLog>,
+    ): WorkspaceLogCursorResponse {
+        val safeSize = size.coerceIn(1, WORKSPACE_LOGS_PAGE_SIZE)
+        val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
+        val pageable = PageRequest.of(0, safeSize + 1)
+        val logs = if (cursorMarker == null) {
+            findFirstPage(pageable)
+        } else {
+            findAfterCursor(cursorMarker, pageable)
+        }
+
+        return toCursorResponse(logs, safeSize)
+    }
+
+    private fun toCursorResponse(logs: List<WorkspaceLog>, safeSize: Int): WorkspaceLogCursorResponse {
+        val hasNext = logs.size > safeSize
+        val pageLogs = logs.take(safeSize)
+
+        return WorkspaceLogCursorResponse(
+            logs = pageLogs.map(::toResponse),
+            size = safeSize,
+            nextCursor = pageLogs.lastOrNull()
+                ?.takeIf { hasNext }
+                ?.let { log -> DateTimeIdCursorCodec.encode(log.createdAt, requireNotNull(log.id)) },
+            hasNext = hasNext,
+        )
     }
 
     private fun resolveStatus(kind: LogKind, requestedStatus: LogStatus?): LogStatus {

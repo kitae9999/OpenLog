@@ -43,5 +43,31 @@ interface WorkspaceLogRepository : JpaRepository<WorkspaceLog, Long> {
         @Param("createdAt") createdAt: LocalDateTime,
         @Param("id") id: Long,
         pageable: Pageable,
-    ): List<WorkspaceLog> 
+    ): List<WorkspaceLog>
+
+    @EntityGraph(attributePaths = ["author", "task"])
+    fun findAllByTaskIdOrderByCreatedAtDescIdDesc(
+        taskId: Long,
+        pageable: Pageable,
+    ): List<WorkspaceLog>
+
+    @EntityGraph(attributePaths = ["author", "task"])
+    @Query(
+        """
+        select l
+        from WorkspaceLog l
+        where l.task.id = :taskId
+          and (
+            l.createdAt < :createdAt
+            or (l.createdAt = :createdAt and l.id < :id)
+          )
+        order by l.createdAt desc, l.id desc
+        """
+    )
+    fun findTaskLogsAfterCursor(
+        @Param("taskId") taskId: Long,
+        @Param("createdAt") createdAt: LocalDateTime,
+        @Param("id") id: Long,
+        pageable: Pageable,
+    ): List<WorkspaceLog>
 }
