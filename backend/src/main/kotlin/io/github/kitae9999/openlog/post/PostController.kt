@@ -25,7 +25,7 @@ class PostController(
     private val postService: PostService,
     private val currentUserResolver: CurrentUserResolver,
 ) {
-    @GetMapping()
+    @GetMapping
     fun getRecentPosts(
         @RequestParam(required = false) cursor: String?,
         @RequestParam(defaultValue = "10") size: Int,

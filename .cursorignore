@@ -1,0 +1,11 @@
+node_modules/
+.next/
+build/
+.gradle/
+dist/
+
+**/node_modules/
+**/.next/
+**/build/
+**/.gradle/
+**/dist/
