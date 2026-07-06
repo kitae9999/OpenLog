@@ -1,6 +1,5 @@
 package io.github.kitae9999.openlog.config
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.github.kitae9999.openlog.auth.GithubOAuthSuccessHandler
 import io.github.kitae9999.openlog.auth.JwtAuthenticationFilter
 import io.github.kitae9999.openlog.common.exception.ErrorResponse
@@ -14,6 +13,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import tools.jackson.databind.ObjectMapper
 
 @Configuration
 @EnableWebSecurity
