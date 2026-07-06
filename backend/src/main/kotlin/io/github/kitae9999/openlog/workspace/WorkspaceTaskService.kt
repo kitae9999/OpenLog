@@ -7,6 +7,8 @@ import io.github.kitae9999.openlog.task.entity.WorkspaceTask
 import io.github.kitae9999.openlog.task.repository.WorkspaceTaskRepository
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.dto.CreateTaskRequest
+import io.github.kitae9999.openlog.workspace.dto.TaskAuthorResponse
+import io.github.kitae9999.openlog.workspace.dto.TaskDetailResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskResponse
 import org.springframework.data.domain.PageRequest
@@ -67,9 +69,25 @@ class WorkspaceTaskService(
     }
 
     @Transactional(readOnly = true)
-    fun getTaskDetail(userId: Long, workspaceId: Long, taskId: Long): WorkspaceTask {
+    fun getTaskDetail(userId: Long, workspaceId: Long, taskId: Long): TaskDetailResponse {
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
-        return workspaceAccessResolver.requireOwnedTask(workspace, taskId)
+        val task = workspaceAccessResolver.requireOwnedTask(workspace, taskId)
+
+        return TaskDetailResponse(
+            id = requireNotNull(task.id),
+            title = task.title,
+            description = task.description,
+            content = task.content,
+            status = task.status,
+            author = TaskAuthorResponse(
+                id = requireNotNull(task.author.id),
+                username = requireNotNull(task.author.username),
+                nickname = requireNotNull(task.author.nickname),
+                profileImageUrl = task.author.profileImageUrl
+            ),
+            createdAt = task.createdAt.toString(),
+            updatedAt = task.updatedAt.toString(),
+        )
     }
 
     @Transactional

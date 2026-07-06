@@ -3,6 +3,7 @@ package io.github.kitae9999.openlog.workspace
 import io.github.kitae9999.openlog.task.entity.TaskStatus
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.dto.CreateTaskRequest
+import io.github.kitae9999.openlog.workspace.dto.TaskDetailResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskResponse
 import jakarta.validation.Valid
@@ -33,6 +34,19 @@ class WorkspaceTaskController(
             status,
             cursor,
             size,
+        )
+    }
+
+    @GetMapping("{workspaceId}/tasks/{taskId}")
+    fun getTaskDetail(
+        @AuthenticationPrincipal user: User,
+        @PathVariable workspaceId: Long,
+        @PathVariable taskId: Long,
+    ): TaskDetailResponse {
+        return workspaceTaskService.getTaskDetail(
+            requireNotNull(user.id),
+            workspaceId,
+            taskId,
         )
     }
 
