@@ -1,6 +1,6 @@
 package io.github.kitae9999.openlog.workspace.dto
 
-import io.github.kitae9999.openlog.task.entity.TaskStatus
+import io.github.kitae9999.openlog.workspace.entity.TaskStatus
 
 data class WorkspaceTaskResponse(
     val id: Long,

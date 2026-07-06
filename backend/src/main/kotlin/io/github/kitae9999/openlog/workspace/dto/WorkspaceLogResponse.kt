@@ -14,3 +14,18 @@ data class WorkspaceLogResponse(
     val taskId: Long?,
     val createdAt: String,
 )
+
+data class WorkspaceLogDetailResponse(
+    val id: Long,
+    val kind: LogKind,
+    val status: LogStatus,
+    val title: String,
+    val summary: String?,
+    val content: String,
+    val authorName: String,
+    val authorProfileImageUrl: String?,
+    val taskId: Long?,
+    val createdAt: String,
+    val updatedAt: String,
+    val closedAt: String?,
+)

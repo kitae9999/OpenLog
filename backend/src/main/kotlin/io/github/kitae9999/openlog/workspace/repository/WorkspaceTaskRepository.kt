@@ -1,7 +1,7 @@
-package io.github.kitae9999.openlog.task.repository
+package io.github.kitae9999.openlog.workspace.repository
 
-import io.github.kitae9999.openlog.task.entity.TaskStatus
-import io.github.kitae9999.openlog.task.entity.WorkspaceTask
+import io.github.kitae9999.openlog.workspace.entity.TaskStatus
+import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository

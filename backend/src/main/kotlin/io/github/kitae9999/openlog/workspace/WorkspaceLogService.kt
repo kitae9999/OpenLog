@@ -1,18 +1,23 @@
 package io.github.kitae9999.openlog.workspace
 
-import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
+import io.github.kitae9999.openlog.common.exception.BadRequestException
+import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogCursorResponse
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogDetailResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogResponse
 import io.github.kitae9999.openlog.workspace.entity.LogKind
 import io.github.kitae9999.openlog.workspace.entity.LogStatus
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceLog
 import io.github.kitae9999.openlog.workspace.repository.WorkspaceLogRepository
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.workspace.dto.CreateWorkspaceLogRequest
+import io.github.kitae9999.openlog.workspace.dto.UpdateWorkspaceLogRequest
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import kotlin.jvm.optionals.getOrNull
 
 @Service
 class WorkspaceLogService(
@@ -68,6 +73,14 @@ class WorkspaceLogService(
         )
     }
 
+    @Transactional(readOnly = true)
+    fun getLogDetail(userId: Long, workspaceId: Long, logId: Long): WorkspaceLogDetailResponse {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val log = requireOwnedLog(workspace.id, logId)
+
+        return toDetailResponse(log)
+    }
+
     @Transactional
     fun createLog(user: User, workspaceId: Long, request: CreateWorkspaceLogRequest): WorkspaceLogResponse {
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(requireNotNull(user.id), workspaceId)
@@ -95,6 +108,37 @@ class WorkspaceLogService(
         val savedLog = workspaceLogRepository.save(log)
 
         return toResponse(savedLog)
+    }
+
+    @Transactional
+    fun updateLog(
+        userId: Long,
+        workspaceId: Long,
+        logId: Long,
+        request: UpdateWorkspaceLogRequest,
+    ): WorkspaceLogDetailResponse {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val log = requireOwnedLog(workspace.id, logId)
+        val task = workspaceAccessResolver.resolveTask(workspace, request.taskId)
+        val status = resolveStatus(log.kind, request.status ?: log.status)
+
+        log.update(
+            title = request.title.trim(),
+            summary = request.summary?.trim()?.takeIf { it.isNotEmpty() },
+            content = request.content.trim(),
+            task = task,
+            status = status,
+        )
+
+        return toDetailResponse(log)
+    }
+
+    @Transactional
+    fun deleteLog(userId: Long, workspaceId: Long, logId: Long) {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val log = requireOwnedLog(workspace.id, logId)
+
+        workspaceLogRepository.delete(log)
     }
 
     private fun findLogsByCursor(
@@ -161,6 +205,36 @@ class WorkspaceLogService(
             taskId = log.task?.id,
             createdAt = log.createdAt.toString(),
         )
+    }
+
+    private fun toDetailResponse(log: WorkspaceLog): WorkspaceLogDetailResponse {
+        val author = log.author
+
+        return WorkspaceLogDetailResponse(
+            id = requireNotNull(log.id),
+            kind = log.kind,
+            status = log.status,
+            title = log.title,
+            summary = log.summary,
+            content = log.content,
+            authorName = resolveAuthorName(author),
+            authorProfileImageUrl = author.profileImageUrl,
+            taskId = log.task?.id,
+            createdAt = log.createdAt.toString(),
+            updatedAt = log.updatedAt.toString(),
+            closedAt = log.closedAt?.toString(),
+        )
+    }
+
+    private fun requireOwnedLog(workspaceId: Long?, logId: Long): WorkspaceLog {
+        val log = workspaceLogRepository.findById(logId).getOrNull()
+            ?: throw NotFoundException("로그를 찾을 수 없습니다.")
+
+        if (log.workspace.id != workspaceId) {
+            throw BadRequestException("현재 워크스페이스에 속한 로그만 사용할 수 있습니다.")
+        }
+
+        return log
     }
 
     private fun resolveAuthorName(user: User): String {

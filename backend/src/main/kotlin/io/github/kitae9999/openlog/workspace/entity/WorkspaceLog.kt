@@ -1,6 +1,5 @@
 package io.github.kitae9999.openlog.workspace.entity
 
-import io.github.kitae9999.openlog.task.entity.WorkspaceTask
 import io.github.kitae9999.openlog.user.entity.User
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -83,11 +82,19 @@ class WorkspaceLog(
         requireValidStatus(kind, status)
     }
 
-    fun update(title: String, summary: String?, content: String, task: WorkspaceTask?) {
+    fun update(title: String, summary: String?, content: String, task: WorkspaceTask?, status: LogStatus) {
+        requireValidStatus(kind, status)
+
         this.title = title
         this.summary = summary
         this.content = content
         this.task = task
+        this.status = status
+        this.closedAt = if (kind == LogKind.ISSUE && status == LogStatus.CLOSED) {
+            closedAt ?: LocalDateTime.now()
+        } else {
+            null
+        }
         this.updatedAt = LocalDateTime.now()
     }
 

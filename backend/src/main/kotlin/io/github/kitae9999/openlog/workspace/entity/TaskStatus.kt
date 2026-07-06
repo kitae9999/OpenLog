@@ -1,4 +1,4 @@
-package io.github.kitae9999.openlog.task.entity
+package io.github.kitae9999.openlog.workspace.entity
 
 enum class TaskStatus {
     TODO,

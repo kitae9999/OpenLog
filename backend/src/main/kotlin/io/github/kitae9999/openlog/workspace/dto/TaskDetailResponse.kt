@@ -1,6 +1,6 @@
 package io.github.kitae9999.openlog.workspace.dto
 
-import io.github.kitae9999.openlog.task.entity.TaskStatus
+import io.github.kitae9999.openlog.workspace.entity.TaskStatus
 
 data class TaskDetailResponse(
     val id: Long,
@@ -15,7 +15,7 @@ data class TaskDetailResponse(
 
 data class TaskAuthorResponse(
     val id: Long,
-    val username: String,
-    val nickname: String,
+    val username: String?,
+    val nickname: String?,
     val profileImageUrl: String?
 )

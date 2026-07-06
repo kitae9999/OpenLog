@@ -2,13 +2,14 @@ package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
-import io.github.kitae9999.openlog.task.entity.TaskStatus
-import io.github.kitae9999.openlog.task.entity.WorkspaceTask
-import io.github.kitae9999.openlog.task.repository.WorkspaceTaskRepository
+import io.github.kitae9999.openlog.workspace.entity.TaskStatus
+import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
+import io.github.kitae9999.openlog.workspace.repository.WorkspaceTaskRepository
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.dto.CreateTaskRequest
 import io.github.kitae9999.openlog.workspace.dto.TaskAuthorResponse
 import io.github.kitae9999.openlog.workspace.dto.TaskDetailResponse
+import io.github.kitae9999.openlog.workspace.dto.UpdateTaskRequest
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskResponse
 import org.springframework.data.domain.PageRequest
@@ -81,8 +82,8 @@ class WorkspaceTaskService(
             status = task.status,
             author = TaskAuthorResponse(
                 id = requireNotNull(task.author.id),
-                username = requireNotNull(task.author.username),
-                nickname = requireNotNull(task.author.nickname),
+                username = task.author.username,
+                nickname = task.author.nickname,
                 profileImageUrl = task.author.profileImageUrl
             ),
             createdAt = task.createdAt.toString(),
@@ -104,6 +105,34 @@ class WorkspaceTaskService(
         val savedTask = workspaceTaskRepository.save(task)
 
         return toResponse(savedTask)
+    }
+
+    @Transactional
+    fun updateTask(
+        userId: Long,
+        workspaceId: Long,
+        taskId: Long,
+        request: UpdateTaskRequest,
+    ): WorkspaceTaskResponse {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val task = workspaceAccessResolver.requireOwnedTask(workspace, taskId)
+
+        task.update(
+            title = request.title.trim(),
+            description = request.description?.trim()?.takeIf { it.isNotEmpty() },
+            content = request.content?.trim()?.takeIf { it.isNotEmpty() },
+            status = request.status,
+        )
+
+        return toResponse(task)
+    }
+
+    @Transactional
+    fun deleteTask(userId: Long, workspaceId: Long, taskId: Long) {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val task = workspaceAccessResolver.requireOwnedTask(workspace, taskId)
+
+        workspaceTaskRepository.delete(task)
     }
 
     private fun findTasksByCursor(

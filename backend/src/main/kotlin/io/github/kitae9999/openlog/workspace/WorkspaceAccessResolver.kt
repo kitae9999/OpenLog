@@ -3,8 +3,8 @@ package io.github.kitae9999.openlog.workspace
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.task.entity.WorkspaceTask
-import io.github.kitae9999.openlog.task.repository.WorkspaceTaskRepository
+import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
+import io.github.kitae9999.openlog.workspace.repository.WorkspaceTaskRepository
 import io.github.kitae9999.openlog.workspace.entity.Workspace
 import io.github.kitae9999.openlog.workspace.repository.WorkspaceRepository
 import org.springframework.stereotype.Component
