@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping
+@RequestMapping("/workspaces")
 class WorkspaceLogController(
     private val workspaceLogService: WorkspaceLogService,
 ) {
