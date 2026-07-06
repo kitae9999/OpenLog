@@ -1,14 +1,14 @@
 package io.github.kitae9999.openlog.post
 
-import io.github.kitae9999.openlog.auth.CurrentUserResolver
 import io.github.kitae9999.openlog.post.command.PostLinkWriteCommand
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
-import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
-import io.github.kitae9999.openlog.post.dto.PostWriteResponse
 import io.github.kitae9999.openlog.post.dto.PostWriteRequest
-import jakarta.servlet.http.HttpServletRequest
+import io.github.kitae9999.openlog.post.dto.PostWriteResponse
+import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
+import io.github.kitae9999.openlog.user.entity.User
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -23,59 +23,54 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("posts")
 class PostController(
     private val postService: PostService,
-    private val currentUserResolver: CurrentUserResolver,
 ) {
     @GetMapping
     fun getRecentPosts(
         @RequestParam(required = false) cursor: String?,
         @RequestParam(defaultValue = "10") size: Int,
     ): RecentPostCursorResponse {
-        val recentPosts = postService.getRecentPosts(cursor, size)
-
-        return recentPosts
+        return postService.getRecentPosts(cursor, size)
     }
 
-    @PostMapping()
+    @PostMapping
     fun createPost(
-        request: HttpServletRequest,
-        @Valid @RequestBody postWriteRequest: PostWriteRequest
+        @AuthenticationPrincipal user: User,
+        @Valid @RequestBody postWriteRequest: PostWriteRequest,
     ): ResponseEntity<PostWriteResponse> {
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
         val (title, description, content, topics, links) = postWriteRequest
-        val createdPost = postService.createPost(currentUser, PostWriteCommand(
-            title = title,
-            description = description,
-            content = content,
-            topics = topics,
-            links = links.map { PostLinkWriteCommand(label = it.label, targetSlug = it.targetSlug) },
-        ))
+        val createdPost = postService.createPost(
+            user,
+            PostWriteCommand(
+                title = title,
+                description = description,
+                content = content,
+                topics = topics,
+                links = links.map { PostLinkWriteCommand(label = it.label, targetSlug = it.targetSlug) },
+            ),
+        )
 
         return ResponseEntity.status(201).body(createdPost)
     }
 
     @DeleteMapping("{postId}")
     fun deletePost(
+        @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
-        request: HttpServletRequest,
-    ): ResponseEntity<Void>{
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
-
-        postService.deletePost(requireNotNull(currentUser.id), postId)
+    ): ResponseEntity<Void> {
+        postService.deletePost(requireNotNull(user.id), postId)
 
         return ResponseEntity.noContent().build()
     }
 
-
     @PutMapping("{postId}")
     fun updatePost(
+        @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
-        request: HttpServletRequest,
         @Valid @RequestBody postWriteRequest: PostWriteRequest,
     ): ResponseEntity<PostWriteResponse> {
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
         val (title, description, content, topics, links) = postWriteRequest
         val updatedPost = postService.updatePost(
-            requireNotNull(currentUser.id),
+            requireNotNull(user.id),
             postId,
             PostWriteCommand(
                 title = title,
@@ -83,7 +78,7 @@ class PostController(
                 content = content,
                 topics = topics,
                 links = links.map { PostLinkWriteCommand(label = it.label, targetSlug = it.targetSlug) },
-            )
+            ),
         )
 
         return ResponseEntity.ok(updatedPost)

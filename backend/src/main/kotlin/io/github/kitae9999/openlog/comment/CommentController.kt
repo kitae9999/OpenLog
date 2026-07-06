@@ -1,13 +1,12 @@
 package io.github.kitae9999.openlog.comment
 
-import io.github.kitae9999.openlog.auth.CurrentUserResolver
-import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.comment.dto.CommentResponse
 import io.github.kitae9999.openlog.comment.dto.CreateCommentRequest
 import io.github.kitae9999.openlog.comment.dto.UpdateCommentRequest
-import jakarta.servlet.http.HttpServletRequest
+import io.github.kitae9999.openlog.user.entity.User
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -22,59 +21,46 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/posts/{postId}/comments")
 class CommentController(
-    private val currentUserResolver: CurrentUserResolver,
     private val commentService: CommentService,
 ) {
-    @PostMapping()
+    @PostMapping
     fun createComment(
+        @AuthenticationPrincipal user: User,
         @PathVariable postId: Long, // @PathVariable("postId") postId: Long 축약형
         @Valid @RequestBody createCommentRequest: CreateCommentRequest,
-        request: HttpServletRequest,
     ): ResponseEntity<CommentResponse> {
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
-        val content = createCommentRequest.content
-        val createdComment = commentService.createComment(currentUser, postId, content)
+        val createdComment = commentService.createComment(user, postId, createCommentRequest.content)
 
         return ResponseEntity.status(201).body(createdComment)
     }
 
-    @GetMapping()
+    @GetMapping
     fun getPostComments(
+        @AuthenticationPrincipal user: User?,
         @PathVariable postId: Long,
-        request: HttpServletRequest,
     ): List<CommentResponse> {
-        return commentService.getPostComments(postId, resolveUserIdOrNull(request))
-    }
-
-    private fun resolveUserIdOrNull(request: HttpServletRequest): Long? {
-        return try {
-            currentUserResolver.resolveUserIdFromJwt(request)
-        } catch (e: OAuthAuthenticationException) {
-            null
-        }
+        return commentService.getPostComments(postId, user?.id)
     }
 
     @DeleteMapping("{commentId}")
     fun deleteComment(
-        @PathVariable commentId: Long,
+        @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
-        request: HttpServletRequest,
+        @PathVariable commentId: Long,
     ): ResponseEntity<Void> {
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
-        commentService.deleteComment(requireNotNull(currentUser.id), postId, commentId)
+        commentService.deleteComment(requireNotNull(user.id), postId, commentId)
         return ResponseEntity.noContent().build()
     }
 
     @PatchMapping("{commentId}")
     fun updateComment(
-        @PathVariable commentId: Long,
+        @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
+        @PathVariable commentId: Long,
         @Valid @RequestBody updateCommentRequest: UpdateCommentRequest,
-        request: HttpServletRequest,
     ): ResponseEntity<CommentResponse> {
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
         val updatedComment = commentService.updateComment(
-            requireNotNull(currentUser.id),
+            requireNotNull(user.id),
             postId,
             commentId,
             updateCommentRequest.content,

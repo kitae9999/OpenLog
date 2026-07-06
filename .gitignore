@@ -36,6 +36,10 @@ out/
 ### VS Code ###
 .vscode/
 
+### Cursor / Claude ###
+.claude/
+.cursor/
+
 ### Kotlin ###
 .kotlin
 
