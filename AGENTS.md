@@ -5,6 +5,7 @@
 - 문서화 요청은 반드시 `_docs/` 하위 표준 경로에만 작성한다.
 - 기능 코드 디렉토리(`backend/`, `frontend/`, `src/`)에 문서를 신규 생성하지 않는다.
 - 사용자가 예외 경로를 명시한 경우에만 해당 경로를 사용하되, 해당 문서 유형의 템플릿 구조는 유지한다.
+- 커밋·PR·문서에 Cursor 작성자/서명을 넣지 않는다 (`Co-authored-by: Cursor`, `Made with Cursor` 등). 상세: `.cursor/rules/no-cursor-attribution.mdc`
 
 ## 요청별 지침 라우팅
 - PR 문서 작성/자동 생성/PR 템플릿 작성: `_docs/PR/INSTRUCTIONS.md`만 읽는다.

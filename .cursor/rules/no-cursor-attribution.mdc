@@ -1,0 +1,27 @@
+---
+description: 커밋·PR·문서에 Cursor 작성자/서명 금지
+alwaysApply: true
+---
+
+# Cursor attribution 금지
+
+커밋, PR, 문서, 이슈 본문에 **Cursor 관련 작성자·서명·홍보 문구를 넣지 않는다.**
+
+## 금지 (예시)
+
+- `Co-authored-by: Cursor <cursoragent@cursor.com>`
+- `Made with Cursor` / `Built with Cursor`
+- PR 본문·커밋 메시지·changelog에 Cursor를 작성자·기여자로 표기
+- 기타 에이전트/도구 자동 서명 trailer
+
+## 적용 범위
+
+- `git commit` 메시지 (본문·trailer 포함)
+- `gh pr create` 본문·제목
+- `_docs/PR/`, `_docs/issues/` 등 저장소 문서
+
+## 커밋 시
+
+- 커밋 메시지는 **변경 내용만** 작성한다.
+- 환경이 `Co-authored-by`를 자동 삽입하면 **사용자에게 알리거나**, `git commit-tree` 등으로 **trailer 없이** 다시 작성한다.
+- 사용자가 명시적으로 Cursor attribution을 요청한 경우에만 예외.
