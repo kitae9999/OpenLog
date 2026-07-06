@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("posts")
+@RequestMapping("/posts")
 class PostController(
     private val postService: PostService,
 ) {
@@ -52,7 +52,7 @@ class PostController(
         return ResponseEntity.status(201).body(createdPost)
     }
 
-    @DeleteMapping("{postId}")
+    @DeleteMapping("/{postId}")
     fun deletePost(
         @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
@@ -62,7 +62,7 @@ class PostController(
         return ResponseEntity.noContent().build()
     }
 
-    @PutMapping("{postId}")
+    @PutMapping("/{postId}")
     fun updatePost(
         @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,

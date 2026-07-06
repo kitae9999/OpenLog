@@ -29,7 +29,7 @@ import java.net.URI
 import java.time.Duration
 
 @RestController
-@RequestMapping("auth")
+@RequestMapping("/auth")
 class AuthController(
     private val authService: AuthService,
     private val deviceAuthService: DeviceAuthService,
@@ -41,7 +41,7 @@ class AuthController(
     private val frontendHomeUrl: String,
 ) {
 
-    @PostMapping("logout")
+    @PostMapping("/logout")
     fun logOut(
         response: HttpServletResponse,
     ): ResponseEntity<Void> {
@@ -55,14 +55,14 @@ class AuthController(
         return ResponseEntity.noContent().build()
     }
 
-    @GetMapping("me")
+    @GetMapping("/me")
     fun getMe(
         @AuthenticationPrincipal user: User,
     ): MeResponse {
         return user.toMeResponse() // 코틀린 확장 함수 (메서드 아님)
     }
 
-    @PostMapping("onboarding")
+    @PostMapping("/onboarding")
     fun completeOnboarding(
         @AuthenticationPrincipal user: User,
         @Valid @RequestBody onboardingRequest: CompleteOnboardingRequest,
@@ -75,12 +75,12 @@ class AuthController(
         return onboardedUser.toMeResponse()
     }
 
-    @PostMapping("device/start")
+    @PostMapping("/device/start")
     fun startDeviceLogin(): DeviceStartResponse {
         return deviceAuthService.start()
     }
 
-    @PostMapping("device/approve")
+    @PostMapping("/device/approve")
     fun approveDeviceLogin(
         @AuthenticationPrincipal user: User,
         @RequestBody deviceApproveRequest: DeviceApproveRequest,
@@ -90,14 +90,14 @@ class AuthController(
         return ResponseEntity.noContent().build()
     }
 
-    @PostMapping("device/token")
+    @PostMapping("/device/token")
     fun getDeviceToken(
         @RequestBody deviceTokenRequest: DeviceTokenRequest,
     ): DeviceTokenResponse {
         return deviceAuthService.token(deviceTokenRequest.deviceCode)
     }
 
-    @GetMapping("google")
+    @GetMapping("/google")
     fun redirectToGoogleOAuth(
         @RequestParam(required = false) returnTo: String?,
     ): ResponseEntity<Void> {
@@ -117,7 +117,7 @@ class AuthController(
             .build()
     }
 
-    @GetMapping("github")
+    @GetMapping("/github")
     fun redirectToGithubOAuth(
         session: HttpSession,
         @RequestParam(required = false) returnTo: String?,
@@ -138,7 +138,7 @@ class AuthController(
             .build()
     }
 
-    @GetMapping("google/callback")
+    @GetMapping("/google/callback")
     fun hangleGoogleCallback(
         @RequestParam code: String,
         @RequestParam state: String,

@@ -42,7 +42,7 @@ class CommentController(
         return commentService.getPostComments(postId, user?.id)
     }
 
-    @DeleteMapping("{commentId}")
+    @DeleteMapping("/{commentId}")
     fun deleteComment(
         @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
@@ -52,7 +52,7 @@ class CommentController(
         return ResponseEntity.noContent().build()
     }
 
-    @PatchMapping("{commentId}")
+    @PatchMapping("/{commentId}")
     fun updateComment(
         @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,

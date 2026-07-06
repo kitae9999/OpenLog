@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("users/{username}")
+@RequestMapping("/users/{username}")
 class FollowController(
     private val followService: FollowService,
 ) {

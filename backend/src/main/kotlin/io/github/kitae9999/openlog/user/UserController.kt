@@ -18,11 +18,11 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("users")
+@RequestMapping("/users")
 class UserController(
     private val userService: UserService,
 ) {
-    @GetMapping("me/following/posts")
+    @GetMapping("/me/following/posts")
     fun getFollowingPosts(
         @AuthenticationPrincipal user: User,
         @RequestParam(required = false) cursor: String?,
@@ -31,7 +31,7 @@ class UserController(
         return userService.getFollowingPosts(requireNotNull(user.id), cursor, size)
     }
 
-    @GetMapping("me/liked-posts")
+    @GetMapping("/me/liked-posts")
     fun getLikedPosts(
         @AuthenticationPrincipal user: User,
         @RequestParam(required = false) cursor: String?,
@@ -40,7 +40,7 @@ class UserController(
         return userService.getLikedPosts(requireNotNull(user.id), cursor, size)
     }
 
-    @GetMapping("{username}")
+    @GetMapping("/{username}")
     fun getPublicProfile(
         @PathVariable username: String,
         @AuthenticationPrincipal user: User?,
@@ -48,21 +48,21 @@ class UserController(
         return userService.getPublicProfile(username, user?.id)
     }
 
-    @GetMapping("{username}/posts")
+    @GetMapping("/{username}/posts")
     fun getPublicPosts(
         @PathVariable username: String,
     ): List<PublicUserPostSummaryResponse> {
         return userService.getPublicPosts(username)
     }
 
-    @GetMapping("{username}/post-graph")
+    @GetMapping("/{username}/post-graph")
     fun getPublicPostGraph(
         @PathVariable username: String,
     ): PublicUserPostGraphResponse {
         return userService.getPublicPostGraph(username)
     }
 
-    @GetMapping("{username}/posts/{titleSlug}")
+    @GetMapping("/{username}/posts/{titleSlug}")
     fun getPublicPostDetail(
         @PathVariable username: String,
         @PathVariable titleSlug: String,
@@ -71,7 +71,7 @@ class UserController(
         return userService.getPublicPostDetail(username, titleSlug, user?.id)
     }
 
-    @PatchMapping("{username}")
+    @PatchMapping("/{username}")
     fun updateProfile(
         @AuthenticationPrincipal user: User,
         @PathVariable username: String,

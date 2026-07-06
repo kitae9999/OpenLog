@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController
 class WorkspaceLogController(
     private val workspaceLogService: WorkspaceLogService,
 ) {
-    @GetMapping("{workspaceId}/logs")
+    @GetMapping("/{workspaceId}/logs")
     fun getLogs(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
@@ -41,7 +41,7 @@ class WorkspaceLogController(
         )
     }
 
-    @GetMapping("{workspaceId}/logs/{logId}")
+    @GetMapping("/{workspaceId}/logs/{logId}")
     fun getLogDetail(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
@@ -54,7 +54,7 @@ class WorkspaceLogController(
         )
     }
 
-    @PostMapping("{workspaceId}/logs")
+    @PostMapping("/{workspaceId}/logs")
     fun createLog(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
@@ -65,7 +65,7 @@ class WorkspaceLogController(
         return ResponseEntity.status(201).body(createdLog)
     }
 
-    @PutMapping("{workspaceId}/logs/{logId}")
+    @PutMapping("/{workspaceId}/logs/{logId}")
     fun updateLog(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
@@ -80,7 +80,7 @@ class WorkspaceLogController(
         )
     }
 
-    @DeleteMapping("{workspaceId}/logs/{logId}")
+    @DeleteMapping("/{workspaceId}/logs/{logId}")
     fun deleteLog(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,

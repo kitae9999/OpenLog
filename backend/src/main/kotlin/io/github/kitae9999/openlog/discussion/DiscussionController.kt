@@ -36,7 +36,7 @@ class DiscussionController(
         return ResponseEntity.status(201).body(discussion)
     }
 
-    @DeleteMapping("{discussionId}")
+    @DeleteMapping("/{discussionId}")
     fun deleteDiscussion(
         @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
@@ -53,7 +53,7 @@ class DiscussionController(
         return ResponseEntity.noContent().build()
     }
 
-    @PatchMapping("{discussionId}")
+    @PatchMapping("/{discussionId}")
     fun updateDiscussion(
         @AuthenticationPrincipal user: User,
         @Valid @RequestBody updateDiscussionRequest: WriteDiscussionRequest,

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("notifications")
+@RequestMapping("/notifications")
 class NotificationController(
     private val notificationService: NotificationService,
 ) {
@@ -27,7 +27,7 @@ class NotificationController(
         )
     }
 
-    @PatchMapping("{notificationId}/read")
+    @PatchMapping("/{notificationId}/read")
     fun markNotificationRead(
         @AuthenticationPrincipal user: User,
         @PathVariable notificationId: Long,

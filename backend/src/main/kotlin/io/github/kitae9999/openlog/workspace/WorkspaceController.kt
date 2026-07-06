@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("workspaces")
+@RequestMapping("/workspaces")
 class WorkspaceController(
     private val workspaceService: WorkspaceService,
 ) {
@@ -28,7 +28,7 @@ class WorkspaceController(
         return workspaceService.getWorkspaces(requireNotNull(user.id))
     }
 
-    @GetMapping("{workspaceId}")
+    @GetMapping("/{workspaceId}")
     fun getWorkspace(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
@@ -46,7 +46,7 @@ class WorkspaceController(
         return ResponseEntity.status(201).body(createdWorkspace)
     }
 
-    @PutMapping("{workspaceId}")
+    @PutMapping("/{workspaceId}")
     fun updateWorkspace(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
@@ -59,7 +59,7 @@ class WorkspaceController(
         )
     }
 
-    @DeleteMapping("{workspaceId}")
+    @DeleteMapping("/{workspaceId}")
     fun deleteWorkspace(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,

@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 class WorkspaceTaskController(
     private val workspaceTaskService: WorkspaceTaskService,
 ) {
-    @GetMapping("{workspaceId}/tasks")
+    @GetMapping("/{workspaceId}/tasks")
     fun getTasks(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
@@ -40,7 +40,7 @@ class WorkspaceTaskController(
         )
     }
 
-    @GetMapping("{workspaceId}/tasks/{taskId}")
+    @GetMapping("/{workspaceId}/tasks/{taskId}")
     fun getTaskDetail(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
@@ -53,7 +53,7 @@ class WorkspaceTaskController(
         )
     }
 
-    @PostMapping("{workspaceId}/tasks")
+    @PostMapping("/{workspaceId}/tasks")
     fun createTasks(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
@@ -64,7 +64,7 @@ class WorkspaceTaskController(
         return ResponseEntity.status(201).body(createdTask)
     }
 
-    @PutMapping("{workspaceId}/tasks/{taskId}")
+    @PutMapping("/{workspaceId}/tasks/{taskId}")
     fun updateTask(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
@@ -79,7 +79,7 @@ class WorkspaceTaskController(
         )
     }
 
-    @DeleteMapping("{workspaceId}/tasks/{taskId}")
+    @DeleteMapping("/{workspaceId}/tasks/{taskId}")
     fun deleteTask(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,

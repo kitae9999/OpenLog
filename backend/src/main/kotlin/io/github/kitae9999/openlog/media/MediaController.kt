@@ -22,11 +22,11 @@ import java.net.URI
 import java.util.UUID
 
 @RestController
-@RequestMapping("media")
+@RequestMapping("/media")
 class MediaController(
     private val mediaService: MediaService,
 ) {
-    @PostMapping("upload-url")
+    @PostMapping("/upload-url")
     fun createUploadUrl(
         @AuthenticationPrincipal user: User,
         @Valid @RequestBody createMediaUploadUrlRequest: CreateMediaUploadUrlRequest,
@@ -39,7 +39,7 @@ class MediaController(
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
     }
 
-    @GetMapping("assets/{assetId}")
+    @GetMapping("/assets/{assetId}")
     fun redirectToAsset(
         @AuthenticationPrincipal user: User?,
         @PathVariable assetId: UUID,
@@ -52,7 +52,7 @@ class MediaController(
             .build()
     }
 
-    @PatchMapping("assets/{assetId}/completion")
+    @PatchMapping("/assets/{assetId}/completion")
     fun completeUpload(
         @AuthenticationPrincipal user: User,
         @PathVariable assetId: UUID,
