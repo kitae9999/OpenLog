@@ -88,6 +88,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.PATCH, "/media/assets/*/completion").authenticated()
 
                     // workspace — logs/tasks 전부 인증 필요 (owner 검사는 WorkspaceAccessResolver)
+                    .requestMatchers("/workspaces", "/workspaces/**").authenticated()
                     .requestMatchers("/*/logs", "/*/logs/**").authenticated()
                     .requestMatchers("/*/tasks", "/*/tasks/**").authenticated()
 
