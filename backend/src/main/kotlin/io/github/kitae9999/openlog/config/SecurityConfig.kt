@@ -1,10 +1,14 @@
 package io.github.kitae9999.openlog.config
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.github.kitae9999.openlog.auth.GithubOAuthSuccessHandler
 import io.github.kitae9999.openlog.auth.JwtAuthenticationFilter
+import io.github.kitae9999.openlog.common.exception.ErrorResponse
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
+import org.springframework.http.MediaType
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -16,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 class SecurityConfig(
     private val githubOAuthSuccessHandler: GithubOAuthSuccessHandler,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val objectMapper: ObjectMapper,
 ) {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -88,6 +93,35 @@ class SecurityConfig(
 
                     // 위 규칙에 없는 경로는 공개 (optional auth는 컨트롤러에서 처리)
                     .anyRequest().permitAll()
+            }
+            .exceptionHandling {
+                // authenticated() URL에 principal 없이 접근하면 기본 동작은 oauth2Login redirect(302)다.
+                // API·SSR fetch는 401 JSON을 기대하므로 GlobalExceptionHandler와 같은 ErrorResponse 형식으로 응답한다.
+                it.authenticationEntryPoint { _, response, _ ->
+                    response.status = HttpServletResponse.SC_UNAUTHORIZED
+                    response.contentType = MediaType.APPLICATION_JSON_VALUE
+                    response.characterEncoding = Charsets.UTF_8.name()
+                    objectMapper.writeValue(
+                        response.outputStream,
+                        ErrorResponse(
+                            code = "UNAUTHORIZED",
+                            message = "로그인이 필요합니다.",
+                        ),
+                    )
+                }
+                // 로그인은 됐으나 권한이 부족한 경우(hasRole 등) 403 JSON을 반환한다.
+                it.accessDeniedHandler { _, response, _ ->
+                    response.status = HttpServletResponse.SC_FORBIDDEN
+                    response.contentType = MediaType.APPLICATION_JSON_VALUE
+                    response.characterEncoding = Charsets.UTF_8.name()
+                    objectMapper.writeValue(
+                        response.outputStream,
+                        ErrorResponse(
+                            code = "FORBIDDEN",
+                            message = "권한이 없습니다.",
+                        ),
+                    )
+                }
             }
             .oauth2Login {
                 it.successHandler(githubOAuthSuccessHandler)
