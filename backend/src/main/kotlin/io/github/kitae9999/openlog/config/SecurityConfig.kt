@@ -20,7 +20,7 @@ class SecurityConfig (
             .sessionManagement {
                 it.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
             }
-            .authorizeHttpRequests {
+            .authorizeHttpRequests { // 인가 규칙 설정, AuthorizationFilter에 연결
                 it
                     .requestMatchers( // 일단 모든 요청에 대해 인증여부 필터링걸어두지않음. todo: post생성, suggest생성같은 로그인 권한이 필요한 경로에 authenticated걸어두기
                         "/oauth2/**",
