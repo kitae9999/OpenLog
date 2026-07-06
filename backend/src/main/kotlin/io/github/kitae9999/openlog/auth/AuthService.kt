@@ -13,8 +13,8 @@ import io.github.kitae9999.openlog.auth.repository.OauthAccountRepository
 import io.github.kitae9999.openlog.common.exception.UsernameAlreadyTakenException
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
-import io.github.kitae9999.openlog.worklog.entity.Workspace
-import io.github.kitae9999.openlog.worklog.repository.WorkspaceRepository
+import io.github.kitae9999.openlog.workspace.entity.Workspace
+import io.github.kitae9999.openlog.workspace.repository.WorkspaceRepository
 import jakarta.transaction.Transactional
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate

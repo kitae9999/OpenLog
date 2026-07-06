@@ -1,8 +1,9 @@
-package io.github.kitae9999.openlog.worklog
+package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
-import io.github.kitae9999.openlog.worklog.dto.WorkspaceLogCursorResponse
-import io.github.kitae9999.openlog.worklog.dto.WorkspaceLogResponse
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogCursorResponse
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogResponse
+import jakarta.persistence.Id
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
@@ -37,6 +38,15 @@ class WorkspaceLogController(
             cursor,
             size,
         )
+    }
+
+    @GetMapping("{workspaceId}/logs/{logId}")
+    fun getLogDetail(
+        request: HttpServletRequest,
+        @PathVariable workspaceId: Long,
+        @PathVariable logId: Long,
+    ){
+
     }
 
     @PostMapping("{workspaceId}/logs")

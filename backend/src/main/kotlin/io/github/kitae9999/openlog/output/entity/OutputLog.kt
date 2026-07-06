@@ -1,6 +1,6 @@
 package io.github.kitae9999.openlog.output.entity
 
-import io.github.kitae9999.openlog.worklog.entity.WorkspaceLog
+import io.github.kitae9999.openlog.workspace.entity.WorkspaceLog
 import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType

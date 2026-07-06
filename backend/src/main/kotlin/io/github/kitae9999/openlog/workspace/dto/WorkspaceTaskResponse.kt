@@ -1,4 +1,4 @@
-package io.github.kitae9999.openlog.worktask.dto
+package io.github.kitae9999.openlog.workspace.dto
 
 import io.github.kitae9999.openlog.task.entity.TaskStatus
 

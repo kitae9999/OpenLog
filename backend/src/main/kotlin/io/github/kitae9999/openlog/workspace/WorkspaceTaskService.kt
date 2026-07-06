@@ -1,26 +1,21 @@
-package io.github.kitae9999.openlog.worktask
+package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
-import io.github.kitae9999.openlog.common.exception.ForbiddenException
-import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.task.entity.TaskStatus
 import io.github.kitae9999.openlog.task.entity.WorkspaceTask
 import io.github.kitae9999.openlog.task.repository.WorkspaceTaskRepository
 import io.github.kitae9999.openlog.user.entity.User
-import io.github.kitae9999.openlog.worklog.entity.Workspace
-import io.github.kitae9999.openlog.worklog.repository.WorkspaceRepository
-import io.github.kitae9999.openlog.worktask.dto.WorkspaceTaskCursorResponse
-import io.github.kitae9999.openlog.worktask.dto.WorkspaceTaskResponse
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskResponse
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import kotlin.jvm.optionals.getOrNull
 
 @Service
 class WorkspaceTaskService(
     private val workspaceTaskRepository: WorkspaceTaskRepository,
-    private val workspaceRepository: WorkspaceRepository,
+    private val workspaceAccessResolver: WorkspaceAccessResolver,
 ) {
     @Transactional(readOnly = true)
     fun getTasks(
@@ -30,7 +25,7 @@ class WorkspaceTaskService(
         cursor: String?,
         size: Int,
     ): WorkspaceTaskCursorResponse {
-        resolveWorkspace(userId, workspaceId)
+        workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
 
         return findTasksByCursor(
             cursor = cursor,
@@ -70,15 +65,9 @@ class WorkspaceTaskService(
         )
     }
 
-    private fun resolveWorkspace(userId: Long, workspaceId: Long): Workspace {
-        val workspace = workspaceRepository.findById(workspaceId).getOrNull()
-            ?: throw NotFoundException("워크스페이스를 찾을 수 없습니다.")
-
-        if (workspace.owner.id != userId) {
-            throw ForbiddenException("권한이 없는 요청입니다.")
-        }
-
-        return workspace
+    fun getTaskDetail(userId: Long, workspaceId: Long, taskId: Long): WorkspaceTask {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        return workspaceAccessResolver.requireOwnedTask(workspace, taskId)
     }
 
     private fun findTasksByCursor(

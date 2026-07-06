@@ -1,31 +1,23 @@
-package io.github.kitae9999.openlog.worklog
+package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
-import io.github.kitae9999.openlog.common.exception.ForbiddenException
-import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.worklog.dto.WorkspaceLogCursorResponse
-import io.github.kitae9999.openlog.worklog.dto.WorkspaceLogResponse
-import io.github.kitae9999.openlog.worklog.entity.LogKind
-import io.github.kitae9999.openlog.worklog.entity.LogStatus
-import io.github.kitae9999.openlog.worklog.entity.WorkspaceLog
-import io.github.kitae9999.openlog.worklog.repository.WorkspaceLogRepository
-import io.github.kitae9999.openlog.task.entity.WorkspaceTask
-import io.github.kitae9999.openlog.task.repository.WorkspaceTaskRepository
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogCursorResponse
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogResponse
+import io.github.kitae9999.openlog.workspace.entity.LogKind
+import io.github.kitae9999.openlog.workspace.entity.LogStatus
+import io.github.kitae9999.openlog.workspace.entity.WorkspaceLog
+import io.github.kitae9999.openlog.workspace.repository.WorkspaceLogRepository
 import io.github.kitae9999.openlog.user.entity.User
-import io.github.kitae9999.openlog.worklog.entity.Workspace
-import io.github.kitae9999.openlog.worklog.repository.WorkspaceRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import kotlin.jvm.optionals.getOrNull
 
 @Service
 class WorkspaceLogService(
     private val workspaceLogRepository: WorkspaceLogRepository,
-    private val workspaceRepository: WorkspaceRepository,
-    private val workspaceTaskRepository: WorkspaceTaskRepository,
+    private val workspaceAccessResolver: WorkspaceAccessResolver,
 ) {
     @Transactional(readOnly = true)
     fun getLogs(
@@ -35,9 +27,9 @@ class WorkspaceLogService(
         cursor: String?,
         size: Int,
     ): WorkspaceLogCursorResponse {
-        val workspace = resolveWorkspace(userId, workspaceId)
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
         if (taskId != null) {
-            resolveTask(workspace, taskId)
+            workspaceAccessResolver.resolveTask(workspace, taskId)
         }
 
         return findLogsByCursor(
@@ -78,8 +70,8 @@ class WorkspaceLogService(
 
     @Transactional
     fun createLog(user: User, workspaceId: Long, request: CreateWorkspaceLogRequest): WorkspaceLogResponse {
-        val workspace = resolveWorkspace(requireNotNull(user.id), workspaceId)
-        val task = resolveTask(workspace, request.taskId)
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(requireNotNull(user.id), workspaceId)
+        val task = workspaceAccessResolver.resolveTask(workspace, request.taskId)
         val title = request.title.trim()
         val content = request.content.trim()
         val summary = request.summary?.trim()?.takeIf { it.isNotEmpty() }
@@ -103,38 +95,6 @@ class WorkspaceLogService(
         val savedLog = workspaceLogRepository.save(log)
 
         return toResponse(savedLog)
-    }
-
-    private fun resolveWorkspace(userId: Long, workspaceId: Long): Workspace {
-        val workspace = workspaceRepository.findById(workspaceId).getOrNull()
-            ?: throw NotFoundException("워크스페이스를 찾을 수 없습니다.")
-
-        if (workspace.owner.id != userId) {
-            throw ForbiddenException("권한이 없는 요청입니다.")
-        }
-
-        return workspace
-    }
-
-    /**
-     * taskid로 task 인스턴스 조회 및 반환
-     */
-    private fun resolveTask(
-        workspace: Workspace,
-        taskId: Long?,
-    ): WorkspaceTask? {
-        if (taskId == null) {
-            return null
-        }
-
-        val task = workspaceTaskRepository.findById(taskId).getOrNull()
-            ?: throw NotFoundException("태스크를 찾을 수 없습니다.")
-
-        if (task.workspace.id != workspace.id) {
-            throw BadRequestException("현재 워크스페이스에 속한 태스크만 연결할 수 있습니다.")
-        }
-
-        return task
     }
 
     private fun findLogsByCursor(

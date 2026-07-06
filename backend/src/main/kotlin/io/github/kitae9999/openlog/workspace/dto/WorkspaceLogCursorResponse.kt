@@ -1,4 +1,4 @@
-package io.github.kitae9999.openlog.worklog.dto
+package io.github.kitae9999.openlog.workspace.dto
 
 data class WorkspaceLogCursorResponse(
     val logs: List<WorkspaceLogResponse>,

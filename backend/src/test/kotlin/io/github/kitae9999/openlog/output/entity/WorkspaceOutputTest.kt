@@ -1,7 +1,7 @@
 package io.github.kitae9999.openlog.output.entity
 
 import io.github.kitae9999.openlog.user.entity.User
-import io.github.kitae9999.openlog.worklog.entity.Workspace
+import io.github.kitae9999.openlog.workspace.entity.Workspace
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

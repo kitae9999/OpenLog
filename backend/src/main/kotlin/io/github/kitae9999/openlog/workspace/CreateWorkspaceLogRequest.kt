@@ -1,7 +1,7 @@
-package io.github.kitae9999.openlog.worklog
+package io.github.kitae9999.openlog.workspace
 
-import io.github.kitae9999.openlog.worklog.entity.LogKind
-import io.github.kitae9999.openlog.worklog.entity.LogStatus
+import io.github.kitae9999.openlog.workspace.entity.LogKind
+import io.github.kitae9999.openlog.workspace.entity.LogStatus
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 

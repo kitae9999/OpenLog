@@ -1,8 +1,8 @@
-package io.github.kitae9999.openlog.worktask
+package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.auth.CurrentUserResolver
 import io.github.kitae9999.openlog.task.entity.TaskStatus
-import io.github.kitae9999.openlog.worktask.dto.WorkspaceTaskCursorResponse
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable

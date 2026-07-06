@@ -1,10 +1,10 @@
 package io.github.kitae9999.openlog.log.entity
 
 import io.github.kitae9999.openlog.user.entity.User
-import io.github.kitae9999.openlog.worklog.entity.LogKind
-import io.github.kitae9999.openlog.worklog.entity.LogStatus
-import io.github.kitae9999.openlog.worklog.entity.Workspace
-import io.github.kitae9999.openlog.worklog.entity.WorkspaceLog
+import io.github.kitae9999.openlog.workspace.entity.LogKind
+import io.github.kitae9999.openlog.workspace.entity.LogStatus
+import io.github.kitae9999.openlog.workspace.entity.Workspace
+import io.github.kitae9999.openlog.workspace.entity.WorkspaceLog
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
