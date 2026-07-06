@@ -46,19 +46,4 @@ class JwtAuthenticationFilter(
 
         filterChain.doFilter(request, response)
     }
-
-    private fun resolveUserIdFromJwt(request: HttpServletRequest): Long {
-        val accessToken = request.cookies
-            ?.firstOrNull { it.name == accessTokenCookieName }
-            ?.value
-            ?: throw OAuthAuthenticationException()
-
-        return jwtTokenService.parseUserId(accessToken)
-    }
-
-    fun resolveCurrentUser(request: HttpServletRequest): User {
-        val userId = resolveUserIdFromJwt(request)
-        return userRepository.findById(userId).getOrNull()
-            ?: throw OAuthAuthenticationException()
-    }
 }
