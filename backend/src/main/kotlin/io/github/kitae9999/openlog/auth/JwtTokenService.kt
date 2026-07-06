@@ -24,7 +24,9 @@ class JwtTokenService(
 ) {
     private val signingKey: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray(StandardCharsets.UTF_8))
 
-
+    /**
+     * accessToken에서 userId 추출
+     */
     fun parseUserId(accessToken: String): Long {
         val claims = try {
             Jwts.parser()
@@ -40,6 +42,10 @@ class JwtTokenService(
             ?.toLongOrNull()
             ?: throw OAuthAuthenticationException()
     }
+
+    /**
+     * OpenLog용 AccessToken 생성
+     */
     fun createAccessToken(user: User): String {
         val userId = requireNotNull(user.id) { "JWT 발급 대상 사용자는 영속화되어 있어야 합니다." }
         val now = Instant.now()
