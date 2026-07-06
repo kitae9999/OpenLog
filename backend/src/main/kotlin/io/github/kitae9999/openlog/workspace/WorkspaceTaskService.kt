@@ -6,6 +6,7 @@ import io.github.kitae9999.openlog.task.entity.TaskStatus
 import io.github.kitae9999.openlog.task.entity.WorkspaceTask
 import io.github.kitae9999.openlog.task.repository.WorkspaceTaskRepository
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.workspace.dto.CreateTaskRequest
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskResponse
 import org.springframework.data.domain.PageRequest
@@ -65,9 +66,26 @@ class WorkspaceTaskService(
         )
     }
 
+    @Transactional(readOnly = true)
     fun getTaskDetail(userId: Long, workspaceId: Long, taskId: Long): WorkspaceTask {
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
         return workspaceAccessResolver.requireOwnedTask(workspace, taskId)
+    }
+
+    @Transactional
+    fun createTask(user: User, workspaceId: Long, request: CreateTaskRequest): WorkspaceTaskResponse {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(requireNotNull(user.id), workspaceId)
+        val task = WorkspaceTask(
+            workspace = workspace,
+            author = user,
+            title = request.title.trim(),
+            description = request.description?.trim()?.takeIf { it.isNotEmpty() },
+            content = request.content?.trim()?.takeIf { it.isNotEmpty() },
+            status = request.status,
+        )
+        val savedTask = workspaceTaskRepository.save(task)
+
+        return toResponse(savedTask)
     }
 
     private fun findTasksByCursor(
