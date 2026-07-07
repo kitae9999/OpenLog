@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
+import io.github.kitae9999.openlog.common.resolveAuthorName
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.workspace.entity.TaskStatus
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
@@ -181,15 +182,6 @@ class WorkspaceTaskService(
             createdAt = task.createdAt.toString(),
             updatedAt = task.updatedAt.toString(),
         )
-    }
-
-    private fun resolveAuthorName(user: User): String {
-        return when {
-            !user.nickname.isNullOrBlank() -> user.nickname.orEmpty()
-            !user.username.isNullOrBlank() -> user.username.orEmpty()
-            !user.email.isNullOrBlank() -> user.email.orEmpty()
-            else -> "OpenLog member"
-        }
     }
 
     companion object {

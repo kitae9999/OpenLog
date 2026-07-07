@@ -1,5 +1,6 @@
 package io.github.kitae9999.openlog.discussion
 
+import io.github.kitae9999.openlog.common.resolveAuthorName
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.discussion.dto.DiscussionResponse
@@ -72,15 +73,6 @@ class DiscussionService (
             createdAt = discussion.createdAt.toString(),
             canManage = currentUserId == authorId,
         )
-    }
-
-    private fun resolveAuthorName(user: User): String {
-        return when {
-            !user.nickname.isNullOrBlank() -> user.nickname.orEmpty()
-            !user.username.isNullOrBlank() -> user.username.orEmpty()
-            !user.email.isNullOrBlank() -> user.email.orEmpty()
-            else -> "OpenLog member"
-        }
     }
 
     private fun getManageableDiscussion(

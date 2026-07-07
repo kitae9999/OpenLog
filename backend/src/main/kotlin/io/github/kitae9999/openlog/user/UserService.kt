@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.user
 
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
+import io.github.kitae9999.openlog.common.resolveAuthorName
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
@@ -15,7 +16,6 @@ import io.github.kitae9999.openlog.post.extractFirstMarkdownImageSrc
 import io.github.kitae9999.openlog.post.formatPublishedAtLabel
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
-import io.github.kitae9999.openlog.post.resolveAuthorName
 import io.github.kitae9999.openlog.postlike.PostLikeRepository
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
 import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
@@ -196,7 +196,7 @@ class UserService(
             description = post.description,
             content = post.content,
             authorUsername = requireNotNull(post.author.username),
-            authorName = resolveAuthorName(post),
+            authorName = resolveAuthorName(post.author),
             authorAvatarSrc = post.author.profileImageUrl,
             publishedAtLabel = formatPublishedAtLabel(post),
             version = post.version,
@@ -280,7 +280,7 @@ class UserService(
             description = post.description,
             publishedAtLabel = formatPublishedAtLabel(post),
             authorUsername = requireNotNull(post.author.username),
-            authorName = resolveAuthorName(post),
+            authorName = resolveAuthorName(post.author),
             authorAvatarSrc = post.author.profileImageUrl,
             thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
             likes = likeCounts[postId]?.toInt() ?: 0,

@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.post
 
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
+import io.github.kitae9999.openlog.common.resolveAuthorName
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
@@ -71,7 +72,7 @@ class PostService(
                     description = post.description,
                     publishedAtLabel = formatPublishedAtLabel(post),
                     authorUsername = requireNotNull(post.author.username),
-                    authorName = resolveAuthorName(post),
+                    authorName = resolveAuthorName(post.author),
                     authorAvatarSrc = post.author.profileImageUrl,
                     thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
                     likes = likeCounts[postId]?.toInt() ?: 0,
