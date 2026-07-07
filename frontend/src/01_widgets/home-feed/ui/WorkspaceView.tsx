@@ -1,6 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import { handleOAuth } from "@/features/auth/api/handleOAuth";
 import { cn } from "@/shared/lib/cn";
+import { GitHubIcon } from "@/shared/ui/icons";
 import {
   countLogsForTask,
   countUnassignedLogs,
@@ -22,29 +25,35 @@ import {
   type WorkspaceWorkStatus,
 } from "./data";
 import { LogTypeLabel } from "./LogTypeLabel";
-import { WorkspaceGuestPrompt } from "./WorkspaceGuestPrompt";
 import { WorkspaceRepositoryLink } from "./WorkspaceRepositoryLink";
 
 export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
-  if (!isLoggedIn) {
-    return <WorkspaceGuestPrompt />;
+  const isPreview = !isLoggedIn;
+  const dashboard = <WorkspaceDashboard isPreview={isPreview} />;
+
+  if (isLoggedIn) {
+    return dashboard;
   }
 
+  return <GuestWorkspacePreview>{dashboard}</GuestWorkspacePreview>;
+}
+
+function WorkspaceDashboard({ isPreview = false }: { isPreview?: boolean }) {
   return (
     <div className="space-y-3.5">
-      <WorkspaceRepositoryLink />
+      {isPreview ? <DemoRepositoryBanner /> : <WorkspaceRepositoryLink />}
       <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-3.5">
-          <NowWorkingCard />
-          <WorkTasksCard />
-          <RecentLogsCard />
+          <NowWorkingCard isPreview={isPreview} />
+          <WorkTasksCard isPreview={isPreview} />
+          <RecentLogsCard isPreview={isPreview} />
         </div>
 
         <div className="min-w-0 space-y-3.5">
-          <TodosCard />
-          <MonthActivityCard />
-          <GraphCard />
-          <OpenIssuesCard />
+          <TodosCard isPreview={isPreview} />
+          <MonthActivityCard isPreview={isPreview} />
+          <GraphCard isPreview={isPreview} />
+          <OpenIssuesCard isPreview={isPreview} />
           <MemoryCard />
         </div>
       </div>
@@ -52,7 +61,94 @@ export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
 }
 
-function NowWorkingCard() {
+function GuestWorkspacePreview({ children }: { children: ReactNode }) {
+  return (
+    <section aria-label="Workspace preview" className="relative">
+      <div inert className="max-h-[640px] overflow-hidden xl:max-h-[860px]">
+        {children}
+      </div>
+
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-zinc-50 via-zinc-50/95 to-zinc-50/0 xl:h-[46%]"
+        aria-hidden="true"
+      />
+
+      <div className="absolute inset-x-4 top-[min(52dvh,440px)] z-10 -translate-y-1/2 sm:inset-x-auto sm:left-1/2 sm:w-[440px] sm:-translate-x-1/2 xl:top-[min(58dvh,520px)]">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white/95 p-5 shadow-[0_24px_80px_rgba(24,24,27,0.16)] backdrop-blur">
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-zinc-950 text-[19px] font-bold leading-none text-white [font-family:Georgia,serif]">
+              O
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-[18px] font-bold tracking-[-0.01em] text-zinc-950">
+                Create your workspace
+              </h2>
+              <p className="mt-1.5 text-[13.5px] leading-6 text-zinc-500">
+                Commits and coding sessions are captured automatically, then
+                become PR docs and public posts when you choose.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => handleOAuth("GITHUB", "/?tab=workspace")}
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              <GitHubIcon className="size-4" />
+              Continue with GitHub
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOAuth("GOOGLE", "/?tab=workspace")}
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-[13px] font-semibold text-zinc-950 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              <Image
+                src="/google.svg"
+                alt=""
+                width={16}
+                height={16}
+                aria-hidden="true"
+                className="size-4"
+              />
+              Continue with Google
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DemoRepositoryBanner() {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
+      <div className="px-4 py-3 sm:px-[18px]">
+        <div className="inline-flex min-w-0 items-center gap-3 rounded-xl">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-zinc-950 text-white">
+            <GitHubIcon className="size-[18px]" />
+          </span>
+          <span className="min-w-0">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-[14px] font-semibold text-zinc-950">
+                sample/openlog-demo
+              </span>
+              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                Sample
+              </span>
+            </span>
+            <span className="block text-[12px] text-zinc-400">
+              Example workspace — yours stays private
+            </span>
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function NowWorkingCard({ isPreview = false }: { isPreview?: boolean }) {
   return (
     <DashboardCard
       title="NOW WORKING"
@@ -85,14 +181,29 @@ function NowWorkingCard() {
         </dl>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <LinkButton href="/write" tone="solid" size="sm">
+          <LinkButton
+            href="/write"
+            tone="solid"
+            size="sm"
+            isPreview={isPreview}
+          >
             <IconPencil className="size-3.5" />
             Log now
           </LinkButton>
-          <LinkButton href="/write" tone="outline" size="sm">
+          <LinkButton
+            href="/write"
+            tone="outline"
+            size="sm"
+            isPreview={isPreview}
+          >
             Generate PR doc
           </LinkButton>
-          <LinkButton href="/write" tone="ghost" size="sm">
+          <LinkButton
+            href="/write"
+            tone="ghost"
+            size="sm"
+            isPreview={isPreview}
+          >
             View diff
           </LinkButton>
         </div>
@@ -101,12 +212,18 @@ function NowWorkingCard() {
   );
 }
 
-function WorkTasksCard() {
+function WorkTasksCard({ isPreview = false }: { isPreview?: boolean }) {
   return (
     <DashboardCard
       title="TASKS"
       titleAside={<TaskStatusLegend />}
-      action={<HeaderLink href={getTasksHref()} label="View all" />}
+      action={
+        <HeaderLink
+          href={getTasksHref()}
+          label="View all"
+          isPreview={isPreview}
+        />
+      }
     >
       <PanelList>
         {workspaceWorkItems.map((item) => (
@@ -114,15 +231,18 @@ function WorkTasksCard() {
             key={item.id}
             item={item}
             logCount={countLogsForTask(item.id)}
+            isPreview={isPreview}
           />
         ))}
       </PanelList>
-      <Link
+      <PreviewableLink
         href="/write"
+        isPreview={isPreview}
         className="block border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        previewClassName="block cursor-default border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-300"
       >
         + New task
-      </Link>
+      </PreviewableLink>
     </DashboardCard>
   );
 }
@@ -130,9 +250,11 @@ function WorkTasksCard() {
 function WorkItemRow({
   item,
   logCount,
+  isPreview = false,
 }: {
   item: WorkspaceWorkItem;
   logCount: number;
+  isPreview?: boolean;
 }) {
   const statusLabel =
     item.status === "doing"
@@ -152,13 +274,15 @@ function WorkItemRow({
           {statusLabel} · {logCount} log{logCount === 1 ? "" : "s"}
         </p>
       </div>
-      <Link
+      <PreviewableLink
         href={getTaskHref(item.id)}
+        isPreview={isPreview}
         aria-label={`Open ${item.title}`}
         className="shrink-0 self-center text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        previewClassName="shrink-0 self-center text-zinc-300"
       >
         <IconArrowRight className="size-4" />
-      </Link>
+      </PreviewableLink>
     </PanelItem>
   );
 }
@@ -205,7 +329,7 @@ function TaskStatusLegend() {
   );
 }
 
-function TodosCard() {
+function TodosCard({ isPreview = false }: { isPreview?: boolean }) {
   const [activeTab, setActiveTab] = useState<"today" | "week">("today");
 
   return (
@@ -215,6 +339,7 @@ function TodosCard() {
         <MiniTabs
           active={activeTab}
           onChange={setActiveTab}
+          disabled={isPreview}
           items={[
             { key: "today", label: "Today" },
             { key: "week", label: "Week" },
@@ -227,12 +352,14 @@ function TodosCard() {
           <TodoRow key={todo.id} todo={todo} />
         ))}
       </PanelList>
-      <Link
+      <PreviewableLink
         href="/write"
+        isPreview={isPreview}
         className="block border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        previewClassName="block cursor-default border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-300"
       >
         + Add todo
-      </Link>
+      </PreviewableLink>
     </DashboardCard>
   );
 }
@@ -267,11 +394,20 @@ function TodoRow({ todo }: { todo: WorkspaceTodoItem }) {
   );
 }
 
-function RecentLogsCard() {
+function RecentLogsCard({ isPreview = false }: { isPreview?: boolean }) {
   const unassignedCount = countUnassignedLogs();
 
   return (
-    <DashboardCard title="RECENT LOGS" action={<HeaderLink href={getLogsHref()} label="View all" />}>
+    <DashboardCard
+      title="RECENT LOGS"
+      action={
+        <HeaderLink
+          href={getLogsHref()}
+          label="View all"
+          isPreview={isPreview}
+        />
+      }
+    >
       {unassignedCount > 0 ? (
         <p className="px-[18px] pt-1 text-[11.5px] text-zinc-400">
           {unassignedCount} unassigned · review when ready
@@ -283,6 +419,7 @@ function RecentLogsCard() {
             key={item.id}
             item={item}
             task={item.taskId ? getTaskById(item.taskId) : undefined}
+            isPreview={isPreview}
           />
         ))}
       </div>
@@ -290,11 +427,13 @@ function RecentLogsCard() {
   );
 }
 
-function MonthActivityCard() {
+function MonthActivityCard({ isPreview = false }: { isPreview?: boolean }) {
   return (
     <DashboardCard
       title="THIS MONTH"
-      action={<HeaderLink href="/write" label="Planner" />}
+      action={
+        <HeaderLink href="/write" label="Planner" isPreview={isPreview} />
+      }
     >
       <p className="px-[18px] pt-1 text-[12px] font-medium text-zinc-500">
         {workspaceMonthLabel}
@@ -331,7 +470,8 @@ function MonthActivityCard() {
 }
 
 const GRASS_EMPTY = "bg-zinc-100";
-const GRASS_FUTURE = "border border-dashed border-orange-200/70 bg-orange-50/40";
+const GRASS_FUTURE =
+  "border border-dashed border-orange-200/70 bg-orange-50/40";
 const GRASS_LEVELS = [
   GRASS_EMPTY,
   "bg-[#fce8e0]",
@@ -376,7 +516,9 @@ function GrassCell({
       aria-label={label}
       className={cn(
         "shrink-0 rounded-[2px]",
-        size === "sm" ? "size-[11px]" : "aspect-square w-full max-w-[38px] rounded-[3px]",
+        size === "sm"
+          ? "size-[11px]"
+          : "aspect-square w-full max-w-[38px] rounded-[3px]",
         getGrassTone(logCount, isFuture),
         isToday &&
           (size === "sm"
@@ -414,14 +556,25 @@ function GrassLegend() {
   );
 }
 
-function GraphCard() {
+function GraphCard({ isPreview = false }: { isPreview?: boolean }) {
   return (
     <DashboardCard
       title="GRAPH"
-      action={<HeaderLink href="/write" label="Open full view" />}
+      action={
+        <HeaderLink
+          href="/write"
+          label="Open full view"
+          isPreview={isPreview}
+        />
+      }
     >
       <div className="mx-[18px] mt-3 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
-        <svg viewBox="0 0 264 150" fill="none" aria-hidden="true" className="block w-full">
+        <svg
+          viewBox="0 0 264 150"
+          fill="none"
+          aria-hidden="true"
+          className="block w-full"
+        >
           <path
             d="M118 78L62 44M118 78L56 110M118 78L152 34M118 78L204 57M118 78L196 116M62 44L152 34"
             stroke="#d4d4d8"
@@ -458,9 +611,12 @@ function GraphCard() {
   );
 }
 
-function OpenIssuesCard() {
+function OpenIssuesCard({ isPreview = false }: { isPreview?: boolean }) {
   return (
-    <DashboardCard title="OPEN ISSUES" action={<HeaderLink href="/write" />}>
+    <DashboardCard
+      title="OPEN ISSUES"
+      action={<HeaderLink href="/write" isPreview={isPreview} />}
+    >
       <PanelList>
         {workspaceIssues.map((issue) => (
           <PanelItem key={issue.title} align="start">
@@ -483,49 +639,71 @@ function OpenIssuesCard() {
 function WorkspaceLogRow({
   item,
   task,
+  isPreview = false,
 }: {
   item: WorkspaceLogItem;
   task?: WorkspaceWorkItem;
+  isPreview?: boolean;
 }) {
   return (
     <article className="border-t border-zinc-100 px-[18px] py-3 first:border-t-0">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-[14px] font-semibold text-zinc-950">{item.title}</h3>
+            <h3 className="text-[14px] font-semibold text-zinc-950">
+              {item.title}
+            </h3>
           </div>
           <p className="mt-0.5 text-[12.5px] leading-5 text-zinc-500">
             {item.description}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-zinc-400">
             <LogTypeLabel>{item.label}</LogTypeLabel>
-            {task ? <TaskLink label={task.title} href={getTaskHref(task.id)} /> : null}
+            {task ? (
+              <TaskLink
+                label={task.title}
+                href={getTaskHref(task.id)}
+                isPreview={isPreview}
+              />
+            ) : null}
             {item.branch ? <CodePill>{item.branch}</CodePill> : null}
             <span>{item.meta}</span>
             {item.commit ? <CodePill>{item.commit}</CodePill> : null}
           </div>
         </div>
-        <Link
+        <PreviewableLink
           href={getLogHref(item.id)}
+          isPreview={isPreview}
           aria-label={`Open ${item.title}`}
           className="shrink-0 self-center text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          previewClassName="shrink-0 self-center text-zinc-300"
         >
           <IconArrowRight className="size-4" />
-        </Link>
+        </PreviewableLink>
       </div>
     </article>
   );
 }
 
-function TaskLink({ label, href }: { label: string; href: string }) {
+function TaskLink({
+  label,
+  href,
+  isPreview = false,
+}: {
+  label: string;
+  href: string;
+  isPreview?: boolean;
+}) {
   return (
-    <Link
+    <PreviewableLink
       href={href}
+      isPreview={isPreview}
       title={label}
       className="inline-flex max-w-[148px] items-center truncate rounded-md bg-zinc-100 px-[7px] py-0.5 text-[10.5px] font-semibold text-zinc-600 transition hover:bg-zinc-200 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+      previewClassName="inline-flex max-w-[148px] cursor-default items-center truncate rounded-md bg-zinc-100 px-[7px] py-0.5 text-[10.5px] font-semibold text-zinc-400"
     >
       {label}
-    </Link>
+    </PreviewableLink>
   );
 }
 
@@ -612,10 +790,12 @@ function PanelItem({
 function MiniTabs<T extends string>({
   active,
   onChange,
+  disabled = false,
   items,
 }: {
   active: T;
   onChange: (value: T) => void;
+  disabled?: boolean;
   items: Array<{ key: T; label: string }>;
 }) {
   return (
@@ -624,7 +804,12 @@ function MiniTabs<T extends string>({
         <button
           key={item.key}
           type="button"
-          onClick={() => onChange(item.key)}
+          disabled={disabled}
+          onClick={() => {
+            if (!disabled) {
+              onChange(item.key);
+            }
+          }}
           className={cn(
             "rounded-full px-[11px] py-[3px] text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
             active === item.key
@@ -659,17 +844,21 @@ function CodePill({ children }: { children: ReactNode }) {
 function HeaderLink({
   href,
   label = "View all",
+  isPreview = false,
 }: {
   href: string;
   label?: string;
+  isPreview?: boolean;
 }) {
   return (
-    <Link
+    <PreviewableLink
       href={href}
+      isPreview={isPreview}
       className="text-[12px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+      previewClassName="cursor-default text-[12px] font-medium text-zinc-300"
     >
       {label}
-    </Link>
+    </PreviewableLink>
   );
 }
 
@@ -677,26 +866,83 @@ function LinkButton({
   href,
   tone,
   size = "md",
+  isPreview = false,
   children,
 }: {
   href: string;
   tone: "solid" | "outline" | "ghost";
   size?: "md" | "sm";
+  isPreview?: boolean;
   children: ReactNode;
 }) {
+  const className = cn(
+    "inline-flex items-center gap-1.5 font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+    size === "sm"
+      ? "h-[30px] rounded-[10px] px-[13px] text-[12.5px]"
+      : "h-9 rounded-xl px-4 text-[13.5px]",
+    tone === "solid" && "bg-zinc-950 text-white hover:bg-zinc-800",
+    tone === "outline" &&
+      "border border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-50",
+    tone === "ghost" && "text-zinc-500 hover:text-zinc-950",
+  );
+  const previewClassName = cn(
+    "inline-flex cursor-default items-center gap-1.5 font-semibold",
+    size === "sm"
+      ? "h-[30px] rounded-[10px] px-[13px] text-[12.5px]"
+      : "h-9 rounded-xl px-4 text-[13.5px]",
+    tone === "solid" && "bg-zinc-200 text-zinc-500",
+    tone === "outline" && "border border-zinc-200 bg-white text-zinc-400",
+    tone === "ghost" && "text-zinc-300",
+  );
+
+  return (
+    <PreviewableLink
+      href={href}
+      isPreview={isPreview}
+      className={className}
+      previewClassName={previewClassName}
+    >
+      {children}
+    </PreviewableLink>
+  );
+}
+
+function PreviewableLink({
+  href,
+  isPreview,
+  className,
+  previewClassName,
+  children,
+  title,
+  "aria-label": ariaLabel,
+}: {
+  href: string;
+  isPreview?: boolean;
+  className: string;
+  previewClassName?: string;
+  children: ReactNode;
+  title?: string;
+  "aria-label"?: string;
+}) {
+  if (isPreview) {
+    return (
+      <span
+        title={title}
+        aria-label={ariaLabel}
+        aria-disabled="true"
+        className={previewClassName ?? className}
+      >
+        {children}
+      </span>
+    );
+  }
+
   return (
     <Link
       href={href}
-      className={cn(
-        "inline-flex items-center gap-1.5 font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        size === "sm"
-          ? "h-[30px] rounded-[10px] px-[13px] text-[12.5px]"
-          : "h-9 rounded-xl px-4 text-[13.5px]",
-        tone === "solid" && "bg-zinc-950 text-white hover:bg-zinc-800",
-        tone === "outline" &&
-          "border border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-50",
-        tone === "ghost" && "text-zinc-500 hover:text-zinc-950",
-      )}
+      className={className}
+      title={title}
+      aria-label={ariaLabel}
     >
       {children}
     </Link>

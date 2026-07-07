@@ -17,9 +17,9 @@ import type {
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
+import { LockIcon } from "@/shared/ui/icons";
 import {
   countDoingTasks,
-  countLogsByType,
   countOpenIssues,
   feedPosts,
   getLogsHref,
@@ -451,68 +451,95 @@ export function HomeSidebar({
         <WorkspaceSwitcher isLoggedIn={isLoggedIn} onNavigate={onNavigate} />
 
         <SidebarSection label="WORKSPACE">
-          <SidebarLink
-            href={getTabHref("workspace", isLoggedIn)}
-            label="Dashboard"
-            active={activeTab === "workspace" && workspaceNav === "dashboard"}
-            icon={<IconDashboard className="size-[15px]" />}
-            onNavigate={onNavigate}
-          />
-          <SidebarLink
-            href={getTasksHref()}
-            label="Tasks"
-            badge={countDoingTasks() > 0 ? String(countDoingTasks()) : undefined}
-            active={workspaceNav === "tasks"}
-            icon={<IconTasks className="size-[15px]" />}
-            onNavigate={onNavigate}
-          />
-          <SidebarLogsGroup
-            logsFilter={logsFilter}
-            active={workspaceNav === "logs"}
-            onNavigate={onNavigate}
-          />
-          <SidebarLink
-            href={getTabHref("workspace", isLoggedIn)}
-            label="Planner"
-            icon={<IconPlanner className="size-[15px]" />}
-            onNavigate={onNavigate}
-          />
-          <SidebarLink
-            href={getTabHref("workspace", isLoggedIn)}
-            label="Graph"
-            icon={<IconGraph className="size-[15px]" />}
-            onNavigate={onNavigate}
-          />
-          <SidebarLink
-            href={getTabHref("workspace", isLoggedIn)}
-            label="Outputs"
-            icon={<IconBox className="size-[15px]" />}
-            onNavigate={onNavigate}
-          />
-          <SidebarLink
-            href={getTabHref("workspace", isLoggedIn)}
-            label="Memory"
-            icon={<IconDatabase className="size-[15px]" />}
-            onNavigate={onNavigate}
-          />
+          {isLoggedIn ? (
+            <>
+              <SidebarLink
+                href={getTabHref("workspace", isLoggedIn)}
+                label="Dashboard"
+                active={
+                  activeTab === "workspace" && workspaceNav === "dashboard"
+                }
+                icon={<IconDashboard className="size-[15px]" />}
+                onNavigate={onNavigate}
+              />
+              <SidebarLink
+                href={getTasksHref()}
+                label="Tasks"
+                badge={
+                  countDoingTasks() > 0 ? String(countDoingTasks()) : undefined
+                }
+                active={workspaceNav === "tasks"}
+                icon={<IconTasks className="size-[15px]" />}
+                onNavigate={onNavigate}
+              />
+              <SidebarLogsGroup
+                logsFilter={logsFilter}
+                active={workspaceNav === "logs"}
+                onNavigate={onNavigate}
+              />
+              <SidebarLink
+                href={getTabHref("workspace", isLoggedIn)}
+                label="Planner"
+                icon={<IconPlanner className="size-[15px]" />}
+                onNavigate={onNavigate}
+              />
+              <SidebarLink
+                href={getTabHref("workspace", isLoggedIn)}
+                label="Graph"
+                icon={<IconGraph className="size-[15px]" />}
+                onNavigate={onNavigate}
+              />
+              <SidebarLink
+                href={getTabHref("workspace", isLoggedIn)}
+                label="Outputs"
+                icon={<IconBox className="size-[15px]" />}
+                onNavigate={onNavigate}
+              />
+              <SidebarLink
+                href={getTabHref("workspace", isLoggedIn)}
+                label="Memory"
+                icon={<IconDatabase className="size-[15px]" />}
+                onNavigate={onNavigate}
+              />
+            </>
+          ) : (
+            <SidebarLink
+              href={getTabHref("workspace", isLoggedIn)}
+              label="Workspace"
+              badge="Preview"
+              active={activeTab === "workspace"}
+              icon={<LockIcon className="size-[15px]" />}
+              onNavigate={onNavigate}
+            />
+          )}
         </SidebarSection>
 
-        <SidebarSection label="PUBLISHING">
-          <SidebarLink
-            href={getTabHref("home", isLoggedIn)}
-            label="Posts"
-            active={
-              activeTab === "home" ||
-              activeTab === "following" ||
-              activeTab === "liked"
-            }
-            badge="2"
-            icon={<IconGlobe className="size-[15px]" />}
-            onNavigate={onNavigate}
-          />
-        </SidebarSection>
+        {isLoggedIn ? (
+          <SidebarSection label="PUBLISHING">
+            <SidebarLink
+              href={getTabHref("home", isLoggedIn)}
+              label="Posts"
+              active={
+                activeTab === "home" ||
+                activeTab === "following" ||
+                activeTab === "liked"
+              }
+              icon={<IconGlobe className="size-[15px]" />}
+              onNavigate={onNavigate}
+            />
+          </SidebarSection>
+        ) : null}
 
         <SidebarSection label="DISCOVER">
+          {!isLoggedIn ? (
+            <SidebarLink
+              href={getTabHref("home", isLoggedIn)}
+              label="Recent"
+              active={activeTab === "home"}
+              icon={<IconClock className="size-[15px]" />}
+              onNavigate={onNavigate}
+            />
+          ) : null}
           <SidebarLink
             href={getTabHref("explore", isLoggedIn)}
             label="Explore"
@@ -607,7 +634,6 @@ function SidebarLogsGroup({
       {isOpen ? (
         <div className="mb-1 ml-[22px] flex flex-col gap-px border-l border-zinc-200 pl-[7px]">
           {logsSubnavItems.map((item) => {
-            const count = countLogsByType(item.key);
             const badge =
               item.key === "issues" && countOpenIssues() > 0
                 ? String(countOpenIssues())
@@ -685,10 +711,7 @@ function SidebarLink({
       )}
     >
       <span
-        className={cn(
-          "shrink-0",
-          active ? "text-zinc-950" : "text-zinc-400",
-        )}
+        className={cn("shrink-0", active ? "text-zinc-950" : "text-zinc-400")}
       >
         {icon}
       </span>
@@ -1078,7 +1101,14 @@ function IconDatabase({ className }: { className?: string }) {
       className={className}
       aria-hidden="true"
     >
-      <ellipse cx="12" cy="5.5" rx="8" ry="2.8" stroke="currentColor" strokeWidth="1.8" />
+      <ellipse
+        cx="12"
+        cy="5.5"
+        rx="8"
+        ry="2.8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
       <path
         d="M4 5.5V18c0 1.6 3.6 2.8 8 2.8s8-1.2 8-2.8V5.5"
         stroke="currentColor"

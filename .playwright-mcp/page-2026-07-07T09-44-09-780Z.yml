@@ -1,0 +1,377 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e6]:
+          - button "Close sidebar" [expanded] [ref=e7]:
+            - img [ref=e8]
+          - link "O OpenLog" [ref=e9] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e10]: O
+            - generic [ref=e11]: OpenLog
+        - generic [ref=e12]:
+          - generic [ref=e14]:
+            - generic [ref=e15]: Search
+            - generic:
+              - img
+            - searchbox "Search" [ref=e16]
+          - button "Log in" [ref=e17]
+    - generic [ref=e18]:
+      - complementary "Workspace navigation" [ref=e19]:
+        - navigation [ref=e20]:
+          - button "o openlog kitae9999/openlog" [disabled] [ref=e21]:
+            - generic [ref=e22]: o
+            - generic [ref=e23]:
+              - generic [ref=e24]: openlog
+              - generic [ref=e25]: kitae9999/openlog
+            - img [ref=e26]
+          - generic [ref=e28]:
+            - generic [ref=e29]: WORKSPACE
+            - link "Workspace Preview" [ref=e31] [cursor=pointer]:
+              - /url: /?tab=workspace
+              - img [ref=e33]
+              - generic [ref=e36]: Workspace
+              - generic [ref=e37]: Preview
+          - generic [ref=e38]:
+            - generic [ref=e39]: PUBLISHING
+            - link "Posts 2" [ref=e41] [cursor=pointer]:
+              - /url: /
+              - img [ref=e43]
+              - generic [ref=e46]: Posts
+              - generic [ref=e47]: "2"
+          - generic [ref=e48]:
+            - generic [ref=e49]: DISCOVER
+            - link "Explore" [ref=e51] [cursor=pointer]:
+              - /url: /?tab=explore
+              - img [ref=e53]
+              - generic [ref=e56]: Explore
+          - generic [ref=e57]:
+            - generic [ref=e58]: SETTINGS
+            - link "MCP Guide" [ref=e60] [cursor=pointer]:
+              - /url: /settings/mcp-guide
+              - img [ref=e62]
+              - generic [ref=e66]: MCP Guide
+          - generic [ref=e67]:
+            - generic [ref=e68]: MCP connected
+            - generic [ref=e70]: Connect CLI to capture logs
+            - code [ref=e71]: openlog-cli v0.4.2
+      - main [ref=e72]:
+        - region "Workspace" [ref=e73]:
+          - region "Workspace preview" [ref=e74]:
+            - generic [ref=e76]:
+              - generic [ref=e79]:
+                - img [ref=e81]
+                - generic [ref=e83]:
+                  - generic [ref=e84]: kitae9999/openlog
+                  - generic [ref=e85]: Preview repository connected to Workspace
+              - generic [ref=e86]:
+                - generic [ref=e87]:
+                  - generic [ref=e88]:
+                    - generic [ref=e89]:
+                      - heading "NOW WORKING" [level=2] [ref=e91]
+                      - img [ref=e93]
+                    - generic [ref=e98]:
+                      - generic [ref=e99]:
+                        - heading "홈 피드 → 워크스페이스 뷰 전환" [level=2] [ref=e100]
+                        - generic [ref=e101]:
+                          - img [ref=e102]
+                          - text: fix/pnpm
+                      - paragraph [ref=e107]: WorkspaceView·WorkspaceGuestPrompt 신규 추가, HomeFeedShell에서 로그인 분기 처리 중. — session summary
+                      - generic [ref=e108]:
+                        - generic [ref=e109]:
+                          - text: Last commit
+                          - definition [ref=e110]: "fix: turbopack 버그 수정"
+                        - generic [ref=e111]:
+                          - text: Uncommitted
+                          - definition [ref=e112]: +412 −96
+                      - generic [ref=e113]:
+                        - generic [ref=e114]:
+                          - img [ref=e115]
+                          - text: Log now
+                        - generic [ref=e117]: Generate PR doc
+                        - generic [ref=e118]: View diff
+                  - generic [ref=e119]:
+                    - generic [ref=e120]:
+                      - generic [ref=e121]:
+                        - heading "TASKS" [level=2] [ref=e122]
+                        - generic [ref=e123]:
+                          - generic [ref=e124]: doing
+                          - generic [ref=e126]: done
+                          - generic [ref=e128]: todo
+                      - generic [ref=e131]: View all
+                    - generic [ref=e132]:
+                      - article [ref=e133]:
+                        - generic [ref=e135]:
+                          - heading "홈 피드 → 워크스페이스 뷰 전환" [level=3] [ref=e136]
+                          - paragraph [ref=e137]: doing · 4 logs
+                        - generic "Open 홈 피드 → 워크스페이스 뷰 전환" [ref=e138]:
+                          - img [ref=e139]
+                      - article [ref=e141]:
+                        - generic [ref=e143]:
+                          - heading "pnpm 마이그레이션" [level=3] [ref=e144]
+                          - paragraph [ref=e145]: doing · 2 logs
+                        - generic "Open pnpm 마이그레이션" [ref=e146]:
+                          - img [ref=e147]
+                      - article [ref=e149]:
+                        - generic [ref=e151]:
+                          - heading "Terraform state GCS 이전" [level=3] [ref=e152]
+                          - paragraph [ref=e153]: done · 2 logs
+                        - generic "Open Terraform state GCS 이전" [ref=e154]:
+                          - img [ref=e155]
+                      - article [ref=e157]:
+                        - generic [ref=e159]:
+                          - heading "post visibility 필드 도입" [level=3] [ref=e160]
+                          - paragraph [ref=e161]: todo · 0 logs
+                        - generic "Open post visibility 필드 도입" [ref=e162]:
+                          - img [ref=e163]
+                    - generic [ref=e165]: + New task
+                  - generic [ref=e166]:
+                    - generic [ref=e167]:
+                      - heading "RECENT LOGS" [level=2] [ref=e169]
+                      - generic [ref=e171]: View all
+                    - paragraph [ref=e172]: 1 unassigned · review when ready
+                    - generic [ref=e173]:
+                      - article [ref=e174]:
+                        - generic [ref=e175]:
+                          - generic [ref=e176]:
+                            - heading "pnpm 전환 중 Turbopack 빌드 실패" [level=3] [ref=e178]
+                            - paragraph [ref=e179]: workspace 루트 추론이 lockfile 위치와 어긋나 발생. turbopack root 명시로 해결.
+                            - generic [ref=e180]:
+                              - generic [ref=e181]: Fix
+                              - generic "pnpm 마이그레이션" [ref=e182]
+                              - code [ref=e183]: fix/pnpm
+                              - generic [ref=e184]: Today 14:20 · auto-captured · Claude Code
+                              - code [ref=e185]: e092268
+                          - generic "Open pnpm 전환 중 Turbopack 빌드 실패" [ref=e186]:
+                            - img [ref=e187]
+                      - article [ref=e189]:
+                        - generic [ref=e190]:
+                          - generic [ref=e191]:
+                            - heading "로그인 분기로 workspace 탭 기본 라우팅" [level=3] [ref=e193]
+                            - paragraph [ref=e194]: getDefaultTab·getTabHref 추가. 로그인 시 / → workspace, 비로그인 시 home.
+                            - generic [ref=e195]:
+                              - generic [ref=e196]: Log
+                              - generic "홈 피드 → 워크스페이스 뷰 전환" [ref=e197]
+                              - code [ref=e198]: fix/pnpm
+                              - generic [ref=e199]: Today 11:05 · auto-captured
+                              - code [ref=e200]: a41f2e1
+                          - generic "Open 로그인 분기로 workspace 탭 기본 라우팅" [ref=e201]:
+                            - img [ref=e202]
+                      - article [ref=e204]:
+                        - generic [ref=e205]:
+                          - generic [ref=e206]:
+                            - heading "홈 피드를 개인 워크스페이스로 전환" [level=3] [ref=e208]
+                            - paragraph [ref=e209]: 커뮤니티 피드 대신 로그인 시 workspace를 기본 탭으로. 비로그인은 Home.
+                            - generic [ref=e210]:
+                              - generic [ref=e211]: Decision
+                              - generic "홈 피드 → 워크스페이스 뷰 전환" [ref=e212]
+                              - code [ref=e213]: fix/pnpm
+                              - generic [ref=e214]: Jun 28
+                              - code [ref=e215]: d02a881
+                          - generic "Open 홈 피드를 개인 워크스페이스로 전환" [ref=e216]:
+                            - img [ref=e217]
+                      - article [ref=e219]:
+                        - generic [ref=e220]:
+                          - generic [ref=e221]:
+                            - heading "Terraform state를 GCS backend로 이전" [level=3] [ref=e223]
+                            - paragraph [ref=e224]: 로컬 state 충돌과 유실 위험 때문에 원격 backend로 이전. 잠금은 GCS 기본 잠금을 사용하기로 결정.
+                            - generic [ref=e225]:
+                              - generic [ref=e226]: Decision
+                              - generic "Terraform state GCS 이전" [ref=e227]
+                              - code [ref=e228]: feat/terraform-gcs
+                              - generic [ref=e229]: Jun 30
+                              - code [ref=e230]: c6c0c12
+                          - generic "Open Terraform state를 GCS backend로 이전" [ref=e231]:
+                            - img [ref=e232]
+                      - article [ref=e234]:
+                        - generic [ref=e235]:
+                          - generic [ref=e236]:
+                            - heading "IAM 최소 권한 정리 및 불일치 설정 수정" [level=3] [ref=e238]
+                            - paragraph [ref=e239]: 배포 서비스 계정에서 과한 권한 3개 제거. editor를 세분화된 role로 교체.
+                            - generic [ref=e240]:
+                              - generic [ref=e241]: Log
+                              - code [ref=e242]: main
+                              - generic [ref=e243]: Jun 29
+                              - code [ref=e244]: e571dcb
+                          - generic "Open IAM 최소 권한 정리 및 불일치 설정 수정" [ref=e245]:
+                            - img [ref=e246]
+                      - article [ref=e248]:
+                        - generic [ref=e249]:
+                          - generic [ref=e250]:
+                            - heading "HomeFeedShell footer 사이드바 오프셋" [level=3] [ref=e252]
+                            - paragraph [ref=e253]: 사이드바 open 시 footer에 lg:ml-[282px] 적용해 겹침 제거.
+                            - generic [ref=e254]:
+                              - generic [ref=e255]: Log
+                              - generic "홈 피드 → 워크스페이스 뷰 전환" [ref=e256]
+                              - code [ref=e257]: feat/workspace-ui
+                              - generic [ref=e258]: Jun 28
+                              - code [ref=e259]: b8c14fd
+                          - generic "Open HomeFeedShell footer 사이드바 오프셋" [ref=e260]:
+                            - img [ref=e261]
+                      - article [ref=e263]:
+                        - generic [ref=e264]:
+                          - generic [ref=e265]:
+                            - heading "Turbopack HMR이 간헐적으로 끊김" [level=3] [ref=e267]
+                            - paragraph [ref=e268]: dev 서버 장시간 실행 후 HMR websocket이 끊기고 full reload 필요.
+                            - generic [ref=e269]:
+                              - generic [ref=e270]: Issue
+                              - generic "pnpm 마이그레이션" [ref=e271]
+                              - code [ref=e272]: fix/pnpm
+                              - generic [ref=e273]: open 2d · fix/pnpm
+                          - generic "Open Turbopack HMR이 간헐적으로 끊김" [ref=e274]:
+                            - img [ref=e275]
+                      - article [ref=e277]:
+                        - generic [ref=e278]:
+                          - generic [ref=e279]:
+                            - heading "GCS state 잠금 충돌 시 재시도 없음" [level=3] [ref=e281]
+                            - paragraph [ref=e282]: 동시 plan 실행 시 lock error 후 자동 retry 없이 CI job fail.
+                            - generic [ref=e283]:
+                              - generic [ref=e284]: Issue
+                              - generic "Terraform state GCS 이전" [ref=e285]
+                              - code [ref=e286]: feat/terraform-gcs
+                              - generic [ref=e287]: open 5d
+                          - generic "Open GCS state 잠금 충돌 시 재시도 없음" [ref=e288]:
+                            - img [ref=e289]
+                      - article [ref=e291]:
+                        - generic [ref=e292]:
+                          - generic [ref=e293]:
+                            - heading "모바일 사이드바 포커스 트랩 없음" [level=3] [ref=e295]
+                            - paragraph [ref=e296]: overlay open 상태에서 Tab이 배경으로 빠져나감.
+                            - generic [ref=e297]:
+                              - generic [ref=e298]: Issue
+                              - generic "홈 피드 → 워크스페이스 뷰 전환" [ref=e299]
+                              - code [ref=e300]: feat/workspace-ui
+                              - generic [ref=e301]: open 6d
+                          - generic "Open 모바일 사이드바 포커스 트랩 없음" [ref=e302]:
+                            - img [ref=e303]
+                - generic [ref=e305]:
+                  - generic [ref=e306]:
+                    - generic [ref=e307]:
+                      - heading "TODOS" [level=2] [ref=e309]
+                      - generic [ref=e311]:
+                        - button "Today" [disabled] [ref=e312]
+                        - button "Week" [disabled] [ref=e313]
+                    - generic [ref=e314]:
+                      - article [ref=e315]:
+                        - img [ref=e317]
+                        - generic [ref=e319]:
+                          - heading "CI에서 pnpm 캐시 키 갱신" [level=3] [ref=e320]
+                          - paragraph [ref=e321]: from log
+                      - article [ref=e322]:
+                        - heading "WorkspaceGuestPrompt 반응형 처리" [level=3] [ref=e325]
+                      - article [ref=e326]:
+                        - generic [ref=e328]:
+                          - heading "대시보드 위젯 그리드 구현" [level=3] [ref=e329]
+                          - paragraph [ref=e330]: suggested by AI
+                    - generic [ref=e331]: + Add todo
+                  - generic [ref=e332]:
+                    - generic [ref=e333]:
+                      - heading "THIS MONTH" [level=2] [ref=e335]
+                      - generic [ref=e337]: Planner
+                    - paragraph [ref=e338]: July 2026
+                    - generic [ref=e340]:
+                      - generic [ref=e341]:
+                        - generic "Jul 1 · 1 log" [ref=e344]
+                        - generic "Jul 2 · 3 logs" [ref=e345]
+                        - generic "Jul 3 · 1 log" [ref=e346]
+                        - generic "Jul 4 · 2 logs" [ref=e347]
+                        - generic "Jul 5 · Planned" [ref=e348]
+                      - generic [ref=e349]:
+                        - generic "Jul 6 · Planned" [ref=e350]
+                        - generic "Jul 7 · Planned" [ref=e351]
+                        - generic "Jul 8 · Planned" [ref=e352]
+                        - generic "Jul 9 · Planned" [ref=e353]
+                        - generic "Jul 10 · Planned" [ref=e354]
+                        - generic "Jul 11 · Planned" [ref=e355]
+                        - generic "Jul 12 · Planned" [ref=e356]
+                      - generic [ref=e357]:
+                        - generic "Jul 13 · Planned" [ref=e358]
+                        - generic "Jul 14 · Planned" [ref=e359]
+                        - generic "Jul 15 · Planned" [ref=e360]
+                        - generic "Jul 16 · Planned" [ref=e361]
+                        - generic "Jul 17 · Planned" [ref=e362]
+                        - generic "Jul 18 · Planned" [ref=e363]
+                        - generic "Jul 19 · Planned" [ref=e364]
+                      - generic [ref=e365]:
+                        - generic "Jul 20 · Planned" [ref=e366]
+                        - generic "Jul 21 · Planned" [ref=e367]
+                        - generic "Jul 22 · Planned" [ref=e368]
+                        - generic "Jul 23 · Planned" [ref=e369]
+                        - generic "Jul 24 · Planned" [ref=e370]
+                        - generic "Jul 25 · Planned" [ref=e371]
+                        - generic "Jul 26 · Planned" [ref=e372]
+                      - generic [ref=e373]:
+                        - generic "Jul 27 · Planned" [ref=e374]
+                        - generic "Jul 28 · Planned" [ref=e375]
+                        - generic "Jul 29 · Planned" [ref=e376]
+                        - generic "Jul 30 · Planned" [ref=e377]
+                        - generic "Jul 31 · Planned" [ref=e378]
+                    - generic [ref=e381]:
+                      - generic [ref=e382]: Less
+                      - generic [ref=e389]: More
+                  - generic [ref=e390]:
+                    - generic [ref=e391]:
+                      - heading "GRAPH" [level=2] [ref=e393]
+                      - generic [ref=e395]: Open full view
+                    - img [ref=e397]:
+                      - generic [ref=e403]: current log
+                      - generic [ref=e405]: post
+                      - generic [ref=e407]: memory
+                    - paragraph [ref=e408]: 이 프로젝트의 log·post·memory 파생 관계.
+                  - generic [ref=e409]:
+                    - generic [ref=e410]:
+                      - heading "OPEN ISSUES" [level=2] [ref=e412]
+                      - generic [ref=e414]: View all
+                    - generic [ref=e415]:
+                      - article [ref=e416]:
+                        - generic [ref=e418]:
+                          - heading "Turbopack HMR이 간헐적으로 끊김" [level=3] [ref=e419]
+                          - paragraph [ref=e420]: open 2d · fix/pnpm
+                      - article [ref=e421]:
+                        - generic [ref=e423]:
+                          - heading "GCS state 잠금 충돌 시 재시도 없음" [level=3] [ref=e424]
+                          - paragraph [ref=e425]: open 5d
+                      - article [ref=e426]:
+                        - generic [ref=e428]:
+                          - heading "모바일 사이드바 포커스 트랩 없음" [level=3] [ref=e429]
+                          - paragraph [ref=e430]: open 6d
+                  - generic [ref=e431]:
+                    - heading "PROJECT MEMORY" [level=2] [ref=e434]
+                    - generic [ref=e435]:
+                      - article [ref=e436]:
+                        - heading "인증은 device login flow로 처리" [level=3] [ref=e437]
+                        - paragraph [ref=e438]: CLI가 웹 승인 결과를 로컬 저장. 토큰 갱신은 서버 주도.
+                        - generic [ref=e439]:
+                          - generic [ref=e440]: auth
+                          - generic [ref=e441]: 12 reads
+                      - article [ref=e442]:
+                        - heading "Turbopack root는 명시적으로 고정" [level=3] [ref=e443]
+                        - paragraph [ref=e444]: 모노레포에서 lockfile 추론에 의존하지 않기.
+                        - generic [ref=e445]:
+                          - generic [ref=e446]: recipe
+                          - generic [ref=e447]: 2 reads
+            - generic [ref=e449]:
+              - generic [ref=e450]:
+                - img [ref=e452]
+                - generic [ref=e455]:
+                  - heading "내 워크스페이스 만들기" [level=2] [ref=e456]
+                  - paragraph [ref=e457]: 작업 로그, 커밋, TODO가 공개 글로 이어지는 흐름을 미리 볼 수 있어요.
+              - generic [ref=e458]:
+                - button "GitHub로 시작" [ref=e459]:
+                  - img [ref=e460]
+                  - text: GitHub로 시작
+                - button "Google 로그인" [ref=e462]:
+                  - img [ref=e463]
+                  - text: Google 로그인
+    - contentinfo [ref=e465]:
+      - generic [ref=e466]:
+        - generic [ref=e467]: © 2026 OpenLog. Collective Knowledge Platform.
+        - link "Terms" [ref=e468] [cursor=pointer]:
+          - /url: /terms
+        - link "Privacy" [ref=e469] [cursor=pointer]:
+          - /url: /privacy
+        - link "Status" [ref=e470] [cursor=pointer]:
+          - /url: /status
+  - button "Open Next.js Dev Tools" [ref=e476] [cursor=pointer]:
+    - img [ref=e477]
+  - alert [ref=e480]

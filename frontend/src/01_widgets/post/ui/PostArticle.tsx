@@ -6,6 +6,10 @@ import type { Contributor, Post } from "@/entities/post/model";
 import { PostCommentsSection } from "./PostCommentsSection";
 import { PostLikeButton } from "./PostLikeButton";
 import { PostOwnerActions } from "./PostOwnerActions";
+import {
+  PostSourceTeaser,
+  type PostSourceTeaserData,
+} from "./PostSourceTeaser";
 import { PostTabs } from "./PostTabs";
 
 const COMMENTS_SECTION_ID = "post-comments";
@@ -30,6 +34,7 @@ export function PostArticle({
   commentItems,
   postId,
   ownerActions,
+  sourceTeaser,
 }: {
   post: Post;
   contributors?: Contributor[];
@@ -44,6 +49,7 @@ export function PostArticle({
   commentItems?: Comment[];
   postId?: number;
   ownerActions?: OwnerActions;
+  sourceTeaser?: PostSourceTeaserData;
 }) {
   const list = contributors ?? [];
 
@@ -179,6 +185,8 @@ export function PostArticle({
           </header>
 
           {children}
+
+          {sourceTeaser ? <PostSourceTeaser /> : null}
 
           <div className="mt-10 flex justify-center lg:hidden">
             <MobileActionBar
