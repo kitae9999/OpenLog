@@ -5,6 +5,7 @@ import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
 import io.github.kitae9999.openlog.suggest.dto.SuggestionSummaryResponse
 import io.github.kitae9999.openlog.suggest.dto.WriteSuggestionRequest
 import io.github.kitae9999.openlog.user.entity.User
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
@@ -32,9 +33,11 @@ class SuggestController(
         @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
         @RequestBody createSuggestionRequest: WriteSuggestionRequest,
-    ) {
+    ): ResponseEntity<Void> {
         val (title, description, content) = createSuggestionRequest
         suggestService.createPostSuggestion(user, postId, title, description, content)
+
+        return ResponseEntity.status(HttpStatus.CREATED).build()
     }
 
     @GetMapping("/posts/{postId}/suggestions/{suggestionId}")

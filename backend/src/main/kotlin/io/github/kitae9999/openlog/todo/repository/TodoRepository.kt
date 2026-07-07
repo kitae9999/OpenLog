@@ -6,4 +6,6 @@ import java.time.LocalDate
 
 interface TodoRepository : JpaRepository<Todo, Long> {
     fun findAllByWorkspaceIdAndPlannedForOrderBySortOrderAscIdAsc(workspaceId: Long, plannedFor: LocalDate): List<Todo>
+
+    fun findTopByWorkspaceIdAndPlannedForOrderBySortOrderDescIdDesc(workspaceId: Long, plannedFor: LocalDate): Todo?
 }

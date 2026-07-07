@@ -66,18 +66,18 @@ class AuthController(
     fun completeOnboarding(
         @AuthenticationPrincipal user: User,
         @Valid @RequestBody onboardingRequest: CompleteOnboardingRequest,
-    ): MeResponse {
+    ): ResponseEntity<MeResponse> {
         val onboardedUser = authService.completeOnboarding(
             userId = requireNotNull(user.id),
             request = onboardingRequest,
         )
 
-        return onboardedUser.toMeResponse()
+        return ResponseEntity.status(HttpStatus.CREATED).body(onboardedUser.toMeResponse())
     }
 
     @PostMapping("/device/start")
-    fun startDeviceLogin(): DeviceStartResponse {
-        return deviceAuthService.start()
+    fun startDeviceLogin(): ResponseEntity<DeviceStartResponse> {
+        return ResponseEntity.status(HttpStatus.CREATED).body(deviceAuthService.start())
     }
 
     @PostMapping("/device/approve")

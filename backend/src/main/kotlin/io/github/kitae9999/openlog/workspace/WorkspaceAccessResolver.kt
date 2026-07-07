@@ -18,6 +18,9 @@ class WorkspaceAccessResolver(
     private val workspaceTaskRepository: WorkspaceTaskRepository,
     private val workspaceLogRepository: WorkspaceLogRepository,
 ) {
+    /**
+     * workspace가 사용자 소유인지 검증
+     */
     fun requireOwnedWorkspace(userId: Long, workspaceId: Long): Workspace {
         val workspace = workspaceRepository.findById(workspaceId).getOrNull()
             ?: throw NotFoundException("워크스페이스를 찾을 수 없습니다.")
@@ -29,6 +32,9 @@ class WorkspaceAccessResolver(
         return workspace
     }
 
+    /**
+     * task가 workspace에 속하는지 검증
+     */
     fun resolveTask(workspace: Workspace, taskId: Long?): WorkspaceTask? {
         if (taskId == null) {
             return null
@@ -48,6 +54,9 @@ class WorkspaceAccessResolver(
         return task
     }
 
+    /**
+     * log가 workspace에 속하는지 검증
+     */
     fun requireOwnedLog(workspace: Workspace, logId: Long): WorkspaceLog {
         val log = workspaceLogRepository.findById(logId).getOrNull()
             ?: throw NotFoundException("로그를 찾을 수 없습니다.")
