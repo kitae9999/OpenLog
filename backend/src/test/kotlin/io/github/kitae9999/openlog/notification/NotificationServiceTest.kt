@@ -47,6 +47,7 @@ class NotificationServiceTest {
             followRepository = followRepository,
             userRepository = userRepository,
             notificationJdbcWriter = notificationJdbcWriter,
+            notificationMapper = NotificationMapper(),
         )
     }
 

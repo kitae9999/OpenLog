@@ -1,7 +1,6 @@
 package io.github.kitae9999.openlog.post
 
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
-import io.github.kitae9999.openlog.common.resolveAuthorName
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
@@ -12,7 +11,6 @@ import io.github.kitae9999.openlog.common.outbox.OutboxEventWriter
 import io.github.kitae9999.openlog.media.MediaService
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
-import io.github.kitae9999.openlog.post.dto.RecentPostResponse
 import io.github.kitae9999.openlog.post.entity.PostLink
 import io.github.kitae9999.openlog.post.dto.PostWriteResponse
 import io.github.kitae9999.openlog.post.entity.Post
@@ -42,6 +40,7 @@ class PostService(
     private val commentRepository: CommentRepository,
     private val mediaService: MediaService,
     private val outboxEventWriter: OutboxEventWriter,
+    private val postMapper: PostMapper,
 ) {
     @Transactional(readOnly = true)
     fun getRecentPosts(cursor: String?, size: Int): RecentPostCursorResponse {
@@ -65,18 +64,10 @@ class PostService(
         return RecentPostCursorResponse(
             posts = posts.map { post ->
                 val postId = requireNotNull(post.id)
-                RecentPostResponse(
-                    id = postId,
-                    slug = post.slug,
-                    title = post.title,
-                    description = post.description,
-                    publishedAtLabel = formatPublishedAtLabel(post),
-                    authorUsername = requireNotNull(post.author.username),
-                    authorName = resolveAuthorName(post.author),
-                    authorAvatarSrc = post.author.profileImageUrl,
-                    thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
-                    likes = likeCounts[postId]?.toInt() ?: 0,
-                    comments = commentCounts[postId]?.toInt() ?: 0,
+                postMapper.toRecentPostResponse(
+                    post = post,
+                    likeCount = likeCounts[postId] ?: 0,
+                    commentCount = commentCounts[postId] ?: 0,
                 )
             },
             size = safeSize,
@@ -154,10 +145,7 @@ class PostService(
             occurredAt = eventCreatedAt,
         )
 
-        return PostWriteResponse(
-            authorUsername = authorUsername,
-            slug = savedPost.slug,
-        )
+        return postMapper.toWriteResponse(savedPost, authorUsername)
     }
 
     @Transactional
@@ -200,10 +188,7 @@ class PostService(
             suggestionRepository.markOpenSuggestionsOutdated(postId)
         }
 
-        return PostWriteResponse(
-            authorUsername = authorUsername,
-            slug = post.slug,
-        )
+        return postMapper.toWriteResponse(post, authorUsername)
     }
 
     private fun syncPostLinks(post: Post, postWriteCommand: PostWriteCommand): Boolean {

@@ -34,6 +34,7 @@ class WorkspaceServiceTest {
         workspaceService = WorkspaceService(
             workspaceRepository = workspaceRepository,
             workspaceAccessResolver = workspaceAccessResolver,
+            workspaceMapper = WorkspaceMapper(),
         )
     }
 

@@ -14,11 +14,12 @@ import org.springframework.transaction.annotation.Transactional
 class WorkspaceService(
     private val workspaceRepository: WorkspaceRepository,
     private val workspaceAccessResolver: WorkspaceAccessResolver,
+    private val workspaceMapper: WorkspaceMapper,
 ) {
     @Transactional(readOnly = true)
     fun getWorkspaces(userId: Long): List<WorkspaceResponse> {
         return workspaceRepository.findAllByOwnerIdOrderByUpdatedAtDescIdDesc(userId)
-            .map(::toResponse)
+            .map(workspaceMapper::toWorkspaceResponse)
     }
 
     /**
@@ -26,7 +27,7 @@ class WorkspaceService(
      */
     @Transactional(readOnly = true)
     fun getWorkspace(userId: Long, workspaceId: Long): WorkspaceResponse {
-        return toResponse(workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId))
+        return workspaceMapper.toWorkspaceResponse(workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId))
     }
 
     @Transactional
@@ -52,7 +53,7 @@ class WorkspaceService(
             )
         )
 
-        return toResponse(workspace)
+        return workspaceMapper.toWorkspaceResponse(workspace)
     }
 
     @Transactional
@@ -63,24 +64,13 @@ class WorkspaceService(
             repoFullName = request.repoFullName?.trim()?.takeIf { it.isNotEmpty() },
         )
 
-        return toResponse(workspace)
+        return workspaceMapper.toWorkspaceResponse(workspace)
     }
 
     @Transactional
     fun deleteWorkspace(userId: Long, workspaceId: Long) {
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
         workspaceRepository.delete(workspace)
-    }
-
-    private fun toResponse(workspace: Workspace): WorkspaceResponse {
-        return WorkspaceResponse(
-            id = requireNotNull(workspace.id),
-            slug = workspace.slug,
-            name = workspace.name,
-            repoFullName = workspace.repoFullName,
-            createdAt = workspace.createdAt.toString(),
-            updatedAt = workspace.updatedAt.toString(),
-        )
     }
 
     private fun normalizeSlug(value: String): String {

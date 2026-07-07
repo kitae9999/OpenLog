@@ -3,13 +3,10 @@ package io.github.kitae9999.openlog.notification
 import io.github.kitae9999.openlog.common.event.payload.PostPublishedEventPayload
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.follow.FollowRepository
-import io.github.kitae9999.openlog.notification.dto.NotificationActorResponse
 import io.github.kitae9999.openlog.notification.dto.NotificationListResponse
 import io.github.kitae9999.openlog.notification.dto.NotificationReadResponse
-import io.github.kitae9999.openlog.notification.dto.NotificationResponse
 import io.github.kitae9999.openlog.notification.entity.Notification
 import io.github.kitae9999.openlog.notification.entity.NotificationType
-import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
@@ -25,6 +22,7 @@ class NotificationService (
     private val followRepository: FollowRepository,
     private val userRepository: UserRepository,
     private val notificationJdbcWriter: NotificationJdbcWriter,
+    private val notificationMapper: NotificationMapper,
 ) {
     @Transactional(readOnly = true)
     fun getNotifications(recipientId: Long, size: Int): NotificationListResponse {
@@ -35,7 +33,7 @@ class NotificationService (
         )
 
         return NotificationListResponse(
-            notifications = notifications.map { it.toResponse() },
+            notifications = notifications.map(notificationMapper::toResponse),
             size = safeSize,
             unreadCount = notificationRepository.countByRecipient_IdAndReadAtIsNull(recipientId),
         )
@@ -51,7 +49,7 @@ class NotificationService (
         notification.markRead()
 
         return NotificationReadResponse(
-            notification = notification.toResponse(),
+            notification = notificationMapper.toResponse(notification),
             unreadCount = notificationRepository.countByRecipient_IdAndReadAtIsNull(recipientId),
         )
     }
@@ -80,29 +78,6 @@ class NotificationService (
         }
 
         notificationJdbcWriter.insertIgnoringDuplicates(notifications)
-    }
-
-    private fun Notification.toResponse(): NotificationResponse {
-        return NotificationResponse(
-            id = requireNotNull(id),
-            type = type,
-            targetDomain = targetDomain,
-            targetId = targetId,
-            payload = payload,
-            actor = actor?.toActorResponse(),
-            readAt = readAt,
-            createdAt = createdAt,
-            unread = readAt == null,
-        )
-    }
-
-    private fun User.toActorResponse(): NotificationActorResponse {
-        return NotificationActorResponse(
-            id = requireNotNull(id),
-            username = username,
-            nickname = nickname,
-            profileImageUrl = profileImageUrl,
-        )
     }
 
     private fun PostPublishedEventPayload.toNotificationPayload(): Map<String, Any?> {

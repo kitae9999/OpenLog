@@ -3,7 +3,6 @@ package io.github.kitae9999.openlog.comment
 import io.github.kitae9999.openlog.comment.dto.CommentResponse
 import io.github.kitae9999.openlog.comment.entity.Comment
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
-import io.github.kitae9999.openlog.common.resolveAuthorName
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
@@ -17,6 +16,7 @@ import kotlin.jvm.optionals.getOrNull
 class CommentService(
     private val commentRepository: CommentRepository,
     private val postRepository: PostRepository,
+    private val commentMapper: CommentMapper,
 ) {
     @Transactional
     fun createComment(author: User, postId: Long, content: String): CommentResponse {
@@ -30,7 +30,7 @@ class CommentService(
             )
         )
 
-        return toCommentResponse(savedComment, userId = requireNotNull(author.id))
+        return commentMapper.toResponse(savedComment, userId = requireNotNull(author.id))
     }
 
     /**
@@ -43,21 +43,7 @@ class CommentService(
         }
 
         return commentRepository.findAllWithUserByPostId(postId)
-            .map { comment -> toCommentResponse(comment, userId) }
-    }
-
-    private fun toCommentResponse(comment: Comment, userId: Long?): CommentResponse {
-        val author = comment.user
-        val authorId = requireNotNull(author.id)
-
-        return CommentResponse(
-            id = requireNotNull(comment.id),
-            authorName = resolveAuthorName(author),
-            authorProfileImageUrl = author.profileImageUrl,
-            content = comment.content,
-            createdAt = comment.createdAt.toString(),
-            canManage = userId == authorId,
-        )
+            .map { comment -> commentMapper.toResponse(comment, userId) }
     }
 
     @Transactional
@@ -71,7 +57,7 @@ class CommentService(
         val comment = getManageableComment(userId, postId, commentId)
         comment.updateComment(content)
 
-        return toCommentResponse(comment, userId = userId)
+        return commentMapper.toResponse(comment, userId = userId)
     }
 
     private fun getManageableComment(userId: Long, postId: Long, commentId: Long): Comment {

@@ -1,29 +1,21 @@
 package io.github.kitae9999.openlog.user
 
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
-import io.github.kitae9999.openlog.common.resolveAuthorName
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.follow.FollowRepository
 import io.github.kitae9999.openlog.follow.entity.FollowId
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
-import io.github.kitae9999.openlog.post.dto.PostWikiLinkResponse
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
-import io.github.kitae9999.openlog.post.dto.RecentPostResponse
-import io.github.kitae9999.openlog.post.entity.Post
-import io.github.kitae9999.openlog.post.extractFirstMarkdownImageSrc
-import io.github.kitae9999.openlog.post.formatPublishedAtLabel
+import io.github.kitae9999.openlog.post.PostMapper
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.postlike.PostLikeRepository
 import io.github.kitae9999.openlog.posttopic.repository.PostTopicRepository
 import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
-import io.github.kitae9999.openlog.user.dto.PublicUserPostGraphEdgeResponse
-import io.github.kitae9999.openlog.user.dto.PublicUserPostGraphNodeResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserPostGraphResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserProfileResponse
-import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
@@ -38,6 +30,8 @@ class UserService(
     private val postLikeRepository: PostLikeRepository,
     private val commentRepository: CommentRepository,
     private val followRepository: FollowRepository,
+    private val userMapper: UserMapper,
+    private val postMapper: PostMapper,
 ) {
     @Transactional
     fun getFollowingPosts(userId: Long, cursor: String?, size: Int): RecentPostCursorResponse {
@@ -64,7 +58,12 @@ class UserService(
 
         return RecentPostCursorResponse(
             posts = pageItems.map { post ->
-                toRecentPostResponse(post, likeCounts, commentCounts)
+                val postId = requireNotNull(post.id)
+                postMapper.toRecentPostResponse(
+                    post = post,
+                    likeCount = likeCounts[postId] ?: 0,
+                    commentCount = commentCounts[postId] ?: 0,
+                )
             },
             size = safeSize,
             nextCursor = pageItems.lastOrNull() // 가져온 목록의 마지막 포스트, 없을 시 에러 반환
@@ -101,7 +100,12 @@ class UserService(
         return RecentPostCursorResponse(
             posts = pageItems.map { postLike ->
                 val post = postLike.post
-                toRecentPostResponse(post, likeCounts, commentCounts)
+                val postId = requireNotNull(post.id)
+                postMapper.toRecentPostResponse(
+                    post = post,
+                    likeCount = likeCounts[postId] ?: 0,
+                    commentCount = commentCounts[postId] ?: 0,
+                )
             },
             size = safeSize,
             nextCursor = pageItems.lastOrNull()
@@ -120,7 +124,12 @@ class UserService(
             ?.let { followRepository.existsById(FollowId(followingUserId = it, followedUserId = userId)) }
             ?: false
 
-        return toPublicUserProfileResponse(user, following)
+        return userMapper.toPublicProfileResponse(
+            user = user,
+            following = following,
+            followersCount = followRepository.countByFollowedUser_Id(userId),
+            followingCount = followRepository.countByFollowingUser_Id(userId),
+        )
     }
 
     @Transactional
@@ -129,13 +138,7 @@ class UserService(
         val authorId = requireNotNull(user.id)
 
         return postRepository.findAllByAuthorIdOrderByCreatedAtDesc(authorId).map { post ->
-            PublicUserPostSummaryResponse(
-                slug = post.slug,
-                title = post.title,
-                description = post.description,
-                publishedAtLabel = formatPublishedAtLabel(post),
-                thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
-            )
+            userMapper.toPublicPostSummaryResponse(post)
         }
     }
 
@@ -153,20 +156,8 @@ class UserService(
         }
 
         return PublicUserPostGraphResponse(
-            nodes = posts.map { post ->
-                PublicUserPostGraphNodeResponse(
-                    slug = post.slug,
-                    title = post.title,
-                    description = post.description,
-                )
-            },
-            edges = links.map { link ->
-                PublicUserPostGraphEdgeResponse(
-                    sourceSlug = link.sourcePost.slug,
-                    targetSlug = link.targetPost.slug,
-                    label = link.label,
-                )
-            },
+            nodes = posts.map(userMapper::toPublicPostGraphNodeResponse),
+            edges = links.map(userMapper::toPublicPostGraphEdgeResponse),
         )
     }
 
@@ -180,26 +171,11 @@ class UserService(
             .map { it.topic.name }
             .sorted()
         val wikiLinks = postLinkRepository.findAllBySourcePostId(postId)
-            .map { link ->
-                PostWikiLinkResponse(
-                    label = link.label,
-                    targetSlug = link.targetPost.slug,
-                    targetTitle = link.targetPost.title,
-                )
-            }
+            .map(postMapper::toWikiLinkResponse)
             .distinctBy { "${it.targetSlug}\u0000${it.label}" }
 
-        return PostDetailResponse(
-            id = postId,
-            slug = post.slug,
-            title = post.title,
-            description = post.description,
-            content = post.content,
-            authorUsername = requireNotNull(post.author.username),
-            authorName = resolveAuthorName(post.author),
-            authorAvatarSrc = post.author.profileImageUrl,
-            publishedAtLabel = formatPublishedAtLabel(post),
-            version = post.version,
+        return postMapper.toDetailResponse(
+            post = post,
             topics = topics,
             wikiLinks = wikiLinks,
             likes = postLikeRepository.countByPostId(postId).toInt(),
@@ -230,21 +206,9 @@ class UserService(
             websiteUrl = websiteUrl?.trim()?.takeIf { it.isNotEmpty() },
         )
 
-        return toPublicUserProfileResponse(user, following = false)
-    }
-
-    private fun toPublicUserProfileResponse(user: User, following: Boolean): PublicUserProfileResponse {
-        val userId = requireNotNull(user.id)
-
-        return PublicUserProfileResponse(
-            username = requireNotNull(user.username),
-            nickname = user.nickname,
-            profileImageUrl = user.profileImageUrl,
-            bio = user.bio,
-            location = user.location,
-            websiteUrl = user.websiteUrl,
-            joinedAt = user.createdAt.toString(),
-            following = following,
+        return userMapper.toPublicProfileResponse(
+            user = user,
+            following = false,
             followersCount = followRepository.countByFollowedUser_Id(userId),
             followingCount = followRepository.countByFollowingUser_Id(userId),
         )
@@ -264,28 +228,6 @@ class UserService(
         }
 
         return commentRepository.countAllByPostIdIn(postIds).associate { it.postId to it.count }
-    }
-
-    private fun toRecentPostResponse(
-        post: Post,
-        likeCounts: Map<Long, Long>,
-        commentCounts: Map<Long, Long>,
-    ): RecentPostResponse {
-        val postId = requireNotNull(post.id)
-
-        return RecentPostResponse(
-            id = postId,
-            slug = post.slug,
-            title = post.title,
-            description = post.description,
-            publishedAtLabel = formatPublishedAtLabel(post),
-            authorUsername = requireNotNull(post.author.username),
-            authorName = resolveAuthorName(post.author),
-            authorAvatarSrc = post.author.profileImageUrl,
-            thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
-            likes = likeCounts[postId]?.toInt() ?: 0,
-            comments = commentCounts[postId]?.toInt() ?: 0,
-        )
     }
 
     private companion object {

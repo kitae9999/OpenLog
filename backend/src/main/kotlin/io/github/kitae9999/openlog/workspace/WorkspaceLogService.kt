@@ -1,7 +1,6 @@
 package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
-import io.github.kitae9999.openlog.common.resolveAuthorName
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogCursorResponse
@@ -22,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional
 class WorkspaceLogService(
     private val workspaceLogRepository: WorkspaceLogRepository,
     private val workspaceAccessResolver: WorkspaceAccessResolver,
+    private val workspaceMapper: WorkspaceMapper,
 ) {
     @Transactional(readOnly = true)
     fun getLogs(
@@ -77,7 +77,7 @@ class WorkspaceLogService(
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
         val log = workspaceAccessResolver.requireOwnedLog(workspace, logId)
 
-        return toDetailResponse(log)
+        return workspaceMapper.toLogDetailResponse(log)
     }
 
     @Transactional
@@ -106,7 +106,7 @@ class WorkspaceLogService(
 
         val savedLog = workspaceLogRepository.save(log)
 
-        return toResponse(savedLog)
+        return workspaceMapper.toLogResponse(savedLog)
     }
 
     @Transactional
@@ -129,7 +129,7 @@ class WorkspaceLogService(
             status = status,
         )
 
-        return toDetailResponse(log)
+        return workspaceMapper.toLogDetailResponse(log)
     }
 
     @Transactional
@@ -163,7 +163,7 @@ class WorkspaceLogService(
         val pageLogs = logs.take(safeSize)
 
         return WorkspaceLogCursorResponse(
-            logs = pageLogs.map(::toResponse),
+            logs = pageLogs.map(workspaceMapper::toLogResponse),
             size = safeSize,
             nextCursor = pageLogs.lastOrNull()
                 ?.takeIf { hasNext }
@@ -188,41 +188,6 @@ class WorkspaceLogService(
                 LogStatus.NONE
             }
         }
-    }
-
-    private fun toResponse(log: WorkspaceLog): WorkspaceLogResponse {
-        val author = log.author
-
-        return WorkspaceLogResponse(
-            id = requireNotNull(log.id),
-            kind = log.kind,
-            status = log.status,
-            title = log.title,
-            summary = log.summary,
-            authorName = resolveAuthorName(author),
-            authorProfileImageUrl = author.profileImageUrl,
-            taskId = log.task?.id,
-            createdAt = log.createdAt.toString(),
-        )
-    }
-
-    private fun toDetailResponse(log: WorkspaceLog): WorkspaceLogDetailResponse {
-        val author = log.author
-
-        return WorkspaceLogDetailResponse(
-            id = requireNotNull(log.id),
-            kind = log.kind,
-            status = log.status,
-            title = log.title,
-            summary = log.summary,
-            content = log.content,
-            authorName = resolveAuthorName(author),
-            authorProfileImageUrl = author.profileImageUrl,
-            taskId = log.task?.id,
-            createdAt = log.createdAt.toString(),
-            updatedAt = log.updatedAt.toString(),
-            closedAt = log.closedAt?.toString(),
-        )
     }
 
     companion object {

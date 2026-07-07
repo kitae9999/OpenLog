@@ -1,14 +1,12 @@
 package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
-import io.github.kitae9999.openlog.common.resolveAuthorName
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.workspace.entity.TaskStatus
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
 import io.github.kitae9999.openlog.workspace.repository.WorkspaceTaskRepository
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.dto.CreateTaskRequest
-import io.github.kitae9999.openlog.workspace.dto.TaskAuthorResponse
 import io.github.kitae9999.openlog.workspace.dto.TaskDetailResponse
 import io.github.kitae9999.openlog.workspace.dto.UpdateTaskRequest
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
@@ -21,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional
 class WorkspaceTaskService(
     private val workspaceTaskRepository: WorkspaceTaskRepository,
     private val workspaceAccessResolver: WorkspaceAccessResolver,
+    private val workspaceMapper: WorkspaceMapper,
 ) {
     @Transactional(readOnly = true)
     fun getTasks(
@@ -75,21 +74,7 @@ class WorkspaceTaskService(
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
         val task = workspaceAccessResolver.requireOwnedTask(workspace, taskId)
 
-        return TaskDetailResponse(
-            id = requireNotNull(task.id),
-            title = task.title,
-            description = task.description,
-            content = task.content,
-            status = task.status,
-            author = TaskAuthorResponse(
-                id = requireNotNull(task.author.id),
-                username = task.author.username,
-                nickname = task.author.nickname,
-                profileImageUrl = task.author.profileImageUrl
-            ),
-            createdAt = task.createdAt.toString(),
-            updatedAt = task.updatedAt.toString(),
-        )
+        return workspaceMapper.toTaskDetailResponse(task)
     }
 
     @Transactional
@@ -105,7 +90,7 @@ class WorkspaceTaskService(
         )
         val savedTask = workspaceTaskRepository.save(task)
 
-        return toResponse(savedTask)
+        return workspaceMapper.toTaskResponse(savedTask)
     }
 
     @Transactional
@@ -125,7 +110,7 @@ class WorkspaceTaskService(
             status = request.status,
         )
 
-        return toResponse(task)
+        return workspaceMapper.toTaskResponse(task)
     }
 
     @Transactional
@@ -159,28 +144,12 @@ class WorkspaceTaskService(
         val pageTasks = tasks.take(safeSize)
 
         return WorkspaceTaskCursorResponse(
-            tasks = pageTasks.map(::toResponse),
+            tasks = pageTasks.map(workspaceMapper::toTaskResponse),
             size = safeSize,
             nextCursor = pageTasks.lastOrNull()
                 ?.takeIf { hasNext }
                 ?.let { task -> DateTimeIdCursorCodec.encode(task.updatedAt, requireNotNull(task.id)) },
             hasNext = hasNext,
-        )
-    }
-
-    private fun toResponse(task: WorkspaceTask): WorkspaceTaskResponse {
-        val author = task.author
-
-        return WorkspaceTaskResponse(
-            id = requireNotNull(task.id),
-            title = task.title,
-            description = task.description,
-            content = task.content,
-            status = task.status,
-            authorName = resolveAuthorName(author),
-            authorProfileImageUrl = author.profileImageUrl,
-            createdAt = task.createdAt.toString(),
-            updatedAt = task.updatedAt.toString(),
         )
     }
 
