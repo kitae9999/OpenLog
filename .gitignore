@@ -39,6 +39,7 @@ out/
 ### Cursor / Claude ###
 .claude/
 .cursor/
+.playwright-mcp/
 
 ### Kotlin ###
 .kotlin

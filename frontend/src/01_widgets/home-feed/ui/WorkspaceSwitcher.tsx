@@ -77,15 +77,7 @@ export function WorkspaceSwitcher({
   }
 
   if (!isLoggedIn) {
-    return (
-      <WorkspaceSwitcherTrigger
-        name={activeWorkspace.name}
-        repositoryFullName={activeWorkspace.repositoryFullName}
-        initial={activeWorkspace.initial}
-        open={false}
-        disabled
-      />
-    );
+    return null;
   }
 
   return (
