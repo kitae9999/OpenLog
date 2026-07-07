@@ -50,7 +50,7 @@ const sidebarTabs: Array<{ key: TabKey; label: string }> = [
 ];
 
 export function getDefaultTab(isLoggedIn: boolean): TabKey {
-  return isLoggedIn ? "workspace" : "home";
+  return isLoggedIn ? "workspace" : "explore";
 }
 
 export function getSidebarTabs(isLoggedIn: boolean) {

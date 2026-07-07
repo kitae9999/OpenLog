@@ -20,13 +20,17 @@ export async function HomeFeed({
   const isLoggedIn = !!data;
   const resolvedTab = activeTab ?? getDefaultTab(isLoggedIn);
   const recentPosts =
-    resolvedTab === "home" ? await getRecentPosts(null, 10) : undefined;
+    resolvedTab === "home" || resolvedTab === "explore"
+      ? await getRecentPosts(null, 10)
+      : undefined;
   const followingPosts =
-    resolvedTab === "following" && data
+    (resolvedTab === "following" || resolvedTab === "explore") && data
       ? await getFollowingPosts(null, 10)
       : undefined;
   const likedPosts =
-    resolvedTab === "liked" && data ? await getLikedPosts(null, 10) : undefined;
+    (resolvedTab === "liked" || resolvedTab === "explore") && data
+      ? await getLikedPosts(null, 10)
+      : undefined;
 
   return (
     <HomeFeedShell

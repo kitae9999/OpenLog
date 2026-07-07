@@ -38,6 +38,34 @@ import { WorkspaceView } from "./WorkspaceView";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { FeedArticleCard } from "./FeedArticleCard";
 
+const exploreTabs = [
+  { key: "trending", label: "Trending", hidden: true },
+  { key: "recent", label: "Recent" },
+  { key: "following", label: "Following", loginRequired: true },
+  { key: "liked", label: "Liked", loginRequired: true },
+] as const;
+
+type ExploreSubTab = Exclude<(typeof exploreTabs)[number]["key"], "trending">;
+
+function getExploreEmptyMessage(
+  subTab: ExploreSubTab,
+  isLoggedIn: boolean,
+) {
+  if (!isLoggedIn || subTab === "recent") {
+    return "No posts yet.";
+  }
+
+  if (subTab === "following") {
+    return "No posts from people you follow yet.";
+  }
+
+  if (subTab === "liked") {
+    return "No liked posts yet.";
+  }
+
+  return "No posts yet.";
+}
+
 export function HomeFeedShell({
   activeTab,
   isLoggedIn,
@@ -70,6 +98,7 @@ export function HomeFeedShell({
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [exploreSubTab, setExploreSubTab] = useState<ExploreSubTab>("recent");
   const [homePosts, setHomePosts] = useState<FeedPost[]>(() =>
     initialHomePosts.map(toFeedPost),
   );
@@ -97,22 +126,38 @@ export function HomeFeedShell({
   const [loadError, setLoadError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const isLoadingMoreRef = useRef(false);
+  const activeFeed =
+    activeTab === "home" ||
+    (activeTab === "explore" && (!isLoggedIn || exploreSubTab === "recent"))
+      ? "recent"
+      : activeTab === "following" ||
+          (activeTab === "explore" && exploreSubTab === "following")
+        ? "following"
+        : activeTab === "liked" ||
+            (activeTab === "explore" && exploreSubTab === "liked")
+          ? "liked"
+          : null;
   const posts =
-    activeTab === "home"
+    activeFeed === "recent"
       ? homePosts
-      : activeTab === "following"
+      : activeFeed === "following"
         ? followingFeedPosts
-        : activeTab === "liked"
+        : activeFeed === "liked"
           ? likedFeedPosts
           : feedPosts;
   const hasNextActivePage =
-    activeTab === "home"
+    activeFeed === "recent"
       ? hasNextHomePage
-      : activeTab === "following"
+      : activeFeed === "following"
         ? hasNextFollowingPage
-        : activeTab === "liked"
+        : activeFeed === "liked"
           ? hasNextLikedPage
           : false;
+  const supportsInfiniteScroll =
+    activeTab === "home" ||
+    activeTab === "following" ||
+    activeTab === "liked" ||
+    activeTab === "explore";
 
   useEffect(() => {
     const query = window.matchMedia("(min-width: 1024px)");
@@ -172,19 +217,21 @@ export function HomeFeedShell({
 
   const loadMorePosts = useCallback(async () => {
     const endpoint =
-      activeTab === "home"
+      activeFeed === "recent"
         ? "/api/posts"
-        : activeTab === "following"
+        : activeFeed === "following"
           ? "/api/users/me/following/posts"
-          : activeTab === "liked"
+          : activeFeed === "liked"
             ? "/api/users/me/liked-posts"
             : null;
     const cursor =
-      activeTab === "home"
+      activeFeed === "recent"
         ? homeNextCursor
-        : activeTab === "following"
+        : activeFeed === "following"
           ? followingNextCursor
-          : likedNextCursor;
+          : activeFeed === "liked"
+            ? likedNextCursor
+            : null;
 
     if (
       !endpoint ||
@@ -212,18 +259,18 @@ export function HomeFeedShell({
 
       const page = (await response.json()) as RecentPostCursorPage;
 
-      if (activeTab === "home") {
+      if (activeFeed === "recent") {
         setHomePosts((current) => [...current, ...page.posts.map(toFeedPost)]);
         setHomeNextCursor(page.nextCursor);
         setHasNextHomePage(page.hasNext);
-      } else if (activeTab === "following") {
+      } else if (activeFeed === "following") {
         setFollowingFeedPosts((current) => [
           ...current,
           ...page.posts.map(toFeedPost),
         ]);
         setFollowingNextCursor(page.nextCursor);
         setHasNextFollowingPage(page.hasNext);
-      } else {
+      } else if (activeFeed === "liked") {
         setLikedFeedPosts((current) => [
           ...current,
           ...page.posts.map(toFeedPost),
@@ -238,7 +285,7 @@ export function HomeFeedShell({
       setIsLoadingMore(false);
     }
   }, [
-    activeTab,
+    activeFeed,
     followingNextCursor,
     hasNextActivePage,
     homeNextCursor,
@@ -246,12 +293,13 @@ export function HomeFeedShell({
   ]);
 
   useEffect(() => {
-    if (
-      (activeTab !== "home" &&
-        activeTab !== "following" &&
-        activeTab !== "liked") ||
-      !hasNextActivePage
-    ) {
+    if (!isLoggedIn && exploreSubTab !== "recent") {
+      setExploreSubTab("recent");
+    }
+  }, [exploreSubTab, isLoggedIn]);
+
+  useEffect(() => {
+    if (!supportsInfiniteScroll || !activeFeed || !hasNextActivePage) {
       return;
     }
 
@@ -274,7 +322,7 @@ export function HomeFeedShell({
     return () => {
       observer.disconnect();
     };
-  }, [activeTab, hasNextActivePage, loadMorePosts]);
+  }, [activeFeed, hasNextActivePage, loadMorePosts, supportsInfiniteScroll]);
 
   return (
     <div
@@ -353,7 +401,32 @@ export function HomeFeedShell({
             {activeTab === "workspace" ? (
               <WorkspaceView isLoggedIn={isLoggedIn} />
             ) : activeTab === "explore" ? (
-              <ExploreView posts={posts} />
+              <ExploreView
+                posts={posts}
+                isLoggedIn={isLoggedIn}
+                activeSubTab={exploreSubTab}
+                onSubTabChange={(tab) => {
+                  setExploreSubTab(tab);
+                  setLoadError(null);
+                }}
+                loadMore={
+                  <div
+                    ref={sentinelRef}
+                    className="flex min-h-16 items-center justify-center py-4 text-sm text-zinc-500"
+                    aria-live="polite"
+                  >
+                    {isLoadingMore
+                      ? "Loading posts..."
+                      : loadError
+                        ? loadError
+                        : posts.length === 0
+                          ? getExploreEmptyMessage(exploreSubTab, isLoggedIn)
+                          : hasNextActivePage
+                            ? ""
+                            : "No more posts."}
+                  </div>
+                }
+              />
             ) : activeTab === "home" && isLoggedIn ? (
               <>
                 <PostsView posts={posts} />
@@ -531,15 +604,6 @@ export function HomeSidebar({
         ) : null}
 
         <SidebarSection label="DISCOVER">
-          {!isLoggedIn ? (
-            <SidebarLink
-              href={getTabHref("home", isLoggedIn)}
-              label="Recent"
-              active={activeTab === "home"}
-              icon={<IconClock className="size-[15px]" />}
-              onNavigate={onNavigate}
-            />
-          ) : null}
           <SidebarLink
             href={getTabHref("explore", isLoggedIn)}
             label="Explore"
@@ -759,31 +823,58 @@ function PostsView({ posts }: { posts: FeedPost[] }) {
   );
 }
 
-function ExploreView({ posts }: { posts: FeedPost[] }) {
+function ExploreView({
+  posts,
+  isLoggedIn,
+  activeSubTab,
+  onSubTabChange,
+  loadMore,
+}: {
+  posts: FeedPost[];
+  isLoggedIn: boolean;
+  activeSubTab: ExploreSubTab;
+  onSubTabChange: (tab: ExploreSubTab) => void;
+  loadMore?: ReactNode;
+}) {
   return (
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,1fr)]">
       <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
         <div className="flex gap-6 border-b border-zinc-200/70 px-5">
-          {["Trending", "Recent", "Following"].map((tab, index) => (
-            <button
-              key={tab}
-              type="button"
-              className={cn(
-                "relative py-3 text-[13.5px] font-medium transition-colors",
-                index === 0
-                  ? "text-zinc-950 after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-0.5 after:bg-zinc-950"
-                  : "text-zinc-500 hover:text-zinc-950",
-              )}
-            >
-              {tab}
-            </button>
-          ))}
+          {exploreTabs
+            .filter(
+              (tab) =>
+                !tab.hidden && (!tab.loginRequired || isLoggedIn),
+            )
+            .map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => onSubTabChange(tab.key)}
+                className={cn(
+                  "relative inline-flex items-center gap-2 py-3 text-[13.5px] font-medium transition-colors",
+                  activeSubTab === tab.key
+                    ? "text-zinc-950 after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-0.5 after:bg-zinc-950"
+                    : "text-zinc-500 hover:text-zinc-950",
+                )}
+              >
+                <span
+                  className={cn(
+                    "shrink-0",
+                    activeSubTab === tab.key ? "text-zinc-950" : "text-zinc-400",
+                  )}
+                >
+                  {getExploreTabIcon(tab.key)}
+                </span>
+                {tab.label}
+              </button>
+            ))}
         </div>
 
         <div className="divide-y divide-zinc-200/70">
           {posts.map((post) => (
             <FeedArticleCard key={post.id} post={post} />
           ))}
+          {loadMore}
         </div>
       </section>
 
@@ -1252,6 +1343,25 @@ function IconHeart({ className }: { className?: string }) {
     </svg>
   );
 }
+
+function IconUsers({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M8.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM2.5 20a6 6 0 0 1 12 0M17 10.5a3 3 0 1 0-1.2-5.75M16.5 14.5A5 5 0 0 1 21.5 20"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function IconClock({ className }: { className?: string }) {
   return (
     <svg
@@ -1288,4 +1398,19 @@ function IconComment({ className }: { className?: string }) {
       />
     </svg>
   );
+}
+
+function getExploreTabIcon(tab: (typeof exploreTabs)[number]["key"]) {
+  const className = "size-[15px]";
+
+  switch (tab) {
+    case "recent":
+      return <IconClock className={className} />;
+    case "following":
+      return <IconUsers className={className} />;
+    case "liked":
+      return <IconHeart className={className} />;
+    default:
+      return null;
+  }
 }
