@@ -6,6 +6,8 @@ import { LogTypeLabel } from "./LogTypeLabel";
 import {
   countUnassignedLogs,
   getLogsForTask,
+  getNewOutputHref,
+  getOutputHref,
   getOutputsForTask,
   getSpawnedTodosForTask,
   getTabHref,
@@ -184,8 +186,8 @@ export function TaskDetailView({ task }: { task: WorkspaceWorkItem }) {
                     Mark done
                   </LinkButton>
                 ) : (
-                  <LinkButton href="/write" tone="outline" size="sm">
-                    Generate PR doc
+                  <LinkButton href={getNewOutputHref(task.id)} tone="outline" size="sm">
+                    Create output
                   </LinkButton>
                 )}
                 <LinkButton href={getTaskEditHref(task.id)} tone="ghost" size="sm">
@@ -242,13 +244,13 @@ export function TaskDetailView({ task }: { task: WorkspaceWorkItem }) {
                 <>
                   <p className="text-[12px] text-zinc-500">
                     {task.status === "done"
-                      ? "No outputs yet. Generate a PR doc from linked logs."
-                      : "No drafts yet. Mark done to generate."}
+                      ? "No outputs yet. Create a refined document from linked logs."
+                      : "No drafts yet. Create one when the source logs are ready."}
                   </p>
                   {task.status === "done" ? (
                     <div className="mt-2">
-                      <LinkButton href="/write" tone="outline" size="sm">
-                        Generate PR doc
+                      <LinkButton href={getNewOutputHref(task.id)} tone="outline" size="sm">
+                        Create output
                       </LinkButton>
                     </div>
                   ) : null}
@@ -307,8 +309,8 @@ export function TaskDetailView({ task }: { task: WorkspaceWorkItem }) {
                       Mark done
                     </LinkButton>
                   ) : (
-                    <LinkButton href="/write" tone="outline" size="sm">
-                      Generate PR doc
+                    <LinkButton href={getNewOutputHref(task.id)} tone="outline" size="sm">
+                      Create output
                     </LinkButton>
                   )}
                   <LinkButton href={getTaskEditHref(task.id)} tone="ghost" size="sm">
@@ -371,7 +373,7 @@ function TaskOutputRow({
         </p>
       </div>
       <Link
-        href="/write"
+        href={getOutputHref(output.id)}
         aria-label={`Open ${output.title}`}
         className="shrink-0 self-center text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >

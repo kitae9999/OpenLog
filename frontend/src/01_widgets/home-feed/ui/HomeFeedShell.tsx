@@ -24,6 +24,7 @@ import {
   feedPosts,
   getLogsHref,
   getMcpGuideHref,
+  getOutputsHref,
   getTabHref,
   getTasksHref,
   getWorkspaceGraphHref,
@@ -515,7 +516,7 @@ export function HomeSidebar({
   isLoggedIn: boolean;
   isOpen: boolean;
   onNavigate: () => void;
-  workspaceNav?: "dashboard" | "tasks" | "logs" | "graph";
+  workspaceNav?: "dashboard" | "tasks" | "logs" | "graph" | "outputs";
   logsFilter?: LogListTypeFilter;
   settingsNav?: "mcp-guide";
 }) {
@@ -571,8 +572,9 @@ export function HomeSidebar({
                 onNavigate={onNavigate}
               />
               <SidebarLink
-                href={getTabHref("workspace", isLoggedIn)}
+                href={getOutputsHref()}
                 label="Outputs"
+                active={workspaceNav === "outputs"}
                 icon={<IconBox className="size-[15px]" />}
                 onNavigate={onNavigate}
               />

@@ -1,7 +1,6 @@
 package io.github.kitae9999.openlog.post.entity
 
 import io.github.kitae9999.openlog.output.entity.WorkspaceOutput
-import io.github.kitae9999.openlog.output.entity.OutputType
 import io.github.kitae9999.openlog.user.entity.User
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -34,12 +33,6 @@ class Post(
     version: Long = 0L,
     output: WorkspaceOutput? = null,
 ) {
-    init {
-        require(output == null || output.type == OutputType.POST_DRAFT) {
-            "Only post draft outputs can be attached to posts."
-        }
-    }
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "author_id", nullable = false)
     var author: User = author
@@ -104,10 +97,6 @@ class Post(
     }
 
     fun attachOutput(output: WorkspaceOutput) {
-        require(output.type == OutputType.POST_DRAFT) {
-            "Only post draft outputs can be attached to posts."
-        }
-
         this.output = output
         this.updatedAt = LocalDateTime.now()
         this.version += 1

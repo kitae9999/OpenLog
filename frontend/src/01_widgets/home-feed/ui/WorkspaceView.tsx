@@ -9,6 +9,7 @@ import {
   countUnassignedLogs,
   getLogHref,
   getLogsHref,
+  getNewOutputHref,
   getTaskById,
   getTaskHref,
   getTasksHref,
@@ -86,7 +87,7 @@ function GuestWorkspacePreview({ children }: { children: ReactNode }) {
               </h2>
               <p className="mt-1.5 text-[13.5px] leading-6 text-zinc-500">
                 Commits and coding sessions are captured automatically, then
-                become PR docs and public posts when you choose.
+                become refined drafts and public posts when you choose.
               </p>
             </div>
           </div>
@@ -192,12 +193,12 @@ function NowWorkingCard({ isPreview = false }: { isPreview?: boolean }) {
             Log now
           </LinkButton>
           <LinkButton
-            href="/write"
+            href={getNewOutputHref("workspace-view")}
             tone="outline"
             size="sm"
             isPreview={isPreview}
           >
-            Generate PR doc
+            Create output
           </LinkButton>
           <LinkButton
             href="/write"

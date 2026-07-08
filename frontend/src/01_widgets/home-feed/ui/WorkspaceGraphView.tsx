@@ -14,6 +14,7 @@ import {
 import { cn } from "@/shared/lib/cn";
 import {
   getLogHref,
+  getOutputHref,
   getTaskHref,
   getTabHref,
   workspaceLogs,
@@ -724,7 +725,7 @@ function buildWorkspaceGraph(): WorkspaceGraph {
       kind: "output" as const,
       title: output.title,
       description: output.description,
-      href: getTaskHref(output.taskId),
+      href: getOutputHref(output.id),
       taskId: output.taskId,
     })),
     ...workspaceMemories.map((memory, index) => ({
@@ -749,11 +750,13 @@ function buildWorkspaceGraph(): WorkspaceGraph {
   }
 
   for (const output of workspaceTaskOutputs) {
-    edges.push({
-      sourceId: getTaskNodeId(output.taskId),
-      targetId: getOutputNodeId(output.id),
-      label: "generated",
-    });
+    for (const taskId of output.taskIds) {
+      edges.push({
+        sourceId: getTaskNodeId(taskId),
+        targetId: getOutputNodeId(output.id),
+        label: "refined",
+      });
+    }
   }
 
   workspaceMemories.forEach((memory, index) => {

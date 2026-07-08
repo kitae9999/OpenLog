@@ -9,6 +9,7 @@ import io.github.kitae9999.openlog.common.event.payload.PostPublishedEventPayloa
 import io.github.kitae9999.openlog.common.event.payload.PostPublishedPostPayload
 import io.github.kitae9999.openlog.common.outbox.OutboxEventWriter
 import io.github.kitae9999.openlog.media.MediaService
+import io.github.kitae9999.openlog.output.entity.WorkspaceOutput
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
 import io.github.kitae9999.openlog.post.entity.PostLink
@@ -81,6 +82,33 @@ class PostService(
 
     @Transactional
     fun createPost(user: User, postWriteCommand: PostWriteCommand): PostWriteResponse {
+        return createPublishedPost(user, postWriteCommand)
+    }
+
+    @Transactional
+    fun createPostFromOutput(
+        user: User,
+        output: WorkspaceOutput,
+        description: String,
+        topics: List<String>,
+    ): PostWriteResponse {
+        return createPublishedPost(
+            user = user,
+            postWriteCommand = PostWriteCommand(
+                title = output.title,
+                description = description,
+                content = output.content,
+                topics = topics,
+            ),
+            output = output,
+        )
+    }
+
+    private fun createPublishedPost(
+        user: User,
+        postWriteCommand: PostWriteCommand,
+        output: WorkspaceOutput? = null,
+    ): PostWriteResponse {
         val userId = requireNotNull(user.id)
         val authorUsername = user.username?.trim().orEmpty()
         if (authorUsername.isBlank()) {
@@ -96,6 +124,7 @@ class PostService(
                 title = title,
                 description = description,
                 content = content,
+                output = output,
             )
         )
 

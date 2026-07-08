@@ -23,7 +23,6 @@ class WorkspaceOutput(
     val id: Long? = null,
     workspace: Workspace,
     author: User,
-    type: OutputType,
     status: OutputStatus = OutputStatus.DRAFT,
     title: String,
     content: String,
@@ -36,11 +35,6 @@ class WorkspaceOutput(
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "author_id", nullable = false)
     var author: User = author
-        protected set
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    var type: OutputType = type
         protected set
 
     @Enumerated(EnumType.STRING)
@@ -69,19 +63,27 @@ class WorkspaceOutput(
         protected set
 
     fun update(title: String, content: String) {
+        require(status == OutputStatus.DRAFT) {
+            "Only draft outputs can be updated."
+        }
+
         this.title = title
         this.content = content
         this.updatedAt = LocalDateTime.now()
     }
 
     fun markExported() {
+        require(status == OutputStatus.DRAFT) {
+            "Only draft outputs can be exported."
+        }
+
         status = OutputStatus.EXPORTED
         updatedAt = LocalDateTime.now()
     }
 
     fun markPublished() {
-        require(type == OutputType.POST_DRAFT) {
-            "Only post draft outputs can be published as posts."
+        require(status == OutputStatus.DRAFT) {
+            "Only draft outputs can be published."
         }
 
         status = OutputStatus.PUBLISHED
@@ -90,6 +92,10 @@ class WorkspaceOutput(
     }
 
     fun archive() {
+        require(status == OutputStatus.DRAFT) {
+            "Only draft outputs can be archived."
+        }
+
         status = OutputStatus.ARCHIVED
         updatedAt = LocalDateTime.now()
     }

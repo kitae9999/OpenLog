@@ -579,24 +579,96 @@ export function getTaskExcerpt(body: string, maxLength = 100) {
   return `${firstLine.slice(0, maxLength).trim()}…`;
 }
 
+export type WorkspaceOutputStatus = "draft" | "published" | "archived";
+
 export type WorkspaceTaskOutput = {
   id: string;
   taskId: string;
+  taskIds: string[];
+  logIds: string[];
+  status: WorkspaceOutputStatus;
   title: string;
   description: string;
+  content: string;
+  updatedLabel: string;
+  publishedHref?: string;
 };
 
 export const workspaceTaskOutputs: WorkspaceTaskOutput[] = [
   {
-    id: "terraform-gcs-pr",
+    id: "terraform-gcs-output",
     taskId: "terraform-gcs",
-    title: "PR document",
+    taskIds: ["terraform-gcs"],
+    logIds: ["terraform-state", "gcs-lock-retry"],
+    status: "draft",
+    title: "Terraform state 정리",
     description: "from 2 logs",
+    content: `## Summary
+
+Terraform state를 GCS backend로 옮기면서 로컬 state 충돌 위험을 줄였습니다. 동시에 동시 plan 실행 시 잠금 충돌이 자동 재시도되지 않는 문제를 후속 작업으로 남겼습니다.
+
+## Source logs
+
+- Terraform state를 GCS backend로 이전
+- GCS state 잠금 충돌 시 재시도 없음
+
+## Publish notes
+
+public post로 발행하기 전에 CI plan/apply 흐름과 권한 범위를 한 번 더 검증합니다.`,
+    updatedLabel: "Jun 30",
   },
 ];
 
 export function getOutputsForTask(taskId: string) {
-  return workspaceTaskOutputs.filter((output) => output.taskId === taskId);
+  return workspaceTaskOutputs.filter((output) => output.taskIds.includes(taskId));
+}
+
+export function getOutputById(outputId: string) {
+  return workspaceTaskOutputs.find((output) => output.id === outputId);
+}
+
+export function getOutputsHref(status?: WorkspaceOutputStatus) {
+  return status ? `/outputs?status=${status}` : "/outputs";
+}
+
+export function getOutputHref(outputId: string) {
+  return `/outputs/${outputId}`;
+}
+
+export function getNewOutputHref(taskId?: string) {
+  return taskId ? `/outputs/new?taskId=${taskId}` : "/outputs/new";
+}
+
+export function getOutputStatusLabel(status: WorkspaceOutputStatus) {
+  return status === "draft"
+    ? "Draft"
+    : status === "published"
+      ? "Published"
+      : "Archived";
+}
+
+export function getOutputsFiltered(status: WorkspaceOutputStatus | "all") {
+  if (status === "all") {
+    return workspaceTaskOutputs;
+  }
+
+  return workspaceTaskOutputs.filter((output) => output.status === status);
+}
+
+export function countOutputsByStatus(status: WorkspaceOutputStatus) {
+  return workspaceTaskOutputs.filter((output) => output.status === status).length;
+}
+
+export function getLogsForOutput(output: WorkspaceTaskOutput) {
+  return output.logIds
+    .map((logId) => getLogById(logId))
+    .filter((log): log is WorkspaceLogItem => Boolean(log));
+}
+
+export function getTasksForOutput(output: WorkspaceTaskOutput) {
+  return output.taskIds
+    .map((taskId) => getTaskById(taskId))
+    .filter((task): task is WorkspaceWorkItem => Boolean(task));
 }
 
 export type WorkspaceTaskMeta = {
@@ -885,12 +957,12 @@ export function countUnassignedLogsForType(type: LogListTypeFilter) {
 
 export const workspaceOutputs = [
   {
-    title: "PR document",
+    title: "Refined draft",
     description: "from 3 logs",
-    kind: "pull-request",
+    kind: "draft",
   },
   {
-    title: "Public post",
+    title: "Ready to publish",
     description: "2 candidates",
     kind: "post",
   },

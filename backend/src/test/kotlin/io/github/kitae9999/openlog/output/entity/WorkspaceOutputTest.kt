@@ -4,7 +4,6 @@ import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.entity.Workspace
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 
 class WorkspaceOutputTest {
@@ -16,7 +15,6 @@ class WorkspaceOutputTest {
         val output = WorkspaceOutput(
             workspace = workspace,
             author = user,
-            type = OutputType.POST_DRAFT,
             title = "Migration notes",
             content = "What changed and why.",
         )
@@ -28,17 +26,16 @@ class WorkspaceOutputTest {
     }
 
     @Test
-    fun `non post draft output cannot be published as post`() {
+    fun `output can be archived`() {
         val output = WorkspaceOutput(
             workspace = workspace,
             author = user,
-            type = OutputType.PR_DOC,
-            title = "PR doc",
-            content = "Implementation notes.",
+            title = "Draft",
+            content = "Draft content.",
         )
 
-        assertFailsWith<IllegalArgumentException> {
-            output.markPublished()
-        }
+        output.archive()
+
+        assertEquals(OutputStatus.ARCHIVED, output.status)
     }
 }
