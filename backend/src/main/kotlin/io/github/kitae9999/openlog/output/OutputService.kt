@@ -111,16 +111,6 @@ class OutputService(
         return toDetailResponse(output)
     }
 
-    @Transactional
-    fun archiveOutput(userId: Long, workspaceId: Long, outputId: Long): OutputDetailResponse {
-        val output = requireOwnedOutput(userId, workspaceId, outputId)
-        requireDraft(output, "Draft 상태의 output만 보관할 수 있습니다.")
-
-        output.archive()
-
-        return toDetailResponse(output)
-    }
-
     private fun replaceSources(
         output: WorkspaceOutput,
         workspace: Workspace,

@@ -91,12 +91,4 @@ class WorkspaceOutput(
         updatedAt = LocalDateTime.now()
     }
 
-    fun archive() {
-        require(status == OutputStatus.DRAFT) {
-            "Only draft outputs can be archived."
-        }
-
-        status = OutputStatus.ARCHIVED
-        updatedAt = LocalDateTime.now()
-    }
 }

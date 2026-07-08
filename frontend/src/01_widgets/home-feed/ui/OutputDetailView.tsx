@@ -102,21 +102,6 @@ export function OutputDetailView({
     setMode("preview");
   }
 
-  function archiveOutput() {
-    if (!output || !canMutate) {
-      return;
-    }
-
-    const nextOutput = {
-      ...output,
-      status: "archived" as const,
-      updatedLabel: "Just now",
-    };
-    saveOutputOverride(nextOutput);
-    setIsEditing(false);
-    setMode("preview");
-  }
-
   return (
     <div>
       <nav
@@ -184,22 +169,13 @@ export function OutputDetailView({
                 </button>
               ) : null}
               {canMutate ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={publishOutput}
-                    className="inline-flex h-[30px] items-center rounded-[10px] bg-zinc-950 px-[13px] text-[12.5px] font-semibold text-white transition hover:bg-zinc-800"
-                  >
-                    Publish
-                  </button>
-                  <button
-                    type="button"
-                    onClick={archiveOutput}
-                    className="inline-flex h-[30px] items-center rounded-[10px] px-[13px] text-[12.5px] font-semibold text-zinc-500 transition hover:text-zinc-950"
-                  >
-                    Archive
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={publishOutput}
+                  className="inline-flex h-[30px] items-center rounded-[10px] bg-zinc-950 px-[13px] text-[12.5px] font-semibold text-white transition hover:bg-zinc-800"
+                >
+                  Publish
+                </button>
               ) : null}
               {output.publishedHref ? (
                 <LinkButton href={output.publishedHref} tone="solid">

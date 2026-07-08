@@ -579,7 +579,7 @@ export function getTaskExcerpt(body: string, maxLength = 100) {
   return `${firstLine.slice(0, maxLength).trim()}…`;
 }
 
-export type WorkspaceOutputStatus = "draft" | "published" | "archived";
+export type WorkspaceOutputStatus = "draft" | "published";
 
 export type WorkspaceTaskOutput = {
   id: string;
@@ -640,11 +640,7 @@ export function getNewOutputHref(taskId?: string) {
 }
 
 export function getOutputStatusLabel(status: WorkspaceOutputStatus) {
-  return status === "draft"
-    ? "Draft"
-    : status === "published"
-      ? "Published"
-      : "Archived";
+  return status === "draft" ? "Draft" : "Published";
 }
 
 export function getOutputsFiltered(status: WorkspaceOutputStatus | "all") {

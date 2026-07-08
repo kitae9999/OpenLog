@@ -20,7 +20,7 @@ import {
   subscribeOutputOverrides,
 } from "./outputOverrides";
 
-const statusItems: WorkspaceOutputStatus[] = ["draft", "published", "archived"];
+const statusItems: WorkspaceOutputStatus[] = ["draft", "published"];
 
 export function OutputsListView({
   isLoggedIn,

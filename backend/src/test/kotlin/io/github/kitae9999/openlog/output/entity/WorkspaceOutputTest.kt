@@ -4,6 +4,7 @@ import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.entity.Workspace
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 
 class WorkspaceOutputTest {
@@ -11,7 +12,7 @@ class WorkspaceOutputTest {
     private val workspace = Workspace(owner = user, slug = "default", name = "Default")
 
     @Test
-    fun `post draft output can be published`() {
+    fun `draft output can be published`() {
         val output = WorkspaceOutput(
             workspace = workspace,
             author = user,
@@ -26,7 +27,7 @@ class WorkspaceOutputTest {
     }
 
     @Test
-    fun `output can be archived`() {
+    fun `published output cannot be updated`() {
         val output = WorkspaceOutput(
             workspace = workspace,
             author = user,
@@ -34,8 +35,10 @@ class WorkspaceOutputTest {
             content = "Draft content.",
         )
 
-        output.archive()
+        output.markPublished()
 
-        assertEquals(OutputStatus.ARCHIVED, output.status)
+        assertFailsWith<IllegalArgumentException> {
+            output.update("Next", "Next content.")
+        }
     }
 }

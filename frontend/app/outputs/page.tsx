@@ -1,7 +1,7 @@
 import { OutputsListFeed } from "@/widgets/home-feed/ui/OutputsListFeed";
 import type { WorkspaceOutputStatus } from "@/widgets/home-feed/ui/data";
 
-const allowedStatuses: WorkspaceOutputStatus[] = ["draft", "published", "archived"];
+const allowedStatuses: WorkspaceOutputStatus[] = ["draft", "published"];
 
 export default async function OutputsPage({
   searchParams,

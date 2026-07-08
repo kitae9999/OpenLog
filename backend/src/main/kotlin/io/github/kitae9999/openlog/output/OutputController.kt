@@ -72,13 +72,4 @@ class OutputController(
     ): OutputDetailResponse {
         return outputService.publishOutput(user, workspaceId, outputId, request)
     }
-
-    @PostMapping("/{workspaceId}/outputs/{outputId}/archive")
-    fun archiveOutput(
-        @AuthenticationPrincipal user: User,
-        @PathVariable workspaceId: Long,
-        @PathVariable outputId: Long,
-    ): OutputDetailResponse {
-        return outputService.archiveOutput(requireNotNull(user.id), workspaceId, outputId)
-    }
 }

@@ -4,5 +4,4 @@ enum class OutputStatus {
     DRAFT,
     EXPORTED,
     PUBLISHED,
-    ARCHIVED,
 }
