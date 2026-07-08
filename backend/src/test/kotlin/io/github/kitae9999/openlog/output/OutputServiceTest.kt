@@ -1,9 +1,6 @@
 package io.github.kitae9999.openlog.output
 
 import io.github.kitae9999.openlog.common.exception.BadRequestException
-import io.github.kitae9999.openlog.output.dto.CreateOutputRequest
-import io.github.kitae9999.openlog.output.dto.PublishOutputRequest
-import io.github.kitae9999.openlog.output.dto.UpdateOutputRequest
 import io.github.kitae9999.openlog.output.entity.OutputLog
 import io.github.kitae9999.openlog.output.entity.OutputStatus
 import io.github.kitae9999.openlog.output.entity.OutputTask
@@ -113,12 +110,10 @@ class OutputServiceTest {
         val response = outputService.createOutput(
             user = user,
             workspaceId = 100L,
-            request = CreateOutputRequest(
-                title = " Refined publish note ",
-                content = " Clean content ",
-                taskIds = listOf(10L),
-                logIds = listOf(20L),
-            ),
+            title = " Refined publish note ",
+            content = " Clean content ",
+            taskIds = listOf(10L),
+            logIds = listOf(20L),
         )
 
         val outputCaptor = ArgumentCaptor.forClass(WorkspaceOutput::class.java)
@@ -159,11 +154,10 @@ class OutputServiceTest {
             outputService.createOutput(
                 user = user,
                 workspaceId = 100L,
-                request = CreateOutputRequest(
-                    title = "Draft",
-                    content = "Content",
-                    taskIds = listOf(99L),
-                ),
+                title = "Draft",
+                content = "Content",
+                taskIds = listOf(99L),
+                logIds = emptyList(),
             )
         }.isInstanceOf(BadRequestException::class.java)
 
@@ -204,12 +198,10 @@ class OutputServiceTest {
             userId = 1L,
             workspaceId = 100L,
             outputId = 40L,
-            request = UpdateOutputRequest(
-                title = "Updated title",
-                content = "Updated content",
-                taskIds = listOf(10L),
-                logIds = listOf(20L),
-            ),
+            title = "Updated title",
+            content = "Updated content",
+            taskIds = listOf(10L),
+            logIds = listOf(20L),
         )
 
         assertThat(output.title).isEqualTo("Updated title")
@@ -257,10 +249,8 @@ class OutputServiceTest {
             user = user,
             workspaceId = 100L,
             outputId = 40L,
-            request = PublishOutputRequest(
-                description = "Public summary",
-                topics = listOf("output"),
-            ),
+            description = "Public summary",
+            topics = listOf("output"),
         )
 
         assertThat(output.status).isEqualTo(OutputStatus.PUBLISHED)
@@ -287,10 +277,10 @@ class OutputServiceTest {
                 userId = 1L,
                 workspaceId = 100L,
                 outputId = 40L,
-                request = UpdateOutputRequest(
-                    title = "Next",
-                    content = "Next",
-                ),
+                title = "Next",
+                content = "Next",
+                taskIds = emptyList(),
+                logIds = emptyList(),
             )
         }.isInstanceOf(BadRequestException::class.java)
 

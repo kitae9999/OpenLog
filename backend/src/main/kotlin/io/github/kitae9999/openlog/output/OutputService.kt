@@ -2,11 +2,8 @@ package io.github.kitae9999.openlog.output
 
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.output.dto.CreateOutputRequest
 import io.github.kitae9999.openlog.output.dto.OutputDetailResponse
 import io.github.kitae9999.openlog.output.dto.OutputResponse
-import io.github.kitae9999.openlog.output.dto.PublishOutputRequest
-import io.github.kitae9999.openlog.output.dto.UpdateOutputRequest
 import io.github.kitae9999.openlog.output.entity.OutputLog
 import io.github.kitae9999.openlog.output.entity.OutputStatus
 import io.github.kitae9999.openlog.output.entity.OutputTask
@@ -59,40 +56,61 @@ class OutputService(
     }
 
     @Transactional
-    fun createOutput(user: User, workspaceId: Long, request: CreateOutputRequest): OutputDetailResponse {
+    fun createOutput(
+        user: User,
+        workspaceId: Long,
+        title: String,
+        content: String,
+        taskIds: List<Long>,
+        logIds: List<Long>,
+    ): OutputDetailResponse {
         val userId = requireNotNull(user.id)
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
         val output = workspaceOutputRepository.save(
             WorkspaceOutput(
                 workspace = workspace,
                 author = user,
-                title = request.title.trim(),
-                content = request.content.trim(),
+                title = title.trim(),
+                content = content.trim(),
             )
         )
 
-        replaceSources(output, workspace, request.taskIds, request.logIds)
+        replaceSources(output, workspace, taskIds, logIds)
 
         return toDetailResponse(output)
     }
 
     @Transactional
-    fun updateOutput(userId: Long, workspaceId: Long, outputId: Long, request: UpdateOutputRequest): OutputDetailResponse {
+    fun updateOutput(
+        userId: Long,
+        workspaceId: Long,
+        outputId: Long,
+        title: String,
+        content: String,
+        taskIds: List<Long>,
+        logIds: List<Long>,
+    ): OutputDetailResponse {
         val output = requireOwnedOutput(userId, workspaceId, outputId)
         requireDraft(output, "Draft 상태의 output만 수정할 수 있습니다.")
         val workspace = output.workspace
 
         output.update(
-            title = request.title.trim(),
-            content = request.content.trim(),
+            title = title.trim(),
+            content = content.trim(),
         )
-        replaceSources(output, workspace, request.taskIds, request.logIds)
+        replaceSources(output, workspace, taskIds, logIds)
 
         return toDetailResponse(output)
     }
 
     @Transactional
-    fun publishOutput(user: User, workspaceId: Long, outputId: Long, request: PublishOutputRequest): OutputDetailResponse {
+    fun publishOutput(
+        user: User,
+        workspaceId: Long,
+        outputId: Long,
+        description: String,
+        topics: List<String>,
+    ): OutputDetailResponse {
         val userId = requireNotNull(user.id)
         val output = requireOwnedOutput(userId, workspaceId, outputId)
         requireDraft(output, "Draft 상태의 output만 발행할 수 있습니다.")
@@ -103,14 +121,17 @@ class OutputService(
         postService.createPostFromOutput(
             user = user,
             output = output,
-            description = request.description.trim(),
-            topics = request.topics,
+            description = description.trim(),
+            topics = topics,
         )
         output.markPublished()
 
         return toDetailResponse(output)
     }
 
+    /**
+     * output과 연결되어있는 소스 제거후 새걸로 재할당
+     */
     private fun replaceSources(
         output: WorkspaceOutput,
         workspace: Workspace,

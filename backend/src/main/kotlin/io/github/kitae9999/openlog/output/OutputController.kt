@@ -48,7 +48,14 @@ class OutputController(
         @PathVariable workspaceId: Long,
         @Valid @RequestBody request: CreateOutputRequest,
     ): ResponseEntity<OutputDetailResponse> {
-        val createdOutput = outputService.createOutput(user, workspaceId, request)
+        val createdOutput = outputService.createOutput(
+            user = user,
+            workspaceId = workspaceId,
+            title = request.title,
+            content = request.content,
+            taskIds = request.taskIds,
+            logIds = request.logIds,
+        )
 
         return ResponseEntity.status(201).body(createdOutput)
     }
@@ -60,7 +67,15 @@ class OutputController(
         @PathVariable outputId: Long,
         @Valid @RequestBody request: UpdateOutputRequest,
     ): OutputDetailResponse {
-        return outputService.updateOutput(requireNotNull(user.id), workspaceId, outputId, request)
+        return outputService.updateOutput(
+            userId = requireNotNull(user.id),
+            workspaceId = workspaceId,
+            outputId = outputId,
+            title = request.title,
+            content = request.content,
+            taskIds = request.taskIds,
+            logIds = request.logIds,
+        )
     }
 
     @PostMapping("/{workspaceId}/outputs/{outputId}/publish")
@@ -70,6 +85,12 @@ class OutputController(
         @PathVariable outputId: Long,
         @Valid @RequestBody request: PublishOutputRequest,
     ): OutputDetailResponse {
-        return outputService.publishOutput(user, workspaceId, outputId, request)
+        return outputService.publishOutput(
+            user = user,
+            workspaceId = workspaceId,
+            outputId = outputId,
+            description = request.description,
+            topics = request.topics,
+        )
     }
 }
