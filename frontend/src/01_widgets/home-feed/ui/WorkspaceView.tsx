@@ -12,6 +12,7 @@ import {
   getTaskById,
   getTaskHref,
   getTasksHref,
+  getWorkspaceGraphHref,
   workspaceIssues,
   workspaceLogs,
   workspaceMemories,
@@ -562,7 +563,7 @@ function GraphCard({ isPreview = false }: { isPreview?: boolean }) {
       title="GRAPH"
       action={
         <HeaderLink
-          href="/write"
+          href={getWorkspaceGraphHref()}
           label="Open full view"
           isPreview={isPreview}
         />

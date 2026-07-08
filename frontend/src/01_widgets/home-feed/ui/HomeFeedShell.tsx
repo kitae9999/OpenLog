@@ -26,6 +26,7 @@ import {
   getMcpGuideHref,
   getTabHref,
   getTasksHref,
+  getWorkspaceGraphHref,
   logsSubnavItems,
   recommendedTopics,
   topContributors,
@@ -38,14 +39,20 @@ import { WorkspaceView } from "./WorkspaceView";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { FeedArticleCard } from "./FeedArticleCard";
 
-const exploreTabs = [
+type ExploreTabKey = "trending" | "recent" | "following" | "liked";
+type ExploreSubTab = Exclude<ExploreTabKey, "trending">;
+
+const exploreTabs: Array<{
+  key: ExploreTabKey;
+  label: string;
+  hidden?: boolean;
+  loginRequired?: boolean;
+}> = [
   { key: "trending", label: "Trending", hidden: true },
   { key: "recent", label: "Recent" },
   { key: "following", label: "Following", loginRequired: true },
   { key: "liked", label: "Liked", loginRequired: true },
 ] as const;
-
-type ExploreSubTab = Exclude<(typeof exploreTabs)[number]["key"], "trending">;
 
 function getExploreEmptyMessage(
   subTab: ExploreSubTab,
@@ -508,7 +515,7 @@ export function HomeSidebar({
   isLoggedIn: boolean;
   isOpen: boolean;
   onNavigate: () => void;
-  workspaceNav?: "dashboard" | "tasks" | "logs";
+  workspaceNav?: "dashboard" | "tasks" | "logs" | "graph";
   logsFilter?: LogListTypeFilter;
   settingsNav?: "mcp-guide";
 }) {
@@ -557,8 +564,9 @@ export function HomeSidebar({
                 onNavigate={onNavigate}
               />
               <SidebarLink
-                href={getTabHref("workspace", isLoggedIn)}
+                href={getWorkspaceGraphHref()}
                 label="Graph"
+                active={workspaceNav === "graph"}
                 icon={<IconGraph className="size-[15px]" />}
                 onNavigate={onNavigate}
               />
@@ -842,8 +850,12 @@ function ExploreView({
         <div className="flex gap-6 border-b border-zinc-200/70 px-5">
           {exploreTabs
             .filter(
-              (tab) =>
-                !tab.hidden && (!tab.loginRequired || isLoggedIn),
+              (
+                tab,
+              ): tab is (typeof exploreTabs)[number] & { key: ExploreSubTab } =>
+                !tab.hidden &&
+                tab.key !== "trending" &&
+                (!tab.loginRequired || isLoggedIn),
             )
             .map((tab) => (
               <button

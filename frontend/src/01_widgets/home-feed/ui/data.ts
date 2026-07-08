@@ -531,6 +531,10 @@ export function getTasksHref() {
   return "/tasks";
 }
 
+export function getWorkspaceGraphHref() {
+  return "/graph";
+}
+
 export function getMcpGuideHref() {
   return "/settings/mcp-guide";
 }
