@@ -14,7 +14,6 @@ class TodoMapper {
             plannedFor = todo.plannedFor.toString(),
             sortOrder = todo.sortOrder,
             taskId = todo.task?.id,
-            originLogId = todo.originLog?.id,
             createdAt = todo.createdAt.toString(),
             updatedAt = todo.updatedAt.toString(),
             completedAt = todo.completedAt?.toString(),

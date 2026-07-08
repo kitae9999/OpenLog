@@ -10,5 +10,4 @@ data class CreateTodoRequest(
     @field:NotNull(message = "Todo 날짜는 필수입니다.")
     val plannedFor: LocalDate?,
     val taskId: Long? = null,
-    val originLogId: Long? = null,
 )

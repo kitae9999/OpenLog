@@ -23,13 +23,9 @@ class TodoService(
         title: String,
         plannedFor: LocalDate?,
         taskId: Long?,
-        originLogId: Long?,
     ): TodoResponse {
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(requireNotNull(user.id), workspaceId)
         val task = workspaceAccessResolver.resolveTask(workspace, taskId)
-        val originLog = originLogId?.let {
-            workspaceAccessResolver.requireOwnedLog(workspace, it)
-        }
         val resolvedPlannedFor = plannedFor
             ?: throw BadRequestException("Todo 날짜는 필수입니다.")
         val sortOrder = resolveNextSortOrder(workspaceId, resolvedPlannedFor)
@@ -38,7 +34,6 @@ class TodoService(
             workspace = workspace,
             author = user,
             task = task,
-            originLog = originLog,
             title = title.trim(),
             plannedFor = resolvedPlannedFor,
             sortOrder = sortOrder,
@@ -55,7 +50,7 @@ class TodoService(
         return todoRepository.findAllByWorkspaceIdAndPlannedForOrderBySortOrderAscIdAsc(
             workspaceId = workspaceId,
             plannedFor = plannedFor,
-        ).map(todoMapper::toResponse)
+        ).map(todoMapper::toResponse) // 함수 참조 넘김
     }
 
     private fun resolveNextSortOrder(workspaceId: Long, plannedFor: LocalDate): Int {
@@ -64,6 +59,6 @@ class TodoService(
             plannedFor = plannedFor,
         )
 
-        return (lastTodo?.sortOrder ?: -1) + 1
-    }
+        return (lastTodo?.sortOrder ?: -1) + 1 // 그날 todo 없으면 -1 +1 = 0 인덱스, 있으면 마지막 order + 1
+    } 
 }

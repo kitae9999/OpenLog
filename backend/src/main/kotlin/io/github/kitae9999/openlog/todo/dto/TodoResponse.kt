@@ -7,7 +7,6 @@ data class TodoResponse(
     val plannedFor: String,
     val sortOrder: Int,
     val taskId: Long?,
-    val originLogId: Long?,
     val createdAt: String,
     val updatedAt: String,
     val completedAt: String?,

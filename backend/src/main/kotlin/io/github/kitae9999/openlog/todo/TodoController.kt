@@ -32,7 +32,6 @@ class TodoController(
             title = request.title,
             plannedFor = request.plannedFor,
             taskId = request.taskId,
-            originLogId = request.originLogId,
         )
 
         return ResponseEntity.status(201).body(createdTodo) // 리소스 생성은 201 created 명시적 반환
