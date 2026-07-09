@@ -13,6 +13,11 @@ import {
 } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
+  GraphCanvasBackdrop,
+  graphCanvasSurfaceClassName,
+} from "@/shared/ui/GraphCanvasBackdrop";
+import { GraphZoomControls } from "@/shared/ui/GraphZoomControls";
+import {
   getTabHref,
   workspaceLogs,
   workspaceTaskOutputs,
@@ -213,6 +218,30 @@ export function WorkspaceGraphCanvas({
   );
   const showLabels = transform.scale >= LABEL_VISIBILITY_ZOOM;
 
+  function zoomBy(factor: number) {
+    setTransform((current) => {
+      const nextScale = clamp(
+        current.scale * factor,
+        MIN_GRAPH_ZOOM,
+        MAX_GRAPH_ZOOM,
+      );
+      if (nextScale === current.scale) {
+        return current;
+      }
+
+      const centerX = GRAPH_WIDTH / 2;
+      const centerY = GRAPH_HEIGHT / 2;
+      const worldX = (centerX - current.x) / current.scale;
+      const worldY = (centerY - current.y) / current.scale;
+
+      return {
+        scale: nextScale,
+        x: centerX - worldX * nextScale,
+        y: centerY - worldY * nextScale,
+      };
+    });
+  }
+
   useEffect(() => {
     let animationFrame = 0;
 
@@ -238,15 +267,10 @@ export function WorkspaceGraphCanvas({
       event.preventDefault();
       event.stopPropagation();
 
-      const rect = svgRef.current?.getBoundingClientRect();
-      if (!rect) {
+      const point = getSvgPoint(event.clientX, event.clientY);
+      if (!point) {
         return;
       }
-
-      const point = {
-        x: ((event.clientX - rect.left) / rect.width) * GRAPH_WIDTH,
-        y: ((event.clientY - rect.top) / rect.height) * GRAPH_HEIGHT,
-      };
 
       setTransform((current) => {
         const nextScale = clamp(
@@ -428,15 +452,21 @@ export function WorkspaceGraphCanvas({
   }
 
   function getSvgPoint(clientX: number, clientY: number) {
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) {
+    const svg = svgRef.current;
+    if (!svg) {
       return null;
     }
 
-    return {
-      x: ((clientX - rect.left) / rect.width) * GRAPH_WIDTH,
-      y: ((clientY - rect.top) / rect.height) * GRAPH_HEIGHT,
-    };
+    const point = svg.createSVGPoint();
+    point.x = clientX;
+    point.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) {
+      return null;
+    }
+
+    const local = point.matrixTransform(ctm.inverse());
+    return { x: local.x, y: local.y };
   }
 
   function getWorldPoint(clientX: number, clientY: number) {
@@ -475,14 +505,28 @@ export function WorkspaceGraphCanvas({
   }
 
   return (
-    <div ref={graphViewportRef} className={cn("overscroll-contain", className)}>
+    <div
+      ref={graphViewportRef}
+      className={cn(
+        "relative overscroll-contain",
+        graphCanvasSurfaceClassName,
+        className,
+      )}
+    >
+      <GraphZoomControls
+        onZoomIn={() => zoomBy(1.18)}
+        onZoomOut={() => zoomBy(1 / 1.18)}
+        canZoomIn={transform.scale < MAX_GRAPH_ZOOM - 0.001}
+        canZoomOut={transform.scale > MIN_GRAPH_ZOOM + 0.001}
+      />
       <svg
         ref={svgRef}
         viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`}
+        preserveAspectRatio="xMidYMid slice"
         role="img"
         aria-label="Workspace graph"
         className={cn(
-          "w-full cursor-grab select-none bg-[radial-gradient(circle_at_50%_45%,#f4f4f5_0,#fff_56%)] active:cursor-grabbing",
+          "w-full cursor-grab select-none bg-transparent active:cursor-grabbing",
           heightClassName,
         )}
         style={{ touchAction: "none" }}
@@ -494,6 +538,7 @@ export function WorkspaceGraphCanvas({
         <g
           transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}
         >
+          <GraphCanvasBackdrop width={GRAPH_WIDTH} height={GRAPH_HEIGHT} />
           {graph.edges.map((edge, index) => {
             const source = nodeStatesById.get(edge.sourceId);
             const target = nodeStatesById.get(edge.targetId);

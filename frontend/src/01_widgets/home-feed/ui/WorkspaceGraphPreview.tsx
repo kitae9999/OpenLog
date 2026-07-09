@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import { cn } from "@/shared/lib/cn";
+import { graphCanvasSurfaceClassName } from "@/shared/ui/GraphCanvasBackdrop";
 import {
   workspaceLogs,
   workspaceTaskOutputs,
@@ -32,7 +34,12 @@ export function WorkspaceGraphPreview({
   const graphKey = graph.nodes.map((node) => node.id).join("|");
 
   return (
-    <div className="mx-[18px] mb-[15px] mt-3 overflow-hidden rounded-xl border border-zinc-200">
+    <div
+      className={cn(
+        "mx-[18px] mb-[15px] mt-3 overflow-hidden rounded-xl border border-zinc-200",
+        graphCanvasSurfaceClassName,
+      )}
+    >
       <WorkspaceGraphCanvas
         key={graphKey}
         graph={graph}

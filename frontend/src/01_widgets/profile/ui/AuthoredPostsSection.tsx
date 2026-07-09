@@ -16,6 +16,11 @@ import type { PublicUserPostGraph } from "@/entities/user/api/getPublicUserPostG
 import { assets } from "@/shared/config/assets";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import { cn } from "@/shared/lib/cn";
+import {
+  GraphCanvasBackdrop,
+  graphCanvasSurfaceClassName,
+} from "@/shared/ui/GraphCanvasBackdrop";
+import { GraphZoomControls } from "@/shared/ui/GraphZoomControls";
 
 type AuthoredPostsView = "list" | "graph";
 type GraphTransform = {
@@ -240,6 +245,30 @@ function SecondBrainGraph({
   );
   const showLabels = transform.scale >= LABEL_VISIBILITY_ZOOM;
 
+  function zoomBy(factor: number) {
+    setTransform((current) => {
+      const nextScale = clamp(
+        current.scale * factor,
+        MIN_GRAPH_ZOOM,
+        MAX_GRAPH_ZOOM,
+      );
+      if (nextScale === current.scale) {
+        return current;
+      }
+
+      const centerX = GRAPH_WIDTH / 2;
+      const centerY = GRAPH_HEIGHT / 2;
+      const worldX = (centerX - current.x) / current.scale;
+      const worldY = (centerY - current.y) / current.scale;
+
+      return {
+        scale: nextScale,
+        x: centerX - worldX * nextScale,
+        y: centerY - worldY * nextScale,
+      };
+    });
+  }
+
   useEffect(() => {
     let animationFrame = 0;
 
@@ -265,15 +294,10 @@ function SecondBrainGraph({
       event.preventDefault();
       event.stopPropagation();
 
-      const rect = svgRef.current?.getBoundingClientRect();
-      if (!rect) {
+      const point = getSvgPoint(event.clientX, event.clientY);
+      if (!point) {
         return;
       }
-
-      const point = {
-        x: ((event.clientX - rect.left) / rect.width) * GRAPH_WIDTH,
-        y: ((event.clientY - rect.top) / rect.height) * GRAPH_HEIGHT,
-      };
 
       setTransform((current) => {
         const nextScale = clamp(
@@ -453,15 +477,21 @@ function SecondBrainGraph({
   }
 
   function getSvgPoint(clientX: number, clientY: number) {
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) {
+    const svg = svgRef.current;
+    if (!svg) {
       return null;
     }
 
-    return {
-      x: ((clientX - rect.left) / rect.width) * GRAPH_WIDTH,
-      y: ((clientY - rect.top) / rect.height) * GRAPH_HEIGHT,
-    };
+    const point = svg.createSVGPoint();
+    point.x = clientX;
+    point.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) {
+      return null;
+    }
+
+    const local = point.matrixTransform(ctm.inverse());
+    return { x: local.x, y: local.y };
   }
 
   function getWorldPoint(clientX: number, clientY: number) {
@@ -506,13 +536,26 @@ function SecondBrainGraph({
           Add [[post title]] references between posts to connect these nodes.
         </div>
       ) : null}
-      <div ref={graphViewportRef} className="overscroll-contain">
+      <div
+        ref={graphViewportRef}
+        className={cn(
+          "relative overscroll-contain",
+          graphCanvasSurfaceClassName,
+        )}
+      >
+        <GraphZoomControls
+          onZoomIn={() => zoomBy(1.18)}
+          onZoomOut={() => zoomBy(1 / 1.18)}
+          canZoomIn={transform.scale < MAX_GRAPH_ZOOM - 0.001}
+          canZoomOut={transform.scale > MIN_GRAPH_ZOOM + 0.001}
+        />
         <svg
           ref={svgRef}
           viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`}
+          preserveAspectRatio="xMidYMid slice"
           role="img"
           aria-label="Second brain post graph"
-          className="h-[520px] w-full cursor-grab select-none bg-[radial-gradient(circle_at_50%_45%,#f4f4f5_0,#fff_56%)] active:cursor-grabbing"
+          className="h-[520px] w-full cursor-grab select-none bg-transparent active:cursor-grabbing"
           style={{ touchAction: "none" }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -522,6 +565,7 @@ function SecondBrainGraph({
           <g
             transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}
           >
+            <GraphCanvasBackdrop width={GRAPH_WIDTH} height={GRAPH_HEIGHT} />
             {graph.edges.map((edge, index) => {
               const source = nodeStatesBySlug.get(edge.sourceSlug);
               const target = nodeStatesBySlug.get(edge.targetSlug);
