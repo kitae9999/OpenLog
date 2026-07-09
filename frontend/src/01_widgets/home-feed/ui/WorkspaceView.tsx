@@ -11,7 +11,7 @@ import {
 } from "react";
 import { handleOAuth } from "@/features/auth/api/handleOAuth";
 import { cn } from "@/shared/lib/cn";
-import { todayIso } from "@/shared/lib/todayIso";
+import { todayIso, todayShortLabel } from "@/shared/lib/todayIso";
 import { GitHubIcon } from "@/shared/ui/icons";
 import {
   getLogHref,
@@ -417,7 +417,6 @@ function TodosCard({
   createTodoOverride?: (title: string) => Promise<WorkspaceActionResult>;
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"today" | "week">("today");
   const [isAdding, setIsAdding] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [localTodos, setLocalTodos] = useState(todos);
@@ -435,7 +434,7 @@ function TodosCard({
     }
   }, [isAdding]);
 
-  const canAdd = !isPreview && activeTab === "today" && Boolean(workspaceId);
+  const canAdd = !isPreview && Boolean(workspaceId);
 
   function openAddRow() {
     if (!canAdd) {
@@ -584,19 +583,19 @@ function TodosCard({
     <DashboardCard
       title="TODOS"
       testId="todos-card"
+      headerClassName="pb-2.5"
       action={
-        <MiniTabs
-          active={activeTab}
-          onChange={setActiveTab}
-          disabled={isPreview}
-          items={[
-            { key: "today", label: "Today" },
-            { key: "week", label: "Week" },
-          ]}
-        />
+        <span className="text-[11px] font-medium tabular-nums text-zinc-400">
+          {todayShortLabel()}
+        </span>
       }
     >
       <div className="divide-y divide-zinc-100">
+        {localTodos.length === 0 && !isAdding ? (
+          <p className="px-[18px] py-3 text-[12px] text-zinc-400">
+            What&apos;s on for today?
+          </p>
+        ) : null}
         {localTodos.map((todo) => (
           <TodoRow
             key={todo.id}
@@ -605,9 +604,7 @@ function TodosCard({
               isPreview || isPending || todo.id.startsWith("pending-")
             }
             onToggle={() => toggleTodo(todo.id)}
-            onRemove={
-              isPreview ? undefined : () => removeTodo(todo.id)
-            }
+            onRemove={isPreview ? undefined : () => removeTodo(todo.id)}
           />
         ))}
         {isAdding ? (
@@ -685,9 +682,18 @@ const TodoAddRow = forwardRef<
             onCancel();
           }
         }}
-        className="min-w-0 bg-transparent text-[13px] font-semibold leading-5 text-zinc-950 outline-none placeholder:font-medium placeholder:text-zinc-400 disabled:text-zinc-400"
+        className="min-w-0 flex-1 bg-transparent text-[13px] font-semibold leading-5 text-zinc-950 outline-none placeholder:font-medium placeholder:text-zinc-400 disabled:text-zinc-400"
       />
-      <span className="size-6 shrink-0" aria-hidden="true" />
+      <button
+        type="button"
+        data-testid="todo-add-cancel"
+        aria-label="Cancel add todo"
+        disabled={disabled}
+        onClick={onCancel}
+        className="flex size-6 shrink-0 items-center justify-center rounded-md text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <IconClose className="size-3" />
+      </button>
     </TodoPanelRow>
   );
 });
@@ -1152,12 +1158,14 @@ function DashboardCard({
   titleAside,
   action,
   testId,
+  headerClassName,
   children,
 }: {
   title: string;
   titleAside?: ReactNode;
   action?: ReactNode;
   testId?: string;
+  headerClassName?: string;
   children: ReactNode;
 }) {
   return (
@@ -1165,7 +1173,12 @@ function DashboardCard({
       data-testid={testId}
       className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white"
     >
-      <div className="flex items-center justify-between gap-3 px-[18px] pt-3.5">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-3 px-[18px] pt-3.5",
+          headerClassName,
+        )}
+      >
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
           <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
             {title}

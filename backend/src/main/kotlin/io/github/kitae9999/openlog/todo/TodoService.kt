@@ -102,5 +102,5 @@ class TodoService(
         )
 
         return (lastTodo?.sortOrder ?: -1) + 1 // 그날 todo 없으면 -1 +1 = 0 인덱스, 있으면 마지막 order + 1
-    } 
+    }
 }

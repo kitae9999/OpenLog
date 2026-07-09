@@ -34,6 +34,17 @@ test.describe("Todos card layout", () => {
     expect(Math.round(addRowBox.height)).toBe(Math.round(referenceBox.height));
   });
 
+  test("cancels empty add row with trailing x button", async ({ page }) => {
+    await page.getByTestId("todo-add-button").click();
+    await expect(page.getByTestId("todo-add-input")).toBeVisible();
+    await expect(page.getByTestId("todo-add-cancel")).toBeVisible();
+
+    await page.getByTestId("todo-add-cancel").click();
+
+    await expect(page.getByTestId("todo-add-input")).toHaveCount(0);
+    await expect(page.getByTestId("todo-add-button")).toBeVisible();
+  });
+
   test("keeps newly added todo row the same height as existing rows", async ({
     page,
   }) => {
