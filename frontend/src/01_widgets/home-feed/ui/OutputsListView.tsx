@@ -68,7 +68,7 @@ export function OutputsListView({
       </nav>
 
       <article className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <header className="border-b border-zinc-100 px-6 pb-5 pt-[22px]">
+        <header className="border-b border-zinc-100 px-6 pb-2.5 pt-[22px]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950">

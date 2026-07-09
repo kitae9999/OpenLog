@@ -4,8 +4,10 @@ import { cn } from "@/shared/lib/cn";
 import { MarkdownContent } from "@/shared/ui/markdown";
 import { LogTypeLabel } from "./LogTypeLabel";
 import {
+  buildLogsListHref,
   countUnassignedLogs,
   getLogsForTask,
+  getNewLogHref,
   getNewOutputHref,
   getOutputHref,
   getOutputsForTask,
@@ -118,7 +120,7 @@ export function TaskDetailView({
             </div>
           </dl>
           <div className="mt-3.5 flex flex-wrap gap-2">
-            <LinkButton href="/write" tone="solid" size="sm">
+            <LinkButton href={getNewLogHref(task.id)} tone="solid" size="sm">
               Log to this task
             </LinkButton>
             {task.status !== "done" ? (
@@ -228,7 +230,7 @@ export function TaskDetailView({
               </h2>
               {unassignedCount > 0 ? (
                 <Link
-                  href="/write"
+                  href={buildLogsListHref("all", "unassigned")}
                   className="text-[12px] font-medium text-zinc-500 transition hover:text-zinc-950"
                 >
                   Unassigned ({unassignedCount})

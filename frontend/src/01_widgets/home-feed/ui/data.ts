@@ -548,6 +548,14 @@ export function getTaskEditHref(taskId: string) {
   return `/tasks/${taskId}/edit`;
 }
 
+export function getNewTaskHref() {
+  return "/tasks/new";
+}
+
+export function getNewLogHref(taskId?: string) {
+  return taskId ? `/logs/new?taskId=${taskId}` : "/logs/new";
+}
+
 export type TaskListFilter = "all" | WorkspaceWorkStatus;
 
 export function getTasksFiltered(filter: TaskListFilter) {

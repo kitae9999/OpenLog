@@ -13,6 +13,7 @@ export function OutputWorkspaceShell({
   footer,
   children,
   label,
+  workspaceNav = "outputs",
   workspaceData,
 }: {
   isLoggedIn: boolean;
@@ -21,6 +22,7 @@ export function OutputWorkspaceShell({
   footer: ReactNode;
   children: ReactNode;
   label: string;
+  workspaceNav?: "dashboard" | "tasks" | "logs" | "graph" | "outputs";
   workspaceData?: WorkspaceUiData | null;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -63,7 +65,7 @@ export function OutputWorkspaceShell({
 
         <HomeSidebar
           activeTab="workspace"
-          workspaceNav="outputs"
+          workspaceNav={workspaceNav}
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
           workspaceData={workspaceData}

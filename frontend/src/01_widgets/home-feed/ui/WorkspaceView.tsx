@@ -16,7 +16,9 @@ import { GitHubIcon } from "@/shared/ui/icons";
 import {
   getLogHref,
   getLogsHref,
+  getNewLogHref,
   getNewOutputHref,
+  getNewTaskHref,
   getTaskExcerpt,
   getTaskHref,
   getTasksHref,
@@ -250,7 +252,7 @@ function NowWorkingCard({
 
         <div className="mt-4 flex flex-wrap gap-2">
           <LinkButton
-            href="/write"
+            href={getNewLogHref(task.id)}
             tone="solid"
             size="sm"
             isPreview={isPreview}
@@ -312,7 +314,7 @@ function WorkTasksCard({
         ))}
       </PanelList>
       <PreviewableLink
-        href="/write"
+        href={getNewTaskHref()}
         isPreview={isPreview}
         className="block border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         previewClassName="block cursor-default border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-300"
@@ -1035,7 +1037,9 @@ function OpenIssuesCard({
   return (
     <DashboardCard
       title="OPEN ISSUES"
-      action={<HeaderLink href="/write" isPreview={isPreview} />}
+      action={
+        <HeaderLink href={getLogsHref("issues")} isPreview={isPreview} />
+      }
     >
       <PanelList>
         {issues.map((issue) => (

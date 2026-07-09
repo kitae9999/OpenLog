@@ -15,6 +15,7 @@ import {
   buildLogsListHref,
   getLogHref,
   getLogListTitle,
+  getNewLogHref,
   getTabHref,
   getTaskHref,
   logsSubnavItems,
@@ -80,9 +81,6 @@ export function LogsListView({
     return items;
   }, [logs, typeFilter, taskFilter, sortFilter]);
 
-  const typeLabel =
-    logsSubnavItems.find((item) => item.key === typeFilter)?.label ?? "All";
-
   const taskLabel = getTaskFilterLabel(taskFilter, taskFilters);
 
   function setTypeFilter(next: LogListTypeFilter) {
@@ -110,122 +108,126 @@ export function LogsListView({
       </nav>
 
       <article className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-6 py-5">
-          <h1 className="font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950">
-            {title}
-          </h1>
-          <LinkButton href="/write" tone="solid" size="sm">
-            + New log
-          </LinkButton>
-        </header>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 bg-zinc-50/80 px-4 py-2.5">
-          <p className="text-[13px] tabular-nums text-zinc-500">
-            <span className="font-semibold text-zinc-700">{filteredLogs.length}</span>{" "}
-            log{filteredLogs.length === 1 ? "" : "s"}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-0.5">
-            <FilterDropdown
-              label="Type"
-              active={typeFilter !== "all"}
-              valueLabel={typeLabel}
-            >
-              {(close) =>
-                logsSubnavItems.map((item) => (
-                  <FilterMenuItem
-                    key={item.key}
-                    active={typeFilter === item.key}
-                    onClick={() => {
-                      setTypeFilter(item.key);
-                      close();
-                    }}
-                  >
-                      {item.label}
-                    <span className="ml-auto tabular-nums text-zinc-400">
-                      {countLogsByType(logs, item.key)}
-                    </span>
-                  </FilterMenuItem>
-                ))
-              }
-            </FilterDropdown>
-
-            <FilterDropdown
-              label="Task"
-              active={taskFilter !== "all"}
-              valueLabel={taskLabel}
-            >
-              {(close) => (
-                <>
-                  <FilterMenuItem
-                    active={taskFilter === "all"}
-                    onClick={() => {
-                      setTaskFilter("all");
-                      close();
-                    }}
-                  >
-                    All tasks
-                  </FilterMenuItem>
-                  {(unassignedForType > 0 || taskFilter === "unassigned") && (
-                    <FilterMenuItem
-                      active={taskFilter === "unassigned"}
-                      onClick={() => {
-                        setTaskFilter("unassigned");
-                        close();
-                      }}
-                    >
-                      Unassigned
-                      <span className="ml-auto tabular-nums text-zinc-400">
-                        {unassignedForType}
-                      </span>
-                    </FilterMenuItem>
-                  )}
-                  {taskFilters.map((task) => (
-                    <FilterMenuItem
-                      key={task.id}
-                      active={taskFilter === task.id}
-                      onClick={() => {
-                        setTaskFilter(task.id);
-                        close();
-                      }}
-                    >
-                      <span className="truncate">{task.title}</span>
-                    </FilterMenuItem>
-                  ))}
-                </>
-              )}
-            </FilterDropdown>
-
-            <FilterDropdown
-              label="Sort"
-              active={sortFilter !== "newest"}
-              valueLabel={sortFilter === "oldest" ? "Oldest" : "Newest"}
-            >
-              {(close) => (
-                <>
-                  <FilterMenuItem
-                    active={sortFilter === "newest"}
-                    onClick={() => {
-                      setSortFilter("newest");
-                      close();
-                    }}
-                  >
-                    Newest
-                  </FilterMenuItem>
-                  <FilterMenuItem
-                    active={sortFilter === "oldest"}
-                    onClick={() => {
-                      setSortFilter("oldest");
-                      close();
-                    }}
-                  >
-                    Oldest
-                  </FilterMenuItem>
-                </>
-              )}
-            </FilterDropdown>
+        <header className="border-b border-zinc-100 px-6 pb-2.5 pt-[22px]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950">
+                {title}
+              </h1>
+              <p className="mt-1.5 text-[13px] text-zinc-500">
+                <span className="font-semibold text-zinc-700 tabular-nums">
+                  {filteredLogs.length}
+                </span>{" "}
+                log{filteredLogs.length === 1 ? "" : "s"}
+              </p>
+            </div>
+            <LinkButton href={getNewLogHref()} tone="solid" size="sm">
+              + New log
+            </LinkButton>
           </div>
-        </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {logsSubnavItems.map((item) => (
+                <FilterChip
+                  key={item.key}
+                  active={typeFilter === item.key}
+                  onClick={() => setTypeFilter(item.key)}
+                >
+                  {item.label}
+                  <span
+                    className={cn(
+                      "tabular-nums",
+                      typeFilter === item.key
+                        ? "text-white/70"
+                        : "text-zinc-400",
+                    )}
+                  >
+                    {countLogsByType(logs, item.key)}
+                  </span>
+                </FilterChip>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-0.5">
+              <FilterDropdown
+                label="Task"
+                active={taskFilter !== "all"}
+                valueLabel={taskLabel}
+              >
+                {(close) => (
+                  <>
+                    <FilterMenuItem
+                      active={taskFilter === "all"}
+                      onClick={() => {
+                        setTaskFilter("all");
+                        close();
+                      }}
+                    >
+                      All tasks
+                    </FilterMenuItem>
+                    {(unassignedForType > 0 ||
+                      taskFilter === "unassigned") && (
+                      <FilterMenuItem
+                        active={taskFilter === "unassigned"}
+                        onClick={() => {
+                          setTaskFilter("unassigned");
+                          close();
+                        }}
+                      >
+                        Unassigned
+                        <span className="ml-auto tabular-nums text-zinc-400">
+                          {unassignedForType}
+                        </span>
+                      </FilterMenuItem>
+                    )}
+                    {taskFilters.map((task) => (
+                      <FilterMenuItem
+                        key={task.id}
+                        active={taskFilter === task.id}
+                        onClick={() => {
+                          setTaskFilter(task.id);
+                          close();
+                        }}
+                      >
+                        <span className="truncate">{task.title}</span>
+                      </FilterMenuItem>
+                    ))}
+                  </>
+                )}
+              </FilterDropdown>
+
+              <FilterDropdown
+                label="Sort"
+                active={sortFilter !== "newest"}
+                valueLabel={sortFilter === "oldest" ? "Oldest" : "Newest"}
+              >
+                {(close) => (
+                  <>
+                    <FilterMenuItem
+                      active={sortFilter === "newest"}
+                      onClick={() => {
+                        setSortFilter("newest");
+                        close();
+                      }}
+                    >
+                      Newest
+                    </FilterMenuItem>
+                    <FilterMenuItem
+                      active={sortFilter === "oldest"}
+                      onClick={() => {
+                        setSortFilter("oldest");
+                        close();
+                      }}
+                    >
+                      Oldest
+                    </FilterMenuItem>
+                  </>
+                )}
+              </FilterDropdown>
+            </div>
+          </div>
+        </header>
 
         <div className="px-[18px] pb-2 pt-1">
           {filteredLogs.length === 0 ? (
@@ -306,6 +308,31 @@ function getTaskFiltersForLogs(
   return tasks.filter((task) => taskIds.has(task.id));
 }
 
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[12.5px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active
+          ? "bg-zinc-950 text-white"
+          : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-950",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 function FilterDropdown({
   label,
   active,
@@ -362,7 +389,9 @@ function FilterDropdown({
       >
         <span>{label}</span>
         {active && valueLabel ? (
-          <span className="max-w-[120px] truncate text-zinc-400">: {valueLabel}</span>
+          <span className="max-w-[120px] truncate text-zinc-400">
+            : {valueLabel}
+          </span>
         ) : null}
         <IconChevronDown
           className={cn(

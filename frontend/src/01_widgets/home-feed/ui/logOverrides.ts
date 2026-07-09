@@ -55,3 +55,44 @@ export function mergeLogWithOverrides(log: WorkspaceLogItem): WorkspaceLogItem {
     body: override.body ?? log.body,
   };
 }
+
+export function createLogOverride(input: {
+  kind: "ISSUE" | "FIX" | "DECISION" | "NOTE";
+  title: string;
+  body: string;
+  taskId?: string;
+}): WorkspaceLogItem {
+  const id = `log-${Date.now().toString(36)}`;
+  const labelByKind = {
+    ISSUE: "Issue",
+    FIX: "Fix",
+    DECISION: "Decision",
+    NOTE: "Log",
+  } as const;
+  const toneByKind = {
+    ISSUE: "amber",
+    FIX: "green",
+    DECISION: "blue",
+    NOTE: "zinc",
+  } as const;
+
+  const log: WorkspaceLogItem = {
+    id,
+    tone: toneByKind[input.kind],
+    label: labelByKind[input.kind],
+    kind: input.kind,
+    title: input.title,
+    description: input.body.slice(0, 120),
+    meta: "Just now",
+    href: `/logs/${id}`,
+    taskId: input.taskId,
+    body: input.body,
+  };
+
+  saveLogOverride(id, {
+    title: input.title,
+    body: input.body,
+  });
+
+  return log;
+}

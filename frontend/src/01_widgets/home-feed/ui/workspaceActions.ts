@@ -14,6 +14,36 @@ export type WorkspaceActionResult = {
   message?: string;
 };
 
+type LogKind = "ISSUE" | "FIX" | "DECISION" | "NOTE";
+
+export async function createWorkspaceTask(input: {
+  workspaceId: string;
+  title: string;
+  description?: string | null;
+  content?: string | null;
+  status?: TaskStatus;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    const task = await requestJson<{ id: number }>(
+      `/workspaces/${input.workspaceId}/tasks`,
+      cookie,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: input.title,
+          description: input.description ?? null,
+          content: input.content ?? null,
+          status: input.status ?? "TODO",
+        }),
+      },
+    );
+
+    const taskId = String(task.id);
+    revalidateWorkspacePaths(taskId);
+    return { ok: true, id: taskId, href: `/tasks/${taskId}` };
+  });
+}
+
 export async function updateWorkspaceTask(input: {
   workspaceId: string;
   taskId: string;
@@ -35,6 +65,40 @@ export async function updateWorkspaceTask(input: {
 
     revalidateWorkspacePaths(input.taskId);
     return { ok: true };
+  });
+}
+
+export async function createWorkspaceLog(input: {
+  workspaceId: string;
+  kind: LogKind;
+  title: string;
+  content: string;
+  summary?: string | null;
+  taskId?: string | null;
+  status?: LogStatus | null;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    const log = await requestJson<{ id: number }>(
+      `/workspaces/${input.workspaceId}/logs`,
+      cookie,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          kind: input.kind,
+          title: input.title,
+          content: input.content,
+          summary: input.summary ?? null,
+          taskId: input.taskId ? Number(input.taskId) : null,
+          status: input.status ?? null,
+        }),
+      },
+    );
+
+    const logId = String(log.id);
+    revalidatePath(`/logs/${logId}`);
+    revalidatePath("/logs");
+    revalidatePath("/");
+    return { ok: true, id: logId, href: `/logs/${logId}` };
   });
 }
 

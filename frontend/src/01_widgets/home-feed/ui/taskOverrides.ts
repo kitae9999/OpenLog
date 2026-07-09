@@ -57,3 +57,23 @@ export function mergeTaskWithOverrides(
     body: override.body ?? task.body,
   };
 }
+
+export function createTaskOverride(input: {
+  title: string;
+  body: string;
+}): WorkspaceWorkItem {
+  const id = `task-${Date.now().toString(36)}`;
+  const task: WorkspaceWorkItem = {
+    id,
+    title: input.title,
+    status: "todo",
+    body: input.body,
+  };
+
+  saveTaskOverride(id, {
+    title: input.title,
+    body: input.body,
+  });
+
+  return task;
+}
