@@ -7,18 +7,23 @@ export function GraphZoomControls({
   onZoomOut,
   canZoomIn = true,
   canZoomOut = true,
+  scale,
   className,
 }: {
   onZoomIn: () => void;
   onZoomOut: () => void;
   canZoomIn?: boolean;
   canZoomOut?: boolean;
+  scale?: number;
   className?: string;
 }) {
+  const scaleLabel =
+    typeof scale === "number" ? `${Math.round(scale * 100)}%` : null;
+
   return (
     <div
       className={cn(
-        "absolute right-2.5 top-2.5 z-10 flex flex-col overflow-hidden rounded-[10px] border border-zinc-200/80 bg-white/95 shadow-[0_1px_3px_rgba(24,24,27,0.08)] backdrop-blur-sm",
+        "absolute right-2.5 top-2.5 z-10 flex w-8 flex-col overflow-hidden rounded-[10px] border border-zinc-200/80 bg-white/95 shadow-[0_1px_3px_rgba(24,24,27,0.08)] backdrop-blur-sm",
         className,
       )}
     >
@@ -28,6 +33,19 @@ export function GraphZoomControls({
         disabled={!canZoomIn}
         icon="+"
       />
+      {scaleLabel ? (
+        <>
+          <div className="h-px bg-zinc-200/80" aria-hidden="true" />
+          <div
+            aria-live="polite"
+            aria-label={`Zoom ${scaleLabel}`}
+            className="grid h-7 w-full place-items-center text-[8.5px] font-semibold tabular-nums tracking-tight text-zinc-500"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            {scaleLabel}
+          </div>
+        </>
+      ) : null}
       <div className="h-px bg-zinc-200/80" aria-hidden="true" />
       <ZoomButton
         label="Zoom out"
@@ -58,7 +76,7 @@ function ZoomButton({
       onClick={onClick}
       onPointerDown={(event) => event.stopPropagation()}
       className={cn(
-        "grid size-8 place-items-center text-[18px] font-medium leading-none text-zinc-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20",
+        "grid h-8 w-full place-items-center text-[18px] font-medium leading-none text-zinc-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20",
         disabled
           ? "cursor-not-allowed text-zinc-300"
           : "hover:bg-zinc-50 hover:text-zinc-950",

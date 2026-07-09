@@ -30,6 +30,7 @@ import {
   getLogNodeId,
   getNodeFill,
   getNodeRadius,
+  getNodeStroke,
   getTaskNodeId,
   type WorkspaceGraph,
   type WorkspaceGraphEdge,
@@ -47,6 +48,7 @@ type GraphNodeState = WorkspaceGraphNode & {
   y: number;
   vx: number;
   vy: number;
+  mass: number;
 };
 type GraphNodeDrag = {
   id: string;
@@ -518,6 +520,7 @@ export function WorkspaceGraphCanvas({
         onZoomOut={() => zoomBy(1 / 1.18)}
         canZoomIn={transform.scale < MAX_GRAPH_ZOOM - 0.001}
         canZoomOut={transform.scale > MIN_GRAPH_ZOOM + 0.001}
+        scale={transform.scale}
       />
       <svg
         ref={svgRef}
@@ -539,6 +542,38 @@ export function WorkspaceGraphCanvas({
           transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}
         >
           <GraphCanvasBackdrop width={GRAPH_WIDTH} height={GRAPH_HEIGHT} />
+          <defs>
+            <filter
+              id="workspace-node-shadow"
+              x="-60%"
+              y="-60%"
+              width="220%"
+              height="220%"
+            >
+              <feDropShadow
+                dx="0"
+                dy="1.2"
+                stdDeviation="1.4"
+                floodColor="#18181b"
+                floodOpacity="0.14"
+              />
+            </filter>
+            <filter
+              id="workspace-node-glow"
+              x="-80%"
+              y="-80%"
+              width="260%"
+              height="260%"
+            >
+              <feDropShadow
+                dx="0"
+                dy="0"
+                stdDeviation="2.4"
+                floodColor="#18181b"
+                floodOpacity="0.16"
+              />
+            </filter>
+          </defs>
           {graph.edges.map((edge, index) => {
             const source = nodeStatesById.get(edge.sourceId);
             const target = nodeStatesById.get(edge.targetId);
@@ -559,10 +594,10 @@ export function WorkspaceGraphCanvas({
                 x2={target.x}
                 y2={target.y}
                 className="transition"
-                stroke={active ? "#52525b" : "#d4d4d8"}
-                strokeWidth={active ? 0.9 : 0.5}
+                stroke={active ? "#71717a" : "#d4d4d8"}
+                strokeWidth={active ? 1.1 : 0.7}
                 strokeLinecap="round"
-                opacity={active ? 0.5 : 0.32}
+                opacity={active ? 0.55 : 0.28}
               />
             );
           })}
@@ -618,39 +653,55 @@ function WorkspaceGraphNodeShape({
   showLabel: boolean;
 }) {
   const radius = getNodeRadius(node.kind, focused);
+  const fill = getNodeFill(node.kind, focused);
+  const stroke = getNodeStroke(node.kind, focused);
+  const isHollow = node.kind === "memory";
 
   return (
-    <g className="transition">
-      <circle cx={node.x} cy={node.y} r={radius + 12} fill="transparent" />
-      {node.kind === "memory" ? (
+    <g className="transition" opacity={active ? 1 : 0.42}>
+      <circle cx={node.x} cy={node.y} r={radius + 14} fill="transparent" />
+      {focused ? (
         <circle
           cx={node.x}
           cy={node.y}
-          r={radius}
-          fill="#ffffff"
-          stroke={focused ? "#18181b" : "#71717a"}
-          strokeWidth={focused ? 1.8 : 1.3}
-          opacity={active ? 0.98 : 0.56}
-          className="transition"
+          r={radius + 5}
+          fill="none"
+          stroke={isHollow ? "#a1a1aa" : fill}
+          strokeWidth="1"
+          opacity="0.22"
         />
-      ) : (
+      ) : null}
+      <circle
+        cx={node.x}
+        cy={node.y}
+        r={radius}
+        fill={fill}
+        stroke={isHollow ? stroke : "#ffffff"}
+        strokeWidth={isHollow ? (focused ? 1.6 : 1.25) : focused ? 1.5 : 1.15}
+        filter={
+          focused ? "url(#workspace-node-glow)" : "url(#workspace-node-shadow)"
+        }
+        className="transition"
+      />
+      {!isHollow ? (
         <circle
           cx={node.x}
           cy={node.y}
-          r={radius}
-          fill={getNodeFill(node.kind, focused)}
-          opacity={active ? 0.96 : 0.56}
-          className="transition"
+          r={Math.max(radius - 2.4, 1.8)}
+          fill="none"
+          stroke={stroke}
+          strokeWidth="0.7"
+          opacity={focused ? 0.35 : 0.18}
         />
-      )}
+      ) : null}
       {showLabel ? (
         <text
           x={node.x}
-          y={node.y + radius + 14}
+          y={node.y + radius + 13}
           textAnchor="middle"
           className={cn(
-            "pointer-events-none text-[10px] font-medium transition",
-            active ? "fill-zinc-800" : "fill-zinc-500",
+            "pointer-events-none text-[9.5px] font-medium tracking-[-0.01em] transition",
+            active ? "fill-zinc-700" : "fill-zinc-400",
           )}
         >
           {truncateNodeTitle(node.title)}
@@ -663,12 +714,21 @@ function WorkspaceGraphNodeShape({
 function GraphLegend() {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-zinc-400">
-      <LegendItem label="Task" className="size-[10px] bg-zinc-950" />
-      <LegendItem label="Log" className="size-2 bg-zinc-400" />
-      <LegendItem label="Output" className="size-2.5 bg-blue-600" />
+      <LegendItem
+        label="Task"
+        className="size-[10px] border border-white bg-zinc-800 shadow-[0_0_0_1px_rgba(24,24,27,0.12)]"
+      />
+      <LegendItem
+        label="Log"
+        className="size-2 border border-white bg-zinc-400 shadow-[0_0_0_1px_rgba(113,113,122,0.2)]"
+      />
+      <LegendItem
+        label="Output"
+        className="size-2.5 border border-white bg-blue-500 shadow-[0_0_0_1px_rgba(37,99,235,0.2)]"
+      />
       <LegendItem
         label="Memory"
-        className="size-2.5 border border-zinc-600 bg-white"
+        className="size-2.5 border border-zinc-400 bg-white"
       />
     </div>
   );
@@ -845,6 +905,9 @@ function buildInitialGraphNodes(graph: WorkspaceGraph): GraphNodeState[] {
   });
 
   return sortedNodes.map((node, index) => {
+    const nodeDegree = degree.get(node.id) ?? 0;
+    const mass = getNodeMass(nodeDegree, node.kind === "task");
+
     if (sortedNodes.length === 1) {
       return {
         ...node,
@@ -852,11 +915,11 @@ function buildInitialGraphNodes(graph: WorkspaceGraph): GraphNodeState[] {
         y: GRAPH_CENTER_Y,
         vx: 0,
         vy: 0,
+        mass,
       };
     }
 
     const angle = -Math.PI / 2 + (index / sortedNodes.length) * Math.PI * 2;
-    const nodeDegree = degree.get(node.id) ?? 0;
     const taskPull = node.kind === "task" ? 0.24 : 0;
     const pullToCenter = Math.min(nodeDegree * 0.08 + taskPull, 0.42);
 
@@ -872,8 +935,15 @@ function buildInitialGraphNodes(graph: WorkspaceGraph): GraphNodeState[] {
         deterministicJitter(`${node.id}:y`, 14),
       vx: 0,
       vy: 0,
+      mass,
     };
   });
+}
+
+function getNodeMass(degree: number, isTask: boolean) {
+  const hubBoost = Math.min(degree, 10) * 0.28;
+  const taskBoost = isTask ? 0.35 : 0;
+  return 1 + hubBoost + taskBoost;
 }
 
 function stepForceSimulation(
@@ -900,17 +970,18 @@ function stepForceSimulation(
       const dy = second.y - first.y;
       const distanceSquared = Math.max(dx * dx + dy * dy, 64);
       const distance = Math.sqrt(distanceSquared);
-      const force = REPEL_FORCE / distanceSquared;
+      const force =
+        (REPEL_FORCE * first.mass * second.mass) / distanceSquared;
       const fx = (dx / distance) * force;
       const fy = (dy / distance) * force;
 
       if (first.id !== draggedId) {
-        first.vx -= fx;
-        first.vy -= fy;
+        first.vx -= fx / first.mass;
+        first.vy -= fy / first.mass;
       }
       if (second.id !== draggedId) {
-        second.vx += fx;
-        second.vy += fy;
+        second.vx += fx / second.mass;
+        second.vy += fy / second.mass;
       }
     }
   }
@@ -934,12 +1005,12 @@ function stepForceSimulation(
     const fy = (dy / distance) * force;
 
     if (source.id !== draggedId) {
-      source.vx += fx;
-      source.vy += fy;
+      source.vx += fx / source.mass;
+      source.vy += fy / source.mass;
     }
     if (target.id !== draggedId) {
-      target.vx -= fx;
-      target.vy -= fy;
+      target.vx -= fx / target.mass;
+      target.vy -= fy / target.mass;
     }
   }
 
@@ -950,8 +1021,8 @@ function stepForceSimulation(
       continue;
     }
 
-    node.vx += (GRAPH_CENTER_X - node.x) * CENTER_FORCE;
-    node.vy += (GRAPH_CENTER_Y - node.y) * CENTER_FORCE;
+    node.vx += ((GRAPH_CENTER_X - node.x) * CENTER_FORCE) / node.mass;
+    node.vy += ((GRAPH_CENTER_Y - node.y) * CENTER_FORCE) / node.mass;
     node.vx *= DAMPING;
     node.vy *= DAMPING;
     node.x += node.vx;

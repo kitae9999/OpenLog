@@ -172,30 +172,44 @@ export function getMemoryNodeId(index: number) {
 
 export function getNodeFill(kind: WorkspaceGraphNodeKind, focused = false) {
   if (kind === "task") {
-    return "#09090b";
+    return focused ? "#18181b" : "#27272a";
   }
   if (kind === "output") {
-    return focused ? "#1d4ed8" : "#2563eb";
+    return focused ? "#1d4ed8" : "#3b82f6";
   }
   if (kind === "memory") {
     return "#ffffff";
   }
 
-  return focused ? "#18181b" : "#a1a1aa";
+  return focused ? "#52525b" : "#a1a1aa";
 }
 
 export function getNodeRadius(kind: WorkspaceGraphNodeKind, focused = false) {
   if (kind === "task") {
-    return focused ? 11 : 9;
+    return focused ? 10.5 : 8.5;
   }
   if (kind === "output") {
-    return focused ? 8.2 : 6.4;
+    return focused ? 8 : 6.5;
   }
   if (kind === "memory") {
-    return focused ? 8 : 6.2;
+    return focused ? 7.5 : 6;
   }
 
-  return focused ? 7.5 : 5.6;
+  return focused ? 7 : 5.5;
+}
+
+export function getNodeStroke(kind: WorkspaceGraphNodeKind, focused = false) {
+  if (kind === "memory") {
+    return focused ? "#27272a" : "#a1a1aa";
+  }
+  if (kind === "output") {
+    return focused ? "#1e40af" : "#2563eb";
+  }
+  if (kind === "task") {
+    return focused ? "#09090b" : "#18181b";
+  }
+
+  return focused ? "#3f3f46" : "#71717a";
 }
 
 function getTaskNodeDescription(

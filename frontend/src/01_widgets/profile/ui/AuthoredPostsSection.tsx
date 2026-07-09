@@ -35,6 +35,7 @@ type GraphNodeState = {
   y: number;
   vx: number;
   vy: number;
+  mass: number;
 };
 type GraphNodeDrag = {
   slug: string;
@@ -548,6 +549,7 @@ function SecondBrainGraph({
           onZoomOut={() => zoomBy(1 / 1.18)}
           canZoomIn={transform.scale < MAX_GRAPH_ZOOM - 0.001}
           canZoomOut={transform.scale > MIN_GRAPH_ZOOM + 0.001}
+          scale={transform.scale}
         />
         <svg
           ref={svgRef}
@@ -566,6 +568,38 @@ function SecondBrainGraph({
             transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}
           >
             <GraphCanvasBackdrop width={GRAPH_WIDTH} height={GRAPH_HEIGHT} />
+            <defs>
+              <filter
+                id="post-node-shadow"
+                x="-60%"
+                y="-60%"
+                width="220%"
+                height="220%"
+              >
+                <feDropShadow
+                  dx="0"
+                  dy="1.2"
+                  stdDeviation="1.4"
+                  floodColor="#18181b"
+                  floodOpacity="0.14"
+                />
+              </filter>
+              <filter
+                id="post-node-glow"
+                x="-80%"
+                y="-80%"
+                width="260%"
+                height="260%"
+              >
+                <feDropShadow
+                  dx="0"
+                  dy="0"
+                  stdDeviation="2.4"
+                  floodColor="#18181b"
+                  floodOpacity="0.16"
+                />
+              </filter>
+            </defs>
             {graph.edges.map((edge, index) => {
               const source = nodeStatesBySlug.get(edge.sourceSlug);
               const target = nodeStatesBySlug.get(edge.targetSlug);
@@ -586,10 +620,10 @@ function SecondBrainGraph({
                   x2={target.x}
                   y2={target.y}
                   className="transition"
-                  stroke={active ? "#52525b" : "#d4d4d8"}
-                  strokeWidth={active ? 0.85 : 0.5}
+                  stroke={active ? "#71717a" : "#d4d4d8"}
+                  strokeWidth={active ? 1.1 : 0.7}
                   strokeLinecap="round"
-                  opacity={active ? 0.48 : 0.34}
+                  opacity={active ? 0.55 : 0.28}
                 />
               );
             })}
@@ -599,6 +633,9 @@ function SecondBrainGraph({
                 !activeSlug ||
                 activeSlug === node.slug ||
                 connectedSlugs?.has(node.slug);
+              const focused = activeSlug === node.slug;
+              const radius = focused ? 7 : 5.5;
+              const fill = focused ? "#27272a" : "#a1a1aa";
               const href = buildPublicPostPath(username, node.slug);
 
               return (
@@ -621,24 +658,55 @@ function SecondBrainGraph({
                   onBlur={() => setActiveSlug(null)}
                   className="cursor-pointer outline-none"
                 >
-                  <g className="transition">
-                    <circle cx={node.x} cy={node.y} r={18} fill="transparent" />
+                  <g className="transition" opacity={active ? 1 : 0.42}>
                     <circle
                       cx={node.x}
                       cy={node.y}
-                      r={activeSlug === node.slug ? 7.5 : 5.6}
-                      fill={activeSlug === node.slug ? "#18181b" : "#a1a1aa"}
-                      opacity={active ? 0.96 : 0.56}
+                      r={radius + 14}
+                      fill="transparent"
+                    />
+                    {focused ? (
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r={radius + 5}
+                        fill="none"
+                        stroke={fill}
+                        strokeWidth="1"
+                        opacity="0.22"
+                      />
+                    ) : null}
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={radius}
+                      fill={fill}
+                      stroke="#ffffff"
+                      strokeWidth={focused ? 1.5 : 1.15}
+                      filter={
+                        focused
+                          ? "url(#post-node-glow)"
+                          : "url(#post-node-shadow)"
+                      }
                       className="transition"
+                    />
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={Math.max(radius - 2.4, 1.8)}
+                      fill="none"
+                      stroke={focused ? "#18181b" : "#71717a"}
+                      strokeWidth="0.7"
+                      opacity={focused ? 0.35 : 0.18}
                     />
                     {showLabels ? (
                       <text
                         x={node.x}
-                        y={node.y + 20}
+                        y={node.y + radius + 13}
                         textAnchor="middle"
                         className={cn(
-                          "pointer-events-none text-[10px] font-medium transition",
-                          active ? "fill-zinc-800" : "fill-zinc-500",
+                          "pointer-events-none text-[9.5px] font-medium tracking-[-0.01em] transition",
+                          active ? "fill-zinc-700" : "fill-zinc-400",
                         )}
                       >
                         {truncateNodeTitle(node.title)}
@@ -686,6 +754,9 @@ function buildInitialGraphNodes(graph: PublicUserPostGraph): GraphNodeState[] {
   );
 
   return sortedNodes.map((node, index) => {
+    const nodeDegree = degree.get(node.slug) ?? 0;
+    const mass = getNodeMass(nodeDegree);
+
     if (sortedNodes.length === 1) {
       return {
         slug: node.slug,
@@ -694,11 +765,11 @@ function buildInitialGraphNodes(graph: PublicUserPostGraph): GraphNodeState[] {
         y: GRAPH_CENTER_Y,
         vx: 0,
         vy: 0,
+        mass,
       };
     }
 
     const angle = -Math.PI / 2 + (index / sortedNodes.length) * Math.PI * 2;
-    const nodeDegree = degree.get(node.slug) ?? 0;
     const pullToCenter = Math.min(nodeDegree * 0.09, 0.36);
 
     return {
@@ -714,8 +785,13 @@ function buildInitialGraphNodes(graph: PublicUserPostGraph): GraphNodeState[] {
         deterministicJitter(`${node.slug}:y`, 14),
       vx: 0,
       vy: 0,
+      mass,
     };
   });
+}
+
+function getNodeMass(degree: number) {
+  return 1 + Math.min(degree, 10) * 0.28;
 }
 
 function stepForceSimulation(
@@ -742,17 +818,18 @@ function stepForceSimulation(
       const dy = second.y - first.y;
       const distanceSquared = Math.max(dx * dx + dy * dy, 64);
       const distance = Math.sqrt(distanceSquared);
-      const force = REPEL_FORCE / distanceSquared;
+      const force =
+        (REPEL_FORCE * first.mass * second.mass) / distanceSquared;
       const fx = (dx / distance) * force;
       const fy = (dy / distance) * force;
 
       if (first.slug !== draggedSlug) {
-        first.vx -= fx;
-        first.vy -= fy;
+        first.vx -= fx / first.mass;
+        first.vy -= fy / first.mass;
       }
       if (second.slug !== draggedSlug) {
-        second.vx += fx;
-        second.vy += fy;
+        second.vx += fx / second.mass;
+        second.vy += fy / second.mass;
       }
     }
   }
@@ -776,12 +853,12 @@ function stepForceSimulation(
     const fy = (dy / distance) * force;
 
     if (source.slug !== draggedSlug) {
-      source.vx += fx;
-      source.vy += fy;
+      source.vx += fx / source.mass;
+      source.vy += fy / source.mass;
     }
     if (target.slug !== draggedSlug) {
-      target.vx -= fx;
-      target.vy -= fy;
+      target.vx -= fx / target.mass;
+      target.vy -= fy / target.mass;
     }
   }
 
@@ -792,8 +869,8 @@ function stepForceSimulation(
       continue;
     }
 
-    node.vx += (GRAPH_CENTER_X - node.x) * CENTER_FORCE;
-    node.vy += (GRAPH_CENTER_Y - node.y) * CENTER_FORCE;
+    node.vx += ((GRAPH_CENTER_X - node.x) * CENTER_FORCE) / node.mass;
+    node.vy += ((GRAPH_CENTER_Y - node.y) * CENTER_FORCE) / node.mass;
     node.vx *= DAMPING;
     node.vy *= DAMPING;
     node.x += node.vx;
