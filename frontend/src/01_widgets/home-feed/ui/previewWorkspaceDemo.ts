@@ -12,133 +12,127 @@ import type {
 
 /** Guest Workspace preview only — not used as logged-in fallback mock. */
 export const previewDemoRepository = {
-  fullName: "sample/notes-app",
-  caption: "Example workspace — yours stays private",
+  fullName: "kitae9999/openlog",
+  caption: "A real session — work first, writing follows",
 } as const;
 
 export const previewTasks: WorkspaceWorkItem[] = [
   {
-    id: "share-link",
-    title: "노트 공유 링크 만들기",
-    description: "친구에게 노트를 보낼 때 읽기 전용 링크가 필요합니다.",
+    id: "guest-preview",
+    title: "Make guest preview sell the loop",
+    description:
+      "Replace the fake notes-app sample with one afternoon of real OpenLog work.",
     status: "doing",
     body: `## Context
 
-친구에게 노트를 보낼 때 읽기 전용 링크가 필요합니다.
+The guest workspace preview looked like a tutorial for a notes app.
+It listed features instead of showing how work becomes writing.
 
 ## Goal
 
-- 공유 링크 생성
-- 링크만으로 노트 읽기
-- 만료일 설정`,
+- One session story: issue → decision → fix → draft
+- English copy that matches the landing
+- Leave empty space so it feels alive, not stuffed`,
   },
   {
-    id: "dark-mode",
-    title: "다크 모드 지원",
-    description: "야간에도 편하게 노트를 읽고 쓸 수 있게 합니다.",
+    id: "workspace-switcher",
+    title: "Wire workspace switcher to real IDs",
+    description: "Drop mock workspace fallbacks for logged-in users.",
     status: "done",
     body: `## Context
 
-야간에도 편하게 노트를 읽고 쓸 수 있게 합니다.
+Logged-in views still fell back to demo workspace IDs.
 
 ## Goal
 
-- 시스템 설정 따라가기
-- 수동 토글`,
-  },
-  {
-    id: "search-notes",
-    title: "노트 검색 추가",
-    description: "제목과 본문으로 노트를 빠르게 찾습니다.",
-    status: "todo",
-    body: "",
+- Load ManagedWorkspace[] from the API
+- Persist active workspace in localStorage + cookie`,
   },
 ];
 
 export const previewLogs: WorkspaceLogItem[] = [
   {
-    id: "share-token-fix",
+    id: "preview-fix",
     tone: "green",
     label: "Fix",
-    title: "공유 링크가 만료된 뒤에도 열리던 버그",
-    description: "만료 시각 비교를 UTC로 통일해 해결했습니다.",
-    meta: "Today 14:20 · auto-captured",
-    commit: "a1b2c3d",
+    kind: "FIX",
+    title: "Rewrote preview around OpenLog itself",
+    description:
+      "One task, three logs, one draft — enough to read the loop without a feature laundry list.",
+    meta: "Today 16:18 · openlog capture",
+    commit: "c8f2a91",
     href: "/write",
-    taskId: "share-link",
-    branch: "feat/share-link",
+    taskId: "guest-preview",
+    branch: "feat/guest-preview",
   },
   {
-    id: "share-decision",
+    id: "preview-decision",
     tone: "blue",
     label: "Decision",
-    title: "공유는 읽기 전용으로만 열기",
-    description: "편집은 본인만, 링크로는 보기만 가능하게 하기로 했습니다.",
-    meta: "Today 11:05 · auto-captured",
-    commit: "d4e5f6a",
+    kind: "DECISION",
+    title: "Sell the loop, not the feature list",
+    description:
+      "Show issue → decision → fix → output in one afternoon. Skip dark mode and search demos.",
+    meta: "Today 15:40 · openlog capture",
+    commit: "b3e7d04",
     href: "/write",
-    taskId: "share-link",
-    branch: "feat/share-link",
+    taskId: "guest-preview",
+    branch: "feat/guest-preview",
   },
   {
-    id: "dark-mode-log",
-    tone: "zinc",
-    label: "Log",
-    title: "다크 모드 토글과 시스템 설정 연동",
-    description: "첫 방문은 OS 설정을 따르고, 이후에는 사용자 선택을 기억합니다.",
-    meta: "Yesterday",
-    commit: "b7c8d9e",
-    href: "/write",
-    taskId: "dark-mode",
-    branch: "feat/dark-mode",
-  },
-  {
-    id: "share-preview-issue",
+    id: "preview-issue",
     tone: "amber",
     label: "Issue",
-    title: "공유 미리보기에 제목이 안 보임",
-    description: "카톡·슬랙 미리보기에 노트 제목 대신 기본 문구가 나옵니다.",
-    meta: "open 2d · feat/share-link",
+    kind: "ISSUE",
+    status: "CLOSED",
+    title: "Guest preview felt like a fake notes app",
+    description:
+      "Korean tutorial copy, mixed languages, and unrelated tasks. Nothing about work becoming a post.",
+    meta: "Today 14:02 · openlog capture",
     href: "/write",
-    taskId: "share-link",
-    branch: "feat/share-link",
-    status: "OPEN",
+    taskId: "guest-preview",
+    branch: "feat/guest-preview",
+  },
+  {
+    id: "switcher-done",
+    tone: "zinc",
+    label: "Log",
+    kind: "NOTE",
+    title: "Switcher now uses API workspaces",
+    description:
+      "Active workspace syncs via localStorage and the openlog-active-workspace cookie.",
+    meta: "Yesterday · from commit 9a1c4e2",
+    commit: "9a1c4e2",
+    href: "/write",
+    taskId: "workspace-switcher",
+    branch: "feat/workspace-switcher",
   },
 ];
 
 export const previewTodos: WorkspaceTodoItem[] = [
   {
-    id: "preview-todo-expiry",
-    title: "공유 링크 만료일 UI 다듬기",
+    id: "preview-todo-ship",
+    title: "Ship guest preview copy",
     description: "from log",
+    done: false,
+    taskId: "guest-preview",
+  },
+  {
+    id: "preview-todo-overlay",
+    title: "Point overlay at the draft, not signup",
+    description: "from decision",
     done: true,
-    taskId: "share-link",
-  },
-  {
-    id: "preview-todo-copy",
-    title: "링크 복사 버튼에 완료 토스트 넣기",
-    taskId: "share-link",
-  },
-  {
-    id: "preview-todo-search",
-    title: "검색어 하이라이트 방식 정하기",
-    description: "suggested by AI",
-    taskId: "search-notes",
+    taskId: "guest-preview",
   },
 ];
 
 export const previewMemories = [
   {
-    title: "공유 링크는 읽기 전용",
-    description: "편집 권한은 계정 로그인 후에만 줍니다.",
+    title: "Work first. Writing follows.",
+    description:
+      "Capture the session; publish the post when the draft is ready.",
     source: "decision",
-    reads: "8 reads",
-  },
-  {
-    title: "다크 모드는 OS 설정을 기본값으로",
-    description: "사용자가 바꾸기 전까지는 시스템 테마를 따릅니다.",
-    source: "recipe",
-    reads: "3 reads",
+    reads: "12 reads",
   },
 ] as const;
 
@@ -146,34 +140,27 @@ export type PreviewMemory = (typeof previewMemories)[number];
 
 export const previewOutputs: WorkspaceTaskOutput[] = [
   {
-    id: "share-link-post",
-    taskId: "share-link",
-    taskIds: ["share-link"],
-    logIds: ["share-token-fix", "share-decision", "share-preview-issue"],
+    id: "guest-preview-post",
+    taskId: "guest-preview",
+    taskIds: ["guest-preview"],
+    logIds: ["preview-issue", "preview-decision", "preview-fix"],
     status: "draft",
-    title: "How we built read-only share links",
+    title: "Work first, writing follows",
     description: "from 3 logs",
     content: `## Summary
 
-Share links stay read-only, expire on a UTC clock, and surface the note title in previews.`,
+Guest preview should show one real afternoon: an issue, a decision, a fix, and a draft ready to publish — not a fake notes app.`,
     updatedLabel: "Today",
   },
 ];
 
-export const previewTaskLinks: WorkspaceTaskLinkItem[] = [
-  {
-    id: "preview-task-link-1",
-    fromTaskId: "share-link",
-    toTaskId: "search-notes",
-    relation: "RELATES_TO",
-  },
-];
+export const previewTaskLinks: WorkspaceTaskLinkItem[] = [];
 
 export const previewLogLinks: WorkspaceLogLinkItem[] = [
   {
     id: "preview-log-link-1",
-    fromLogId: "share-token-fix",
-    toLogId: "share-preview-issue",
+    fromLogId: "preview-fix",
+    toLogId: "preview-issue",
     relation: "FIXES",
   },
 ];
@@ -182,7 +169,7 @@ export const previewLogLinks: WorkspaceLogLinkItem[] = [
 export function getPreviewWorkspaceData(): WorkspaceUiData {
   return {
     workspaceId: "preview-demo",
-    workspaceName: "notes-app",
+    workspaceName: "openlog",
     repositoryFullName: previewDemoRepository.fullName,
     tasks: previewTasks,
     logs: previewLogs,

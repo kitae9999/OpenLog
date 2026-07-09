@@ -2,7 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  createContext,
   forwardRef,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -27,20 +29,21 @@ import {
   workspaceMonthGrass,
   workspaceMonthLabel,
   type WorkspaceLogItem,
+  type WorkspaceTaskOutput,
   type WorkspaceTodoItem,
   type WorkspaceWorkItem,
   type WorkspaceWorkStatus,
 } from "./data";
 import { LogTypeLabel } from "./LogTypeLabel";
 import {
-  previewDemoRepository,
-  getPreviewWorkspaceData,
-  previewLogs,
-  previewMemories,
-  previewTasks,
-  previewTodos,
   type PreviewMemory,
 } from "./previewWorkspaceDemo";
+import {
+  getPreviewReplayWorkspaceData,
+  isPreviewHighlight,
+  type PreviewReplayHighlight,
+  type PreviewReplaySnapshot,
+} from "./previewSessionReplay";
 import { WorkspaceGraphPreview } from "./WorkspaceGraphPreview";
 import { WorkspaceRepositoryLink } from "./WorkspaceRepositoryLink";
 import {
@@ -51,6 +54,13 @@ import {
 import type { WorkspaceActionResult } from "./workspaceActions";
 import type { WorkspaceUiData } from "./workspaceTypes";
 
+const PreviewReplayHighlightContext =
+  createContext<PreviewReplayHighlight>({ kind: "none" });
+
+function usePreviewReplayHighlight() {
+  return useContext(PreviewReplayHighlightContext);
+}
+
 export function WorkspaceView({
   isLoggedIn,
   workspaceData,
@@ -60,156 +70,168 @@ export function WorkspaceView({
   workspaceData?: WorkspaceUiData | null;
   createTodoOverride?: (title: string) => Promise<WorkspaceActionResult>;
 }) {
-  const isPreview = !isLoggedIn;
-  const dashboard = (
-    <WorkspaceDashboard
-      isPreview={isPreview}
-      workspaceData={workspaceData}
-      createTodoOverride={createTodoOverride}
-    />
-  );
-
   if (isLoggedIn) {
-    return dashboard;
+    return (
+      <WorkspaceDashboard
+        workspaceData={workspaceData}
+        createTodoOverride={createTodoOverride}
+      />
+    );
   }
 
-  return <GuestWorkspacePreview>{dashboard}</GuestWorkspacePreview>;
+  return <GuestWorkspaceEmpty />;
+}
+
+/** Dashboard canvas used inside the landing session demo browser pane. */
+export function PreviewWorkspaceDashboard({
+  replaySnapshot,
+}: {
+  replaySnapshot: PreviewReplaySnapshot;
+}) {
+  return (
+    <WorkspaceDashboard isPreview replaySnapshot={replaySnapshot} />
+  );
+}
+
+function GuestWorkspaceEmpty() {
+  return (
+    <section
+      aria-label="Workspace sign-in"
+      className="mx-auto flex max-w-lg flex-col items-center px-4 py-16 text-center sm:py-24"
+    >
+      <h2 className="text-[32px] leading-[1.15] font-bold tracking-tight text-zinc-950 [font-family:Georgia,'Times_New_Roman',serif] sm:text-[36px]">
+        Work first.
+        <br />
+        Writing follows.
+      </h2>
+      <p className="mt-4 text-[15px] leading-6 text-zinc-500">
+        Sign in to open your workspace — tasks, logs, and drafts stay with your
+        account.
+      </p>
+      <div className="mt-8 flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-center">
+        <button
+          type="button"
+          onClick={() => handleOAuth("GITHUB")}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          <GitHubIcon className="size-4" />
+          Continue with GitHub
+        </button>
+        <button
+          type="button"
+          onClick={() => handleOAuth("GOOGLE")}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-semibold text-zinc-800 transition hover:border-zinc-300 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          <Image
+            src="/google.svg"
+            alt=""
+            width={16}
+            height={16}
+            aria-hidden="true"
+            className="size-4"
+          />
+          Continue with Google
+        </button>
+      </div>
+      <div
+        className="mt-6 h-px w-16 bg-zinc-200"
+        aria-hidden="true"
+      />
+      <Link
+        href="/#session"
+        className="mt-4 text-sm font-medium text-zinc-500 underline-offset-4 transition hover:text-zinc-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+      >
+        See how it works
+      </Link>
+    </section>
+  );
 }
 
 function WorkspaceDashboard({
   isPreview = false,
   workspaceData,
   createTodoOverride,
+  replaySnapshot,
 }: {
   isPreview?: boolean;
   workspaceData?: WorkspaceUiData | null;
   createTodoOverride?: (title: string) => Promise<WorkspaceActionResult>;
+  replaySnapshot?: PreviewReplaySnapshot;
 }) {
-  const tasks = isPreview ? previewTasks : (workspaceData?.tasks ?? []);
-  const logs = isPreview ? previewLogs : (workspaceData?.logs ?? []);
-  const todos = isPreview ? previewTodos : (workspaceData?.todos ?? []);
-  const memories = isPreview ? previewMemories : workspaceMemories;
-  const previewWorkspaceData: WorkspaceUiData | null | undefined = isPreview
-    ? getPreviewWorkspaceData()
+  const tasks = isPreview
+    ? (replaySnapshot?.tasks ?? [])
+    : (workspaceData?.tasks ?? []);
+  const logs = isPreview
+    ? (replaySnapshot?.logs ?? [])
+    : (workspaceData?.logs ?? []);
+  const todos = isPreview
+    ? (replaySnapshot?.todos ?? [])
+    : (workspaceData?.todos ?? []);
+  const memories = isPreview
+    ? (replaySnapshot?.memories ?? [])
+    : workspaceMemories;
+  const outputs = isPreview
+    ? (replaySnapshot?.outputs ?? [])
+    : (workspaceData?.outputs ?? []);
+  const graphWorkspaceData: WorkspaceUiData | null | undefined = isPreview
+    ? replaySnapshot
+      ? getPreviewReplayWorkspaceData(replaySnapshot)
+      : null
     : workspaceData;
+  const highlight = replaySnapshot?.highlight ?? { kind: "none" };
 
   return (
-    <div className="space-y-3.5">
-      {isPreview ? (
-        <DemoRepositoryBanner />
-      ) : (
-        <WorkspaceRepositoryLink
-          repositoryFullName={workspaceData?.repositoryFullName}
-        />
-      )}
-      <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <div className="min-w-0 space-y-3.5">
-          <NowWorkingCard tasks={tasks} logs={logs} isPreview={isPreview} />
-          <WorkTasksCard tasks={tasks} logs={logs} isPreview={isPreview} />
-          <RecentLogsCard tasks={tasks} logs={logs} isPreview={isPreview} />
-        </div>
-
-        <div className="min-w-0 space-y-3.5">
-          <TodosCard
-            todos={todos}
-            workspaceId={workspaceData?.workspaceId}
-            isPreview={isPreview}
-            createTodoOverride={createTodoOverride}
+    <PreviewReplayHighlightContext.Provider value={highlight}>
+      <div className="space-y-3.5">
+        {isPreview ? null : (
+          <WorkspaceRepositoryLink
+            repositoryFullName={workspaceData?.repositoryFullName}
           />
-          <MonthActivityCard />
-          <GraphCard isPreview={isPreview} workspaceData={previewWorkspaceData} />
-          <OpenIssuesCard logs={logs} isPreview={isPreview} />
-          <MemoryCard memories={memories} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function GuestWorkspacePreview({ children }: { children: ReactNode }) {
-  return (
-    <section aria-label="Workspace preview" className="relative">
-      <div inert className="max-h-[640px] overflow-hidden xl:max-h-[860px]">
-        {children}
-      </div>
-
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-zinc-50 via-zinc-50/95 to-zinc-50/0 xl:h-[46%]"
-        aria-hidden="true"
-      />
-
-      <div className="absolute inset-x-4 top-[min(52dvh,440px)] z-10 -translate-y-1/2 sm:inset-x-auto sm:left-1/2 sm:w-[440px] sm:-translate-x-1/2 xl:top-[min(58dvh,520px)]">
-        <div className="rounded-2xl border border-zinc-200/80 bg-white/95 p-5 shadow-[0_24px_80px_rgba(24,24,27,0.16)] backdrop-blur">
-          <div className="flex items-start gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-zinc-950 text-[19px] font-bold leading-none text-white [font-family:Georgia,serif]">
-              O
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-[18px] font-bold tracking-[-0.01em] text-zinc-950">
-                Create your workspace
-              </h2>
-              <p className="mt-1.5 text-[13.5px] leading-6 text-zinc-500">
-                Commits and coding sessions are captured automatically, then
-                become refined drafts and public posts when you choose.
-              </p>
+        )}
+        {isPreview ? (
+          <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] items-start gap-3.5">
+            <div className="min-w-0 space-y-3.5">
+              <NowWorkingCard tasks={tasks} logs={logs} isPreview />
+              <WorkTasksCard tasks={tasks} logs={logs} isPreview />
+              <RecentLogsCard tasks={tasks} logs={logs} isPreview />
+            </div>
+            <div className="min-w-0 space-y-3.5">
+              <TodosCard
+                todos={todos}
+                workspaceId={workspaceData?.workspaceId}
+                isPreview
+                createTodoOverride={createTodoOverride}
+              />
+              <PreviewOutputCard outputs={outputs} />
+              <GraphCard isPreview workspaceData={graphWorkspaceData} />
+              <OpenIssuesCard logs={logs} isPreview />
+              {memories.length === 0 ? null : (
+                <MemoryCard memories={memories} isPreview />
+              )}
             </div>
           </div>
-
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => handleOAuth("GITHUB", "/?tab=workspace")}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            >
-              <GitHubIcon className="size-4" />
-              Continue with GitHub
-            </button>
-            <button
-              type="button"
-              onClick={() => handleOAuth("GOOGLE", "/?tab=workspace")}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-[13px] font-semibold text-zinc-950 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            >
-              <Image
-                src="/google.svg"
-                alt=""
-                width={16}
-                height={16}
-                aria-hidden="true"
-                className="size-4"
+        ) : (
+          <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+            <div className="min-w-0 space-y-3.5">
+              <NowWorkingCard tasks={tasks} logs={logs} />
+              <WorkTasksCard tasks={tasks} logs={logs} />
+              <RecentLogsCard tasks={tasks} logs={logs} />
+            </div>
+            <div className="min-w-0 space-y-3.5">
+              <TodosCard
+                todos={todos}
+                workspaceId={workspaceData?.workspaceId}
+                createTodoOverride={createTodoOverride}
               />
-              Continue with Google
-            </button>
+              <MonthActivityCard />
+              <GraphCard workspaceData={graphWorkspaceData} />
+              <OpenIssuesCard logs={logs} />
+              <MemoryCard memories={memories} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
-    </section>
-  );
-}
-
-function DemoRepositoryBanner() {
-  return (
-    <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-      <div className="px-4 py-3 sm:px-[18px]">
-        <div className="inline-flex min-w-0 items-center gap-3 rounded-xl">
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-zinc-950 text-white">
-            <GitHubIcon className="size-[18px]" />
-          </span>
-          <span className="min-w-0">
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-[14px] font-semibold text-zinc-950">
-                {previewDemoRepository.fullName}
-              </span>
-              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
-                Sample
-              </span>
-            </span>
-            <span className="block text-[12px] text-zinc-400">
-              {previewDemoRepository.caption}
-            </span>
-          </span>
-        </div>
-      </div>
-    </section>
+    </PreviewReplayHighlightContext.Provider>
   );
 }
 
@@ -222,20 +244,29 @@ function NowWorkingCard({
   logs: WorkspaceLogItem[];
   isPreview?: boolean;
 }) {
+  const highlight = usePreviewReplayHighlight();
   const task =
     tasks.find((item) => item.status === "doing") ??
     tasks.find((item) => item.status === "todo") ??
     tasks[0];
+  const isHighlighted =
+    isPreview &&
+    task != null &&
+    isPreviewHighlight(highlight, "task", task.id);
 
   if (!task) {
     return (
       <DashboardCard
         title="NOW WORKING"
         action={<IconBranch className="size-[15px] text-zinc-400" />}
+        className={isPreview ? "preview-replay-enter" : undefined}
+        previewAnchor={isPreview ? "task" : undefined}
       >
         <div className="px-[18px] pb-[18px] pt-3">
           <p className="text-[13.5px] leading-6 text-zinc-500">
-            No active task yet.
+            {isPreview
+              ? "Waiting for the agent to open a task…"
+              : "No active task yet."}
           </p>
           {!isPreview ? (
             <div className="mt-3">
@@ -260,8 +291,18 @@ function NowWorkingCard({
     <DashboardCard
       title="NOW WORKING"
       action={<IconBranch className="size-[15px] text-zinc-400" />}
+      className={cn(
+        isPreview && "preview-replay-enter",
+        isHighlighted && "preview-replay-card-glow",
+      )}
+      previewAnchor={isPreview ? "task" : undefined}
     >
-      <div className="px-[18px] pb-[18px] pt-3">
+      <div
+        className={cn(
+          "px-[18px] pb-[18px] pt-3",
+          isHighlighted && "preview-replay-highlight",
+        )}
+      >
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-[17px] font-bold tracking-[-0.01em] text-zinc-950">
             {task.title}
@@ -331,6 +372,8 @@ function WorkTasksCard({
   logs: WorkspaceLogItem[];
   isPreview?: boolean;
 }) {
+  const visibleTasks = isPreview ? tasks.slice(0, 3) : tasks;
+
   return (
     <DashboardCard
       title="TASKS"
@@ -342,17 +385,24 @@ function WorkTasksCard({
           isPreview={isPreview}
         />
       }
+      className={isPreview ? "preview-replay-enter" : undefined}
     >
-      <PanelList>
-        {(isPreview ? tasks.slice(0, 3) : tasks).map((item) => (
-          <WorkItemRow
-            key={item.id}
-            item={item}
-            logCount={logs.filter((log) => log.taskId === item.id).length}
-            isPreview={isPreview}
-          />
-        ))}
-      </PanelList>
+      {visibleTasks.length === 0 ? (
+        <p className="px-[18px] pb-4 pt-2 text-[13px] leading-6 text-zinc-400">
+          Tasks appear as the session starts.
+        </p>
+      ) : (
+        <PanelList>
+          {visibleTasks.map((item) => (
+            <WorkItemRow
+              key={item.id}
+              item={item}
+              logCount={logs.filter((log) => log.taskId === item.id).length}
+              isPreview={isPreview}
+            />
+          ))}
+        </PanelList>
+      )}
       <PreviewableLink
         href={getNewTaskHref()}
         isPreview={isPreview}
@@ -374,6 +424,9 @@ function WorkItemRow({
   logCount: number;
   isPreview?: boolean;
 }) {
+  const highlight = usePreviewReplayHighlight();
+  const isHighlighted =
+    isPreview && isPreviewHighlight(highlight, "task", item.id);
   const statusLabel =
     item.status === "doing"
       ? "doing"
@@ -382,7 +435,13 @@ function WorkItemRow({
         : "todo";
 
   return (
-    <PanelItem align="start">
+    <PanelItem
+      align="start"
+      className={cn(
+        isPreview && "preview-replay-enter",
+        isHighlighted && "preview-replay-highlight",
+      )}
+    >
       <TaskStatusDot status={item.status} />
       <div className="min-w-0 flex-1">
         <h3 className="text-[13px] font-semibold leading-[1.45] text-zinc-950">
@@ -633,6 +692,8 @@ function TodosCard({
       title="TODOS"
       testId="todos-card"
       headerClassName="pb-2.5"
+      className={isPreview ? "preview-replay-enter" : undefined}
+      previewAnchor={isPreview ? "todos" : undefined}
       action={
         <span className="text-[11px] font-medium tabular-nums text-zinc-400">
           {todayShortLabel()}
@@ -642,7 +703,9 @@ function TodosCard({
       <div className="divide-y divide-zinc-100">
         {localTodos.length === 0 && !isAdding ? (
           <p className="px-[18px] py-3 text-[12px] text-zinc-400">
-            What&apos;s on for today?
+            {isPreview
+              ? "Todos appear from decisions and fixes."
+              : "What's on for today?"}
           </p>
         ) : null}
         {localTodos.map((todo) => (
@@ -856,6 +919,7 @@ function RecentLogsCard({
   isPreview?: boolean;
 }) {
   const unassignedCount = logs.filter((log) => !log.taskId).length;
+  const visibleLogs = isPreview ? logs.slice(0, 4) : logs;
 
   return (
     <DashboardCard
@@ -867,26 +931,34 @@ function RecentLogsCard({
           isPreview={isPreview}
         />
       }
+      className={isPreview ? "preview-replay-enter" : undefined}
+      previewAnchor={isPreview ? "logs" : undefined}
     >
       {unassignedCount > 0 ? (
         <p className="px-[18px] pt-1 text-[11.5px] text-zinc-400">
           {unassignedCount} unassigned · review when ready
         </p>
       ) : null}
-      <div className="pb-1.5 pt-1.5">
-        {(isPreview ? logs.slice(0, 4) : logs).map((item) => (
-          <WorkspaceLogRow
-            key={item.id}
-            item={item}
-            task={
-              item.taskId
-                ? tasks.find((task) => task.id === item.taskId)
-                : undefined
-            }
-            isPreview={isPreview}
-          />
-        ))}
-      </div>
+      {visibleLogs.length === 0 ? (
+        <p className="px-[18px] pb-4 pt-2 text-[13px] leading-6 text-zinc-400">
+          Captures land here as the agent works.
+        </p>
+      ) : (
+        <div className="pb-1.5 pt-1.5">
+          {visibleLogs.map((item) => (
+            <WorkspaceLogRow
+              key={item.id}
+              item={item}
+              task={
+                item.taskId
+                  ? tasks.find((task) => task.id === item.taskId)
+                  : undefined
+              }
+              isPreview={isPreview}
+            />
+          ))}
+        </div>
+      )}
     </DashboardCard>
   );
 }
@@ -1022,6 +1094,9 @@ function GraphCard({
   isPreview?: boolean;
   workspaceData?: WorkspaceUiData | null;
 }) {
+  const highlight = usePreviewReplayHighlight();
+  const isHighlighted = isPreview && isPreviewHighlight(highlight, "graph");
+
   return (
     <DashboardCard
       title="GRAPH"
@@ -1032,8 +1107,65 @@ function GraphCard({
           isPreview={isPreview}
         />
       }
+      className={cn(
+        isHighlighted && "preview-replay-card-glow",
+      )}
+      previewAnchor={isPreview ? "graph" : undefined}
     >
-      <WorkspaceGraphPreview workspaceData={workspaceData} />
+      <div className={cn(isHighlighted && "preview-replay-highlight")}>
+        <WorkspaceGraphPreview
+          workspaceData={workspaceData}
+          heightClassName="h-[180px]"
+        />
+      </div>
+    </DashboardCard>
+  );
+}
+
+function PreviewOutputCard({ outputs }: { outputs: WorkspaceTaskOutput[] }) {
+  const highlight = usePreviewReplayHighlight();
+  const output = outputs[0];
+
+  if (!output) {
+    return null;
+  }
+
+  const isHighlighted = isPreviewHighlight(highlight, "output", output.id);
+
+  return (
+    <DashboardCard
+      title="OUTPUT DRAFT"
+      className={cn(
+        "preview-replay-enter",
+        isHighlighted && "preview-replay-card-glow",
+      )}
+      previewAnchor="output"
+    >
+      <article
+        className={cn(
+          "px-[18px] pb-4 pt-2",
+          isHighlighted && "preview-replay-highlight",
+        )}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+            Draft
+          </span>
+          <span className="text-[11.5px] text-zinc-400">
+            {output.description}
+          </span>
+        </div>
+        <h3 className="mt-2 text-[15px] font-semibold tracking-[-0.01em] text-zinc-950">
+          {output.title}
+        </h3>
+        <p className="mt-1.5 text-[12.5px] leading-5 text-zinc-500">
+          {output.content?.replace(/^## Summary\n\n/, "") ??
+            "Linked logs are ready to publish."}
+        </p>
+        <p className="mt-2 text-[11.5px] text-zinc-400">
+          Updated {output.updatedLabel}
+        </p>
+      </article>
     </DashboardCard>
   );
 }
@@ -1050,12 +1182,17 @@ function OpenIssuesCard({
   );
   const visibleIssues = isPreview ? issues.slice(0, 2) : issues;
 
+  if (isPreview && visibleIssues.length === 0) {
+    return null;
+  }
+
   return (
     <DashboardCard
       title="OPEN ISSUES"
       action={
         <HeaderLink href={getLogsHref("issues")} isPreview={isPreview} />
       }
+      className={isPreview ? "preview-replay-enter" : undefined}
     >
       <PanelList>
         {visibleIssues.map((issue) => (
@@ -1085,8 +1222,18 @@ function WorkspaceLogRow({
   task?: WorkspaceWorkItem;
   isPreview?: boolean;
 }) {
+  const highlight = usePreviewReplayHighlight();
+  const isHighlighted =
+    isPreview && isPreviewHighlight(highlight, "log", item.id);
+
   return (
-    <article className="border-t border-zinc-100 px-[18px] py-3 first:border-t-0">
+    <article
+      className={cn(
+        "border-t border-zinc-100 px-[18px] py-3 first:border-t-0",
+        isPreview && "preview-replay-enter",
+        isHighlighted && "preview-replay-highlight",
+      )}
+    >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -1156,12 +1303,28 @@ function TaskLink({
 
 function MemoryCard({
   memories = workspaceMemories,
+  isPreview = false,
 }: {
   memories?: ReadonlyArray<PreviewMemory | (typeof workspaceMemories)[number]>;
+  isPreview?: boolean;
 }) {
+  const highlight = usePreviewReplayHighlight();
+  const isHighlighted = isPreview && isPreviewHighlight(highlight, "memory");
+
   return (
-    <DashboardCard title="PROJECT MEMORY">
-      <div className="pb-2 pt-1">
+    <DashboardCard
+      title="PROJECT MEMORY"
+      className={cn(
+        isPreview && "preview-replay-enter",
+        isHighlighted && "preview-replay-card-glow",
+      )}
+    >
+      <div
+        className={cn(
+          "pb-2 pt-1",
+          isHighlighted && "preview-replay-highlight",
+        )}
+      >
         {memories.map((memory) => (
           <article
             key={memory.title}
@@ -1190,6 +1353,8 @@ function DashboardCard({
   action,
   testId,
   headerClassName,
+  className,
+  previewAnchor,
   children,
 }: {
   title: string;
@@ -1197,12 +1362,18 @@ function DashboardCard({
   action?: ReactNode;
   testId?: string;
   headerClassName?: string;
+  className?: string;
+  previewAnchor?: "task" | "logs" | "output" | "graph" | "todos";
   children: ReactNode;
 }) {
   return (
     <section
       data-testid={testId}
-      className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white"
+      data-preview-anchor={previewAnchor}
+      className={cn(
+        "overflow-hidden rounded-2xl border border-zinc-200/70 bg-white",
+        className,
+      )}
     >
       <div
         className={cn(

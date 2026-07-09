@@ -122,3 +122,163 @@ body {
 .markdown-code .hljs-strong {
   font-weight: 700;
 }
+
+@keyframes preview-replay-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes preview-replay-pulse {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(24, 24, 27, 0);
+    background-color: transparent;
+  }
+
+  35% {
+    box-shadow: inset 0 0 0 1px rgba(24, 24, 27, 0.14);
+    background-color: rgba(250, 250, 250, 0.95);
+  }
+
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(24, 24, 27, 0);
+    background-color: transparent;
+  }
+}
+
+@keyframes preview-replay-cta-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.preview-replay-enter {
+  animation: preview-replay-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.preview-replay-highlight {
+  animation: preview-replay-pulse 1.15s ease-out 1;
+  border-radius: 12px;
+}
+
+.preview-replay-cta {
+  animation: preview-replay-cta-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.preview-replay-card-glow {
+  box-shadow: 0 0 0 1px rgba(24, 24, 27, 0.12),
+    0 12px 40px -24px rgba(24, 24, 27, 0.35);
+  transition: box-shadow 320ms ease;
+}
+
+@keyframes preview-ghost-click {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+
+  70% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+.preview-ghost-cursor {
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.preview-ghost-click {
+  animation: preview-ghost-click 700ms ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-replay-enter,
+  .preview-replay-highlight,
+  .preview-replay-cta,
+  .preview-agent-thinking,
+  .preview-agent-sparkle,
+  .preview-agent-cursor,
+  .preview-ghost-cursor,
+  .preview-ghost-click {
+    animation: none;
+    transition: none;
+  }
+}
+
+@keyframes preview-agent-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes preview-agent-thinking {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* Claude Code's working sparkle: the orange ✻ slowly spins and pulses. */
+@keyframes preview-agent-sparkle {
+  0% {
+    transform: rotate(0deg) scale(0.92);
+    opacity: 0.65;
+  }
+
+  50% {
+    transform: rotate(180deg) scale(1.12);
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(360deg) scale(0.92);
+    opacity: 0.65;
+  }
+}
+
+.preview-agent-sparkle {
+  display: inline-block;
+  animation: preview-agent-sparkle 1.6s ease-in-out infinite;
+}
+
+.preview-agent-cursor {
+  animation: preview-agent-blink 1s step-end infinite;
+}
+
+.preview-agent-thinking {
+  animation: preview-agent-thinking 1s ease-in-out infinite;
+}
+
+.preview-agent-line-latest {
+  outline: none;
+}

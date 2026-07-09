@@ -614,7 +614,7 @@ export function HomeSidebar({
             <SidebarLink
               href={getTabHref("workspace", isLoggedIn)}
               label="Workspace"
-              badge="Preview"
+              badge="Sign in"
               active={activeTab === "workspace"}
               icon={<LockIcon className="size-[15px]" />}
               onNavigate={onNavigate}

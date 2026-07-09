@@ -32,6 +32,16 @@ export type WorkspaceGraph = {
   edges: WorkspaceGraphEdge[];
 };
 
+/** Stable key for node/edge membership — ignores title/description churn. */
+export function getWorkspaceGraphTopologyKey(graph: WorkspaceGraph): string {
+  const nodeIds = graph.nodes.map((node) => node.id).sort().join("|");
+  const edgeIds = graph.edges
+    .map((edge) => `${edge.sourceId}>${edge.targetId}`)
+    .sort()
+    .join("|");
+  return `${nodeIds}::${edgeIds}`;
+}
+
 export function buildWorkspaceGraph({
   tasks,
   logs,

@@ -31,6 +31,7 @@ import {
   getNodeRadius,
   getNodeStroke,
   getTaskNodeId,
+  getWorkspaceGraphTopologyKey,
   type WorkspaceGraph,
   type WorkspaceGraphEdge,
   type WorkspaceGraphNode,
@@ -134,7 +135,7 @@ export function WorkspaceGraphView({
     () => filterWorkspaceGraph(fullGraph, selectedTaskId, searchQuery, tasks),
     [fullGraph, selectedTaskId, searchQuery, tasks],
   );
-  const graphKey = graph.nodes.map((node) => node.id).join("|");
+  const graphKey = getWorkspaceGraphTopologyKey(graph);
   const selectedTask =
     selectedTaskId === ALL_TASKS
       ? null
@@ -244,7 +245,16 @@ export function WorkspaceGraphCanvas({
   /** Force layout tuning. `obsidian` spreads into a round cloud. */
   forcePreset?: GraphForcePreset;
 }) {
-  const initialNodes = useMemo(() => buildInitialGraphNodes(graph), [graph]);
+  const topologyKey = useMemo(
+    () => getWorkspaceGraphTopologyKey(graph),
+    [graph],
+  );
+  const seededNodes = useMemo(
+    () => buildInitialGraphNodes(graph),
+    // Rebuild seed positions only when membership changes — not on title churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- topologyKey is the intentional dep
+    [topologyKey],
+  );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [transform, setTransform] = useState<GraphTransform>(() =>
     clampGraphTransform({
@@ -254,10 +264,10 @@ export function WorkspaceGraphCanvas({
     }),
   );
   // Snapshot for React paint only — simulation mutates a ref and patches DOM.
-  const [nodeSnapshot, setNodeSnapshot] = useState(initialNodes);
+  const [nodeSnapshot, setNodeSnapshot] = useState(seededNodes);
   const graphViewportRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const nodeStatesRef = useRef<GraphNodeState[]>(initialNodes);
+  const nodeStatesRef = useRef<GraphNodeState[]>(seededNodes);
   const nodeElementsRef = useRef<Map<string, SVGGElement>>(new Map());
   const edgeElementsRef = useRef<
     Map<string, { line: SVGLineElement; sourceId: string; targetId: string }>
@@ -267,6 +277,7 @@ export function WorkspaceGraphCanvas({
   const isSimulatingRef = useRef(false);
   const edgesRef = useRef(graph.edges);
   const forcePresetRef = useRef(forcePreset);
+  const topologyKeyRef = useRef<string | null>(null);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -336,10 +347,79 @@ export function WorkspaceGraphCanvas({
     animationFrameRef.current = window.requestAnimationFrame(tick);
   }
 
+  // Keep labels/meta in sync without restarting the force layout.
   useEffect(() => {
+    if (topologyKeyRef.current !== topologyKey) {
+      return;
+    }
+    if (nodeStatesRef.current.length === 0) {
+      return;
+    }
+
+    const metaById = new Map(graph.nodes.map((node) => [node.id, node]));
+    let changed = false;
+    const synced = nodeStatesRef.current.map((node) => {
+      const meta = metaById.get(node.id);
+      if (!meta) {
+        return node;
+      }
+      if (
+        meta.title === node.title &&
+        meta.description === node.description &&
+        meta.href === node.href &&
+        meta.kind === node.kind &&
+        meta.taskId === node.taskId
+      ) {
+        return node;
+      }
+      changed = true;
+      return {
+        ...node,
+        title: meta.title,
+        description: meta.description,
+        href: meta.href,
+        kind: meta.kind,
+        taskId: meta.taskId,
+      };
+    });
+
+    if (!changed) {
+      return;
+    }
+
+    nodeStatesRef.current = synced;
+    setNodeSnapshot(synced);
+  }, [graph, topologyKey]);
+
+  // Restart layout only when node/edge membership (or force settings) change.
+  useEffect(() => {
+    const topologyChanged = topologyKeyRef.current !== topologyKey;
+    topologyKeyRef.current = topologyKey;
+
     stopSimulation();
-    setNodeSnapshot(initialNodes);
-    nodeStatesRef.current = initialNodes.map((node) => ({ ...node }));
+
+    const prevById = new Map(
+      nodeStatesRef.current.map((node) => [node.id, node]),
+    );
+    const nextNodes =
+      topologyChanged && prevById.size > 0
+        ? seededNodes.map((node) => {
+            const existing = prevById.get(node.id);
+            if (!existing) {
+              return { ...node };
+            }
+            return {
+              ...node,
+              x: existing.x,
+              y: existing.y,
+              vx: 0,
+              vy: 0,
+            };
+          })
+        : seededNodes.map((node) => ({ ...node }));
+
+    setNodeSnapshot(nextNodes);
+    nodeStatesRef.current = nextNodes.map((node) => ({ ...node }));
 
     const frame = window.requestAnimationFrame(() => {
       paintGraphPositions(
@@ -356,7 +436,7 @@ export function WorkspaceGraphCanvas({
       window.cancelAnimationFrame(frame);
       stopSimulation();
     };
-  }, [disableForceSimulation, forcePreset, initialNodes]);
+  }, [disableForceSimulation, forcePreset, seededNodes, topologyKey]);
 
   // React re-renders (hover/zoom) rewrite SVG attributes from the snapshot —
   // re-apply the live simulation positions after paint.

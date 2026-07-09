@@ -13,6 +13,7 @@ import {
 import { cn } from "@/shared/lib/cn";
 import { GitHubIcon } from "@/shared/ui/icons";
 import { LandingGraphDemo } from "./LandingGraphDemo";
+import { LandingSessionDemo } from "./LandingSessionDemo";
 import { LandingTerminalDemo } from "./LandingTerminalDemo";
 import { LandingWorkflowStory } from "./LandingWorkflowStory";
 import {
@@ -39,6 +40,7 @@ const landingMono = JetBrains_Mono({
 });
 
 const sectionIds = [
+  "session",
   "pipeline",
   "contribute",
   "features",
@@ -46,6 +48,7 @@ const sectionIds = [
 ] as const;
 
 const navLinks = [
+  { href: "#session", label: "Session", id: "session" },
   { href: "#pipeline", label: "Pipeline", id: "pipeline" },
   { href: "#contribute", label: "Contribute", id: "contribute" },
   { href: "#features", label: "Features", id: "features" },
@@ -245,7 +248,25 @@ export function LandingPage() {
               </div>
             </section>
 
-            <section id="pipeline" className="relative border-y border-zinc-200/60 py-28">
+            <section
+              id="session"
+              className="relative border-y border-zinc-200/60 py-24 sm:py-28"
+            >
+              <div className="landing-reveal mx-auto mb-12 max-w-5xl px-6 text-center">
+                <h2 className="landing-display text-4xl leading-[1.1] font-bold tracking-tight text-black lg:text-5xl">
+                  A session becomes a draft
+                </h2>
+                <p className="mx-auto mt-5 max-w-2xl text-lg font-light text-[#47464a]">
+                  Watch Claude Code talk through the work while OpenLog captures
+                  the task, logs, and links in the workspace.
+                </p>
+              </div>
+              <div className="landing-reveal mx-auto max-w-[1280px] px-4 sm:px-6">
+                <LandingSessionDemo />
+              </div>
+            </section>
+
+            <section id="pipeline" className="relative py-28">
               <div className="landing-reveal mx-auto mb-14 max-w-5xl px-6">
                 <h2 className="landing-display text-4xl leading-[1.1] font-bold tracking-tight text-black lg:text-5xl">
                   The Workflow Loop

@@ -3,32 +3,33 @@
 import { useMemo } from "react";
 import { cn } from "@/shared/lib/cn";
 import { graphCanvasSurfaceClassName } from "@/shared/ui/GraphCanvasBackdrop";
-import {
-} from "./data";
 import { WorkspaceGraphCanvas } from "./WorkspaceGraphView";
 import { buildWorkspaceGraph } from "./workspaceGraphModel";
 import type { WorkspaceUiData } from "./workspaceTypes";
 
 export function WorkspaceGraphPreview({
   workspaceData,
+  heightClassName = "h-[180px]",
 }: {
   workspaceData?: WorkspaceUiData | null;
+  heightClassName?: string;
 }) {
   const tasks = workspaceData?.tasks ?? [];
   const logs = workspaceData?.logs ?? [];
   const outputs = workspaceData?.outputs ?? [];
+  const taskLinks = workspaceData?.taskLinks ?? [];
+  const logLinks = workspaceData?.logLinks ?? [];
   const graph = useMemo(
     () =>
       buildWorkspaceGraph({
         tasks,
         logs,
         outputs,
-        taskLinks: workspaceData?.taskLinks ?? [],
-        logLinks: workspaceData?.logLinks ?? [],
+        taskLinks,
+        logLinks,
       }),
-    [logs, outputs, tasks, workspaceData],
+    [logs, logLinks, outputs, taskLinks, tasks],
   );
-  const graphKey = graph.nodes.map((node) => node.id).join("|");
 
   return (
     <div
@@ -38,9 +39,8 @@ export function WorkspaceGraphPreview({
       )}
     >
       <WorkspaceGraphCanvas
-        key={graphKey}
         graph={graph}
-        heightClassName="h-[180px]"
+        heightClassName={heightClassName}
         initialScale={2.5}
         emptyTitle="No graph data yet"
         emptyDescription="Create a task or log to start the workspace graph."
