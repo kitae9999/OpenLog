@@ -89,7 +89,11 @@ export function TaskDetailShell({
             aria-label="Task detail"
             className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 xl:px-10"
           >
-            <TaskDetailView task={task} workspaceData={workspaceData} />
+            <TaskDetailView
+              task={task}
+              workspaceData={workspaceData}
+              isLoggedIn={isLoggedIn}
+            />
           </section>
         </main>
       </div>

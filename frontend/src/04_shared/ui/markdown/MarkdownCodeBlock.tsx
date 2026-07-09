@@ -14,7 +14,7 @@ export function MarkdownCodeBlock({
   code: string;
   highlightedHtml: string;
   languageLabel: string;
-  variant: "default" | "compact";
+  variant: "default" | "compact" | "dense";
 }) {
   const [copyState, setCopyState] = useState<CopyState>("idle");
 

@@ -5,6 +5,7 @@ const STORAGE_KEY = "openlog-task-overrides";
 type TaskOverride = {
   title?: string;
   body?: string;
+  status?: WorkspaceWorkItem["status"];
 };
 
 type TaskOverrideMap = Record<string, TaskOverride>;
@@ -36,10 +37,20 @@ export function getTaskOverride(taskId: string): TaskOverride | undefined {
 
 export function saveTaskOverride(
   taskId: string,
-  override: { title: string; body: string },
+  override: {
+    title: string;
+    body: string;
+    status?: WorkspaceWorkItem["status"];
+  },
 ) {
   const overrides = readOverrides();
-  overrides[taskId] = override;
+  const previous = overrides[taskId];
+  overrides[taskId] = {
+    ...previous,
+    title: override.title,
+    body: override.body,
+    status: override.status ?? previous?.status,
+  };
   writeOverrides(overrides);
 }
 
@@ -55,6 +66,7 @@ export function mergeTaskWithOverrides(
     ...task,
     title: override.title ?? task.title,
     body: override.body ?? task.body,
+    status: override.status ?? task.status,
   };
 }
 

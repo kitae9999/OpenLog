@@ -5,6 +5,7 @@ const STORAGE_KEY = "openlog-log-overrides";
 type LogOverride = {
   title?: string;
   body?: string;
+  taskId?: string | null;
 };
 
 type LogOverrideMap = Record<string, LogOverride>;
@@ -36,10 +37,18 @@ export function getLogOverride(logId: string): LogOverride | undefined {
 
 export function saveLogOverride(
   logId: string,
-  override: { title: string; body: string },
+  override: {
+    title?: string;
+    body?: string;
+    taskId?: string | null;
+  },
 ) {
   const overrides = readOverrides();
-  overrides[logId] = override;
+  const previous = overrides[logId];
+  overrides[logId] = {
+    ...previous,
+    ...override,
+  };
   writeOverrides(overrides);
 }
 
@@ -53,6 +62,10 @@ export function mergeLogWithOverrides(log: WorkspaceLogItem): WorkspaceLogItem {
     ...log,
     title: override.title ?? log.title,
     body: override.body ?? log.body,
+    taskId:
+      override.taskId === null
+        ? undefined
+        : (override.taskId ?? log.taskId),
   };
 }
 

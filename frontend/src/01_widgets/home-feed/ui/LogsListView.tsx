@@ -451,7 +451,12 @@ function LogListRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-[15px] font-semibold leading-snug text-zinc-950">
-            {log.title}
+            <Link
+              href={getLogHref(log.id)}
+              className="transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              {log.title}
+            </Link>
           </h2>
         </div>
         <p className="mt-1 line-clamp-2 text-[12.5px] leading-5 text-zinc-500">

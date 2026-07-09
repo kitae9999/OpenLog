@@ -347,7 +347,14 @@ function WorkItemRow({
       <TaskStatusDot status={item.status} />
       <div className="min-w-0 flex-1">
         <h3 className="text-[13px] font-semibold leading-[1.45] text-zinc-950">
-          {item.title}
+          <PreviewableLink
+            href={getTaskHref(item.id)}
+            isPreview={isPreview}
+            className="transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            previewClassName="cursor-default"
+          >
+            {item.title}
+          </PreviewableLink>
         </h3>
         <p className="mt-0.5 text-[12px] text-zinc-500">
           {statusLabel} · {logCount} log{logCount === 1 ? "" : "s"}
@@ -1044,7 +1051,14 @@ function WorkspaceLogRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-[14px] font-semibold text-zinc-950">
-              {item.title}
+              <PreviewableLink
+                href={getLogHref(item.id)}
+                isPreview={isPreview}
+                className="transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                previewClassName="cursor-default"
+              >
+                {item.title}
+              </PreviewableLink>
             </h3>
           </div>
           <p className="mt-0.5 text-[12.5px] leading-5 text-zinc-500">
