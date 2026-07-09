@@ -3,32 +3,24 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
-import type { WorkspaceLogItem } from "./data";
-import { LogEditView } from "./LogEditView";
 import { HomeSidebar } from "./HomeFeedShell";
-import { mergeLogWithOverrides } from "./logOverrides";
-import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
+import { WorkspaceCreateView } from "./WorkspaceCreateView";
+import type { ManagedWorkspace } from "./workspaceTypes";
 
-export function LogEditShell({
-  log: initialLog,
-  workspaces = [],
-  workspaceData,
+export function WorkspaceCreateShell({
   isLoggedIn,
   profileImageUrl,
   profileHref,
+  workspaces = [],
   footer,
 }: {
-  logId: string;
-  log: WorkspaceLogItem;
-  workspaces?: ManagedWorkspace[];
-  workspaceData?: WorkspaceUiData | null;
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaces?: ManagedWorkspace[];
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const log = workspaceData ? initialLog : mergeLogWithOverrides(initialLog);
 
   useEffect(() => {
     const query = window.matchMedia("(min-width: 1024px)");
@@ -68,11 +60,9 @@ export function LogEditShell({
 
         <HomeSidebar
           activeTab="workspace"
-          workspaceNav="logs"
           isLoggedIn={isLoggedIn}
-          isOpen={isSidebarOpen}
           workspaces={workspaces}
-          workspaceData={workspaceData}
+          isOpen={isSidebarOpen}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {
               setIsSidebarOpen(false);
@@ -87,10 +77,10 @@ export function LogEditShell({
           )}
         >
           <section
-            aria-label="Edit log"
-            className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 xl:px-10"
+            aria-label="New workspace"
+            className="mx-auto w-full max-w-[720px] px-4 pb-16 pt-6 sm:px-6 lg:px-8"
           >
-            <LogEditView log={log} workspaceId={workspaceData?.workspaceId} />
+            <WorkspaceCreateView isLoggedIn={isLoggedIn} />
           </section>
         </main>
       </div>

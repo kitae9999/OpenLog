@@ -5,18 +5,20 @@ import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
 import { HomeSidebar } from "./HomeFeedShell";
 import { WorkspaceGraphView } from "./WorkspaceGraphView";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 
 export function WorkspaceGraphShell({
   isLoggedIn,
   profileImageUrl,
   profileHref,
+  workspaces = [],
   workspaceData,
   footer,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
@@ -63,6 +65,7 @@ export function WorkspaceGraphShell({
           workspaceNav="graph"
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaces={workspaces}
           workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {

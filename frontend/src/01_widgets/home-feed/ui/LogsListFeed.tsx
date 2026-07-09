@@ -4,7 +4,7 @@ import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import type { LogListTypeFilter } from "./data";
 import { LogsListShell } from "./LogsListShell";
-import { getWorkspaceUiData } from "./workspaceApi";
+import { loadWorkspacePageData } from "./workspaceApi";
 
 export async function LogsListFeed({
   typeFilter = "all",
@@ -15,7 +15,9 @@ export async function LogsListFeed({
 }) {
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
-  const workspaceData = user ? await getWorkspaceUiData() : null;
+  const pageData = user ? await loadWorkspacePageData() : { workspaces: [], workspaceData: null };
+  const workspaces = pageData.workspaces;
+  const workspaceData = pageData.workspaceData;
 
   return (
     <LogsListShell
@@ -23,6 +25,7 @@ export async function LogsListFeed({
       isLoggedIn={!!user}
       profileImageUrl={user?.profileImageUrl}
       profileHref={user ? buildViewerProfileHref(user.username) : undefined}
+      workspaces={workspaces}
       workspaceData={workspaceData}
       footer={<Footer />}
     />

@@ -7,10 +7,11 @@ import type { WorkspaceLogItem } from "./data";
 import { LogDetailView } from "./LogDetailView";
 import { HomeSidebar } from "./HomeFeedShell";
 import { mergeLogWithOverrides } from "./logOverrides";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 
 export function LogDetailShell({
   log: initialLog,
+  workspaces = [],
   workspaceData,
   isLoggedIn,
   profileImageUrl,
@@ -19,6 +20,7 @@ export function LogDetailShell({
 }: {
   logId: string;
   log: WorkspaceLogItem;
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
@@ -69,6 +71,7 @@ export function LogDetailShell({
           workspaceNav="logs"
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaces={workspaces}
           workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {

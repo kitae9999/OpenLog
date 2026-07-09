@@ -19,9 +19,6 @@ import {
 import { GraphZoomControls } from "@/shared/ui/GraphZoomControls";
 import {
   getTabHref,
-  workspaceLogs,
-  workspaceTaskOutputs,
-  workspaceWorkItems,
   type WorkspaceWorkItem,
 } from "./data";
 import { LogTypeLabel } from "./LogTypeLabel";
@@ -81,9 +78,9 @@ export function WorkspaceGraphView({
   isLoggedIn: boolean;
   workspaceData?: WorkspaceUiData | null;
 }) {
-  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
-  const logs = workspaceData?.logs ?? workspaceLogs;
-  const outputs = workspaceData?.outputs ?? workspaceTaskOutputs;
+  const tasks = workspaceData?.tasks ?? [];
+  const logs = workspaceData?.logs ?? [];
+  const outputs = workspaceData?.outputs ?? [];
   const [selectedTaskId, setSelectedTaskId] = useState(ALL_TASKS);
   const [searchQuery, setSearchQuery] = useState("");
   const fullGraph = useMemo(
@@ -173,7 +170,7 @@ export function WorkspaceGraphView({
         <WorkspaceGraphCanvas key={graphKey} graph={graph} />
       </section>
 
-      <GraphResultList graph={graph} />
+      <GraphResultList graph={graph} logs={logs} />
     </div>
   );
 }
@@ -749,7 +746,13 @@ function LegendItem({
   );
 }
 
-function GraphResultList({ graph }: { graph: WorkspaceGraph }) {
+function GraphResultList({
+  graph,
+  logs,
+}: {
+  graph: WorkspaceGraph;
+  logs: WorkspaceUiData["logs"];
+}) {
   const taskNodes = graph.nodes.filter((node) => node.kind === "task");
   const logNodes = graph.nodes.filter((node) => node.kind === "log");
 
@@ -771,7 +774,7 @@ function GraphResultList({ graph }: { graph: WorkspaceGraph }) {
             </p>
           ) : (
             logNodes.map((node) => {
-              const log = workspaceLogs.find(
+              const log = logs.find(
                 (item) => getLogNodeId(item.id) === node.id,
               );
 

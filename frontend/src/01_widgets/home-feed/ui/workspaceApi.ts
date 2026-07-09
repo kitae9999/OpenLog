@@ -15,16 +15,24 @@ import {
   type WorkspaceWorkStatus,
 } from "./data";
 import type {
+  ManagedWorkspace,
   WorkspaceLogLinkItem,
   WorkspaceTaskLinkItem,
   WorkspaceUiData,
 } from "./workspaceTypes";
+
+const ACTIVE_WORKSPACE_COOKIE = "openlog-active-workspace";
 
 type WorkspaceResponse = {
   id: number;
   slug: string;
   name: string;
   repoFullName: string | null;
+};
+
+export type WorkspacePageData = {
+  workspaces: ManagedWorkspace[];
+  workspaceData: WorkspaceUiData | null;
 };
 
 type TaskStatus = "TODO" | "DOING" | "DONE";
@@ -129,53 +137,154 @@ type WorkspaceApiSnapshot = {
   logLinks: LogLinkResponse[];
 };
 
-export const getWorkspaceUiData = cache(async (): Promise<WorkspaceUiData | null> => {
-  try {
-    const headerStore = await headers();
-    const cookie = headerStore.get("cookie") ?? "";
-    const workspaces = await fetchJson<WorkspaceResponse[]>("/workspaces", cookie);
-    const workspace = workspaces[0];
+export const listManagedWorkspaces = cache(
+  async (): Promise<ManagedWorkspace[]> => {
+    try {
+      const headerStore = await headers();
+      const cookie = headerStore.get("cookie") ?? "";
+      const workspaces = await fetchJson<WorkspaceResponse[]>(
+        "/workspaces",
+        cookie,
+      );
 
-    if (!workspace) {
+      return workspaces.map(mapManagedWorkspace);
+    } catch {
+      return [];
+    }
+  },
+);
+
+export const loadWorkspacePageData = cache(
+  async (): Promise<WorkspacePageData> => {
+    try {
+      const headerStore = await headers();
+      const cookie = headerStore.get("cookie") ?? "";
+      const workspaces = (
+        await fetchJson<WorkspaceResponse[]>("/workspaces", cookie)
+      ).map(mapManagedWorkspace);
+
+      if (workspaces.length === 0) {
+        return { workspaces, workspaceData: null };
+      }
+
+      const selectedId = resolveSelectedWorkspaceId(workspaces, cookie);
+      const workspaceData = await getWorkspaceUiData(selectedId);
+      return { workspaces, workspaceData };
+    } catch {
+      return { workspaces: [], workspaceData: null };
+    }
+  },
+);
+
+export const getWorkspaceUiData = cache(
+  async (workspaceId?: string | null): Promise<WorkspaceUiData | null> => {
+    try {
+      const headerStore = await headers();
+      const cookie = headerStore.get("cookie") ?? "";
+      const workspaces = await fetchJson<WorkspaceResponse[]>(
+        "/workspaces",
+        cookie,
+      );
+
+      if (workspaces.length === 0) {
+        return null;
+      }
+
+      const selected =
+        (workspaceId
+          ? workspaces.find((workspace) => String(workspace.id) === workspaceId)
+          : null) ??
+        workspaces.find(
+          (workspace) =>
+            String(workspace.id) === readActiveWorkspaceIdFromCookie(cookie),
+        ) ??
+        workspaces[0];
+
+      if (!selected) {
+        return null;
+      }
+
+      const selectedId = selected.id;
+      const [tasks, logs, taskLinks, logLinks, todos, outputSummaries] =
+        await Promise.all([
+          fetchAllTasks(selectedId, cookie),
+          fetchAllLogs(selectedId, cookie),
+          fetchJson<TaskLinkResponse[]>(
+            `/workspaces/${selectedId}/task-links`,
+            cookie,
+          ),
+          fetchJson<LogLinkResponse[]>(
+            `/workspaces/${selectedId}/log-links`,
+            cookie,
+          ),
+          fetchJson<TodoResponse[]>(
+            `/workspaces/${selectedId}/todos?plannedFor=${todayIso()}`,
+            cookie,
+          ),
+          fetchOutputs(selectedId, cookie),
+        ]);
+
+      const outputDetails = await Promise.all(
+        outputSummaries.map((output) =>
+          fetchJson<OutputDetailResponse>(
+            `/workspaces/${selectedId}/outputs/${output.id}`,
+            cookie,
+          ).catch(() => output),
+        ),
+      );
+
+      return mapWorkspaceSnapshot({
+        workspace: selected,
+        tasks,
+        logs,
+        outputs: outputDetails,
+        todos,
+        taskLinks,
+        logLinks,
+      });
+    } catch {
       return null;
     }
+  },
+);
 
-    const workspaceId = workspace.id;
-    const [tasks, logs, taskLinks, logLinks, todos, outputSummaries] =
-      await Promise.all([
-        fetchAllTasks(workspaceId, cookie),
-        fetchAllLogs(workspaceId, cookie),
-        fetchJson<TaskLinkResponse[]>(`/workspaces/${workspaceId}/task-links`, cookie),
-        fetchJson<LogLinkResponse[]>(`/workspaces/${workspaceId}/log-links`, cookie),
-        fetchJson<TodoResponse[]>(
-          `/workspaces/${workspaceId}/todos?plannedFor=${todayIso()}`,
-          cookie,
-        ),
-        fetchOutputs(workspaceId, cookie),
-      ]);
+function mapManagedWorkspace(workspace: WorkspaceResponse): ManagedWorkspace {
+  return {
+    id: String(workspace.id),
+    slug: workspace.slug,
+    name: workspace.name || workspace.slug,
+    repoFullName: workspace.repoFullName,
+  };
+}
 
-    const outputDetails = await Promise.all(
-      outputSummaries.map((output) =>
-        fetchJson<OutputDetailResponse>(
-          `/workspaces/${workspaceId}/outputs/${output.id}`,
-          cookie,
-        ).catch(() => output),
-      ),
-    );
+function resolveSelectedWorkspaceId(
+  workspaces: ManagedWorkspace[],
+  cookieHeader: string,
+) {
+  const cookieId = readActiveWorkspaceIdFromCookie(cookieHeader);
+  if (cookieId && workspaces.some((workspace) => workspace.id === cookieId)) {
+    return cookieId;
+  }
 
-    return mapWorkspaceSnapshot({
-      workspace,
-      tasks,
-      logs,
-      outputs: outputDetails,
-      todos,
-      taskLinks,
-      logLinks,
-    });
+  return workspaces[0]?.id ?? null;
+}
+
+function readActiveWorkspaceIdFromCookie(cookieHeader: string) {
+  const match = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${ACTIVE_WORKSPACE_COOKIE}=`));
+
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(match.slice(`${ACTIVE_WORKSPACE_COOKIE}=`.length));
   } catch {
     return null;
   }
-});
+}
 
 async function fetchAllTasks(workspaceId: number, cookie: string) {
   const tasks: WorkspaceTaskResponse[] = [];

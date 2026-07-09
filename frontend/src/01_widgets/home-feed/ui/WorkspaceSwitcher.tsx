@@ -2,39 +2,63 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/shared/lib/cn";
-import {
-  defaultWorkspaceId,
-  getDefaultWorkspace,
-  getTabHref,
-  getWorkspaceById,
-  userWorkspaces,
-} from "./data";
+import { getNewWorkspaceHref, getTabHref } from "./data";
 import {
   getActiveWorkspaceId,
   setActiveWorkspaceId,
 } from "./workspaceSelection";
 import { notifyWorkspaceChange } from "./useActiveWorkspace";
+import type { ManagedWorkspace } from "./workspaceTypes";
 
 export function WorkspaceSwitcher({
   isLoggedIn,
+  workspaces,
+  activeWorkspaceId,
   onNavigate,
 }: {
   isLoggedIn: boolean;
+  workspaces: ManagedWorkspace[];
+  activeWorkspaceId?: string | null;
   onNavigate?: () => void;
 }) {
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [activeId, setActiveId] = useState(defaultWorkspaceId);
+  const [activeId, setActiveId] = useState<string | null>(
+    activeWorkspaceId ?? null,
+  );
+
+  const resolvedActiveId = useMemo(() => {
+    if (activeId && workspaces.some((workspace) => workspace.id === activeId)) {
+      return activeId;
+    }
+
+    if (
+      activeWorkspaceId &&
+      workspaces.some((workspace) => workspace.id === activeWorkspaceId)
+    ) {
+      return activeWorkspaceId;
+    }
+
+    return workspaces[0]?.id ?? null;
+  }, [activeId, activeWorkspaceId, workspaces]);
 
   const activeWorkspace =
-    getWorkspaceById(activeId) ?? getDefaultWorkspace();
+    workspaces.find((workspace) => workspace.id === resolvedActiveId) ?? null;
 
   useEffect(() => {
-    setActiveId(getActiveWorkspaceId());
-  }, []);
+    const storedId = getActiveWorkspaceId();
+    if (storedId && workspaces.some((workspace) => workspace.id === storedId)) {
+      setActiveId(storedId);
+      return;
+    }
+
+    if (activeWorkspaceId) {
+      setActiveId(activeWorkspaceId);
+    }
+  }, [activeWorkspaceId, workspaces]);
 
   useEffect(() => {
     if (!open) {
@@ -63,7 +87,7 @@ export function WorkspaceSwitcher({
   }, [open]);
 
   function selectWorkspace(workspaceId: string) {
-    if (workspaceId === activeId) {
+    if (workspaceId === resolvedActiveId) {
       setOpen(false);
       return;
     }
@@ -74,18 +98,36 @@ export function WorkspaceSwitcher({
     setOpen(false);
     onNavigate?.();
     router.push(getTabHref("workspace", isLoggedIn));
+    router.refresh();
   }
 
   if (!isLoggedIn) {
     return null;
   }
 
+  if (!activeWorkspace) {
+    return (
+      <div className="mb-4">
+        <Link
+          href={getNewWorkspaceHref()}
+          onClick={onNavigate}
+          className="flex w-full items-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white px-3 py-2.5 text-[13px] font-semibold text-zinc-600 transition hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          <span className="grid size-6 shrink-0 place-items-center rounded-lg border border-dashed border-zinc-300 text-zinc-400">
+            <IconPlus className="size-3.5" />
+          </span>
+          Create workspace
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div ref={rootRef} className="relative mb-4">
       <WorkspaceSwitcherTrigger
         name={activeWorkspace.name}
-        repositoryFullName={activeWorkspace.repositoryFullName}
-        initial={activeWorkspace.initial}
+        repositoryFullName={activeWorkspace.repoFullName}
+        initial={workspaceInitial(activeWorkspace.name)}
         open={open}
         onClick={() => setOpen((current) => !current)}
       />
@@ -97,8 +139,8 @@ export function WorkspaceSwitcher({
           className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-zinc-200/70 bg-white shadow-[0_12px_40px_rgba(24,24,27,0.12)]"
         >
           <div className="max-h-[min(280px,50vh)] overflow-y-auto py-1">
-            {userWorkspaces.map((workspace) => {
-              const isActive = workspace.id === activeId;
+            {workspaces.map((workspace) => {
+              const isActive = workspace.id === resolvedActiveId;
 
               return (
                 <button
@@ -109,13 +151,11 @@ export function WorkspaceSwitcher({
                   onClick={() => selectWorkspace(workspace.id)}
                   className={cn(
                     "flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20",
-                    isActive
-                      ? "bg-zinc-50"
-                      : "hover:bg-zinc-50",
+                    isActive ? "bg-zinc-50" : "hover:bg-zinc-50",
                   )}
                 >
                   <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-zinc-100 text-[13px] font-bold text-zinc-600 [font-family:Georgia,serif]">
-                    {workspace.initial}
+                    {workspaceInitial(workspace.name)}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span
@@ -127,7 +167,7 @@ export function WorkspaceSwitcher({
                       {workspace.name}
                     </span>
                     <span className="block truncate font-mono text-[10.5px] text-zinc-400">
-                      {workspace.repositoryFullName}
+                      {workspace.repoFullName ?? workspace.slug}
                     </span>
                   </span>
                   {isActive ? (
@@ -140,7 +180,7 @@ export function WorkspaceSwitcher({
 
           <div className="border-t border-zinc-100 p-1.5">
             <Link
-              href="/write"
+              href={getNewWorkspaceHref()}
               role="menuitem"
               onClick={() => {
                 setOpen(false);
@@ -160,6 +200,10 @@ export function WorkspaceSwitcher({
   );
 }
 
+function workspaceInitial(name: string) {
+  return name.trim().charAt(0).toUpperCase() || "W";
+}
+
 function WorkspaceSwitcherTrigger({
   name,
   repositoryFullName,
@@ -169,7 +213,7 @@ function WorkspaceSwitcherTrigger({
   onClick,
 }: {
   name: string;
-  repositoryFullName: string;
+  repositoryFullName: string | null;
   initial: string;
   open: boolean;
   disabled?: boolean;
@@ -195,7 +239,7 @@ function WorkspaceSwitcherTrigger({
           {name}
         </span>
         <span className="block truncate font-mono text-[10.5px] text-zinc-400">
-          {repositoryFullName}
+          {repositoryFullName ?? "No repository"}
         </span>
       </span>
       <IconChevronDown

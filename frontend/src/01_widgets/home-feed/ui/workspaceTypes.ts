@@ -30,3 +30,10 @@ export type WorkspaceUiData = {
   taskLinks: WorkspaceTaskLinkItem[];
   logLinks: WorkspaceLogLinkItem[];
 };
+
+export type ManagedWorkspace = {
+  id: string;
+  slug: string;
+  name: string;
+  repoFullName: string | null;
+};

@@ -9,9 +9,6 @@ import {
   getTaskExcerpt,
   getTaskHref,
   getTaskMeta,
-  workspaceLogs,
-  workspaceTaskOutputs,
-  workspaceWorkItems,
   type TaskListFilter,
   type WorkspaceLogItem,
   type WorkspaceTaskOutput,
@@ -35,9 +32,9 @@ export function TasksListView({
   isLoggedIn: boolean;
   workspaceData?: WorkspaceUiData | null;
 }) {
-  const initialTasks = workspaceData?.tasks ?? workspaceWorkItems;
-  const logs = workspaceData?.logs ?? workspaceLogs;
-  const outputs = workspaceData?.outputs ?? workspaceTaskOutputs;
+  const initialTasks = workspaceData?.tasks ?? [];
+  const logs = workspaceData?.logs ?? [];
+  const outputs = workspaceData?.outputs ?? [];
   const [filter, setFilter] = useState<TaskListFilter>("all");
   const tasks = useMemo(
     () =>

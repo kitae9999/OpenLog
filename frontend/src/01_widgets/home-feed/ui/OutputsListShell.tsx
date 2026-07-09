@@ -4,13 +4,14 @@ import type { ReactNode } from "react";
 import type { WorkspaceOutputStatus } from "./data";
 import { OutputsListView } from "./OutputsListView";
 import { OutputWorkspaceShell } from "./OutputWorkspaceShell";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 
 export function OutputsListShell({
   isLoggedIn,
   status,
   profileImageUrl,
   profileHref,
+  workspaces = [],
   workspaceData,
   footer,
 }: {
@@ -18,6 +19,7 @@ export function OutputsListShell({
   status: WorkspaceOutputStatus;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
@@ -28,6 +30,7 @@ export function OutputsListShell({
       profileHref={profileHref}
       footer={footer}
       label="Outputs"
+      workspaces={workspaces}
       workspaceData={workspaceData}
     >
       <OutputsListView

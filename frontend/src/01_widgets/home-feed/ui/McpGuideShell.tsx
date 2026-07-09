@@ -5,16 +5,19 @@ import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
 import { HomeSidebar } from "./HomeFeedShell";
 import { McpGuideView } from "./McpGuideView";
+import type { ManagedWorkspace } from "./workspaceTypes";
 
 export function McpGuideShell({
   isLoggedIn,
   profileImageUrl,
   profileHref,
+  workspaces = [],
   footer,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaces?: ManagedWorkspace[];
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -58,6 +61,7 @@ export function McpGuideShell({
         <HomeSidebar
           activeTab="workspace"
           isLoggedIn={isLoggedIn}
+          workspaces={workspaces}
           isOpen={isSidebarOpen}
           settingsNav="mcp-guide"
           onNavigate={() => {

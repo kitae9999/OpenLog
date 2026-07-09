@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
 import { HomeSidebar } from "./HomeFeedShell";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 
 export function OutputWorkspaceShell({
   isLoggedIn,
@@ -14,6 +14,7 @@ export function OutputWorkspaceShell({
   children,
   label,
   workspaceNav = "outputs",
+  workspaces = [],
   workspaceData,
 }: {
   isLoggedIn: boolean;
@@ -23,6 +24,7 @@ export function OutputWorkspaceShell({
   children: ReactNode;
   label: string;
   workspaceNav?: "dashboard" | "tasks" | "logs" | "graph" | "outputs";
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -68,6 +70,7 @@ export function OutputWorkspaceShell({
           workspaceNav={workspaceNav}
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaces={workspaces}
           workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {

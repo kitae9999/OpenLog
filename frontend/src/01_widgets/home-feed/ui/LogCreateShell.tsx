@@ -3,13 +3,14 @@
 import type { ReactNode } from "react";
 import { LogCreateView } from "./LogCreateView";
 import { OutputWorkspaceShell } from "./OutputWorkspaceShell";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 
 export function LogCreateShell({
   isLoggedIn,
   taskId,
   profileImageUrl,
   profileHref,
+  workspaces = [],
   workspaceData,
   footer,
 }: {
@@ -17,6 +18,7 @@ export function LogCreateShell({
   taskId?: string;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
@@ -28,6 +30,7 @@ export function LogCreateShell({
       footer={footer}
       label="New log"
       workspaceNav="logs"
+      workspaces={workspaces}
       workspaceData={workspaceData}
     >
       <LogCreateView

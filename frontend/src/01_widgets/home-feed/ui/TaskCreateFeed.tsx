@@ -3,7 +3,7 @@ import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboar
 import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { TaskCreateShell } from "./TaskCreateShell";
-import { getWorkspaceUiData } from "./workspaceApi";
+import { loadWorkspacePageData } from "./workspaceApi";
 
 export async function TaskCreateFeed({
   viewer,
@@ -12,13 +12,16 @@ export async function TaskCreateFeed({
 } = {}) {
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
-  const workspaceData = user ? await getWorkspaceUiData() : null;
+  const pageData = user ? await loadWorkspacePageData() : { workspaces: [], workspaceData: null };
+  const workspaces = pageData.workspaces;
+  const workspaceData = pageData.workspaceData;
 
   return (
     <TaskCreateShell
       isLoggedIn={!!user}
       profileImageUrl={user?.profileImageUrl}
       profileHref={user ? buildViewerProfileHref(user.username) : undefined}
+      workspaces={workspaces}
       workspaceData={workspaceData}
       footer={<Footer />}
     />

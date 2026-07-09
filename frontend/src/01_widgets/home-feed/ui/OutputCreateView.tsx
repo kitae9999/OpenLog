@@ -17,8 +17,6 @@ import {
   getOutputHref,
   getOutputsHref,
   getTabHref,
-  workspaceLogs,
-  workspaceWorkItems,
 } from "./data";
 import { createOutputOverride } from "./outputOverrides";
 import { createWorkspaceOutput } from "./workspaceActions";
@@ -34,8 +32,8 @@ export function OutputCreateView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
-  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
-  const logs = workspaceData?.logs ?? workspaceLogs;
+  const tasks = workspaceData?.tasks ?? [];
+  const logs = workspaceData?.logs ?? [];
   const initialTask =
     tasks.find((task) => task.id === initialTaskId) ?? tasks[0];
   const [taskId, setTaskId] = useState(initialTask?.id ?? "");

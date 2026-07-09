@@ -19,8 +19,6 @@ import {
   getTabHref,
   getTaskHref,
   logsSubnavItems,
-  workspaceLogs,
-  workspaceWorkItems,
   type LogListTypeFilter,
   type LogTaskFilter,
   type WorkspaceLogItem,
@@ -42,8 +40,8 @@ export function LogsListView({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialLogs = workspaceData?.logs ?? workspaceLogs;
-  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
+  const initialLogs = workspaceData?.logs ?? [];
+  const tasks = workspaceData?.tasks ?? [];
   const logs = useMemo(
     () =>
       workspaceData

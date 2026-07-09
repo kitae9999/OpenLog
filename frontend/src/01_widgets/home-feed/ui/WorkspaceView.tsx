@@ -23,18 +23,23 @@ import {
   getTaskHref,
   getTasksHref,
   getWorkspaceGraphHref,
-  workspaceLogs,
   workspaceMemories,
-  workspaceTodos,
   workspaceMonthGrass,
   workspaceMonthLabel,
-  workspaceWorkItems,
   type WorkspaceLogItem,
   type WorkspaceTodoItem,
   type WorkspaceWorkItem,
   type WorkspaceWorkStatus,
 } from "./data";
 import { LogTypeLabel } from "./LogTypeLabel";
+import {
+  previewDemoRepository,
+  previewLogs,
+  previewMemories,
+  previewTasks,
+  previewTodos,
+  type PreviewMemory,
+} from "./previewWorkspaceDemo";
 import { WorkspaceGraphPreview } from "./WorkspaceGraphPreview";
 import { WorkspaceRepositoryLink } from "./WorkspaceRepositoryLink";
 import {
@@ -79,13 +84,33 @@ function WorkspaceDashboard({
   workspaceData?: WorkspaceUiData | null;
   createTodoOverride?: (title: string) => Promise<WorkspaceActionResult>;
 }) {
-  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
-  const logs = workspaceData?.logs ?? workspaceLogs;
-  const todos = workspaceData?.todos ?? workspaceTodos;
+  const tasks = isPreview ? previewTasks : (workspaceData?.tasks ?? []);
+  const logs = isPreview ? previewLogs : (workspaceData?.logs ?? []);
+  const todos = isPreview ? previewTodos : (workspaceData?.todos ?? []);
+  const memories = isPreview ? previewMemories : workspaceMemories;
+  const previewWorkspaceData: WorkspaceUiData | null | undefined = isPreview
+    ? {
+        workspaceId: "preview-demo",
+        workspaceName: "notes-app",
+        repositoryFullName: previewDemoRepository.fullName,
+        tasks: previewTasks,
+        logs: previewLogs,
+        todos: previewTodos,
+        outputs: [],
+        taskLinks: [],
+        logLinks: [],
+      }
+    : workspaceData;
 
   return (
     <div className="space-y-3.5">
-      {isPreview ? <DemoRepositoryBanner /> : <WorkspaceRepositoryLink />}
+      {isPreview ? (
+        <DemoRepositoryBanner />
+      ) : (
+        <WorkspaceRepositoryLink
+          repositoryFullName={workspaceData?.repositoryFullName}
+        />
+      )}
       <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-3.5">
           <NowWorkingCard tasks={tasks} logs={logs} isPreview={isPreview} />
@@ -101,9 +126,9 @@ function WorkspaceDashboard({
             createTodoOverride={createTodoOverride}
           />
           <MonthActivityCard />
-          <GraphCard isPreview={isPreview} workspaceData={workspaceData} />
+          <GraphCard isPreview={isPreview} workspaceData={previewWorkspaceData} />
           <OpenIssuesCard logs={logs} isPreview={isPreview} />
-          <MemoryCard />
+          <MemoryCard memories={memories} />
         </div>
       </div>
     </div>
@@ -181,14 +206,14 @@ function DemoRepositoryBanner() {
           <span className="min-w-0">
             <span className="flex min-w-0 items-center gap-2">
               <span className="truncate text-[14px] font-semibold text-zinc-950">
-                sample/openlog-demo
+                {previewDemoRepository.fullName}
               </span>
               <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
                 Sample
               </span>
             </span>
             <span className="block text-[12px] text-zinc-400">
-              Example workspace — yours stays private
+              {previewDemoRepository.caption}
             </span>
           </span>
         </div>
@@ -209,10 +234,33 @@ function NowWorkingCard({
   const task =
     tasks.find((item) => item.status === "doing") ??
     tasks.find((item) => item.status === "todo") ??
-    tasks[0] ??
-    workspaceWorkItems[0]!;
+    tasks[0];
+
+  if (!task) {
+    return (
+      <DashboardCard
+        title="NOW WORKING"
+        action={<IconBranch className="size-[15px] text-zinc-400" />}
+      >
+        <div className="px-[18px] pb-[18px] pt-3">
+          <p className="text-[13.5px] leading-6 text-zinc-500">
+            No active task yet.
+          </p>
+          {!isPreview ? (
+            <div className="mt-3">
+              <LinkButton href={getNewTaskHref()} tone="outline" size="sm">
+                New task
+              </LinkButton>
+            </div>
+          ) : null}
+        </div>
+      </DashboardCard>
+    );
+  }
+
   const latestLog = logs.find((log) => log.taskId === task.id);
   const summary =
+    task.description?.trim() ||
     getTaskExcerpt(task.body, 160) ||
     latestLog?.description ||
     "No active task summary yet.";
@@ -305,7 +353,7 @@ function WorkTasksCard({
       }
     >
       <PanelList>
-        {tasks.map((item) => (
+        {(isPreview ? tasks.slice(0, 3) : tasks).map((item) => (
           <WorkItemRow
             key={item.id}
             item={item}
@@ -835,7 +883,7 @@ function RecentLogsCard({
         </p>
       ) : null}
       <div className="pb-1.5 pt-1.5">
-        {logs.map((item) => (
+        {(isPreview ? logs.slice(0, 4) : logs).map((item) => (
           <WorkspaceLogRow
             key={item.id}
             item={item}
@@ -1009,6 +1057,7 @@ function OpenIssuesCard({
   const issues = logs.filter(
     (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
   );
+  const visibleIssues = isPreview ? issues.slice(0, 2) : issues;
 
   return (
     <DashboardCard
@@ -1018,7 +1067,7 @@ function OpenIssuesCard({
       }
     >
       <PanelList>
-        {issues.map((issue) => (
+        {visibleIssues.map((issue) => (
           <PanelItem key={issue.id} align="start">
             <span className="mt-[5px] size-2 shrink-0 rounded-full border-[1.5px] border-amber-700" />
             <div className="min-w-0">
@@ -1114,11 +1163,15 @@ function TaskLink({
   );
 }
 
-function MemoryCard() {
+function MemoryCard({
+  memories = workspaceMemories,
+}: {
+  memories?: ReadonlyArray<PreviewMemory | (typeof workspaceMemories)[number]>;
+}) {
   return (
     <DashboardCard title="PROJECT MEMORY">
       <div className="pb-2 pt-1">
-        {workspaceMemories.map((memory) => (
+        {memories.map((memory) => (
           <article
             key={memory.title}
             className="border-t border-zinc-100 px-[18px] py-2.5 first:border-t-0"

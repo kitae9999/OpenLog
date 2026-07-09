@@ -361,45 +361,6 @@ npm lockfile과 CI 캐시를 pnpm workspace로 통일합니다. Turbopack·모�
 
 export const activeWorkspaceTaskId = "workspace-view";
 
-export type UserWorkspace = {
-  id: string;
-  name: string;
-  repositoryFullName: string;
-  /** Single-letter mark shown in the switcher. */
-  initial: string;
-};
-
-export const defaultWorkspaceId = "openlog";
-
-export const userWorkspaces: UserWorkspace[] = [
-  {
-    id: "openlog",
-    name: "openlog",
-    repositoryFullName: "kitae9999/openlog",
-    initial: "o",
-  },
-  {
-    id: "openlog-cli",
-    name: "openlog-cli",
-    repositoryFullName: "kitae9999/openlog-cli",
-    initial: "c",
-  },
-  {
-    id: "dev-notes",
-    name: "dev-notes",
-    repositoryFullName: "kitae9999/dev-notes",
-    initial: "d",
-  },
-];
-
-export function getWorkspaceById(workspaceId: string) {
-  return userWorkspaces.find((workspace) => workspace.id === workspaceId);
-}
-
-export function getDefaultWorkspace() {
-  return getWorkspaceById(defaultWorkspaceId) ?? userWorkspaces[0]!;
-}
-
 export const workspaceRepository = {
   owner: "kitae9999",
   name: "openlog",
@@ -544,6 +505,14 @@ export function getMcpGuideHref() {
   return "/settings/mcp-guide";
 }
 
+export function getManageHref() {
+  return "/settings/manage";
+}
+
+export function getNewWorkspaceHref() {
+  return "/workspaces/new";
+}
+
 export function getTaskEditHref(taskId: string) {
   return `/tasks/${taskId}/edit`;
 }
@@ -575,8 +544,9 @@ export function countDoingTasks() {
 }
 
 export function getTaskExcerpt(body: string, maxLength = 100) {
+  // Drop heading lines entirely so "## Context" does not become the excerpt.
   const plain = body
-    .replace(/^#+\s+/gm, "")
+    .replace(/^#+\s+.*$/gm, "")
     .replace(/[*`_~[\]()]/g, "")
     .trim();
   const firstLine =
@@ -584,6 +554,10 @@ export function getTaskExcerpt(body: string, maxLength = 100) {
       .split("\n")
       .map((line) => line.trim())
       .find((line) => line.length > 0) ?? "";
+
+  if (!firstLine) {
+    return "";
+  }
 
   if (firstLine.length <= maxLength) {
     return firstLine;

@@ -24,8 +24,6 @@ import {
   getOutputHref,
   getTaskById,
   getTaskHref,
-  workspaceTaskOutputs,
-  workspaceWorkItems,
   type WorkspaceLogItem,
   type WorkspaceTaskOutput,
   type WorkspaceWorkItem,
@@ -59,7 +57,7 @@ export function LogDetailView({
 
   const recipe = getLogRecipe(log.id);
   const body = localBody ?? initialBody;
-  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
+  const tasks = workspaceData?.tasks ?? [];
   const openTasks = useMemo(
     () => tasks.filter((task) => task.status !== "done"),
     [tasks],
@@ -68,10 +66,7 @@ export function LogDetailView({
     ? (tasks.find((item) => item.id === assignedTaskId) ??
       getTaskById(assignedTaskId))
     : undefined;
-  const outputs = getOutputsForLog(
-    log.id,
-    workspaceData?.outputs ?? workspaceTaskOutputs,
-  );
+  const outputs = getOutputsForLog(log.id, workspaceData?.outputs ?? []);
   const hasBody = body.trim().length > 0;
   const metaLabel = log.meta.split(" · ")[0] ?? log.meta;
   const typeLabel = log.label;

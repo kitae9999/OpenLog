@@ -16,6 +16,33 @@ export type WorkspaceActionResult = {
 
 type LogKind = "ISSUE" | "FIX" | "DECISION" | "NOTE";
 
+export async function createWorkspace(input: {
+  slug: string;
+  name: string;
+  repoFullName?: string | null;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    const workspace = await requestJson<{ id: number }>(
+      "/workspaces",
+      cookie,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          slug: input.slug,
+          name: input.name,
+          repoFullName: input.repoFullName?.trim() || null,
+        }),
+      },
+    );
+
+    const workspaceId = String(workspace.id);
+    revalidatePath("/");
+    revalidatePath("/settings/manage");
+    revalidatePath("/workspaces/new");
+    return { ok: true, id: workspaceId, href: "/" };
+  });
+}
+
 export async function createWorkspaceTask(input: {
   workspaceId: string;
   title: string;
@@ -204,6 +231,32 @@ export async function deleteWorkspaceTodo(input: {
   });
 }
 
+export async function deleteWorkspace(input: {
+  workspaceId: string;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    const response = await fetch(
+      `${API_CONFIG.baseURL}/workspaces/${input.workspaceId}`,
+      {
+        method: "DELETE",
+        cache: "no-store",
+        headers: {
+          accept: "application/json",
+          cookie,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(await getWorkspaceErrorMessage(response));
+    }
+
+    revalidatePath("/");
+    revalidatePath("/settings/manage");
+    return { ok: true };
+  });
+}
+
 export async function createWorkspaceOutput(input: {
   workspaceId: string;
   title: string;
@@ -317,10 +370,24 @@ async function requestJson<T = unknown>(
   });
 
   if (!response.ok) {
-    throw new Error(`Workspace API request failed: ${response.status}`);
+    throw new Error(await getWorkspaceErrorMessage(response));
   }
 
   return (await response.json()) as T;
+}
+
+async function getWorkspaceErrorMessage(response: Response) {
+  let errorBody: { message?: string } | null = null;
+
+  try {
+    errorBody = (await response.json()) as { message?: string };
+  } catch {
+    errorBody = null;
+  }
+
+  return (
+    errorBody?.message ?? `Workspace API request failed: ${response.status}`
+  );
 }
 
 function revalidateWorkspacePaths(taskId: string) {

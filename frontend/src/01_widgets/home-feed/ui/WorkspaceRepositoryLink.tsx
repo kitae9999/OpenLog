@@ -1,11 +1,17 @@
 "use client";
 
 import { GitHubIcon } from "@/shared/ui/icons";
-import { useActiveWorkspace } from "./useActiveWorkspace";
 
-export function WorkspaceRepositoryLink() {
-  const workspace = useActiveWorkspace();
-  const repoUrl = `https://github.com/${workspace.repositoryFullName}`;
+export function WorkspaceRepositoryLink({
+  repositoryFullName,
+}: {
+  repositoryFullName: string | null | undefined;
+}) {
+  if (!repositoryFullName) {
+    return null;
+  }
+
+  const repoUrl = `https://github.com/${repositoryFullName}`;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
@@ -21,7 +27,7 @@ export function WorkspaceRepositoryLink() {
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[14px] font-semibold text-zinc-950 transition group-hover:text-zinc-700">
-              {workspace.repositoryFullName}
+              {repositoryFullName}
             </span>
             <span className="block text-[12px] text-zinc-400">
               Connected repository on GitHub

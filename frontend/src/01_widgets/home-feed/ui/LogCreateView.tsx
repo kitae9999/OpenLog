@@ -15,7 +15,6 @@ import {
   getLogHref,
   getLogsHref,
   getTabHref,
-  workspaceWorkItems,
 } from "./data";
 import { createLogOverride } from "./logOverrides";
 import { createWorkspaceLog } from "./workspaceActions";
@@ -40,7 +39,7 @@ export function LogCreateView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
-  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
+  const tasks = workspaceData?.tasks ?? [];
   const [kind, setKind] = useState<LogKind>("NOTE");
   const [taskId, setTaskId] = useState(initialTaskId ?? "");
   const [title, setTitle] = useState("");

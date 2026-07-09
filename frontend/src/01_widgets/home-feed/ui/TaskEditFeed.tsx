@@ -5,7 +5,7 @@ import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { getTaskById } from "./data";
 import { TaskEditShell } from "./TaskEditShell";
-import { getWorkspaceUiData } from "./workspaceApi";
+import { loadWorkspacePageData } from "./workspaceApi";
 
 export async function TaskEditFeed({
   taskId,
@@ -16,7 +16,9 @@ export async function TaskEditFeed({
 }) {
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
-  const workspaceData = user ? await getWorkspaceUiData() : null;
+  const pageData = user ? await loadWorkspacePageData() : { workspaces: [], workspaceData: null };
+  const workspaces = pageData.workspaces;
+  const workspaceData = pageData.workspaceData;
   const task = workspaceData?.tasks.find((item) => item.id === taskId) ?? getTaskById(taskId);
 
   if (!task) {
@@ -27,6 +29,7 @@ export async function TaskEditFeed({
     <TaskEditShell
       taskId={taskId}
       task={task}
+      workspaces={workspaces}
       workspaceData={workspaceData}
       isLoggedIn={!!user}
       profileImageUrl={user?.profileImageUrl}

@@ -9,7 +9,6 @@ import {
   getOutputsHref,
   getOutputStatusLabel,
   getTabHref,
-  workspaceTaskOutputs,
   type WorkspaceOutputStatus,
   type WorkspaceTaskOutput,
 } from "./data";
@@ -38,11 +37,12 @@ export function OutputsListView({
   );
   const outputs = useMemo(
     () =>
-      workspaceData?.outputs ??
-      getOutputsWithOverrideSnapshot(
-          workspaceTaskOutputs,
-          outputOverridesSnapshot,
-        ),
+      workspaceData
+        ? workspaceData.outputs
+        : getOutputsWithOverrideSnapshot(
+            [],
+            outputOverridesSnapshot,
+          ),
     [outputOverridesSnapshot, workspaceData],
   );
 

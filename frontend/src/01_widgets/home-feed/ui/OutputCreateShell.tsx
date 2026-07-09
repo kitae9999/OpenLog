@@ -3,13 +3,14 @@
 import type { ReactNode } from "react";
 import { OutputCreateView } from "./OutputCreateView";
 import { OutputWorkspaceShell } from "./OutputWorkspaceShell";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 
 export function OutputCreateShell({
   isLoggedIn,
   taskId,
   profileImageUrl,
   profileHref,
+  workspaces = [],
   workspaceData,
   footer,
 }: {
@@ -17,6 +18,7 @@ export function OutputCreateShell({
   taskId?: string;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
@@ -27,6 +29,7 @@ export function OutputCreateShell({
       profileHref={profileHref}
       footer={footer}
       label="New output"
+      workspaces={workspaces}
       workspaceData={workspaceData}
     >
       <OutputCreateView

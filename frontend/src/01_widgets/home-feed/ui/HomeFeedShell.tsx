@@ -21,6 +21,7 @@ import { LockIcon } from "@/shared/ui/icons";
 import {
   feedPosts,
   getLogsHref,
+  getManageHref,
   getMcpGuideHref,
   getOutputsHref,
   getTabHref,
@@ -29,8 +30,6 @@ import {
   logsSubnavItems,
   recommendedTopics,
   topContributors,
-  workspaceLogs,
-  workspaceWorkItems,
   type FeedPost,
   type LogListTypeFilter,
   type TabKey,
@@ -38,7 +37,7 @@ import {
 import { WorkspaceView } from "./WorkspaceView";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { FeedArticleCard } from "./FeedArticleCard";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 
 type ExploreTabKey = "trending" | "recent" | "following" | "liked";
 type ExploreSubTab = Exclude<ExploreTabKey, "trending">;
@@ -88,6 +87,7 @@ export function HomeFeedShell({
   initialLikedHasNext,
   profileImageUrl,
   profileHref,
+  workspaces = [],
   workspaceData,
   footer,
 }: {
@@ -104,6 +104,7 @@ export function HomeFeedShell({
   initialLikedHasNext: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
@@ -366,6 +367,7 @@ export function HomeFeedShell({
           activeTab={activeTab}
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaces={workspaces}
           workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {
@@ -517,6 +519,7 @@ export function HomeSidebar({
   workspaceNav = "dashboard",
   logsFilter = "all",
   settingsNav,
+  workspaces = [],
   workspaceData,
 }: {
   activeTab: TabKey;
@@ -525,11 +528,16 @@ export function HomeSidebar({
   onNavigate: () => void;
   workspaceNav?: "dashboard" | "tasks" | "logs" | "graph" | "outputs";
   logsFilter?: LogListTypeFilter;
-  settingsNav?: "mcp-guide";
+  settingsNav?: "mcp-guide" | "manage";
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
 }) {
-  const sidebarTasks = workspaceData?.tasks ?? workspaceWorkItems;
-  const sidebarLogs = workspaceData?.logs ?? workspaceLogs;
+  const sidebarTasks = isLoggedIn
+    ? (workspaceData?.tasks ?? [])
+    : [];
+  const sidebarLogs = isLoggedIn
+    ? (workspaceData?.logs ?? [])
+    : [];
   const doingTaskCount =
     sidebarTasks.filter((task) => task.status === "doing").length ||
     sidebarTasks.filter((task) => task.status === "todo").length;
@@ -547,7 +555,12 @@ export function HomeSidebar({
       )}
     >
       <nav className="flex h-full flex-col overflow-y-auto px-3 py-4">
-        <WorkspaceSwitcher isLoggedIn={isLoggedIn} onNavigate={onNavigate} />
+        <WorkspaceSwitcher
+          isLoggedIn={isLoggedIn}
+          workspaces={workspaces}
+          activeWorkspaceId={workspaceData?.workspaceId}
+          onNavigate={onNavigate}
+        />
 
         <SidebarSection label="WORKSPACE">
           {isLoggedIn ? (
@@ -574,12 +587,6 @@ export function HomeSidebar({
                 active={workspaceNav === "logs"}
                 logsCount={logsCount}
                 openIssuesCount={openIssuesCount}
-                onNavigate={onNavigate}
-              />
-              <SidebarLink
-                href={getTabHref("workspace", isLoggedIn)}
-                label="Planner"
-                icon={<IconPlanner className="size-[15px]" />}
                 onNavigate={onNavigate}
               />
               <SidebarLink
@@ -649,6 +656,15 @@ export function HomeSidebar({
             icon={<IconMcpGuide className="size-[15px]" />}
             onNavigate={onNavigate}
           />
+          {isLoggedIn ? (
+            <SidebarLink
+              href={getManageHref()}
+              label="Manage"
+              active={settingsNav === "manage"}
+              icon={<IconManage className="size-[15px]" />}
+              onNavigate={onNavigate}
+            />
+          ) : null}
         </SidebarSection>
 
         <div className="mt-auto border-t border-zinc-200/70 px-2 pt-4 text-[11.5px] leading-5 text-zinc-500">
@@ -1315,6 +1331,25 @@ function IconMcpGuide({ className }: { className?: string }) {
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconManage({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 3.5v2.2M12 18.3v2.2M20.5 12h-2.2M5.7 12H3.5M17.9 6.1l-1.6 1.6M7.7 16.3l-1.6 1.6M17.9 17.9l-1.6-1.6M7.7 7.7 6.1 6.1"
+        stroke="currentColor"
+        strokeLinecap="round"
         strokeWidth="1.8"
       />
     </svg>

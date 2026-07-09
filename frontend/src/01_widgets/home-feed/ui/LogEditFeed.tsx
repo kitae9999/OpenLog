@@ -5,7 +5,7 @@ import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { getLogById } from "./data";
 import { LogEditShell } from "./LogEditShell";
-import { getWorkspaceUiData } from "./workspaceApi";
+import { loadWorkspacePageData } from "./workspaceApi";
 
 export async function LogEditFeed({
   logId,
@@ -16,7 +16,9 @@ export async function LogEditFeed({
 }) {
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
-  const workspaceData = user ? await getWorkspaceUiData() : null;
+  const pageData = user ? await loadWorkspacePageData() : { workspaces: [], workspaceData: null };
+  const workspaces = pageData.workspaces;
+  const workspaceData = pageData.workspaceData;
   const log = workspaceData?.logs.find((item) => item.id === logId) ?? getLogById(logId);
 
   if (!log) {
@@ -27,6 +29,7 @@ export async function LogEditFeed({
     <LogEditShell
       logId={logId}
       log={log}
+      workspaces={workspaces}
       workspaceData={workspaceData}
       isLoggedIn={!!user}
       profileImageUrl={user?.profileImageUrl}

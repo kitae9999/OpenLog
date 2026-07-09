@@ -4,9 +4,6 @@ import { useMemo } from "react";
 import { cn } from "@/shared/lib/cn";
 import { graphCanvasSurfaceClassName } from "@/shared/ui/GraphCanvasBackdrop";
 import {
-  workspaceLogs,
-  workspaceTaskOutputs,
-  workspaceWorkItems,
 } from "./data";
 import { WorkspaceGraphCanvas } from "./WorkspaceGraphView";
 import { buildWorkspaceGraph } from "./workspaceGraphModel";
@@ -17,9 +14,9 @@ export function WorkspaceGraphPreview({
 }: {
   workspaceData?: WorkspaceUiData | null;
 }) {
-  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
-  const logs = workspaceData?.logs ?? workspaceLogs;
-  const outputs = workspaceData?.outputs ?? workspaceTaskOutputs;
+  const tasks = workspaceData?.tasks ?? [];
+  const logs = workspaceData?.logs ?? [];
+  const outputs = workspaceData?.outputs ?? [];
   const graph = useMemo(
     () =>
       buildWorkspaceGraph({

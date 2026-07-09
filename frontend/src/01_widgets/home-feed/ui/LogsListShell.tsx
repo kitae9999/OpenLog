@@ -6,13 +6,14 @@ import { cn } from "@/shared/lib/cn";
 import { LogsListView } from "./LogsListView";
 import { HomeSidebar } from "./HomeFeedShell";
 import type { LogListTypeFilter } from "./data";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 
 export function LogsListShell({
   isLoggedIn,
   typeFilter,
   profileImageUrl,
   profileHref,
+  workspaces = [],
   workspaceData,
   footer,
 }: {
@@ -20,6 +21,7 @@ export function LogsListShell({
   typeFilter: LogListTypeFilter;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
@@ -67,6 +69,7 @@ export function LogsListShell({
           logsFilter={typeFilter}
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaces={workspaces}
           workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {

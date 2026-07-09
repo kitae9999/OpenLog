@@ -7,10 +7,11 @@ import type { WorkspaceWorkItem } from "./data";
 import { TaskEditView } from "./TaskEditView";
 import { HomeSidebar } from "./HomeFeedShell";
 import { mergeTaskWithOverrides } from "./taskOverrides";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 
 export function TaskEditShell({
   task: initialTask,
+  workspaces = [],
   workspaceData,
   isLoggedIn,
   profileImageUrl,
@@ -19,6 +20,7 @@ export function TaskEditShell({
 }: {
   taskId: string;
   task: WorkspaceWorkItem;
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
@@ -71,6 +73,7 @@ export function TaskEditShell({
           workspaceNav="tasks"
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaces={workspaces}
           workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {

@@ -5,18 +5,20 @@ import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
 import { TasksListView } from "./TasksListView";
 import { HomeSidebar } from "./HomeFeedShell";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 
 export function TasksListShell({
   isLoggedIn,
   profileImageUrl,
   profileHref,
+  workspaces = [],
   workspaceData,
   footer,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
@@ -63,6 +65,7 @@ export function TasksListShell({
           workspaceNav="tasks"
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaces={workspaces}
           workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {
