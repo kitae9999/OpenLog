@@ -131,7 +131,7 @@ export function LandingPage() {
               "fixed top-0 z-50 w-full border-b transition-all duration-300",
               navScrolled
                 ? "border-zinc-200/70 bg-[#fdf8f8]/90 shadow-[0_8px_30px_-20px_rgba(0,0,0,0.35)] backdrop-blur-md"
-                : "border-transparent bg-[#fdf8f8]/70 backdrop-blur-sm",
+                : "border-transparent bg-[#fdf8f8]",
             )}
           >
             <div className="mx-auto flex h-20 w-full max-w-[1280px] items-center justify-between px-6">
@@ -352,7 +352,7 @@ export function LandingPage() {
 
             <section
               id="graph"
-              className="border-y border-zinc-200/50 bg-white/40 py-40 backdrop-blur-xl"
+              className="border-y border-zinc-200/50 py-40"
             >
               <div className="relative mx-auto max-w-6xl px-6">
                 <div className="landing-reveal relative z-10 mb-16 text-center">
@@ -371,7 +371,10 @@ export function LandingPage() {
               </div>
             </section>
 
-            <section id="feed" className="py-40">
+            <section
+              id="feed"
+              className="border-b border-zinc-200/50 py-40"
+            >
               <div className="landing-reveal mx-auto max-w-6xl px-6">
                 <div className="mb-6 flex flex-col gap-6 md:mb-14 md:flex-row md:items-end md:justify-between">
                   <div className="max-w-2xl">
@@ -422,7 +425,7 @@ export function LandingPage() {
               </div>
             </section>
 
-            <section className="relative overflow-hidden border-t border-zinc-200/50 bg-white/60 py-40">
+            <section className="relative overflow-hidden border-t border-zinc-200/50 py-40">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent to-[#fdf8f8]" />
               <div className="landing-reveal relative z-10 mx-auto max-w-4xl px-6 text-center">
                 <h2 className="landing-display mb-8 text-5xl leading-[1.05] font-bold tracking-tight text-black lg:text-6xl">

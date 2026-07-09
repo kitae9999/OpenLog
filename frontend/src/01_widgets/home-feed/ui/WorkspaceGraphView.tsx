@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -45,7 +46,6 @@ type GraphNodeState = WorkspaceGraphNode & {
   y: number;
   vx: number;
   vy: number;
-  mass: number;
 };
 type GraphNodeDrag = {
   id: string;
@@ -69,7 +69,42 @@ const DRAG_LINK_FORCE = 0.024;
 const REPEL_FORCE = 520;
 const CENTER_FORCE = 0.0012;
 const DAMPING = 0.94;
+/** Below this, exact pairwise repulsion is cheap enough. */
+const EXACT_REPEL_NODE_LIMIT = 80;
+/** Barnes–Hut opening angle; larger = faster/rougher, smaller = slower/more exact. */
+const BARNES_HUT_THETA = 0.75;
 const ALL_TASKS = "all";
+
+type GraphForcePreset = "default" | "obsidian";
+
+type GraphForceConfig = {
+  linkDistance: number;
+  linkForce: number;
+  dragLinkForce: number;
+  repelForce: number;
+  centerForce: number;
+  damping: number;
+};
+
+const FORCE_PRESETS: Record<GraphForcePreset, GraphForceConfig> = {
+  default: {
+    linkDistance: LINK_DISTANCE,
+    linkForce: LINK_FORCE,
+    dragLinkForce: DRAG_LINK_FORCE,
+    repelForce: REPEL_FORCE,
+    centerForce: CENTER_FORCE,
+    damping: DAMPING,
+  },
+  // Obsidian-like: snappy repulsion into a compact round cloud.
+  obsidian: {
+    linkDistance: 112,
+    linkForce: 0.02,
+    dragLinkForce: 0.028,
+    repelForce: 1750,
+    centerForce: 0.00075,
+    damping: 0.84,
+  },
+};
 
 export function WorkspaceGraphView({
   isLoggedIn,
@@ -183,6 +218,11 @@ export function WorkspaceGraphCanvas({
   emptyTitle = "No graph matches",
   emptyDescription = "Try another task filter or search term.",
   disableNodeNavigation = false,
+  disableForceSimulation = false,
+  hideNodeLabels = false,
+  disableNodeFilters = false,
+  hideZoomControls = false,
+  forcePreset = "default",
 }: {
   graph: WorkspaceGraph;
   heightClassName?: string;
@@ -192,18 +232,38 @@ export function WorkspaceGraphCanvas({
   emptyDescription?: string;
   /** Pan / zoom / drag only — skip navigating to node hrefs. */
   disableNodeNavigation?: boolean;
+  /** Skip continuous force layout (use for large demo graphs). */
+  disableForceSimulation?: boolean;
+  /** Never render node title labels. */
+  hideNodeLabels?: boolean;
+  /** Skip SVG drop-shadow filters (cheaper for large demos). */
+  disableNodeFilters?: boolean;
+  /** Hide the zoom control bar. */
+  hideZoomControls?: boolean;
+  /** Force layout tuning. `obsidian` spreads into a round cloud. */
+  forcePreset?: GraphForcePreset;
 }) {
+  const initialNodes = useMemo(() => buildInitialGraphNodes(graph), [graph]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [transform, setTransform] = useState<GraphTransform>({
     x: GRAPH_WIDTH * (1 - initialScale) * 0.5,
     y: GRAPH_HEIGHT * (1 - initialScale) * 0.5,
     scale: initialScale,
   });
-  const [nodeStates, setNodeStates] = useState<GraphNodeState[]>(() =>
-    buildInitialGraphNodes(graph),
-  );
+  // Snapshot for React paint only — simulation mutates a ref and patches DOM.
+  const [nodeSnapshot, setNodeSnapshot] = useState(initialNodes);
   const graphViewportRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const nodeStatesRef = useRef<GraphNodeState[]>(initialNodes);
+  const nodeElementsRef = useRef<Map<string, SVGGElement>>(new Map());
+  const edgeElementsRef = useRef<
+    Map<string, { line: SVGLineElement; sourceId: string; targetId: string }>
+  >(new Map());
+  const transformRef = useRef(transform);
+  const animationFrameRef = useRef(0);
+  const isSimulatingRef = useRef(false);
+  const edgesRef = useRef(graph.edges);
+  const forcePresetRef = useRef(forcePreset);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -214,11 +274,96 @@ export function WorkspaceGraphCanvas({
   } | null>(null);
   const nodeDragRef = useRef<GraphNodeDrag | null>(null);
   const lastDragMovedRef = useRef(false);
-  const nodeStatesById = useMemo(
-    () => new Map(nodeStates.map((node) => [node.id, node] as const)),
-    [nodeStates],
-  );
-  const showLabels = transform.scale >= LABEL_VISIBILITY_ZOOM;
+  const showLabels =
+    !hideNodeLabels && transform.scale >= LABEL_VISIBILITY_ZOOM;
+
+  transformRef.current = transform;
+  edgesRef.current = graph.edges;
+  forcePresetRef.current = forcePreset;
+
+  function stopSimulation() {
+    if (animationFrameRef.current) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = 0;
+    }
+    isSimulatingRef.current = false;
+  }
+
+  function startSimulation() {
+    if (disableForceSimulation) {
+      return;
+    }
+
+    if (isSimulatingRef.current) {
+      return;
+    }
+
+    isSimulatingRef.current = true;
+    let coolFrames = 0;
+
+    function tick() {
+      const energy = stepForceSimulationInPlace(
+        nodeStatesRef.current,
+        edgesRef.current,
+        FORCE_PRESETS[forcePresetRef.current],
+        nodeDragRef.current?.id,
+      );
+      paintGraphPositions(
+        nodeStatesRef.current,
+        nodeElementsRef,
+        edgeElementsRef,
+      );
+
+      // Settle when motion is tiny (unless a node is being dragged).
+      if (!nodeDragRef.current && energy < 0.02) {
+        coolFrames += 1;
+      } else {
+        coolFrames = 0;
+      }
+
+      if (coolFrames > 45) {
+        isSimulatingRef.current = false;
+        animationFrameRef.current = 0;
+        return;
+      }
+
+      animationFrameRef.current = window.requestAnimationFrame(tick);
+    }
+
+    animationFrameRef.current = window.requestAnimationFrame(tick);
+  }
+
+  useEffect(() => {
+    stopSimulation();
+    setNodeSnapshot(initialNodes);
+    nodeStatesRef.current = initialNodes.map((node) => ({ ...node }));
+
+    const frame = window.requestAnimationFrame(() => {
+      paintGraphPositions(
+        nodeStatesRef.current,
+        nodeElementsRef,
+        edgeElementsRef,
+      );
+      if (!disableForceSimulation) {
+        startSimulation();
+      }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      stopSimulation();
+    };
+  }, [disableForceSimulation, forcePreset, initialNodes]);
+
+  // React re-renders (hover/zoom) rewrite SVG attributes from the snapshot —
+  // re-apply the live simulation positions after paint.
+  useLayoutEffect(() => {
+    paintGraphPositions(
+      nodeStatesRef.current,
+      nodeElementsRef,
+      edgeElementsRef,
+    );
+  });
 
   function zoomBy(factor: number) {
     setTransform((current) => {
@@ -243,21 +388,6 @@ export function WorkspaceGraphCanvas({
       };
     });
   }
-
-  useEffect(() => {
-    let animationFrame = 0;
-
-    function tick() {
-      setNodeStates((current) =>
-        stepForceSimulation(current, graph.edges, nodeDragRef.current?.id),
-      );
-      animationFrame = window.requestAnimationFrame(tick);
-    }
-
-    animationFrame = window.requestAnimationFrame(tick);
-
-    return () => window.cancelAnimationFrame(animationFrame);
-  }, [graph.edges]);
 
   useEffect(() => {
     const graphViewport = graphViewportRef.current;
@@ -338,14 +468,18 @@ export function WorkspaceGraphCanvas({
       pointerId: event.pointerId,
       startX: point.x,
       startY: point.y,
-      originX: transform.x,
-      originY: transform.y,
+      originX: transformRef.current.x,
+      originY: transformRef.current.y,
       moved: false,
     };
     lastDragMovedRef.current = false;
   }
 
   function handlePointerMove(event: PointerEvent<SVGSVGElement>) {
+    if (nodeDragRef.current) {
+      return;
+    }
+
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) {
       return;
@@ -414,6 +548,7 @@ export function WorkspaceGraphCanvas({
     };
     lastDragMovedRef.current = false;
     moveDraggedNode(id, point.x, point.y, true);
+    startSimulation();
   }
 
   function handleNodePointerMove(event: PointerEvent<SVGGElement>) {
@@ -485,9 +620,10 @@ export function WorkspaceGraphCanvas({
       return null;
     }
 
+    const current = transformRef.current;
     return {
-      x: (point.x - transform.x) / transform.scale,
-      y: (point.y - transform.y) / transform.scale,
+      x: (point.x - current.x) / current.scale,
+      y: (point.y - current.y) / current.scale,
     };
   }
 
@@ -497,21 +633,43 @@ export function WorkspaceGraphCanvas({
     y: number,
     resetVelocity: boolean,
   ) {
-    setNodeStates((current) =>
-      current.map((node) => {
-        if (node.id === id) {
-          return {
-            ...node,
-            x,
-            y,
-            vx: resetVelocity ? 0 : node.vx,
-            vy: resetVelocity ? 0 : node.vy,
-          };
-        }
+    const node = nodeStatesRef.current.find((item) => item.id === id);
+    if (!node) {
+      return;
+    }
 
-        return node;
-      }),
+    node.x = x;
+    node.y = y;
+    if (resetVelocity) {
+      node.vx = 0;
+      node.vy = 0;
+    }
+    paintGraphPositions(
+      nodeStatesRef.current,
+      nodeElementsRef,
+      edgeElementsRef,
     );
+  }
+
+  function registerNodeElement(id: string, element: SVGGElement | null) {
+    if (element) {
+      nodeElementsRef.current.set(id, element);
+    } else {
+      nodeElementsRef.current.delete(id);
+    }
+  }
+
+  function registerEdgeElement(
+    key: string,
+    sourceId: string,
+    targetId: string,
+    element: SVGLineElement | null,
+  ) {
+    if (element) {
+      edgeElementsRef.current.set(key, { line: element, sourceId, targetId });
+    } else {
+      edgeElementsRef.current.delete(key);
+    }
   }
 
   return (
@@ -523,13 +681,15 @@ export function WorkspaceGraphCanvas({
         className,
       )}
     >
-      <GraphZoomControls
-        onZoomIn={() => zoomBy(1.18)}
-        onZoomOut={() => zoomBy(1 / 1.18)}
-        canZoomIn={transform.scale < MAX_GRAPH_ZOOM - 0.001}
-        canZoomOut={transform.scale > MIN_GRAPH_ZOOM + 0.001}
-        scale={transform.scale}
-      />
+      {!hideZoomControls ? (
+        <GraphZoomControls
+          onZoomIn={() => zoomBy(1.18)}
+          onZoomOut={() => zoomBy(1 / 1.18)}
+          canZoomIn={transform.scale < MAX_GRAPH_ZOOM - 0.001}
+          canZoomOut={transform.scale > MIN_GRAPH_ZOOM + 0.001}
+          scale={transform.scale}
+        />
+      ) : null}
       <svg
         ref={svgRef}
         viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`}
@@ -550,42 +710,46 @@ export function WorkspaceGraphCanvas({
           transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}
         >
           <GraphCanvasBackdrop width={GRAPH_WIDTH} height={GRAPH_HEIGHT} />
-          <defs>
-            <filter
-              id="workspace-node-shadow"
-              x="-60%"
-              y="-60%"
-              width="220%"
-              height="220%"
-            >
-              <feDropShadow
-                dx="0"
-                dy="1.2"
-                stdDeviation="1.4"
-                floodColor="#18181b"
-                floodOpacity="0.14"
-              />
-            </filter>
-            <filter
-              id="workspace-node-glow"
-              x="-80%"
-              y="-80%"
-              width="260%"
-              height="260%"
-            >
-              <feDropShadow
-                dx="0"
-                dy="0"
-                stdDeviation="2.4"
-                floodColor="#18181b"
-                floodOpacity="0.16"
-              />
-            </filter>
-          </defs>
+          {!disableNodeFilters ? (
+            <defs>
+              <filter
+                id="workspace-node-shadow"
+                x="-60%"
+                y="-60%"
+                width="220%"
+                height="220%"
+              >
+                <feDropShadow
+                  dx="0"
+                  dy="1.2"
+                  stdDeviation="1.4"
+                  floodColor="#18181b"
+                  floodOpacity="0.14"
+                />
+              </filter>
+              <filter
+                id="workspace-node-glow"
+                x="-80%"
+                y="-80%"
+                width="260%"
+                height="260%"
+              >
+                <feDropShadow
+                  dx="0"
+                  dy="0"
+                  stdDeviation="2.4"
+                  floodColor="#18181b"
+                  floodOpacity="0.16"
+                />
+              </filter>
+            </defs>
+          ) : null}
           {graph.edges.map((edge, index) => {
-            const source = nodeStatesById.get(edge.sourceId);
-            const target = nodeStatesById.get(edge.targetId);
-            if (!source || !target) {
+            const key = `${edge.sourceId}-${edge.targetId}-${edge.label}-${index}`;
+            const hasEndpoints =
+              nodeSnapshot.some((node) => node.id === edge.sourceId) &&
+              nodeSnapshot.some((node) => node.id === edge.targetId);
+            if (!hasEndpoints) {
               return null;
             }
 
@@ -596,12 +760,14 @@ export function WorkspaceGraphCanvas({
 
             return (
               <line
-                key={`${edge.sourceId}-${edge.targetId}-${edge.label}-${index}`}
-                x1={source.x}
-                y1={source.y}
-                x2={target.x}
-                y2={target.y}
-                className="transition"
+                key={key}
+                ref={(element) =>
+                  registerEdgeElement(key, edge.sourceId, edge.targetId, element)
+                }
+                x1={0}
+                y1={0}
+                x2={0}
+                y2={0}
                 stroke={active ? "#71717a" : "#d4d4d8"}
                 strokeWidth={active ? 1.1 : 0.7}
                 strokeLinecap="round"
@@ -610,7 +776,7 @@ export function WorkspaceGraphCanvas({
             );
           })}
 
-          {nodeStates.map((node) => {
+          {nodeSnapshot.map((node) => {
             const active =
               !activeId ||
               activeId === node.id ||
@@ -619,6 +785,8 @@ export function WorkspaceGraphCanvas({
             return (
               <g
                 key={node.id}
+                ref={(element) => registerNodeElement(node.id, element)}
+                transform="translate(0 0)"
                 role={disableNodeNavigation ? "img" : "link"}
                 tabIndex={0}
                 aria-label={
@@ -646,6 +814,7 @@ export function WorkspaceGraphCanvas({
                   active={active}
                   focused={activeId === node.id}
                   showLabel={showLabels}
+                  disableFilters={disableNodeFilters}
                 />
               </g>
             );
@@ -656,16 +825,50 @@ export function WorkspaceGraphCanvas({
   );
 }
 
+function paintGraphPositions(
+  nodes: GraphNodeState[],
+  nodeElementsRef: { current: Map<string, SVGGElement> },
+  edgeElementsRef: {
+    current: Map<
+      string,
+      { line: SVGLineElement; sourceId: string; targetId: string }
+    >;
+  },
+) {
+  const byId = new Map(nodes.map((node) => [node.id, node] as const));
+
+  for (const node of nodes) {
+    const element = nodeElementsRef.current.get(node.id);
+    if (element) {
+      element.setAttribute("transform", `translate(${node.x} ${node.y})`);
+    }
+  }
+
+  for (const edge of edgeElementsRef.current.values()) {
+    const source = byId.get(edge.sourceId);
+    const target = byId.get(edge.targetId);
+    if (!source || !target) {
+      continue;
+    }
+    edge.line.setAttribute("x1", String(source.x));
+    edge.line.setAttribute("y1", String(source.y));
+    edge.line.setAttribute("x2", String(target.x));
+    edge.line.setAttribute("y2", String(target.y));
+  }
+}
+
 function WorkspaceGraphNodeShape({
   node,
   active,
   focused,
   showLabel,
+  disableFilters = false,
 }: {
   node: GraphNodeState;
   active: boolean;
   focused: boolean;
   showLabel: boolean;
+  disableFilters?: boolean;
 }) {
   const radius = getNodeRadius(node.kind, focused);
   const fill = getNodeFill(node.kind, focused);
@@ -673,12 +876,12 @@ function WorkspaceGraphNodeShape({
   const isHollow = node.kind === "memory";
 
   return (
-    <g className="transition" opacity={active ? 1 : 0.42}>
-      <circle cx={node.x} cy={node.y} r={radius + 14} fill="transparent" />
+    <g opacity={active ? 1 : 0.42}>
+      <circle cx={0} cy={0} r={radius + 14} fill="transparent" />
       {focused ? (
         <circle
-          cx={node.x}
-          cy={node.y}
+          cx={0}
+          cy={0}
           r={radius + 5}
           fill="none"
           stroke={isHollow ? "#a1a1aa" : fill}
@@ -687,21 +890,24 @@ function WorkspaceGraphNodeShape({
         />
       ) : null}
       <circle
-        cx={node.x}
-        cy={node.y}
+        cx={0}
+        cy={0}
         r={radius}
         fill={fill}
         stroke={isHollow ? stroke : "#ffffff"}
         strokeWidth={isHollow ? (focused ? 1.6 : 1.25) : focused ? 1.5 : 1.15}
         filter={
-          focused ? "url(#workspace-node-glow)" : "url(#workspace-node-shadow)"
+          disableFilters
+            ? undefined
+            : focused
+              ? "url(#workspace-node-glow)"
+              : "url(#workspace-node-shadow)"
         }
-        className="transition"
       />
       {!isHollow ? (
         <circle
-          cx={node.x}
-          cy={node.y}
+          cx={0}
+          cy={0}
           r={Math.max(radius - 2.4, 1.8)}
           fill="none"
           stroke={stroke}
@@ -709,13 +915,13 @@ function WorkspaceGraphNodeShape({
           opacity={focused ? 0.35 : 0.18}
         />
       ) : null}
-      {showLabel ? (
+      {showLabel && node.title ? (
         <text
-          x={node.x}
-          y={node.y + radius + 13}
+          x={0}
+          y={radius + 13}
           textAnchor="middle"
           className={cn(
-            "pointer-events-none text-[9.5px] font-medium tracking-[-0.01em] transition",
+            "pointer-events-none text-[9.5px] font-medium tracking-[-0.01em]",
             active ? "fill-zinc-700" : "fill-zinc-400",
           )}
         >
@@ -725,6 +931,7 @@ function WorkspaceGraphNodeShape({
     </g>
   );
 }
+
 
 function GraphLegend() {
   return (
@@ -909,9 +1116,6 @@ function filterWorkspaceGraph(
 }
 
 function buildInitialGraphNodes(graph: WorkspaceGraph): GraphNodeState[] {
-  const density = Math.min(Math.max(graph.nodes.length, 1), 12) / 12;
-  const radiusX = 150 + density * 74;
-  const radiusY = 100 + density * 50;
   const degree = new Map<string, number>();
 
   graph.nodes.forEach((node) => degree.set(node.id, 0));
@@ -925,9 +1129,38 @@ function buildInitialGraphNodes(graph: WorkspaceGraph): GraphNodeState[] {
     return (degree.get(b.id) ?? 0) - (degree.get(a.id) ?? 0);
   });
 
+  if (sortedNodes.length > 40) {
+    // Start near a filled disk so repulsion settles into a round Obsidian-like cloud.
+    const count = sortedNodes.length;
+    return sortedNodes.map((node, index) => {
+      const t = (index + 0.5) / count;
+      const radius = Math.sqrt(t) * 170;
+      const angle =
+        index * Math.PI * (3 - Math.sqrt(5)) +
+        deterministicJitter(node.id, 0.35);
+
+      return {
+        ...node,
+        x:
+          GRAPH_CENTER_X +
+          Math.cos(angle) * radius +
+          deterministicJitter(`${node.id}:x`, 18),
+        y:
+          GRAPH_CENTER_Y +
+          Math.sin(angle) * radius +
+          deterministicJitter(`${node.id}:y`, 18),
+        vx: 0,
+        vy: 0,
+      };
+    });
+  }
+
+  const density = Math.min(Math.max(graph.nodes.length, 1), 12) / 12;
+  const radiusX = 150 + density * 74;
+  const radiusY = 100 + density * 50;
+
   return sortedNodes.map((node, index) => {
     const nodeDegree = degree.get(node.id) ?? 0;
-    const mass = getNodeMass(nodeDegree, node.kind === "task");
 
     if (sortedNodes.length === 1) {
       return {
@@ -936,7 +1169,6 @@ function buildInitialGraphNodes(graph: WorkspaceGraph): GraphNodeState[] {
         y: GRAPH_CENTER_Y,
         vx: 0,
         vy: 0,
-        mass,
       };
     }
 
@@ -956,55 +1188,27 @@ function buildInitialGraphNodes(graph: WorkspaceGraph): GraphNodeState[] {
         deterministicJitter(`${node.id}:y`, 14),
       vx: 0,
       vy: 0,
-      mass,
     };
   });
 }
 
-function getNodeMass(degree: number, isTask: boolean) {
-  const hubBoost = Math.min(degree, 10) * 0.28;
-  const taskBoost = isTask ? 0.35 : 0;
-  return 1 + hubBoost + taskBoost;
-}
-
-function stepForceSimulation(
+function stepForceSimulationInPlace(
   nodes: GraphNodeState[],
   edges: WorkspaceGraphEdge[],
+  force: GraphForceConfig,
   draggedId?: string,
 ) {
   if (nodes.length === 0) {
-    return nodes;
+    return 0;
   }
 
-  const nextNodes = nodes.map((node) => ({ ...node }));
-  const byId = new Map(nextNodes.map((node) => [node.id, node] as const));
+  const byId = new Map(nodes.map((node) => [node.id, node] as const));
 
-  for (let firstIndex = 0; firstIndex < nextNodes.length; firstIndex += 1) {
-    for (
-      let secondIndex = firstIndex + 1;
-      secondIndex < nextNodes.length;
-      secondIndex += 1
-    ) {
-      const first = nextNodes[firstIndex];
-      const second = nextNodes[secondIndex];
-      const dx = second.x - first.x;
-      const dy = second.y - first.y;
-      const distanceSquared = Math.max(dx * dx + dy * dy, 64);
-      const distance = Math.sqrt(distanceSquared);
-      const force =
-        (REPEL_FORCE * first.mass * second.mass) / distanceSquared;
-      const fx = (dx / distance) * force;
-      const fy = (dy / distance) * force;
-
-      if (first.id !== draggedId) {
-        first.vx -= fx / first.mass;
-        first.vy -= fy / first.mass;
-      }
-      if (second.id !== draggedId) {
-        second.vx += fx / second.mass;
-        second.vy += fy / second.mass;
-      }
-    }
+  if (nodes.length <= EXACT_REPEL_NODE_LIMIT) {
+    applyExactRepulsion(nodes, force.repelForce, draggedId);
+  } else {
+    // Barnes–Hut: O(n log n) approximate repulsion for large graphs.
+    applyBarnesHutRepulsion(nodes, force.repelForce, draggedId);
   }
 
   for (const edge of edges) {
@@ -1019,39 +1223,319 @@ function stepForceSimulation(
     const distance = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
     const springStrength =
       source.id === draggedId || target.id === draggedId
-        ? DRAG_LINK_FORCE
-        : LINK_FORCE;
-    const force = (distance - LINK_DISTANCE) * springStrength;
-    const fx = (dx / distance) * force;
-    const fy = (dy / distance) * force;
+        ? force.dragLinkForce
+        : force.linkForce;
+    const forceAmount = (distance - force.linkDistance) * springStrength;
+    const fx = (dx / distance) * forceAmount;
+    const fy = (dy / distance) * forceAmount;
 
     if (source.id !== draggedId) {
-      source.vx += fx / source.mass;
-      source.vy += fy / source.mass;
+      source.vx += fx;
+      source.vy += fy;
     }
     if (target.id !== draggedId) {
-      target.vx -= fx / target.mass;
-      target.vy -= fy / target.mass;
+      target.vx -= fx;
+      target.vy -= fy;
     }
   }
 
-  for (const node of nextNodes) {
+  let energy = 0;
+  for (const node of nodes) {
     if (node.id === draggedId) {
       node.vx = 0;
       node.vy = 0;
       continue;
     }
 
-    node.vx += ((GRAPH_CENTER_X - node.x) * CENTER_FORCE) / node.mass;
-    node.vy += ((GRAPH_CENTER_Y - node.y) * CENTER_FORCE) / node.mass;
-    node.vx *= DAMPING;
-    node.vy *= DAMPING;
+    node.vx += (GRAPH_CENTER_X - node.x) * force.centerForce;
+    node.vy += (GRAPH_CENTER_Y - node.y) * force.centerForce;
+    node.vx *= force.damping;
+    node.vy *= force.damping;
     node.x += node.vx;
     node.y += node.vy;
+    energy += node.vx * node.vx + node.vy * node.vy;
   }
 
-  return nextNodes;
+  return energy;
 }
+
+function applyExactRepulsion(
+  nodes: GraphNodeState[],
+  repelForce: number,
+  draggedId?: string,
+) {
+  for (let firstIndex = 0; firstIndex < nodes.length; firstIndex += 1) {
+    for (
+      let secondIndex = firstIndex + 1;
+      secondIndex < nodes.length;
+      secondIndex += 1
+    ) {
+      applyPairRepulsion(
+        nodes[firstIndex]!,
+        nodes[secondIndex]!,
+        repelForce,
+        draggedId,
+      );
+    }
+  }
+}
+
+function applyPairRepulsion(
+  first: GraphNodeState,
+  second: GraphNodeState,
+  repelForce: number,
+  draggedId?: string,
+) {
+  const dx = second.x - first.x;
+  const dy = second.y - first.y;
+  const distanceSquared = Math.max(dx * dx + dy * dy, 64);
+  const distance = Math.sqrt(distanceSquared);
+  const forceAmount = repelForce / distanceSquared;
+  const fx = (dx / distance) * forceAmount;
+  const fy = (dy / distance) * forceAmount;
+
+  if (first.id !== draggedId) {
+    first.vx -= fx;
+    first.vy -= fy;
+  }
+  if (second.id !== draggedId) {
+    second.vx += fx;
+    second.vy += fy;
+  }
+}
+
+type BarnesHutNode = {
+  minX: number;
+  minY: number;
+  size: number;
+  mass: number;
+  comX: number;
+  comY: number;
+  body: GraphNodeState | null;
+  children: BarnesHutNode[] | null;
+};
+
+function applyBarnesHutRepulsion(
+  nodes: GraphNodeState[],
+  repelForce: number,
+  draggedId?: string,
+) {
+  const tree = buildBarnesHutTree(nodes);
+  if (!tree) {
+    return;
+  }
+
+  for (const node of nodes) {
+    if (node.id === draggedId) {
+      continue;
+    }
+    accumulateBarnesHutForce(node, tree, repelForce, node.id);
+  }
+}
+
+function buildBarnesHutTree(nodes: GraphNodeState[]): BarnesHutNode | null {
+  if (nodes.length === 0) {
+    return null;
+  }
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const node of nodes) {
+    minX = Math.min(minX, node.x);
+    minY = Math.min(minY, node.y);
+    maxX = Math.max(maxX, node.x);
+    maxY = Math.max(maxY, node.y);
+  }
+
+  const span = Math.max(maxX - minX, maxY - minY, 1) * 1.08;
+  const pad = span * 0.04;
+  const root: BarnesHutNode = {
+    minX: minX - pad,
+    minY: minY - pad,
+    size: span + pad * 2,
+    mass: 0,
+    comX: 0,
+    comY: 0,
+    body: null,
+    children: null,
+  };
+
+  for (const node of nodes) {
+    insertBarnesHutBody(root, node, 0);
+  }
+
+  return root;
+}
+
+function insertBarnesHutBody(
+  cell: BarnesHutNode,
+  body: GraphNodeState,
+  depth: number,
+) {
+  // Soft depth cap avoids pathological stacks when many nodes share a point.
+  if (depth > 24) {
+    cell.mass += 1;
+    cell.comX += (body.x - cell.comX) / cell.mass;
+    cell.comY += (body.y - cell.comY) / cell.mass;
+    return;
+  }
+
+  if (cell.mass === 0 && !cell.children) {
+    cell.body = body;
+    cell.mass = 1;
+    cell.comX = body.x;
+    cell.comY = body.y;
+    return;
+  }
+
+  if (!cell.children) {
+    const existing = cell.body;
+    cell.body = null;
+    cell.children = createBarnesHutChildren(cell);
+    if (existing) {
+      insertBarnesHutBody(
+        pickBarnesHutChild(cell, existing.x, existing.y),
+        existing,
+        depth + 1,
+      );
+    }
+  }
+
+  const child = pickBarnesHutChild(cell, body.x, body.y);
+  insertBarnesHutBody(child, body, depth + 1);
+
+  cell.mass += 1;
+  cell.comX += (body.x - cell.comX) / cell.mass;
+  cell.comY += (body.y - cell.comY) / cell.mass;
+}
+
+function createBarnesHutChildren(cell: BarnesHutNode): BarnesHutNode[] {
+  const half = cell.size / 2;
+  const midX = cell.minX + half;
+  const midY = cell.minY + half;
+
+  return [
+    {
+      minX: cell.minX,
+      minY: cell.minY,
+      size: half,
+      mass: 0,
+      comX: 0,
+      comY: 0,
+      body: null,
+      children: null,
+    },
+    {
+      minX: midX,
+      minY: cell.minY,
+      size: half,
+      mass: 0,
+      comX: 0,
+      comY: 0,
+      body: null,
+      children: null,
+    },
+    {
+      minX: cell.minX,
+      minY: midY,
+      size: half,
+      mass: 0,
+      comX: 0,
+      comY: 0,
+      body: null,
+      children: null,
+    },
+    {
+      minX: midX,
+      minY: midY,
+      size: half,
+      mass: 0,
+      comX: 0,
+      comY: 0,
+      body: null,
+      children: null,
+    },
+  ];
+}
+
+function pickBarnesHutChild(
+  cell: BarnesHutNode,
+  x: number,
+  y: number,
+): BarnesHutNode {
+  const children = cell.children!;
+  const half = cell.size / 2;
+  const right = x >= cell.minX + half;
+  const bottom = y >= cell.minY + half;
+  if (!right && !bottom) return children[0]!;
+  if (right && !bottom) return children[1]!;
+  if (!right && bottom) return children[2]!;
+  return children[3]!;
+}
+
+function accumulateBarnesHutForce(
+  target: GraphNodeState,
+  cell: BarnesHutNode,
+  repelForce: number,
+  targetId: string,
+) {
+  if (cell.mass === 0) {
+    return;
+  }
+
+  // Leaf (single body or depth-capped cluster).
+  if (!cell.children) {
+    if (cell.body?.id === targetId && cell.mass === 1) {
+      return;
+    }
+    const mass =
+      cell.body?.id === targetId ? Math.max(cell.mass - 1, 0) : cell.mass;
+    if (mass <= 0) {
+      return;
+    }
+    applyDirectedRepulsion(target, cell.comX, cell.comY, mass, repelForce);
+    return;
+  }
+
+  const dx = cell.comX - target.x;
+  const dy = cell.comY - target.y;
+  const distance = Math.sqrt(Math.max(dx * dx + dy * dy, 64));
+
+  // Accept multipole approximation when the cell is far relative to its size.
+  if (cell.size / distance < BARNES_HUT_THETA) {
+    applyDirectedRepulsion(
+      target,
+      cell.comX,
+      cell.comY,
+      cell.mass,
+      repelForce,
+    );
+    return;
+  }
+
+  for (const child of cell.children) {
+    accumulateBarnesHutForce(target, child, repelForce, targetId);
+  }
+}
+
+function applyDirectedRepulsion(
+  target: GraphNodeState,
+  sourceX: number,
+  sourceY: number,
+  sourceMass: number,
+  repelForce: number,
+) {
+  const dx = sourceX - target.x;
+  const dy = sourceY - target.y;
+  const distanceSquared = Math.max(dx * dx + dy * dy, 64);
+  const distance = Math.sqrt(distanceSquared);
+  const forceAmount = (repelForce * sourceMass) / distanceSquared;
+  target.vx -= (dx / distance) * forceAmount;
+  target.vy -= (dy / distance) * forceAmount;
+}
+
 
 function getNodeTaskTitle(
   node: WorkspaceGraphNode,

@@ -35,7 +35,6 @@ type GraphNodeState = {
   y: number;
   vx: number;
   vy: number;
-  mass: number;
 };
 type GraphNodeDrag = {
   slug: string;
@@ -755,7 +754,6 @@ function buildInitialGraphNodes(graph: PublicUserPostGraph): GraphNodeState[] {
 
   return sortedNodes.map((node, index) => {
     const nodeDegree = degree.get(node.slug) ?? 0;
-    const mass = getNodeMass(nodeDegree);
 
     if (sortedNodes.length === 1) {
       return {
@@ -765,7 +763,6 @@ function buildInitialGraphNodes(graph: PublicUserPostGraph): GraphNodeState[] {
         y: GRAPH_CENTER_Y,
         vx: 0,
         vy: 0,
-        mass,
       };
     }
 
@@ -785,13 +782,8 @@ function buildInitialGraphNodes(graph: PublicUserPostGraph): GraphNodeState[] {
         deterministicJitter(`${node.slug}:y`, 14),
       vx: 0,
       vy: 0,
-      mass,
     };
   });
-}
-
-function getNodeMass(degree: number) {
-  return 1 + Math.min(degree, 10) * 0.28;
 }
 
 function stepForceSimulation(
@@ -818,18 +810,17 @@ function stepForceSimulation(
       const dy = second.y - first.y;
       const distanceSquared = Math.max(dx * dx + dy * dy, 64);
       const distance = Math.sqrt(distanceSquared);
-      const force =
-        (REPEL_FORCE * first.mass * second.mass) / distanceSquared;
+      const force = REPEL_FORCE / distanceSquared;
       const fx = (dx / distance) * force;
       const fy = (dy / distance) * force;
 
       if (first.slug !== draggedSlug) {
-        first.vx -= fx / first.mass;
-        first.vy -= fy / first.mass;
+        first.vx -= fx;
+        first.vy -= fy;
       }
       if (second.slug !== draggedSlug) {
-        second.vx += fx / second.mass;
-        second.vy += fy / second.mass;
+        second.vx += fx;
+        second.vy += fy;
       }
     }
   }
@@ -853,12 +844,12 @@ function stepForceSimulation(
     const fy = (dy / distance) * force;
 
     if (source.slug !== draggedSlug) {
-      source.vx += fx / source.mass;
-      source.vy += fy / source.mass;
+      source.vx += fx;
+      source.vy += fy;
     }
     if (target.slug !== draggedSlug) {
-      target.vx -= fx / target.mass;
-      target.vy -= fy / target.mass;
+      target.vx -= fx;
+      target.vy -= fy;
     }
   }
 
@@ -869,8 +860,8 @@ function stepForceSimulation(
       continue;
     }
 
-    node.vx += ((GRAPH_CENTER_X - node.x) * CENTER_FORCE) / node.mass;
-    node.vy += ((GRAPH_CENTER_Y - node.y) * CENTER_FORCE) / node.mass;
+    node.vx += (GRAPH_CENTER_X - node.x) * CENTER_FORCE;
+    node.vy += (GRAPH_CENTER_Y - node.y) * CENTER_FORCE;
     node.vx *= DAMPING;
     node.vy *= DAMPING;
     node.x += node.vx;
