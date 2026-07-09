@@ -775,7 +775,7 @@ export function WriteView({
   }
 
   return (
-    <div className="min-h-dvh bg-zinc-50 text-zinc-950">
+    <div className="min-h-dvh bg-app text-zinc-950">
       <Header
         isLoggedIn={isLoggedIn}
         profileImageUrl={profileImageUrl}

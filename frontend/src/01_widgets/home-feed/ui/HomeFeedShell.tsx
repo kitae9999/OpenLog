@@ -340,7 +340,7 @@ export function HomeFeedShell({
       className={cn(
         "flex min-h-dvh flex-col text-zinc-950",
         activeTab === "workspace" || activeTab === "explore"
-          ? "bg-zinc-50"
+          ? "bg-app"
           : "bg-white",
       )}
     >
@@ -380,9 +380,9 @@ export function HomeFeedShell({
           className={cn(
             "min-w-0 flex-1 transition-[margin] duration-300 ease-out",
             activeTab === "workspace" || activeTab === "explore"
-              ? "bg-zinc-50"
+              ? "bg-app"
               : activeTab === "home" && isLoggedIn
-                ? "bg-zinc-50"
+                ? "bg-app"
                 : "bg-white",
             isSidebarOpen ? "lg:ml-[282px]" : "lg:ml-0",
           )}

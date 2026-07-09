@@ -38,7 +38,7 @@ export function McpGuideShell({
   }, []);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50 text-zinc-950">
+    <div className="flex min-h-dvh flex-col bg-app text-zinc-950">
       <Header
         isLoggedIn={isLoggedIn}
         profileImageUrl={profileImageUrl}
@@ -73,7 +73,7 @@ export function McpGuideShell({
 
         <main
           className={cn(
-            "min-w-0 flex-1 bg-zinc-50 transition-[margin] duration-300 ease-out",
+            "min-w-0 flex-1 bg-app transition-[margin] duration-300 ease-out",
             isSidebarOpen ? "lg:ml-[282px]" : "lg:ml-0",
           )}
         >

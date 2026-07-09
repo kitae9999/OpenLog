@@ -29,7 +29,7 @@ export async function ProfileView({ username }: { username: string }) {
     : undefined;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#f9fafb] text-zinc-950">
+    <div className="flex min-h-dvh flex-col bg-app text-zinc-950">
       <Header
         isLoggedIn={!!viewer}
         profileImageUrl={viewer?.profileImageUrl}
