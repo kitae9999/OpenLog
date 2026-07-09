@@ -43,7 +43,6 @@ const sectionIds = [
   "contribute",
   "features",
   "graph",
-  "feed",
 ] as const;
 
 const navLinks = [
@@ -51,30 +50,11 @@ const navLinks = [
   { href: "#contribute", label: "Contribute", id: "contribute" },
   { href: "#features", label: "Features", id: "features" },
   { href: "#graph", label: "Graph", id: "graph" },
-  { href: "#feed", label: "Posts", id: "feed" },
 ] as const;
 
 const heroLines = [
   ["Work", "first."],
   ["Writing", "follows."],
-] as const;
-
-const feedPosts = [
-  {
-    title: "How we optimized our React render cycle",
-    author: "Alex Kim",
-    date: "Oct 20",
-  },
-  {
-    title: "Setting up a monorepo with Turborepo",
-    author: "Sarah Lee",
-    date: "Oct 18",
-  },
-  {
-    title: "Weekly Dev Log: Auth migration",
-    author: "Dev Team",
-    date: "Oct 15",
-  },
 ] as const;
 
 const contributeSteps = [
@@ -130,8 +110,8 @@ export function LandingPage() {
             className={cn(
               "fixed top-0 z-50 w-full border-b transition-all duration-300",
               navScrolled
-                ? "border-zinc-200/70 bg-[#fdf8f8]/90 shadow-[0_8px_30px_-20px_rgba(0,0,0,0.35)] backdrop-blur-md"
-                : "border-transparent bg-[#fdf8f8]",
+                ? "border-zinc-200/70 bg-white/90 shadow-[0_8px_30px_-20px_rgba(0,0,0,0.35)] backdrop-blur-md"
+                : "border-transparent bg-white",
             )}
           >
             <div className="mx-auto flex h-20 w-full max-w-[1280px] items-center justify-between px-6">
@@ -230,7 +210,7 @@ export function LandingPage() {
                 </p>
 
                 <div
-                  className="landing-stagger-child flex flex-col items-center justify-center gap-6 sm:flex-row"
+                  className="landing-stagger-child flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-center"
                   style={{ ["--i" as string]: 5 }}
                 >
                   <button
@@ -238,17 +218,29 @@ export function LandingPage() {
                     onClick={openSignup}
                     aria-haspopup="dialog"
                     aria-expanded={isModalOpen}
-                    className="landing-mono landing-cta-primary flex w-full items-center justify-center gap-2 rounded-full bg-black px-8 py-4 text-[12px] tracking-wider text-white uppercase hover:bg-zinc-800 sm:w-auto"
+                    className="landing-mono landing-cta-primary flex h-[50px] w-full items-center justify-center gap-2 rounded-full bg-black px-8 text-[12px] tracking-wider text-white uppercase hover:bg-zinc-800 sm:w-auto"
                   >
                     Start writing
                     <span aria-hidden="true">→</span>
                   </button>
-                  <Link
-                    href="/?tab=explore"
-                    className="landing-mono w-full px-8 py-4 text-center text-[12px] tracking-wider text-[#47464a] uppercase transition-colors hover:text-black sm:w-auto"
-                  >
-                    Browse posts
-                  </Link>
+                  <div className="relative flex h-[50px] w-full items-center justify-center sm:w-auto">
+                    <Link
+                      href="/?tab=explore"
+                      className="landing-mono flex h-full w-full items-center justify-center px-8 text-center text-[12px] tracking-wider text-[#47464a] uppercase transition-colors hover:text-black sm:w-auto"
+                    >
+                      Explore posts
+                    </Link>
+                    <div
+                      className="landing-speech-bubble absolute top-full left-1/2 z-10 mt-2 -translate-x-1/2 whitespace-nowrap"
+                      role="note"
+                    >
+                      No login needed
+                      <span
+                        className="landing-speech-bubble-tail"
+                        aria-hidden="true"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -371,62 +363,8 @@ export function LandingPage() {
               </div>
             </section>
 
-            <section
-              id="feed"
-              className="border-b border-zinc-200/50 py-40"
-            >
-              <div className="landing-reveal mx-auto max-w-6xl px-6">
-                <div className="mb-6 flex flex-col gap-6 md:mb-14 md:flex-row md:items-end md:justify-between">
-                  <div className="max-w-2xl">
-                    <h2 className="landing-display text-4xl leading-[1.1] font-bold tracking-tight text-black lg:text-5xl">
-                      Read without signing up
-                    </h2>
-                    <p className="mt-5 text-lg font-light text-[#47464a]">
-                      Public posts are open. Browse first — join when you want
-                      to write.
-                    </p>
-                  </div>
-                  <Link
-                    href="/?tab=explore"
-                    className="landing-mono shrink-0 text-[12px] tracking-wider text-black uppercase transition-opacity hover:opacity-60"
-                  >
-                    Open the feed →
-                  </Link>
-                </div>
-
-                <div className="divide-y divide-zinc-200/80 border-y border-zinc-200/80">
-                  {feedPosts.map((post, index) => (
-                    <Link
-                      key={post.title}
-                      href="/?tab=explore"
-                      className="landing-feed-row landing-stagger-child group flex items-baseline justify-between gap-6 py-8"
-                      style={{ ["--i" as string]: index }}
-                    >
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                          <p className="landing-mono text-[11px] tracking-widest text-zinc-400">
-                            {post.date}
-                          </p>
-                          <p className="text-sm text-zinc-500">{post.author}</p>
-                        </div>
-                        <h3 className="landing-display mt-2 text-2xl leading-tight font-bold text-black transition-opacity group-hover:opacity-60">
-                          {post.title}
-                        </h3>
-                      </div>
-                      <span
-                        className="landing-mono shrink-0 text-[11px] tracking-widest text-zinc-400 uppercase transition-colors group-hover:text-black"
-                        aria-hidden="true"
-                      >
-                        Read →
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </section>
-
             <section className="relative overflow-hidden border-t border-zinc-200/50 py-40">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent to-[#fdf8f8]" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent to-white" />
               <div className="landing-reveal relative z-10 mx-auto max-w-4xl px-6 text-center">
                 <h2 className="landing-display mb-8 text-5xl leading-[1.05] font-bold tracking-tight text-black lg:text-6xl">
                   Ready to log your work?
@@ -467,7 +405,7 @@ export function LandingPage() {
             </section>
           </main>
 
-          <footer className="relative z-10 w-full border-t border-zinc-200/50 bg-[#fdf8f8] py-24">
+          <footer className="relative z-10 w-full border-t border-zinc-200/50 bg-white py-24">
             <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-16 px-6 md:grid-cols-4">
               <div className="col-span-1 md:col-span-2">
                 <div className="mb-8 flex items-center gap-2 opacity-80">

@@ -15,6 +15,7 @@ import {
 import { cn } from "@/shared/lib/cn";
 import {
   GraphCanvasBackdrop,
+  getGraphBackdropBounds,
   graphCanvasSurfaceClassName,
 } from "@/shared/ui/GraphCanvasBackdrop";
 import { GraphZoomControls } from "@/shared/ui/GraphZoomControls";
@@ -245,11 +246,13 @@ export function WorkspaceGraphCanvas({
 }) {
   const initialNodes = useMemo(() => buildInitialGraphNodes(graph), [graph]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [transform, setTransform] = useState<GraphTransform>({
-    x: GRAPH_WIDTH * (1 - initialScale) * 0.5,
-    y: GRAPH_HEIGHT * (1 - initialScale) * 0.5,
-    scale: initialScale,
-  });
+  const [transform, setTransform] = useState<GraphTransform>(() =>
+    clampGraphTransform({
+      x: GRAPH_WIDTH * (1 - initialScale) * 0.5,
+      y: GRAPH_HEIGHT * (1 - initialScale) * 0.5,
+      scale: initialScale,
+    }),
+  );
   // Snapshot for React paint only — simulation mutates a ref and patches DOM.
   const [nodeSnapshot, setNodeSnapshot] = useState(initialNodes);
   const graphViewportRef = useRef<HTMLDivElement>(null);
@@ -381,11 +384,11 @@ export function WorkspaceGraphCanvas({
       const worldX = (centerX - current.x) / current.scale;
       const worldY = (centerY - current.y) / current.scale;
 
-      return {
+      return clampGraphTransform({
         scale: nextScale,
         x: centerX - worldX * nextScale,
         y: centerY - worldY * nextScale,
-      };
+      });
     });
   }
 
@@ -413,11 +416,11 @@ export function WorkspaceGraphCanvas({
         const worldX = (point.x - current.x) / current.scale;
         const worldY = (point.y - current.y) / current.scale;
 
-        return {
+        return clampGraphTransform({
           scale: nextScale,
           x: point.x - worldX * nextScale,
           y: point.y - worldY * nextScale,
-        };
+        });
       });
     }
 
@@ -496,11 +499,13 @@ export function WorkspaceGraphCanvas({
     drag.moved = drag.moved || moved;
     lastDragMovedRef.current = drag.moved;
 
-    setTransform((current) => ({
-      ...current,
-      x: drag.originX + dx,
-      y: drag.originY + dy,
-    }));
+    setTransform((current) =>
+      clampGraphTransform({
+        ...current,
+        x: drag.originX + dx,
+        y: drag.originY + dy,
+      }),
+    );
   }
 
   function handlePointerUp(event: PointerEvent<SVGSVGElement>) {
@@ -1554,6 +1559,22 @@ function normalizeSearch(value: string) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+/** Keep the viewport inside the grid backdrop so empty (no-grid) space is unreachable. */
+function clampGraphTransform(transform: GraphTransform): GraphTransform {
+  const bounds = getGraphBackdropBounds(GRAPH_WIDTH, GRAPH_HEIGHT);
+  const { scale } = transform;
+  const minX = GRAPH_WIDTH - bounds.maxX * scale;
+  const maxX = -bounds.minX * scale;
+  const minY = GRAPH_HEIGHT - bounds.maxY * scale;
+  const maxY = -bounds.minY * scale;
+
+  return {
+    scale,
+    x: minX <= maxX ? clamp(transform.x, minX, maxX) : (minX + maxX) / 2,
+    y: minY <= maxY ? clamp(transform.y, minY, maxY) : (minY + maxY) / 2,
+  };
 }
 
 function deterministicJitter(value: string, amount: number) {

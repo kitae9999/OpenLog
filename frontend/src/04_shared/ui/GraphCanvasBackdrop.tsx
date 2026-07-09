@@ -7,6 +7,19 @@ const MAJOR_SIZE = 48;
 const SURFACE = "#fcfcfc";
 const MINOR_STROKE = "#ececef";
 const MAJOR_STROKE = "#e4e4e7";
+/** Extra world padding around the base canvas, as a multiple of width/height. */
+export const GRAPH_BACKDROP_PAD_FACTOR = 2;
+
+export function getGraphBackdropBounds(width: number, height: number) {
+  const padX = width * GRAPH_BACKDROP_PAD_FACTOR;
+  const padY = height * GRAPH_BACKDROP_PAD_FACTOR;
+  return {
+    minX: -padX,
+    minY: -padY,
+    maxX: width + padX,
+    maxY: height + padY,
+  };
+}
 
 /** Draw inside the pan/zoom `<g>` so the grid scales with the graph. */
 export function GraphCanvasBackdrop({
@@ -19,13 +32,12 @@ export function GraphCanvasBackdrop({
   const reactId = useId().replace(/:/g, "");
   const minorId = `openlog-graph-grid-minor-${reactId}`;
   const majorId = `openlog-graph-grid-major-${reactId}`;
-  const padX = width * 2;
-  const padY = height * 2;
+  const bounds = getGraphBackdropBounds(width, height);
   const area = {
-    x: -padX,
-    y: -padY,
-    width: width + padX * 2,
-    height: height + padY * 2,
+    x: bounds.minX,
+    y: bounds.minY,
+    width: bounds.maxX - bounds.minX,
+    height: bounds.maxY - bounds.minY,
   };
 
   return (

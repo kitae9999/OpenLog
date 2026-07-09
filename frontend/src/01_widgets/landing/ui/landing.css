@@ -1,5 +1,5 @@
 .landing-root {
-  --landing-bg: #fdf8f8;
+  --landing-bg: #ffffff;
   --landing-fg: #1c1b1b;
   --landing-muted: #47464a;
   color-scheme: light;
@@ -193,13 +193,31 @@
   }
 }
 
-.landing-feed-row {
-  transition: background-color 0.25s ease, padding-left 0.25s ease;
+.landing-speech-bubble {
+  border: 1px solid #e4e4e7;
+  background: #fff;
+  color: #3f3f46;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-family: var(--font-landing-mono), ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  box-shadow: 0 8px 20px -16px rgba(24, 24, 27, 0.45);
 }
 
-.landing-feed-row:hover {
-  background-color: rgba(255, 255, 255, 0.55);
-  padding-left: 0.5rem;
+.landing-speech-bubble-tail {
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  width: 8px;
+  height: 8px;
+  border-left: 1px solid #e4e4e7;
+  border-top: 1px solid #e4e4e7;
+  background: #fff;
+  transform: translateX(-50%) rotate(45deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -212,8 +230,7 @@
   .landing-hero-word,
   .landing-cta-primary,
   .landing-nav-link::after,
-  .landing-terminal-line,
-  .landing-feed-row {
+  .landing-terminal-line {
     transition: none !important;
     animation: none !important;
     opacity: 1 !important;
