@@ -16,9 +16,9 @@ test.describe("Log detail layout", () => {
     await expect(page.getByTestId("log-title-block")).toBeVisible();
     await expect(page.getByTestId("log-content-block")).toBeVisible();
     await expect(page.getByRole("link", { name: "Back to Logs" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Task" })).toBeVisible();
+    await expect(page.getByText("Task", { exact: true })).toBeVisible();
     await expect(page.getByTestId("task-switcher")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Capture" })).toBeVisible();
+    await expect(page.getByText("Branch", { exact: true })).toBeVisible();
   });
 
   test("opens task switcher with open tasks and can assign", async ({
@@ -40,13 +40,24 @@ test.describe("Log detail layout", () => {
     ).toBeVisible();
   });
 
-  test("shows related commit when present and content edit link", async ({
-    page,
-  }) => {
+  test("edits content inline without leaving the page", async ({ page }) => {
+    const content = page.getByTestId("log-content-block");
+
     await expect(page.getByTestId("log-commit-block")).toBeVisible();
-    await expect(
-      page.getByTestId("log-content-block").getByRole("link", { name: "Edit" }),
-    ).toBeVisible();
+    await expect(content.getByRole("button", { name: "Edit" })).toBeVisible();
+    await expect(content.getByRole("link", { name: "Edit" })).toHaveCount(0);
+
+    await content.getByRole("button", { name: "Edit" }).click();
+
+    await expect(content.getByRole("button", { name: "Write" })).toBeVisible();
+    await expect(content.getByRole("button", { name: "Preview" })).toBeVisible();
+    await expect(content.locator("textarea")).toBeVisible();
+    await expect(page).toHaveURL(/\/e2e\/log-detail/);
+
+    await content.getByRole("button", { name: "Cancel" }).click();
+
+    await expect(content.getByRole("button", { name: "Edit" })).toBeVisible();
+    await expect(content.locator("textarea")).toHaveCount(0);
   });
 
   test("captures log detail screenshot for visual review", async ({ page }) => {

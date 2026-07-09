@@ -19,24 +19,39 @@ test.describe("Task detail layout", () => {
 
     await expect(page.getByRole("link", { name: "Back to Tasks" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Mark done" })).toHaveCount(1);
-    await expect(page.getByRole("heading", { name: "Branches" })).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "Spawned todos" }),
-    ).toBeVisible();
+    await expect(page.getByText("Status", { exact: true })).toBeVisible();
+    await expect(page.getByText("Branches", { exact: true })).toBeVisible();
+    await expect(page.getByText("Todos", { exact: true })).toBeVisible();
   });
 
-  test("keeps description edit and linked logs section", async ({ page }) => {
+  test("edits description inline without leaving the page", async ({ page }) => {
+    const description = page.getByTestId("task-description-block");
+
     await expect(
-      page.getByTestId("task-description-block").getByRole("link", {
-        name: "Edit",
-      }),
+      description.getByRole("button", { name: "Edit" }),
     ).toBeVisible();
+    await expect(
+      description.getByRole("link", { name: "Edit" }),
+    ).toHaveCount(0);
+
+    await description.getByRole("button", { name: "Edit" }).click();
+
+    await expect(description.getByRole("button", { name: "Write" })).toBeVisible();
+    await expect(
+      description.getByRole("button", { name: "Preview" }),
+    ).toBeVisible();
+    await expect(description.locator("textarea")).toBeVisible();
+    await expect(page).toHaveURL(/\/e2e\/task-detail/);
+
+    await description.getByRole("button", { name: "Cancel" }).click();
+
+    await expect(
+      description.getByRole("button", { name: "Edit" }),
+    ).toBeVisible();
+    await expect(description.locator("textarea")).toHaveCount(0);
     await expect(
       page.getByRole("heading", { name: /Linked logs/ }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Link existing" }),
-    ).toHaveAttribute("href", /\/logs/);
   });
 
   test("captures task detail screenshot for visual review", async ({ page }) => {

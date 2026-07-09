@@ -10,10 +10,15 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/shared/lib/cn";
-import { MarkdownContent } from "@/shared/ui/markdown";
+import {
+  formatSelection,
+  getImageFallbackText,
+  type ToolbarAction,
+  type ToolbarActionPayload,
+} from "@/shared/lib/markdown";
+import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import {
   getLogBody,
-  getLogEditHref,
   getLogRecipe,
   getLogsHref,
   getOutputHref,
@@ -43,9 +48,17 @@ export function LogDetailView({
   );
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
+  const initialBody = getLogBody(log);
+  const [localBody, setLocalBody] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftBody, setDraftBody] = useState(initialBody);
+  const [mode, setMode] = useState<"write" | "preview">("write");
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const recipe = getLogRecipe(log.id);
-  const body = getLogBody(log);
+  const body = localBody ?? initialBody;
   const tasks = workspaceData?.tasks ?? workspaceWorkItems;
   const openTasks = useMemo(
     () => tasks.filter((task) => task.status !== "done"),
@@ -69,6 +82,94 @@ export function LogDetailView({
         ? "Closed"
         : null;
 
+  function startEditing() {
+    setDraftBody(body);
+    setMode("write");
+    setEditError(null);
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setDraftBody(body);
+    setMode("write");
+    setEditError(null);
+    setIsEditing(false);
+  }
+
+  function insertFormatting(
+    action: ToolbarAction,
+    payload?: ToolbarActionPayload,
+  ) {
+    const textarea = editorRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const selectedText = draftBody.slice(selectionStart, selectionEnd);
+    const { nextValue, nextSelectionStart, nextSelectionEnd } = formatSelection(
+      action,
+      draftBody,
+      selectedText,
+      selectionStart,
+      selectionEnd,
+      { fallbackText: getImageFallbackText(payload) },
+    );
+
+    setDraftBody(nextValue);
+
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    });
+  }
+
+  async function saveContent() {
+    if (isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setEditError(null);
+
+    if (workspaceData) {
+      const result = await updateWorkspaceLog({
+        workspaceId: workspaceData.workspaceId,
+        logId: log.id,
+        title: log.title,
+        content: draftBody,
+        summary: log.summary ?? log.description,
+        taskId: assignedTaskId,
+        status: log.status ?? "NONE",
+      });
+
+      setIsSaving(false);
+
+      if (!result.ok) {
+        setEditError(result.message ?? "Failed to save content.");
+        return;
+      }
+
+      setLocalBody(draftBody);
+      setIsEditing(false);
+      setMode("write");
+      router.refresh();
+      return;
+    }
+
+    saveLogOverride(log.id, {
+      title: log.title,
+      body: draftBody,
+      taskId: assignedTaskId,
+    });
+    setLocalBody(draftBody);
+    setIsEditing(false);
+    setMode("write");
+    setIsSaving(false);
+    router.refresh();
+  }
+
   async function assignTask(nextTaskId: string | null) {
     if (isAssigning || nextTaskId === assignedTaskId) {
       return;
@@ -82,7 +183,7 @@ export function LogDetailView({
         workspaceId: workspaceData.workspaceId,
         logId: log.id,
         title: log.title,
-        content: getLogBody(log),
+        content: body,
         summary: log.summary ?? log.description,
         taskId: nextTaskId,
         status: log.status ?? "NONE",
@@ -102,7 +203,7 @@ export function LogDetailView({
 
     saveLogOverride(log.id, {
       title: log.title,
-      body: log.body ?? getLogBody(log),
+      body,
       taskId: nextTaskId,
     });
     setAssignedTaskId(nextTaskId);
@@ -133,20 +234,20 @@ export function LogDetailView({
         </div>
 
         <div className="mt-3.5 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[13px] text-zinc-500">
-          {statusLabel ? (
-            <StatusBadge
-              tone={log.status === "OPEN" ? "open" : "closed"}
-              label={statusLabel}
-            />
-          ) : (
-            <TypeBadge label={typeLabel} />
-          )}
+          <StatusBadge
+            tone={
+              statusLabel
+                ? log.status === "OPEN"
+                  ? "open"
+                  : "closed"
+                : "type"
+            }
+            label={statusLabel ?? typeLabel}
+          />
           {statusLabel ? (
             <>
               <MetaSep />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                {typeLabel}
-              </span>
+              <span>{typeLabel}</span>
             </>
           ) : null}
           {log.branch ? (
@@ -185,43 +286,125 @@ export function LogDetailView({
             data-testid="log-content-block"
             className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]"
           >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4 py-2.5">
-              <span className="text-[13px] font-semibold text-zinc-900">
-                Content
-              </span>
-              <Link
-                href={getLogEditHref(log.id)}
-                className="rounded-md px-1.5 py-0.5 text-[12px] font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-              >
-                Edit
-              </Link>
-            </div>
-            <div className="px-5 py-5">
-              {hasBody ? (
-                <div className="max-w-[68ch]">
-                  <MarkdownContent markdown={body} variant="dense" />
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 px-5 py-9 text-center">
-                  <p className="text-[14px] font-medium text-zinc-700">
-                    No log content yet.
-                  </p>
-                  <p className="mt-1.5 text-[13px] leading-5 text-zinc-500">
-                    Write the recipe in markdown — problem, cause, fix,
-                    verification.
-                  </p>
-                  <div className="mt-4">
-                    <LinkButton
-                      href={getLogEditHref(log.id)}
-                      tone="outline"
-                      size="sm"
+            {isEditing ? (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4">
+                  <div className="flex items-center gap-4">
+                    <TabButton
+                      active={mode === "write"}
+                      onClick={() => setMode("write")}
                     >
-                      Write log content
-                    </LinkButton>
+                      Write
+                    </TabButton>
+                    <TabButton
+                      active={mode === "preview"}
+                      onClick={() => setMode("preview")}
+                    >
+                      Preview
+                    </TabButton>
                   </div>
                 </div>
-              )}
-            </div>
+
+                <div className="border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
+                  <MarkdownToolbar
+                    disabled={mode === "preview"}
+                    onAction={insertFormatting}
+                  />
+                </div>
+
+                {mode === "write" ? (
+                  <label className="block">
+                    <span className="sr-only">Log content</span>
+                    <textarea
+                      ref={editorRef}
+                      value={draftBody}
+                      onChange={(event) => setDraftBody(event.target.value)}
+                      placeholder={`## Problem\nWhat went wrong\n\n## Cause\nWhy it happened\n\n## Fix\nWhat changed\n\n## Verification\nHow you confirmed`}
+                      className="min-h-[320px] w-full resize-y border-0 bg-white px-5 py-5 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
+                    />
+                  </label>
+                ) : (
+                  <div className="min-h-[320px] px-5 py-5 text-[15px] leading-7 text-zinc-800">
+                    <MarkdownContent
+                      markdown={draftBody}
+                      variant="dense"
+                      emptyFallback={
+                        <p className="text-zinc-400">Nothing to preview yet.</p>
+                      }
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/80 px-4 py-3">
+                  <span className="text-[12px] text-zinc-500">
+                    {editError ?? "Markdown supported"}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={cancelEditing}
+                      className="inline-flex h-8 items-center rounded-lg px-3 text-[12.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveContent}
+                      disabled={isSaving}
+                      className={cn(
+                        "inline-flex h-8 items-center rounded-lg px-3 text-[12.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                        !isSaving
+                          ? "bg-zinc-950 hover:bg-zinc-800"
+                          : "cursor-not-allowed bg-zinc-400",
+                      )}
+                    >
+                      {isSaving ? "Updating..." : "Update"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4 py-2.5">
+                  <span className="text-[13px] font-semibold text-zinc-900">
+                    Content
+                  </span>
+                  <button
+                    type="button"
+                    onClick={startEditing}
+                    className="rounded-md px-1.5 py-0.5 text-[12px] font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                  >
+                    Edit
+                  </button>
+                </div>
+                <div className="px-5 py-5">
+                  {hasBody ? (
+                    <div className="max-w-[68ch]">
+                      <MarkdownContent markdown={body} variant="dense" />
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 px-5 py-9 text-center">
+                      <p className="text-[14px] font-medium text-zinc-700">
+                        No log content yet.
+                      </p>
+                      <p className="mt-1.5 text-[13px] leading-5 text-zinc-500">
+                        Write the recipe in markdown — problem, cause, fix,
+                        verification.
+                      </p>
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={startEditing}
+                          className="inline-flex h-8 items-center justify-center rounded-[10px] border border-zinc-300 bg-white px-3 text-[12.5px] font-semibold text-zinc-700 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                        >
+                          Write log content
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </section>
 
           {log.commit ? (
@@ -253,9 +436,6 @@ export function LogDetailView({
           ) : null}
 
           <div className="flex flex-wrap justify-end gap-2.5 pt-1">
-            <LinkButton href={getLogEditHref(log.id)} tone="outline">
-              Edit
-            </LinkButton>
             <button
               type="button"
               className="inline-flex h-9 items-center justify-center rounded-xl bg-zinc-950 px-4 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
@@ -265,8 +445,8 @@ export function LogDetailView({
           </div>
         </div>
 
-        <aside className="space-y-4">
-          <InfoCard title="Task">
+        <aside className="space-y-5 px-1 lg:sticky lg:top-6 lg:px-0">
+          <SidebarField label="Task">
             <TaskSwitcher
               selected={task}
               openTasks={openTasks}
@@ -276,54 +456,41 @@ export function LogDetailView({
             {task ? (
               <Link
                 href={getTaskHref(task.id)}
-                className="mt-2.5 inline-flex text-[12px] font-semibold text-zinc-500 transition hover:text-zinc-950"
+                className="mt-2 inline-flex text-[12px] font-semibold text-zinc-500 transition hover:text-zinc-950"
               >
-                Open task
+                Open task →
               </Link>
             ) : null}
             {assignError ? (
               <p className="mt-2 text-[12px] text-red-600">{assignError}</p>
             ) : null}
-          </InfoCard>
+          </SidebarField>
 
-          {(log.branch || recipe?.source || recipe?.visibility) && (
-            <InfoCard title="Capture">
-              <dl className="space-y-2.5 text-[13px]">
-                {log.branch ? (
-                  <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
-                      Branch
-                    </dt>
-                    <dd className="mt-1">
-                      <CodePill>{log.branch}</CodePill>
-                    </dd>
-                  </div>
-                ) : null}
-                {recipe?.source ? (
-                  <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
-                      Source
-                    </dt>
-                    <dd className="mt-1 text-zinc-700">{recipe.source}</dd>
-                  </div>
-                ) : null}
-                {recipe?.visibility ? (
-                  <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
-                      Visibility
-                    </dt>
-                    <dd className="mt-1 font-medium text-zinc-700">
-                      {recipe.visibility}
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-            </InfoCard>
-          )}
+          {log.branch ? (
+            <SidebarField label="Branch">
+              <CodePill>{log.branch}</CodePill>
+            </SidebarField>
+          ) : null}
+
+          {recipe?.source ? (
+            <SidebarField label="Source">
+              <p className="text-[13.5px] font-medium text-zinc-900">
+                {recipe.source}
+              </p>
+            </SidebarField>
+          ) : null}
+
+          {recipe?.visibility ? (
+            <SidebarField label="Visibility">
+              <p className="text-[13.5px] font-medium text-zinc-900">
+                {recipe.visibility}
+              </p>
+            </SidebarField>
+          ) : null}
 
           {outputs.length > 0 ? (
-            <InfoCard title="Outputs">
-              <ul className="space-y-2.5">
+            <SidebarField label="Outputs">
+              <ul className="mt-0.5 space-y-1.5">
                 {outputs.map((output) => (
                   <li key={output.id}>
                     <Link
@@ -335,7 +502,7 @@ export function LogDetailView({
                   </li>
                 ))}
               </ul>
-            </InfoCard>
+            </SidebarField>
           ) : null}
         </aside>
       </div>
@@ -391,23 +558,17 @@ function TaskSwitcher({
         aria-haspopup="listbox"
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "flex w-full items-start justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-left transition hover:border-zinc-300 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+          "flex h-9 w-full items-center justify-between gap-2 border-0 border-b border-zinc-200 bg-transparent py-1.5 pr-1 text-left transition hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+          open && "border-zinc-900",
           disabled && "cursor-not-allowed opacity-60",
         )}
       >
-        <span className="min-w-0">
-          <span className="block text-[13px] font-semibold leading-5 text-zinc-900">
-            {selected ? selected.title : "Unassigned"}
-          </span>
-          <span className="mt-0.5 block text-[11px] text-zinc-400">
-            {selected
-              ? selected.status
-              : "Choose an open task"}
-          </span>
+        <span className="min-w-0 truncate text-[13.5px] font-medium text-zinc-900">
+          {selected ? selected.title : "Unassigned"}
         </span>
         <IconChevronDown
           className={cn(
-            "mt-1 size-3.5 shrink-0 text-zinc-400 transition",
+            "size-3.5 shrink-0 text-zinc-400 transition",
             open && "rotate-180",
           )}
         />
@@ -497,18 +658,48 @@ function MetaSep() {
   );
 }
 
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative h-11 text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active
+          ? "font-semibold text-zinc-950"
+          : "font-medium text-zinc-500 hover:text-zinc-950",
+      )}
+    >
+      {children}
+      {active ? (
+        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-zinc-950" />
+      ) : null}
+    </button>
+  );
+}
+
 function StatusBadge({
   tone,
   label,
 }: {
-  tone: "open" | "closed";
+  tone: "open" | "closed" | "type";
   label: string;
 }) {
   return (
     <span
       className={cn(
         "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold tracking-wide text-white shadow-sm",
-        tone === "open" ? "bg-emerald-600" : "bg-zinc-600",
+        tone === "open" && "bg-emerald-600",
+        tone === "closed" && "bg-zinc-600",
+        tone === "type" && "bg-zinc-500",
       )}
     >
       <span className="size-1.5 rounded-full bg-white/90" />
@@ -517,28 +708,20 @@ function StatusBadge({
   );
 }
 
-function TypeBadge({ label }: { label: string }) {
-  return (
-    <span className="inline-flex h-6 items-center rounded-full bg-zinc-100 px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-600">
-      {label}
-    </span>
-  );
-}
-
-function InfoCard({
-  title,
+function SidebarField({
+  label,
   children,
 }: {
-  title: string;
+  label: string;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-zinc-200/80 bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(24,24,27,0.04)]">
-      <h2 className="border-b border-zinc-100 pb-2.5 text-[12px] font-bold tracking-wide text-zinc-950">
-        {title}
-      </h2>
-      <div className="pt-2.5">{children}</div>
-    </section>
+    <div>
+      <p className="text-[11px] font-medium tracking-wide text-zinc-400">
+        {label}
+      </p>
+      <div className="mt-1.5">{children}</div>
+    </div>
   );
 }
 
@@ -547,36 +730,6 @@ function CodePill({ children }: { children: ReactNode }) {
     <code className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10.5px] text-zinc-500">
       {children}
     </code>
-  );
-}
-
-function LinkButton({
-  href,
-  tone,
-  size = "md",
-  children,
-}: {
-  href: string;
-  tone: "solid" | "outline" | "ghost";
-  size?: "md" | "sm";
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex items-center justify-center gap-1.5 font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        size === "sm"
-          ? "h-8 rounded-[10px] px-3 text-[12.5px]"
-          : "h-9 rounded-xl px-4 text-[13px]",
-        tone === "solid" && "bg-zinc-950 text-white hover:bg-zinc-800",
-        tone === "outline" &&
-          "border border-zinc-300 bg-white font-medium text-zinc-700 hover:bg-zinc-50",
-        tone === "ghost" && "text-zinc-500 hover:text-zinc-950",
-      )}
-    >
-      {children}
-    </Link>
   );
 }
 

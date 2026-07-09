@@ -16,6 +16,14 @@ import { createTaskOverride } from "./taskOverrides";
 import { createWorkspaceTask } from "./workspaceActions";
 import type { WorkspaceUiData } from "./workspaceTypes";
 
+type TaskStatus = "TODO" | "DOING" | "DONE";
+
+const statusOptions: Array<{ value: TaskStatus; label: string }> = [
+  { value: "TODO", label: "Todo" },
+  { value: "DOING", label: "Doing" },
+  { value: "DONE", label: "Done" },
+];
+
 export function TaskCreateView({
   isLoggedIn,
   workspaceData,
@@ -26,6 +34,7 @@ export function TaskCreateView({
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [status, setStatus] = useState<TaskStatus>("TODO");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [mode, setMode] = useState<"write" | "preview">("write");
@@ -76,7 +85,7 @@ export function TaskCreateView({
         workspaceId: workspaceData.workspaceId,
         title: trimmedTitle,
         content: body,
-        status: "TODO",
+        status,
       });
 
       setIsSaving(false);
@@ -94,6 +103,8 @@ export function TaskCreateView({
     const task = createTaskOverride({
       title: trimmedTitle,
       body,
+      status:
+        status === "DOING" ? "doing" : status === "DONE" ? "done" : "todo",
     });
 
     setIsSaving(false);
@@ -124,94 +135,145 @@ export function TaskCreateView({
         <span className="font-semibold text-zinc-950">New</span>
       </nav>
 
-      <article className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <header className="border-b border-zinc-100 px-6 pb-5 pt-[22px]">
-          <p className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-            New task
-          </p>
-          <label className="mt-3 block">
-            <span className="sr-only">Task title</span>
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Task title"
-              className="w-full border-0 bg-transparent p-0 font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950 outline-none placeholder:text-zinc-300"
-            />
-          </label>
-        </header>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          <header className="px-1 pt-1">
+            <p className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+              New task
+            </p>
+            <label className="mt-3 block">
+              <span className="sr-only">Task title</span>
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Task title"
+                className="w-full border-0 bg-transparent p-0 font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950 outline-none placeholder:text-zinc-300"
+              />
+            </label>
+          </header>
 
-        <div className="border-b border-zinc-100 bg-zinc-50/80 px-4">
-          <div className="flex items-center gap-4">
-            <TabButton active={mode === "write"} onClick={() => setMode("write")}>
-              Write
-            </TabButton>
-            <TabButton
-              active={mode === "preview"}
-              onClick={() => setMode("preview")}
-            >
-              Preview
-            </TabButton>
+          <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
+            <div className="border-b border-zinc-100 bg-zinc-50/80 px-4">
+              <div className="flex items-center gap-4">
+                <TabButton
+                  active={mode === "write"}
+                  onClick={() => setMode("write")}
+                >
+                  Write
+                </TabButton>
+                <TabButton
+                  active={mode === "preview"}
+                  onClick={() => setMode("preview")}
+                >
+                  Preview
+                </TabButton>
+              </div>
+            </div>
+
+            <div className="border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
+              <MarkdownToolbar
+                disabled={mode === "preview"}
+                onAction={insertFormatting}
+              />
+            </div>
+
+            {mode === "write" ? (
+              <label className="block">
+                <span className="sr-only">Task document</span>
+                <textarea
+                  ref={editorRef}
+                  value={body}
+                  onChange={(event) => setBody(event.target.value)}
+                  placeholder={`## Context\nWhy this task exists\n\n## Goal\nWhat done looks like\n\n## Scope\n- In\n- Out`}
+                  className="min-h-[420px] w-full resize-y border-0 bg-white px-6 py-5 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
+                />
+              </label>
+            ) : (
+              <div className="min-h-[420px] px-6 py-5 text-[15px] leading-7 text-zinc-800">
+                <MarkdownContent
+                  markdown={body}
+                  variant="compact"
+                  emptyFallback={
+                    <p className="text-zinc-400">Nothing to preview yet.</p>
+                  }
+                />
+              </div>
+            )}
+          </section>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1 pt-1">
+            <span className="text-[12px] text-zinc-500">
+              {error ?? "Title is required"}
+            </span>
+            <div className="flex items-center gap-2">
+              <Link
+                href={getTasksHref()}
+                className="inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                Cancel
+              </Link>
+              <button
+                type="button"
+                onClick={saveTask}
+                disabled={!canSave || isSaving}
+                className={cn(
+                  "inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                  canSave && !isSaving
+                    ? "bg-zinc-950 hover:bg-zinc-800"
+                    : "cursor-not-allowed bg-zinc-400",
+                )}
+              >
+                {isSaving ? "Creating..." : "Create task"}
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
-          <MarkdownToolbar
-            disabled={mode === "preview"}
-            onAction={insertFormatting}
-          />
-        </div>
-
-        {mode === "write" ? (
-          <label className="block">
-            <span className="sr-only">Task document</span>
-            <textarea
-              ref={editorRef}
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              placeholder={`## Context\nWhy this task exists\n\n## Goal\nWhat done looks like\n\n## Scope\n- In\n- Out`}
-              className="min-h-[420px] w-full resize-y border-0 bg-white px-6 py-5 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
-            />
-          </label>
-        ) : (
-          <div className="min-h-[420px] px-6 py-5 text-[15px] leading-7 text-zinc-800">
-            <MarkdownContent
-              markdown={body}
-              variant="compact"
-              emptyFallback={
-                <p className="text-zinc-400">Nothing to preview yet.</p>
-              }
-            />
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/80 px-6 py-4">
-          <span className="text-[12px] text-zinc-500">
-            {error ?? "Markdown supported · starts as Todo"}
-          </span>
-          <div className="flex items-center gap-2">
-            <Link
-              href={getTasksHref()}
-              className="inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            >
-              Cancel
-            </Link>
-            <button
-              type="button"
-              onClick={saveTask}
-              disabled={!canSave || isSaving}
-              className={cn(
-                "inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                canSave && !isSaving
-                  ? "bg-zinc-950 hover:bg-zinc-800"
-                  : "cursor-not-allowed bg-zinc-400",
-              )}
-            >
-              {isSaving ? "Creating..." : "Create task"}
-            </button>
-          </div>
-        </div>
-      </article>
+        <aside className="space-y-5 px-1 pt-[22px] lg:px-0">
+          <FieldSelect
+            label="Status"
+            value={status}
+            onChange={(value) => setStatus(value as TaskStatus)}
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </FieldSelect>
+        </aside>
+      </div>
     </div>
+  );
+}
+
+function FieldSelect({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[11px] font-medium tracking-wide text-zinc-400">
+        {label}
+      </span>
+      <div className="relative mt-1.5">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-9 w-full appearance-none border-0 border-b border-zinc-200 bg-transparent py-1.5 pr-7 text-[13.5px] font-medium text-zinc-900 outline-none transition hover:border-zinc-300 focus:border-zinc-900"
+        >
+          {children}
+        </select>
+        <IconChevronDown className="pointer-events-none absolute right-0 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+      </div>
+    </label>
   );
 }
 
@@ -240,5 +302,24 @@ function TabButton({
         <span className="absolute inset-x-0 bottom-0 h-0.5 bg-zinc-950" />
       ) : null}
     </button>
+  );
+}
+
+function IconChevronDown({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M6 9l6 6 6-6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

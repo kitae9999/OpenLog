@@ -2,9 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
-import { MarkdownContent } from "@/shared/ui/markdown";
+import {
+  formatSelection,
+  getImageFallbackText,
+  type ToolbarAction,
+  type ToolbarActionPayload,
+} from "@/shared/lib/markdown";
+import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import { LogTypeLabel } from "./LogTypeLabel";
 import {
   buildLogsListHref,
@@ -15,9 +21,7 @@ import {
   getOutputHref,
   getOutputsForTask,
   getSpawnedTodosForTask,
-  getTabHref,
   getTaskBranches,
-  getTaskEditHref,
   getTaskMeta,
   getLogHref,
   getTasksHref,
@@ -46,8 +50,16 @@ export function TaskDetailView({
   const [localStatus, setLocalStatus] = useState<WorkspaceWorkStatus | null>(
     null,
   );
+  const [localBody, setLocalBody] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftBody, setDraftBody] = useState(task.body);
+  const [mode, setMode] = useState<"write" | "preview">("write");
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const status = localStatus ?? task.status;
+  const body = localBody ?? task.body;
   const logs = workspaceData
     ? workspaceData.logs.filter((log) => log.taskId === task.id)
     : getLogsForTask(task.id);
@@ -66,8 +78,95 @@ export function TaskDetailView({
     : countUnassignedLogs();
   const statusLabel =
     status === "doing" ? "Open" : status === "done" ? "Done" : "Todo";
-  const hasBody = task.body.trim().length > 0;
+  const hasBody = body.trim().length > 0;
   const canMarkDone = status !== "done";
+
+  function startEditing() {
+    setDraftBody(body);
+    setMode("write");
+    setEditError(null);
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setDraftBody(body);
+    setMode("write");
+    setEditError(null);
+    setIsEditing(false);
+  }
+
+  function insertFormatting(
+    action: ToolbarAction,
+    payload?: ToolbarActionPayload,
+  ) {
+    const textarea = editorRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const selectedText = draftBody.slice(selectionStart, selectionEnd);
+    const { nextValue, nextSelectionStart, nextSelectionEnd } = formatSelection(
+      action,
+      draftBody,
+      selectedText,
+      selectionStart,
+      selectionEnd,
+      { fallbackText: getImageFallbackText(payload) },
+    );
+
+    setDraftBody(nextValue);
+
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    });
+  }
+
+  async function saveDescription() {
+    if (isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setEditError(null);
+
+    if (workspaceData) {
+      const result = await updateWorkspaceTask({
+        workspaceId: workspaceData.workspaceId,
+        taskId: task.id,
+        title: task.title,
+        description: task.description ?? null,
+        content: draftBody,
+        status: task.apiStatus ?? toApiTaskStatus(status),
+      });
+
+      setIsSaving(false);
+
+      if (!result.ok) {
+        setEditError(result.message ?? "Failed to save description.");
+        return;
+      }
+
+      setLocalBody(draftBody);
+      setIsEditing(false);
+      setMode("write");
+      router.refresh();
+      return;
+    }
+
+    saveTaskOverride(task.id, {
+      title: task.title,
+      body: draftBody,
+      status,
+    });
+    setLocalBody(draftBody);
+    setIsEditing(false);
+    setMode("write");
+    setIsSaving(false);
+    router.refresh();
+  }
 
   async function markDone() {
     if (!canMarkDone || isUpdatingStatus) {
@@ -82,7 +181,7 @@ export function TaskDetailView({
         workspaceId: workspaceData.workspaceId,
         taskId: task.id,
         title: task.title,
-        content: task.body,
+        content: body,
         status: "DONE",
       });
 
@@ -100,7 +199,7 @@ export function TaskDetailView({
 
     saveTaskOverride(task.id, {
       title: task.title,
-      body: task.body,
+      body,
       status: "done",
     });
     setLocalStatus("done");
@@ -163,42 +262,124 @@ export function TaskDetailView({
             data-testid="task-description-block"
             className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]"
           >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4 py-2.5">
-              <span className="text-[13px] font-semibold text-zinc-900">
-                Description
-              </span>
-              <Link
-                href={getTaskEditHref(task.id)}
-                className="rounded-md px-1.5 py-0.5 text-[12px] font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-              >
-                Edit
-              </Link>
-            </div>
-            <div className="px-5 py-5">
-              {hasBody ? (
-                <div className="max-w-[68ch]">
-                  <MarkdownContent markdown={task.body} variant="dense" />
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 px-5 py-9 text-center">
-                  <p className="text-[14px] font-medium text-zinc-700">
-                    No description yet.
-                  </p>
-                  <p className="mt-1.5 text-[13px] leading-5 text-zinc-500">
-                    Add context, goals, and scope — like a PR description.
-                  </p>
-                  <div className="mt-4">
-                    <LinkButton
-                      href={getTaskEditHref(task.id)}
-                      tone="outline"
-                      size="sm"
+            {isEditing ? (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4">
+                  <div className="flex items-center gap-4">
+                    <TabButton
+                      active={mode === "write"}
+                      onClick={() => setMode("write")}
                     >
-                      Write description
-                    </LinkButton>
+                      Write
+                    </TabButton>
+                    <TabButton
+                      active={mode === "preview"}
+                      onClick={() => setMode("preview")}
+                    >
+                      Preview
+                    </TabButton>
                   </div>
                 </div>
-              )}
-            </div>
+
+                <div className="border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
+                  <MarkdownToolbar
+                    disabled={mode === "preview"}
+                    onAction={insertFormatting}
+                  />
+                </div>
+
+                {mode === "write" ? (
+                  <label className="block">
+                    <span className="sr-only">Task description</span>
+                    <textarea
+                      ref={editorRef}
+                      value={draftBody}
+                      onChange={(event) => setDraftBody(event.target.value)}
+                      placeholder={`## Context\nWhy this task exists\n\n## Goal\nWhat done looks like\n\n## Scope\n- In\n- Out`}
+                      className="min-h-[320px] w-full resize-y border-0 bg-white px-5 py-5 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
+                    />
+                  </label>
+                ) : (
+                  <div className="min-h-[320px] px-5 py-5 text-[15px] leading-7 text-zinc-800">
+                    <MarkdownContent
+                      markdown={draftBody}
+                      variant="dense"
+                      emptyFallback={
+                        <p className="text-zinc-400">Nothing to preview yet.</p>
+                      }
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/80 px-4 py-3">
+                  <span className="text-[12px] text-zinc-500">
+                    {editError ?? "Markdown supported"}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={cancelEditing}
+                      className="inline-flex h-8 items-center rounded-lg px-3 text-[12.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveDescription}
+                      disabled={isSaving}
+                      className={cn(
+                        "inline-flex h-8 items-center rounded-lg px-3 text-[12.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                        !isSaving
+                          ? "bg-zinc-950 hover:bg-zinc-800"
+                          : "cursor-not-allowed bg-zinc-400",
+                      )}
+                    >
+                      {isSaving ? "Updating..." : "Update"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4 py-2.5">
+                  <span className="text-[13px] font-semibold text-zinc-900">
+                    Description
+                  </span>
+                  <button
+                    type="button"
+                    onClick={startEditing}
+                    className="rounded-md px-1.5 py-0.5 text-[12px] font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                  >
+                    Edit
+                  </button>
+                </div>
+                <div className="px-5 py-5">
+                  {hasBody ? (
+                    <div className="max-w-[68ch]">
+                      <MarkdownContent markdown={body} variant="dense" />
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 px-5 py-9 text-center">
+                      <p className="text-[14px] font-medium text-zinc-700">
+                        No description yet.
+                      </p>
+                      <p className="mt-1.5 text-[13px] leading-5 text-zinc-500">
+                        Add context, goals, and scope — like a PR description.
+                      </p>
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={startEditing}
+                          className="inline-flex h-8 items-center justify-center rounded-[10px] border border-zinc-300 bg-white px-3 text-[12.5px] font-semibold text-zinc-700 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                        >
+                          Write description
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </section>
 
           <section
@@ -243,7 +424,7 @@ export function TaskDetailView({
               </div>
             )}
 
-            <div className="border-t border-zinc-200/80 bg-zinc-50/50 px-4 py-2.5">
+            <div className="border-t border-zinc-200/80 bg-white px-4 py-2.5">
               <Link
                 href={getNewLogHref(task.id)}
                 className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] font-semibold text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950"
@@ -257,9 +438,6 @@ export function TaskDetailView({
           </section>
 
           <div className="flex flex-wrap justify-end gap-2.5 pt-1">
-            <LinkButton href={getTaskEditHref(task.id)} tone="outline">
-              Edit
-            </LinkButton>
             {canMarkDone ? (
               <button
                 type="button"
@@ -277,27 +455,30 @@ export function TaskDetailView({
           </div>
         </div>
 
-        <aside className="space-y-4">
-          <InfoCard title="Workspace">
-            <Link
-              href={getTabHref("workspace", isLoggedIn)}
-              className="text-[13px] font-medium leading-6 text-zinc-800 underline-offset-4 transition hover:text-zinc-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            >
-              openlog
-            </Link>
-            <p className="mt-2 text-[12px] text-zinc-500">
-              Status{" "}
-              <span className="font-semibold text-zinc-700">{statusLabel}</span>
+        <aside className="space-y-5 px-1 lg:sticky lg:top-6 lg:px-0">
+          <SidebarField label="Status">
+            <p className="text-[13.5px] font-medium text-zinc-900">{statusLabel}</p>
+          </SidebarField>
+
+          <SidebarField label="Started">
+            <p className="text-[13.5px] font-medium text-zinc-900">
+              {meta.startedLabel}
             </p>
-          </InfoCard>
+          </SidebarField>
+
+          <SidebarField label="Updated">
+            <p className="text-[13.5px] font-medium text-zinc-900">
+              {meta.lastActivityLabel}
+            </p>
+          </SidebarField>
 
           {branches.length > 0 ? (
-            <InfoCard title="Branches">
-              <ul className="space-y-2">
+            <SidebarField label="Branches">
+              <ul className="mt-0.5 space-y-1.5">
                 {branches.map(({ branch, count }) => (
                   <li
                     key={branch}
-                    className="flex flex-wrap items-center justify-between gap-2"
+                    className="flex items-center justify-between gap-2"
                   >
                     <CodePill>{branch}</CodePill>
                     <span className="text-[11px] tabular-nums text-zinc-400">
@@ -306,15 +487,12 @@ export function TaskDetailView({
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-[11px] leading-4 text-zinc-400">
-                From linked logs — not a task field.
-              </p>
-            </InfoCard>
+            </SidebarField>
           ) : null}
 
           {spawnedTodos.length > 0 ? (
-            <InfoCard title="Spawned todos">
-              <ul className="space-y-3">
+            <SidebarField label="Todos">
+              <ul className="mt-0.5 space-y-2">
                 {spawnedTodos.map(({ todo, link }) => (
                   <li key={todo.id}>
                     <p className="text-[13px] leading-5 text-zinc-800">
@@ -328,18 +506,18 @@ export function TaskDetailView({
                   </li>
                 ))}
               </ul>
-            </InfoCard>
+            </SidebarField>
           ) : null}
 
-          <InfoCard title="Outputs">
+          <SidebarField label="Outputs">
             {outputs.length === 0 ? (
-              <p className="text-[13px] leading-5 text-zinc-500">
+              <p className="text-[12.5px] leading-5 text-zinc-500">
                 {status === "done"
                   ? "No outputs yet."
                   : "Create when source logs are ready."}
               </p>
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="mt-0.5 space-y-1.5">
                 {outputs.map((output) => (
                   <li key={output.id}>
                     <Link
@@ -355,12 +533,12 @@ export function TaskDetailView({
             {status === "done" ? (
               <Link
                 href={getNewOutputHref(task.id)}
-                className="mt-3 inline-flex text-[12px] font-semibold text-zinc-500 transition hover:text-zinc-950"
+                className="mt-2 inline-flex text-[12px] font-semibold text-zinc-500 transition hover:text-zinc-950"
               >
                 + New output
               </Link>
             ) : null}
-          </InfoCard>
+          </SidebarField>
         </aside>
       </div>
     </div>
@@ -440,6 +618,45 @@ function MetaSep() {
   );
 }
 
+function toApiTaskStatus(status: WorkspaceWorkStatus) {
+  switch (status) {
+    case "done":
+      return "DONE" as const;
+    case "doing":
+      return "DOING" as const;
+    default:
+      return "TODO" as const;
+  }
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative h-11 text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active
+          ? "font-semibold text-zinc-950"
+          : "font-medium text-zinc-500 hover:text-zinc-950",
+      )}
+    >
+      {children}
+      {active ? (
+        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-zinc-950" />
+      ) : null}
+    </button>
+  );
+}
+
 function StatusBadge({
   status,
   label,
@@ -462,20 +679,20 @@ function StatusBadge({
   );
 }
 
-function InfoCard({
-  title,
+function SidebarField({
+  label,
   children,
 }: {
-  title: string;
+  label: string;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-zinc-200/80 bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(24,24,27,0.04)]">
-      <h2 className="border-b border-zinc-100 pb-2.5 text-[12px] font-bold tracking-wide text-zinc-950">
-        {title}
-      </h2>
-      <div className="pt-2.5">{children}</div>
-    </section>
+    <div>
+      <p className="text-[11px] font-medium tracking-wide text-zinc-400">
+        {label}
+      </p>
+      <div className="mt-1.5">{children}</div>
+    </div>
   );
 }
 

@@ -148,27 +148,30 @@ export function LogCreateView({
         <span className="font-semibold text-zinc-950">New</span>
       </nav>
 
-      <article className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <header className="border-b border-zinc-100 px-6 pb-5 pt-[22px]">
-          <p className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-            New log
-          </p>
-          <label className="mt-3 block">
-            <span className="sr-only">Log title</span>
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Log title"
-              className="w-full border-0 bg-transparent p-0 font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950 outline-none placeholder:text-zinc-300"
-            />
-          </label>
-        </header>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          <header className="px-1 pt-1">
+            <p className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+              New log
+            </p>
+            <label className="mt-3 block">
+              <span className="sr-only">Log title</span>
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Log title"
+                className="w-full border-0 bg-transparent p-0 font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950 outline-none placeholder:text-zinc-300"
+              />
+            </label>
+          </header>
 
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(260px,300px)]">
-          <section className="min-w-0">
+          <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
             <div className="border-b border-zinc-100 bg-zinc-50/80 px-4">
               <div className="flex items-center gap-4">
-                <TabButton active={mode === "write"} onClick={() => setMode("write")}>
+                <TabButton
+                  active={mode === "write"}
+                  onClick={() => setMode("write")}
+                >
                   Write
                 </TabButton>
                 <TabButton
@@ -211,72 +214,88 @@ export function LogCreateView({
             )}
           </section>
 
-          <aside className="border-t border-zinc-100 bg-zinc-50 px-[18px] py-5 lg:border-l lg:border-t-0">
-            <label className="block">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                Kind
-              </span>
-              <select
-                value={kind}
-                onChange={(event) => setKind(event.target.value as LogKind)}
-                className="mt-2 h-9 w-full rounded-[10px] border border-zinc-200 bg-white px-3 text-[13px] font-medium text-zinc-800 outline-none focus:ring-2 focus:ring-zinc-900/10"
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1 pt-1">
+            <span className="text-[12px] text-zinc-500">
+              {error ?? "Title and body are required"}
+            </span>
+            <div className="flex items-center gap-2">
+              <Link
+                href={getLogsHref()}
+                className="inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
-                {kindOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="mt-5 block">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                Task
-              </span>
-              <select
-                value={taskId}
-                onChange={(event) => setTaskId(event.target.value)}
-                className="mt-2 h-9 w-full rounded-[10px] border border-zinc-200 bg-white px-3 text-[13px] font-medium text-zinc-800 outline-none focus:ring-2 focus:ring-zinc-900/10"
+                Cancel
+              </Link>
+              <button
+                type="button"
+                onClick={saveLog}
+                disabled={!canSave || isSaving}
+                className={cn(
+                  "inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                  canSave && !isSaving
+                    ? "bg-zinc-950 hover:bg-zinc-800"
+                    : "cursor-not-allowed bg-zinc-400",
+                )}
               >
-                <option value="">Unassigned</option>
-                {tasks.map((task) => (
-                  <option key={task.id} value={task.id}>
-                    {task.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </aside>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/80 px-6 py-4">
-          <span className="text-[12px] text-zinc-500">
-            {error ?? "Title and body are required"}
-          </span>
-          <div className="flex items-center gap-2">
-            <Link
-              href={getLogsHref()}
-              className="inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            >
-              Cancel
-            </Link>
-            <button
-              type="button"
-              onClick={saveLog}
-              disabled={!canSave || isSaving}
-              className={cn(
-                "inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                canSave && !isSaving
-                  ? "bg-zinc-950 hover:bg-zinc-800"
-                  : "cursor-not-allowed bg-zinc-400",
-              )}
-            >
-              {isSaving ? "Creating..." : "Create log"}
-            </button>
+                {isSaving ? "Creating..." : "Create log"}
+              </button>
+            </div>
           </div>
         </div>
-      </article>
+
+        <aside className="space-y-5 px-1 pt-[22px] lg:px-0">
+          <FieldSelect
+            label="Kind"
+            value={kind}
+            onChange={(value) => setKind(value as LogKind)}
+          >
+            {kindOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </FieldSelect>
+
+          <FieldSelect label="Task" value={taskId} onChange={setTaskId}>
+            <option value="">Unassigned</option>
+            {tasks.map((task) => (
+              <option key={task.id} value={task.id}>
+                {task.title}
+              </option>
+            ))}
+          </FieldSelect>
+        </aside>
+      </div>
     </div>
+  );
+}
+
+function FieldSelect({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[11px] font-medium tracking-wide text-zinc-400">
+        {label}
+      </span>
+      <div className="relative mt-1.5">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-9 w-full appearance-none border-0 border-b border-zinc-200 bg-transparent py-1.5 pr-7 text-[13.5px] font-medium text-zinc-900 outline-none transition hover:border-zinc-300 focus:border-zinc-900"
+        >
+          {children}
+        </select>
+        <IconChevronDown className="pointer-events-none absolute right-0 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+      </div>
+    </label>
   );
 }
 
@@ -305,5 +324,24 @@ function TabButton({
         <span className="absolute inset-x-0 bottom-0 h-0.5 bg-zinc-950" />
       ) : null}
     </button>
+  );
+}
+
+function IconChevronDown({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M6 9l6 6 6-6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
