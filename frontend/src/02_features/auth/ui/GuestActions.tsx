@@ -1,7 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { startTransition, useEffect, useId, useState } from "react";
+import {
+  startTransition,
+  useEffect,
+  useId,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { AuthMode } from "@/features/auth/model/auth.type";
 import { handleOAuth } from "@/features/auth/api/handleOAuth";
@@ -13,6 +19,12 @@ type AuthContent = {
   footerLead: string;
   footerActionLabel: string;
   footerActionTarget: AuthMode;
+};
+
+export type AuthModalControls = {
+  openLogin: () => void;
+  openSignup: () => void;
+  isModalOpen: boolean;
 };
 
 const modalButtonClassName =
@@ -36,7 +48,11 @@ const authContent: Record<AuthMode, AuthContent> = {
   },
 };
 
-export function GuestActions() {
+export function GuestActions({
+  children,
+}: {
+  children?: (controls: AuthModalControls) => ReactNode;
+} = {}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const titleId = useId();
@@ -84,17 +100,27 @@ export function GuestActions() {
     });
   }
 
+  const controls: AuthModalControls = {
+    openLogin: () => openModal("login"),
+    openSignup: () => openModal("signup"),
+    isModalOpen,
+  };
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => openModal("login")}
-        aria-haspopup="dialog"
-        aria-expanded={isModalOpen}
-        className="inline-flex h-9 items-center rounded-xl bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-      >
-        Log in
-      </button>
+      {children ? (
+        children(controls)
+      ) : (
+        <button
+          type="button"
+          onClick={controls.openLogin}
+          aria-haspopup="dialog"
+          aria-expanded={isModalOpen}
+          className="inline-flex h-9 items-center rounded-xl bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          Log in
+        </button>
+      )}
 
       {isModalOpen
         ? createPortal(

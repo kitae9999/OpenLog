@@ -38,13 +38,26 @@ export function buildWorkspaceGraph({
   outputs,
   taskLinks,
   logLinks,
+  includeMemories = true,
 }: {
   tasks: WorkspaceWorkItem[];
   logs: WorkspaceLogItem[];
   outputs: WorkspaceTaskOutput[];
   taskLinks: WorkspaceUiData["taskLinks"];
   logLinks: WorkspaceUiData["logLinks"];
+  includeMemories?: boolean;
 }): WorkspaceGraph {
+  const memoryNodes = includeMemories
+    ? workspaceMemories.map((memory, index) => ({
+        id: getMemoryNodeId(index),
+        kind: "memory" as const,
+        title: memory.title,
+        description: memory.description,
+        href: getTabHref("workspace", true),
+        taskId: inferMemoryTaskId(memory.title, memory.description),
+      }))
+    : [];
+
   const nodes: WorkspaceGraphNode[] = [
     ...tasks.map((task) => ({
       id: getTaskNodeId(task.id),
@@ -70,14 +83,7 @@ export function buildWorkspaceGraph({
       href: getOutputHref(output.id),
       taskId: output.taskId,
     })),
-    ...workspaceMemories.map((memory, index) => ({
-      id: getMemoryNodeId(index),
-      kind: "memory" as const,
-      title: memory.title,
-      description: memory.description,
-      href: getTabHref("workspace", true),
-      taskId: inferMemoryTaskId(memory.title, memory.description),
-    })),
+    ...memoryNodes,
   ];
   const edges: WorkspaceGraphEdge[] = [];
 
@@ -124,18 +130,20 @@ export function buildWorkspaceGraph({
     });
   }
 
-  workspaceMemories.forEach((memory, index) => {
-    const taskId = inferMemoryTaskId(memory.title, memory.description);
-    if (!taskId) {
-      return;
-    }
+  if (includeMemories) {
+    workspaceMemories.forEach((memory, index) => {
+      const taskId = inferMemoryTaskId(memory.title, memory.description);
+      if (!taskId) {
+        return;
+      }
 
-    edges.push({
-      sourceId: getTaskNodeId(taskId),
-      targetId: getMemoryNodeId(index),
-      label: "remembered",
+      edges.push({
+        sourceId: getTaskNodeId(taskId),
+        targetId: getMemoryNodeId(index),
+        label: "remembered",
+      });
     });
-  });
+  }
 
   for (let index = 0; index < logs.length; index += 1) {
     const log = logs[index];

@@ -1,5 +1,6 @@
 import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 import { HomeFeed } from "@/widgets/home-feed/ui";
+import { LandingPage } from "@/widgets/landing/ui";
 import { getDefaultTab, type TabKey } from "@/widgets/home-feed/ui/data";
 
 export default async function Home({
@@ -11,6 +12,10 @@ export default async function Home({
   const user = await getUserOrRedirectToOnboarding();
   const isLoggedIn = !!user;
   const tab = normalizeTab(sp?.tab, isLoggedIn);
+
+  if (!isLoggedIn && !sp?.tab) {
+    return <LandingPage />;
+  }
 
   return <HomeFeed activeTab={tab} viewer={user} />;
 }

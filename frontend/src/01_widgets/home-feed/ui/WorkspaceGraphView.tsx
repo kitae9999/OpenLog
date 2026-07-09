@@ -182,6 +182,7 @@ export function WorkspaceGraphCanvas({
   initialScale = INITIAL_GRAPH_SCALE,
   emptyTitle = "No graph matches",
   emptyDescription = "Try another task filter or search term.",
+  disableNodeNavigation = false,
 }: {
   graph: WorkspaceGraph;
   heightClassName?: string;
@@ -189,6 +190,8 @@ export function WorkspaceGraphCanvas({
   initialScale?: number;
   emptyTitle?: string;
   emptyDescription?: string;
+  /** Pan / zoom / drag only — skip navigating to node hrefs. */
+  disableNodeNavigation?: boolean;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [transform, setTransform] = useState<GraphTransform>({
@@ -380,6 +383,10 @@ export function WorkspaceGraphCanvas({
       return;
     }
 
+    if (disableNodeNavigation) {
+      return;
+    }
+
     window.location.assign(href);
   }
 
@@ -447,6 +454,10 @@ export function WorkspaceGraphCanvas({
     }
 
     event.preventDefault();
+    if (disableNodeNavigation) {
+      return;
+    }
+
     window.location.assign(href);
   }
 
@@ -608,9 +619,13 @@ export function WorkspaceGraphCanvas({
             return (
               <g
                 key={node.id}
-                role="link"
+                role={disableNodeNavigation ? "img" : "link"}
                 tabIndex={0}
-                aria-label={`Open ${node.title}`}
+                aria-label={
+                  disableNodeNavigation
+                    ? `${node.kind}: ${node.title}`
+                    : `Open ${node.title}`
+                }
                 onPointerDown={(event) => handleNodePointerDown(event, node.id)}
                 onPointerMove={handleNodePointerMove}
                 onPointerUp={handleNodePointerUp}
@@ -621,7 +636,10 @@ export function WorkspaceGraphCanvas({
                 onMouseLeave={() => setActiveId(null)}
                 onFocus={() => setActiveId(node.id)}
                 onBlur={() => setActiveId(null)}
-                className="cursor-pointer outline-none"
+                className={cn(
+                  "outline-none",
+                  disableNodeNavigation ? "cursor-grab" : "cursor-pointer",
+                )}
               >
                 <WorkspaceGraphNodeShape
                   node={node}

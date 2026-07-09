@@ -1,8 +1,14 @@
 import type {
   WorkspaceLogItem,
+  WorkspaceTaskOutput,
   WorkspaceTodoItem,
   WorkspaceWorkItem,
 } from "./data";
+import type {
+  WorkspaceLogLinkItem,
+  WorkspaceTaskLinkItem,
+  WorkspaceUiData,
+} from "./workspaceTypes";
 
 /** Guest Workspace preview only — not used as logged-in fallback mock. */
 export const previewDemoRepository = {
@@ -137,3 +143,52 @@ export const previewMemories = [
 ] as const;
 
 export type PreviewMemory = (typeof previewMemories)[number];
+
+export const previewOutputs: WorkspaceTaskOutput[] = [
+  {
+    id: "share-link-post",
+    taskId: "share-link",
+    taskIds: ["share-link"],
+    logIds: ["share-token-fix", "share-decision", "share-preview-issue"],
+    status: "draft",
+    title: "How we built read-only share links",
+    description: "from 3 logs",
+    content: `## Summary
+
+Share links stay read-only, expire on a UTC clock, and surface the note title in previews.`,
+    updatedLabel: "Today",
+  },
+];
+
+export const previewTaskLinks: WorkspaceTaskLinkItem[] = [
+  {
+    id: "preview-task-link-1",
+    fromTaskId: "share-link",
+    toTaskId: "search-notes",
+    relation: "RELATES_TO",
+  },
+];
+
+export const previewLogLinks: WorkspaceLogLinkItem[] = [
+  {
+    id: "preview-log-link-1",
+    fromLogId: "share-token-fix",
+    toLogId: "share-preview-issue",
+    relation: "FIXES",
+  },
+];
+
+/** Shared mock workspace for guest preview + landing graph demo. */
+export function getPreviewWorkspaceData(): WorkspaceUiData {
+  return {
+    workspaceId: "preview-demo",
+    workspaceName: "notes-app",
+    repositoryFullName: previewDemoRepository.fullName,
+    tasks: previewTasks,
+    logs: previewLogs,
+    todos: previewTodos,
+    outputs: previewOutputs,
+    taskLinks: previewTaskLinks,
+    logLinks: previewLogLinks,
+  };
+}

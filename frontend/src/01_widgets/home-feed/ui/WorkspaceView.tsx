@@ -34,6 +34,7 @@ import {
 import { LogTypeLabel } from "./LogTypeLabel";
 import {
   previewDemoRepository,
+  getPreviewWorkspaceData,
   previewLogs,
   previewMemories,
   previewTasks,
@@ -89,17 +90,7 @@ function WorkspaceDashboard({
   const todos = isPreview ? previewTodos : (workspaceData?.todos ?? []);
   const memories = isPreview ? previewMemories : workspaceMemories;
   const previewWorkspaceData: WorkspaceUiData | null | undefined = isPreview
-    ? {
-        workspaceId: "preview-demo",
-        workspaceName: "notes-app",
-        repositoryFullName: previewDemoRepository.fullName,
-        tasks: previewTasks,
-        logs: previewLogs,
-        todos: previewTodos,
-        outputs: [],
-        taskLinks: [],
-        logLinks: [],
-      }
+    ? getPreviewWorkspaceData()
     : workspaceData;
 
   return (
