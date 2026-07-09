@@ -170,10 +170,26 @@
   animation: landing-blink 1s step-end infinite;
 }
 
+.landing-block-enter {
+  animation: landing-block-enter 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @keyframes landing-line-in {
   from {
     opacity: 0;
     transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-block-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
 
   to {
@@ -230,7 +246,8 @@
   .landing-hero-word,
   .landing-cta-primary,
   .landing-nav-link::after,
-  .landing-terminal-line {
+  .landing-terminal-line,
+  .landing-block-enter {
     transition: none !important;
     animation: none !important;
     opacity: 1 !important;

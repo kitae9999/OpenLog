@@ -41,8 +41,11 @@ import {
 import {
   getPreviewReplayWorkspaceData,
   isPreviewHighlight,
+  PREVIEW_RESERVED_COUNTS,
   type PreviewReplayHighlight,
   type PreviewReplaySnapshot,
+  type SyncFillState,
+  type SyncFillZone,
 } from "./previewSessionReplay";
 import { WorkspaceGraphPreview } from "./WorkspaceGraphPreview";
 import { WorkspaceRepositoryLink } from "./WorkspaceRepositoryLink";
@@ -57,8 +60,68 @@ import type { WorkspaceUiData } from "./workspaceTypes";
 const PreviewReplayHighlightContext =
   createContext<PreviewReplayHighlight>({ kind: "none" });
 
+const PreviewSyncFillContext = createContext<SyncFillState>({
+  status: "idle",
+  reserved: { ...PREVIEW_RESERVED_COUNTS },
+  incomingIds: [],
+});
+
 function usePreviewReplayHighlight() {
   return useContext(PreviewReplayHighlightContext);
+}
+
+function usePreviewSyncFill() {
+  return useContext(PreviewSyncFillContext);
+}
+
+function isIncomingId(syncFill: SyncFillState, id: string) {
+  return (
+    (syncFill.status === "filling" || syncFill.status === "settled") &&
+    syncFill.incomingIds.includes(id)
+  );
+}
+
+function isZoneFetching(syncFill: SyncFillState, zone: SyncFillZone) {
+  return syncFill.status === "fetching" && syncFill.zone === zone;
+}
+
+/** Empty block body — reserves height with copy + CTA, no mock rows. */
+function EmptyPanel({
+  title,
+  body,
+  action,
+  fetching = false,
+  className,
+}: {
+  title: string;
+  body: string;
+  action?: ReactNode;
+  fetching?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-[7.5rem] flex-col justify-center px-[18px] py-4",
+        fetching && "sync-zone-fetching",
+        className,
+      )}
+    >
+      <p className="text-[13.5px] font-medium text-zinc-800">{title}</p>
+      <p className="mt-1 max-w-[36ch] text-[12.5px] leading-5 text-zinc-500">
+        {body}
+      </p>
+      {action ? <div className="mt-3">{action}</div> : null}
+    </div>
+  );
+}
+
+function NewUpdateBadge() {
+  return (
+    <span className="sync-new-badge" aria-label="Just updated">
+      New
+    </span>
+  );
 }
 
 export function WorkspaceView({
@@ -179,9 +242,15 @@ function WorkspaceDashboard({
       : null
     : workspaceData;
   const highlight = replaySnapshot?.highlight ?? { kind: "none" };
+  const syncFill = replaySnapshot?.syncFill ?? {
+    status: "idle" as const,
+    reserved: { ...PREVIEW_RESERVED_COUNTS },
+    incomingIds: [] as string[],
+  };
 
   return (
     <PreviewReplayHighlightContext.Provider value={highlight}>
+      <PreviewSyncFillContext.Provider value={syncFill}>
       <div className="space-y-3.5">
         {isPreview ? null : (
           <WorkspaceRepositoryLink
@@ -202,12 +271,16 @@ function WorkspaceDashboard({
                 isPreview
                 createTodoOverride={createTodoOverride}
               />
-              <PreviewOutputCard outputs={outputs} />
+              {(outputs.length > 0 ||
+                (syncFill.status === "fetching" &&
+                  syncFill.zone === "output")) && (
+                <PreviewOutputCard outputs={outputs} isPreview />
+              )}
               <GraphCard isPreview workspaceData={graphWorkspaceData} />
               <OpenIssuesCard logs={logs} isPreview />
-              {memories.length === 0 ? null : (
+              {memories.length > 0 ? (
                 <MemoryCard memories={memories} isPreview />
-              )}
+              ) : null}
             </div>
           </div>
         ) : (
@@ -231,6 +304,7 @@ function WorkspaceDashboard({
           </div>
         )}
       </div>
+      </PreviewSyncFillContext.Provider>
     </PreviewReplayHighlightContext.Provider>
   );
 }
@@ -245,6 +319,7 @@ function NowWorkingCard({
   isPreview?: boolean;
 }) {
   const highlight = usePreviewReplayHighlight();
+  const syncFill = usePreviewSyncFill();
   const task =
     tasks.find((item) => item.status === "doing") ??
     tasks.find((item) => item.status === "todo") ??
@@ -253,29 +328,33 @@ function NowWorkingCard({
     isPreview &&
     task != null &&
     isPreviewHighlight(highlight, "task", task.id);
+  const taskIncoming =
+    isPreview && task != null && isIncomingId(syncFill, task.id);
+  const tasksFetching = isZoneFetching(syncFill, "tasks");
 
   if (!task) {
     return (
       <DashboardCard
         title="NOW WORKING"
         action={<IconBranch className="size-[15px] text-zinc-400" />}
-        className={isPreview ? "preview-replay-enter" : undefined}
+        className={cn(tasksFetching && "sync-zone-fetching")}
         previewAnchor={isPreview ? "task" : undefined}
       >
-        <div className="px-[18px] pb-[18px] pt-3">
-          <p className="text-[13.5px] leading-6 text-zinc-500">
-            {isPreview
-              ? "Waiting for the agent to open a task…"
-              : "No active task yet."}
-          </p>
-          {!isPreview ? (
-            <div className="mt-3">
-              <LinkButton href={getNewTaskHref()} tone="outline" size="sm">
-                New task
-              </LinkButton>
-            </div>
-          ) : null}
-        </div>
+        <EmptyPanel
+          title="No task yet"
+          body="Start a task from your session, or create one to track what you're working on."
+          fetching={tasksFetching}
+          action={
+            <LinkButton
+              href={getNewTaskHref()}
+              tone="outline"
+              size="sm"
+              isPreview={isPreview}
+            >
+              New task
+            </LinkButton>
+          }
+        />
       </DashboardCard>
     );
   }
@@ -291,15 +370,12 @@ function NowWorkingCard({
     <DashboardCard
       title="NOW WORKING"
       action={<IconBranch className="size-[15px] text-zinc-400" />}
-      className={cn(
-        isPreview && "preview-replay-enter",
-        isHighlighted && "preview-replay-card-glow",
-      )}
       previewAnchor={isPreview ? "task" : undefined}
     >
       <div
         className={cn(
           "px-[18px] pb-[18px] pt-3",
+          taskIncoming && "sync-item-enter",
           isHighlighted && "preview-replay-highlight",
         )}
       >
@@ -307,6 +383,7 @@ function NowWorkingCard({
           <h2 className="text-[17px] font-bold tracking-[-0.01em] text-zinc-950">
             {task.title}
           </h2>
+          {taskIncoming ? <NewUpdateBadge /> : null}
           {latestLog?.branch ? <BranchBadge>{latestLog.branch}</BranchBadge> : null}
         </div>
 
@@ -372,7 +449,9 @@ function WorkTasksCard({
   logs: WorkspaceLogItem[];
   isPreview?: boolean;
 }) {
+  const syncFill = usePreviewSyncFill();
   const visibleTasks = isPreview ? tasks.slice(0, 3) : tasks;
+  const tasksFetching = isZoneFetching(syncFill, "tasks");
 
   return (
     <DashboardCard
@@ -385,12 +464,14 @@ function WorkTasksCard({
           isPreview={isPreview}
         />
       }
-      className={isPreview ? "preview-replay-enter" : undefined}
+      className={cn(tasksFetching && visibleTasks.length === 0 && "sync-zone-fetching")}
     >
       {visibleTasks.length === 0 ? (
-        <p className="px-[18px] pb-4 pt-2 text-[13px] leading-6 text-zinc-400">
-          Tasks appear as the session starts.
-        </p>
+        <EmptyPanel
+          title="No tasks"
+          body="Create a task to track work from your session."
+          fetching={tasksFetching}
+        />
       ) : (
         <PanelList>
           {visibleTasks.map((item) => (
@@ -425,8 +506,10 @@ function WorkItemRow({
   isPreview?: boolean;
 }) {
   const highlight = usePreviewReplayHighlight();
+  const syncFill = usePreviewSyncFill();
   const isHighlighted =
     isPreview && isPreviewHighlight(highlight, "task", item.id);
+  const isIncoming = isPreview && isIncomingId(syncFill, item.id);
   const statusLabel =
     item.status === "doing"
       ? "doing"
@@ -438,13 +521,13 @@ function WorkItemRow({
     <PanelItem
       align="start"
       className={cn(
-        isPreview && "preview-replay-enter",
+        isIncoming && "sync-item-enter",
         isHighlighted && "preview-replay-highlight",
       )}
     >
       <TaskStatusDot status={item.status} />
       <div className="min-w-0 flex-1">
-        <h3 className="text-[13px] font-semibold leading-[1.45] text-zinc-950">
+        <h3 className="flex flex-wrap items-center gap-2 text-[13px] font-semibold leading-[1.45] text-zinc-950">
           <PreviewableLink
             href={getTaskHref(item.id)}
             isPreview={isPreview}
@@ -453,6 +536,7 @@ function WorkItemRow({
           >
             {item.title}
           </PreviewableLink>
+          {isIncoming ? <NewUpdateBadge /> : null}
         </h3>
         <p className="mt-0.5 text-[12px] text-zinc-500">
           {statusLabel} · {logCount} log{logCount === 1 ? "" : "s"}
@@ -525,12 +609,18 @@ function TodosCard({
   createTodoOverride?: (title: string) => Promise<WorkspaceActionResult>;
 }) {
   const router = useRouter();
+  const syncFill = usePreviewSyncFill();
   const [isAdding, setIsAdding] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [localTodos, setLocalTodos] = useState(todos);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  const todosFetching =
+    isPreview &&
+    syncFill.status === "fetching" &&
+    (syncFill.zone === "todos" ||
+      syncFill.incomingIds.some((id) => id.includes("todo")));
 
   useEffect(() => {
     setLocalTodos(todos);
@@ -692,7 +782,6 @@ function TodosCard({
       title="TODOS"
       testId="todos-card"
       headerClassName="pb-2.5"
-      className={isPreview ? "preview-replay-enter" : undefined}
       previewAnchor={isPreview ? "todos" : undefined}
       action={
         <span className="text-[11px] font-medium tabular-nums text-zinc-400">
@@ -702,16 +791,18 @@ function TodosCard({
     >
       <div className="divide-y divide-zinc-100">
         {localTodos.length === 0 && !isAdding ? (
-          <p className="px-[18px] py-3 text-[12px] text-zinc-400">
-            {isPreview
-              ? "Todos appear from decisions and fixes."
-              : "What's on for today?"}
-          </p>
+          <EmptyPanel
+            title="No todos"
+            body="Add a todo for today, or let decisions from your session land here."
+            fetching={todosFetching}
+            className="min-h-[6.5rem]"
+          />
         ) : null}
         {localTodos.map((todo) => (
           <TodoRow
             key={todo.id}
             todo={todo}
+            isPreview={isPreview}
             disabled={
               isPreview || isPending || todo.id.startsWith("pending-")
             }
@@ -841,18 +932,25 @@ function TodoPanelRow({
 function TodoRow({
   todo,
   disabled = false,
+  isPreview = false,
   onToggle,
   onRemove,
 }: {
   todo: WorkspaceTodoItem;
   disabled?: boolean;
+  isPreview?: boolean;
   onToggle?: () => void;
   onRemove?: () => void;
 }) {
+  const syncFill = usePreviewSyncFill();
   const hasDescription = Boolean(todo.description);
+  const isIncoming = isPreview && isIncomingId(syncFill, todo.id);
 
   return (
-    <TodoPanelRow multiline={hasDescription} className="group">
+    <TodoPanelRow
+      multiline={hasDescription}
+      className={cn("group", isIncoming && "sync-item-enter")}
+    >
       <button
         type="button"
         data-testid="todo-checkbox"
@@ -875,12 +973,15 @@ function TodoRow({
         <p
           data-testid="todo-title"
           className={cn(
-            "m-0 text-[13px] font-semibold leading-5 text-zinc-950",
+            "m-0 flex flex-wrap items-center gap-2 text-[13px] font-semibold leading-5 text-zinc-950",
             !hasDescription && "truncate",
             todo.done && "text-zinc-400 line-through",
           )}
         >
-          {todo.title}
+          <span className={!hasDescription ? "truncate" : undefined}>
+            {todo.title}
+          </span>
+          {isIncoming ? <NewUpdateBadge /> : null}
         </p>
         {todo.description ? (
           <p className="mt-0.5 text-[12px] leading-4 text-zinc-500">
@@ -918,8 +1019,10 @@ function RecentLogsCard({
   logs: WorkspaceLogItem[];
   isPreview?: boolean;
 }) {
+  const syncFill = usePreviewSyncFill();
   const unassignedCount = logs.filter((log) => !log.taskId).length;
   const visibleLogs = isPreview ? logs.slice(0, 4) : logs;
+  const logsFetching = isZoneFetching(syncFill, "logs");
 
   return (
     <DashboardCard
@@ -931,7 +1034,9 @@ function RecentLogsCard({
           isPreview={isPreview}
         />
       }
-      className={isPreview ? "preview-replay-enter" : undefined}
+      className={cn(
+        logsFetching && visibleLogs.length === 0 && "sync-zone-fetching",
+      )}
       previewAnchor={isPreview ? "logs" : undefined}
     >
       {unassignedCount > 0 ? (
@@ -940,9 +1045,11 @@ function RecentLogsCard({
         </p>
       ) : null}
       {visibleLogs.length === 0 ? (
-        <p className="px-[18px] pb-4 pt-2 text-[13px] leading-6 text-zinc-400">
-          Captures land here as the agent works.
-        </p>
+        <EmptyPanel
+          title="No logs yet"
+          body="Captures from your session will show up here."
+          fetching={logsFetching}
+        />
       ) : (
         <div className="pb-1.5 pt-1.5">
           {visibleLogs.map((item) => (
@@ -959,6 +1066,14 @@ function RecentLogsCard({
           ))}
         </div>
       )}
+      <PreviewableLink
+        href={getNewLogHref()}
+        isPreview={isPreview}
+        className="block border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        previewClassName="block cursor-default border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-300"
+      >
+        + New log
+      </PreviewableLink>
     </DashboardCard>
   );
 }
@@ -1122,50 +1237,76 @@ function GraphCard({
   );
 }
 
-function PreviewOutputCard({ outputs }: { outputs: WorkspaceTaskOutput[] }) {
+function PreviewOutputCard({
+  outputs,
+  isPreview = false,
+}: {
+  outputs: WorkspaceTaskOutput[];
+  isPreview?: boolean;
+}) {
   const highlight = usePreviewReplayHighlight();
+  const syncFill = usePreviewSyncFill();
   const output = outputs[0];
-
-  if (!output) {
-    return null;
-  }
-
-  const isHighlighted = isPreviewHighlight(highlight, "output", output.id);
+  const outputFetching = isZoneFetching(syncFill, "output");
+  const isIncoming =
+    isPreview && output != null && isIncomingId(syncFill, output.id);
+  const isHighlighted =
+    output != null && isPreviewHighlight(highlight, "output", output.id);
 
   return (
     <DashboardCard
       title="OUTPUT DRAFT"
       className={cn(
-        "preview-replay-enter",
         isHighlighted && "preview-replay-card-glow",
+        outputFetching && !output && "sync-zone-fetching",
       )}
       previewAnchor="output"
     >
-      <article
-        className={cn(
-          "px-[18px] pb-4 pt-2",
-          isHighlighted && "preview-replay-highlight",
-        )}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
-            Draft
-          </span>
-          <span className="text-[11.5px] text-zinc-400">
-            {output.description}
-          </span>
-        </div>
-        <h3 className="mt-2 text-[15px] font-semibold tracking-[-0.01em] text-zinc-950">
-          {output.title}
-        </h3>
-        <p className="mt-1.5 text-[12.5px] leading-5 text-zinc-500">
-          {output.content?.replace(/^## Summary\n\n/, "") ??
-            "Linked logs are ready to publish."}
-        </p>
-        <p className="mt-2 text-[11.5px] text-zinc-400">
-          Updated {output.updatedLabel}
-        </p>
-      </article>
+      {output ? (
+        <article
+          className={cn(
+            "px-[18px] pb-4 pt-2",
+            isIncoming && "sync-item-enter",
+            isHighlighted && "preview-replay-highlight",
+          )}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+              Draft
+            </span>
+            {isIncoming ? <NewUpdateBadge /> : null}
+            <span className="text-[11.5px] text-zinc-400">
+              {output.description}
+            </span>
+          </div>
+          <h3 className="mt-2 text-[15px] font-semibold tracking-[-0.01em] text-zinc-950">
+            {output.title}
+          </h3>
+          <p className="mt-1.5 text-[12.5px] leading-5 text-zinc-500">
+            {output.content?.replace(/^## Summary\n\n/, "") ??
+              "Linked logs are ready to publish."}
+          </p>
+          <p className="mt-2 text-[11.5px] text-zinc-400">
+            Updated {output.updatedLabel}
+          </p>
+        </article>
+      ) : (
+        <EmptyPanel
+          title="No draft yet"
+          body="Linked logs can become a publish-ready draft when you're ready."
+          fetching={outputFetching}
+          action={
+            <LinkButton
+              href={getNewOutputHref()}
+              tone="outline"
+              size="sm"
+              isPreview={isPreview}
+            >
+              Create output
+            </LinkButton>
+          }
+        />
+      )}
     </DashboardCard>
   );
 }
@@ -1192,7 +1333,6 @@ function OpenIssuesCard({
       action={
         <HeaderLink href={getLogsHref("issues")} isPreview={isPreview} />
       }
-      className={isPreview ? "preview-replay-enter" : undefined}
     >
       <PanelList>
         {visibleIssues.map((issue) => (
@@ -1223,14 +1363,16 @@ function WorkspaceLogRow({
   isPreview?: boolean;
 }) {
   const highlight = usePreviewReplayHighlight();
+  const syncFill = usePreviewSyncFill();
   const isHighlighted =
     isPreview && isPreviewHighlight(highlight, "log", item.id);
+  const isIncoming = isPreview && isIncomingId(syncFill, item.id);
 
   return (
     <article
       className={cn(
         "border-t border-zinc-100 px-[18px] py-3 first:border-t-0",
-        isPreview && "preview-replay-enter",
+        isIncoming && "sync-item-enter",
         isHighlighted && "preview-replay-highlight",
       )}
     >
@@ -1247,6 +1389,7 @@ function WorkspaceLogRow({
                 {item.title}
               </PreviewableLink>
             </h3>
+            {isIncoming ? <NewUpdateBadge /> : null}
           </div>
           <p className="mt-0.5 text-[12.5px] leading-5 text-zinc-500">
             {item.description}
@@ -1309,40 +1452,64 @@ function MemoryCard({
   isPreview?: boolean;
 }) {
   const highlight = usePreviewReplayHighlight();
+  const syncFill = usePreviewSyncFill();
   const isHighlighted = isPreview && isPreviewHighlight(highlight, "memory");
+  const memoryIncoming = isPreview && isIncomingId(syncFill, "memory");
+  const memoryFetching =
+    isPreview &&
+    syncFill.status === "fetching" &&
+    (syncFill.zone === "memory" ||
+      (syncFill.zone === "output" && memories.length === 0));
+
+  if (!isPreview && memories.length === 0) {
+    return null;
+  }
 
   return (
     <DashboardCard
       title="PROJECT MEMORY"
       className={cn(
-        isPreview && "preview-replay-enter",
         isHighlighted && "preview-replay-card-glow",
+        memoryFetching && memories.length === 0 && "sync-zone-fetching",
       )}
     >
-      <div
-        className={cn(
-          "pb-2 pt-1",
-          isHighlighted && "preview-replay-highlight",
-        )}
-      >
-        {memories.map((memory) => (
-          <article
-            key={memory.title}
-            className="border-t border-zinc-100 px-[18px] py-2.5 first:border-t-0"
-          >
-            <h3 className="text-[13px] font-semibold text-zinc-950">
-              {memory.title}
-            </h3>
-            <p className="mt-0.5 text-[12px] leading-5 text-zinc-500">
-              {memory.description}
-            </p>
-            <div className="mt-1.5 flex gap-2.5 font-mono text-[10.5px] text-zinc-400">
-              <span>{memory.source}</span>
-              <span>{memory.reads}</span>
-            </div>
-          </article>
-        ))}
-      </div>
+      {memories.length === 0 ? (
+        <EmptyPanel
+          title="No memory yet"
+          body="Decisions and patterns from your work will collect here over time."
+          fetching={memoryFetching}
+          className="min-h-[6.5rem]"
+        />
+      ) : (
+        <div
+          className={cn(
+            "pb-2 pt-1",
+            memoryIncoming && "sync-item-enter",
+            isHighlighted && "preview-replay-highlight",
+          )}
+        >
+          {memories.map((memory) => (
+            <article
+              key={memory.title}
+              className="border-t border-zinc-100 px-[18px] py-2.5 first:border-t-0"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-[13px] font-semibold text-zinc-950">
+                  {memory.title}
+                </h3>
+                {memoryIncoming ? <NewUpdateBadge /> : null}
+              </div>
+              <p className="mt-0.5 text-[12px] leading-5 text-zinc-500">
+                {memory.description}
+              </p>
+              <div className="mt-1.5 flex gap-2.5 font-mono text-[10.5px] text-zinc-400">
+                <span>{memory.source}</span>
+                <span>{memory.reads}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </DashboardCard>
   );
 }

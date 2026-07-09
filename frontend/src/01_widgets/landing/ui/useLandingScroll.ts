@@ -58,32 +58,34 @@ export function useActiveSection(ids: readonly string[]) {
   const [activeId, setActiveId] = useState<string>(ids[0] ?? "");
 
   useEffect(() => {
-    const elements = ids
-      .map((id) => document.getElementById(id))
-      .filter((el): el is HTMLElement => Boolean(el));
+    // Scroll-position spy (document order) — more stable than max
+    // intersectionRatio when section heights change during demos.
+    function update() {
+      const marker = window.scrollY + window.innerHeight * 0.32;
+      let next = ids[0] ?? "";
 
-    if (elements.length === 0) {
-      return;
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (!el) {
+          continue;
+        }
+        if (el.offsetTop <= marker) {
+          next = id;
+        } else {
+          break;
+        }
+      }
+
+      setActiveId((current) => (current === next ? current : next));
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-
-        if (visible[0]?.target.id) {
-          setActiveId(visible[0].target.id);
-        }
-      },
-      {
-        rootMargin: "-35% 0px -45% 0px",
-        threshold: [0.1, 0.35, 0.6],
-      },
-    );
-
-    elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
   }, [ids]);
 
   return activeId;

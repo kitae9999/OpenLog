@@ -41,7 +41,8 @@ export function WorkspaceGraphPreview({
       <WorkspaceGraphCanvas
         graph={graph}
         heightClassName={heightClassName}
-        initialScale={2.5}
+        // Zoom into the seeded center so the settling cluster stays in frame.
+        initialScale={1.85}
         emptyTitle="No graph data yet"
         emptyDescription="Create a task or log to start the workspace graph."
       />

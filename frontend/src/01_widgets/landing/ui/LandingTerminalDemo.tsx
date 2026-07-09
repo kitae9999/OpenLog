@@ -14,6 +14,16 @@ type Block =
   | { kind: "tool"; name: string; arg: string }
   | { kind: "result"; lines: string[] };
 
+/** Stages the mini browser can react to (product live-sync shaped). */
+export type LandingTerminalStage =
+  | { type: "idle" }
+  | { type: "log_fetching" }
+  | {
+      type: "log_appended";
+      block: { id: string; title: string; meta: string };
+    }
+  | { type: "done" };
+
 const blocks: Block[] = [
   { kind: "welcome" },
   {
@@ -51,13 +61,75 @@ const blocks: Block[] = [
   },
 ];
 
-export function LandingTerminalDemo() {
+const OPENLOG_LOG_BLOCK = {
+  id: "demo-log-expiry-utc",
+  title: "Expiry checks must compare UTC",
+  meta: "share-link · a1b2c3d",
+} as const;
+
+function stageForVisibleCount(count: number): LandingTerminalStage {
+  // openlog tool is index 5 → fetching while that tool line is on screen.
+  if (count >= 8) {
+    return { type: "done" };
+  }
+  if (count >= 7) {
+    return { type: "log_appended", block: { ...OPENLOG_LOG_BLOCK } };
+  }
+  if (count >= 6) {
+    return { type: "log_fetching" };
+  }
+  return { type: "idle" };
+}
+
+function delayAfterCount(visibleCount: number): number {
+  // Hold on the block that was just revealed (visibleCount - 1), not the next one.
+  const justRevealed =
+    visibleCount > 0 ? blocks[visibleCount - 1] : undefined;
+
+  if (visibleCount === 0) {
+    return 500;
+  }
+  // Keep corner Fetching toast on screen long enough to notice.
+  if (justRevealed?.kind === "tool" && justRevealed.name === "openlog") {
+    return 2200;
+  }
+  if (justRevealed?.kind === "result") {
+    return 520;
+  }
+  if (justRevealed?.kind === "prompt") {
+    return 700;
+  }
+  if (justRevealed?.kind === "tool") {
+    return 640;
+  }
+  return 480;
+}
+
+function isRevealActive(el: HTMLElement) {
+  const reveal = el.closest(".landing-reveal");
+  // No reveal wrapper → treat as visible.
+  if (!reveal) {
+    return true;
+  }
+  return reveal.classList.contains("is-active");
+}
+
+export function LandingTerminalDemo({
+  onStage,
+  className,
+}: {
+  onStage?: (stage: LandingTerminalStage) => void;
+  className?: string;
+}) {
   const reducedMotion = usePrefersReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
+  const onStageRef = useRef(onStage);
   const [visibleCount, setVisibleCount] = useState(
     reducedMotion ? blocks.length : 0,
   );
   const [started, setStarted] = useState(reducedMotion);
+
+  onStageRef.current = onStage;
 
   useEffect(() => {
     if (reducedMotion) {
@@ -71,38 +143,92 @@ export function LandingTerminalDemo() {
       return;
     }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
+    let cancelled = false;
+    let startTimer: number | null = null;
+
+    const begin = () => {
+      if (cancelled || startTimer !== null) {
+        return;
+      }
+      // Brief beat after the section fades in so the empty browser is seen first.
+      startTimer = window.setTimeout(() => {
+        if (!cancelled) {
           setStarted(true);
-          observer.disconnect();
+        }
+      }, 450);
+    };
+
+    const tryStart = () => {
+      if (!isRevealActive(root)) {
+        return false;
+      }
+      const rect = root.getBoundingClientRect();
+      const inView =
+        rect.top < window.innerHeight * 0.85 &&
+        rect.bottom > window.innerHeight * 0.15;
+      if (!inView) {
+        return false;
+      }
+      begin();
+      return true;
+    };
+
+    if (tryStart()) {
+      return () => {
+        cancelled = true;
+        if (startTimer !== null) {
+          window.clearTimeout(startTimer);
+        }
+      };
+    }
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting && isRevealActive(root)) {
+          begin();
+          io.disconnect();
         }
       },
-      { threshold: 0.35 },
+      { threshold: 0.2, rootMargin: "0px 0px -10% 0px" },
     );
+    io.observe(root);
 
-    observer.observe(root);
-    return () => observer.disconnect();
+    // Section reveal uses a class toggle — watch that too.
+    const reveal = root.closest(".landing-reveal");
+    const mo =
+      reveal &&
+      new MutationObserver(() => {
+        if (tryStart()) {
+          io.disconnect();
+          mo.disconnect();
+        }
+      });
+    if (reveal && mo) {
+      mo.observe(reveal, { attributes: true, attributeFilter: ["class"] });
+    }
+
+    return () => {
+      cancelled = true;
+      if (startTimer !== null) {
+        window.clearTimeout(startTimer);
+      }
+      io.disconnect();
+      mo?.disconnect();
+    };
   }, [reducedMotion]);
+
+  useEffect(() => {
+    onStageRef.current?.(stageForVisibleCount(visibleCount));
+  }, [visibleCount]);
 
   useEffect(() => {
     if (!started || reducedMotion || visibleCount >= blocks.length) {
       return;
     }
 
-    const nextBlock = blocks[visibleCount];
-    // Results snap in right after their tool call; prompts pause a beat longer.
-    const delay =
-      visibleCount === 0
-        ? 260
-        : nextBlock?.kind === "result"
-          ? 260
-          : nextBlock?.kind === "prompt"
-            ? 620
-            : 460;
     const timer = window.setTimeout(() => {
       setVisibleCount((count) => count + 1);
-    }, delay);
+    }, delayAfterCount(visibleCount));
 
     return () => window.clearTimeout(timer);
   }, [started, reducedMotion, visibleCount]);
@@ -112,7 +238,10 @@ export function LandingTerminalDemo() {
   return (
     <div
       ref={rootRef}
-      className="landing-mono overflow-hidden rounded-xl border border-zinc-800 bg-[#0d0d0f] text-[12.5px] leading-6 text-zinc-300 shadow-[0_24px_60px_-28px_rgba(0,0,0,0.6)]"
+      className={cn(
+        "landing-mono overflow-hidden rounded-xl border border-zinc-800 bg-[#0d0d0f] text-[12.5px] leading-6 text-zinc-300 shadow-[0_24px_60px_-28px_rgba(0,0,0,0.6)]",
+        className,
+      )}
     >
       <div className="flex items-center gap-2 border-b border-zinc-800/80 px-4 py-3">
         <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
@@ -124,7 +253,7 @@ export function LandingTerminalDemo() {
         </span>
       </div>
 
-      <div className="min-h-[21rem] space-y-2.5 px-4 py-4">
+      <div className="min-h-[24rem] space-y-2.5 px-4 py-4">
         {blocks.slice(0, visibleCount).map((block, index) => (
           <div key={index} className="landing-terminal-line">
             <TerminalBlock block={block} />

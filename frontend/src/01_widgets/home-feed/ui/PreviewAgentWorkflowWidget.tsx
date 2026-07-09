@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/shared/lib/cn";
+import { FetchingIndicator } from "@/shared/ui/sync";
 import type {
   PreviewAgentLine,
   PreviewReplaySnapshot,
@@ -15,6 +16,8 @@ import type {
 } from "./previewSessionReplay";
 import { PREVIEW_STAGE_PILLS } from "./previewSessionReplay";
 import type { PreviewSessionReplayControls } from "./usePreviewSessionReplay";
+
+const FETCH_TOAST_EXIT_MS = 380;
 
 export function PreviewAgentWorkflowWidget({
   replay,
@@ -209,28 +212,72 @@ function BrowserWindow({
   snapshot: PreviewReplaySnapshot;
   reducedMotion: boolean;
 }) {
+  const shellRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const scaleRef = useRef(1);
+  const canvasHeightRef = useRef(0);
+  const lastScrollKeyRef = useRef("");
   const [scale, setScale] = useState(1);
   const [canvasHeight, setCanvasHeight] = useState(0);
+  const isFetching = snapshot.syncFill.status === "fetching";
+  const [toastMounted, setToastMounted] = useState(false);
+  const [toastExiting, setToastExiting] = useState(false);
+  const wasFetchingRef = useRef(false);
 
+  useEffect(() => {
+    if (reducedMotion) {
+      setToastMounted(false);
+      setToastExiting(false);
+      wasFetchingRef.current = false;
+      return;
+    }
+
+    if (isFetching) {
+      wasFetchingRef.current = true;
+      setToastMounted(true);
+      setToastExiting(false);
+      return;
+    }
+
+    if (!wasFetchingRef.current || !toastMounted) {
+      return;
+    }
+
+    setToastExiting(true);
+    const timer = window.setTimeout(() => {
+      setToastMounted(false);
+      setToastExiting(false);
+      wasFetchingRef.current = false;
+    }, FETCH_TOAST_EXIT_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [isFetching, toastMounted, reducedMotion]);
+
+  // Measure scale from the non-scrolling shell so scrollbar appearance
+  // cannot change clientWidth and re-trigger scale ↔ height oscillation.
   useLayoutEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) {
+    const shell = shellRef.current;
+    if (!shell) {
       return;
     }
 
     function measureScale() {
-      const width = stageRef.current?.clientWidth ?? 0;
+      const width = shellRef.current?.clientWidth ?? 0;
       if (width <= 0) {
         return;
       }
-      setScale(Math.min(1, width / PREVIEW_BROWSER_FULL_WIDTH));
+      const next = Math.min(1, width / PREVIEW_BROWSER_FULL_WIDTH);
+      if (Math.abs(next - scaleRef.current) < 0.001) {
+        return;
+      }
+      scaleRef.current = next;
+      setScale(next);
     }
 
     measureScale();
     const observer = new ResizeObserver(measureScale);
-    observer.observe(stage);
+    observer.observe(shell);
     return () => observer.disconnect();
   }, []);
 
@@ -242,6 +289,11 @@ function BrowserWindow({
 
     function measureHeight() {
       const next = canvasRef.current?.scrollHeight ?? 0;
+      // Ignore sub-pixel churn from fonts/borders during capture updates.
+      if (Math.abs(next - canvasHeightRef.current) < 2) {
+        return;
+      }
+      canvasHeightRef.current = next;
       setCanvasHeight(next);
     }
 
@@ -258,6 +310,8 @@ function BrowserWindow({
     snapshot.memories.length,
   ]);
 
+  // Scroll only when the demo focus target changes — not on every
+  // height/scale remeasure (that loop is what made Capture vibrate).
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) {
@@ -265,11 +319,16 @@ function BrowserWindow({
     }
 
     const target = snapshot.cursorTarget;
+    const scrollKey = `${snapshot.stepId}:${target}:${snapshot.logs.length}:${snapshot.outputs.length}`;
+    if (scrollKey === lastScrollKeyRef.current) {
+      return;
+    }
+    lastScrollKeyRef.current = scrollKey;
+
     const behavior: ScrollBehavior = reducedMotion ? "auto" : "smooth";
 
     const frame = window.requestAnimationFrame(() => {
       if (target === "none" || target === "prompt") {
-        stage.scrollTo({ top: stage.scrollHeight, behavior });
         return;
       }
 
@@ -284,20 +343,14 @@ function BrowserWindow({
         stage.scrollTo({ top: Math.max(0, nextTop), behavior });
         return;
       }
-
-      stage.scrollTo({ top: stage.scrollHeight, behavior });
     });
 
     return () => window.cancelAnimationFrame(frame);
   }, [
     snapshot.cursorTarget,
     snapshot.stepId,
-    snapshot.tasks.length,
     snapshot.logs.length,
     snapshot.outputs.length,
-    snapshot.todos.length,
-    canvasHeight,
-    scale,
     reducedMotion,
   ]);
 
@@ -338,29 +391,40 @@ function BrowserWindow({
         </div>
       </div>
 
-      <div
-        ref={stageRef}
-        inert
-        data-testid="guest-preview-browser-stage"
-        className="preview-workspace-stage min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--app-canvas)]"
-      >
+      <div ref={shellRef} className="relative min-h-0 flex-1">
         <div
-          className="relative w-full"
-          style={{ height: Math.max(canvasHeight * scale, 1) }}
+          ref={stageRef}
+          inert
+          data-testid="guest-preview-browser-stage"
+          className="preview-workspace-stage h-full min-h-0 overflow-y-auto overscroll-contain bg-[var(--app-canvas)] [scrollbar-gutter:stable]"
         >
           <div
-            ref={canvasRef}
-            data-testid="guest-preview-fullsize-canvas"
-            data-preview-scale={scale.toFixed(3)}
-            className="origin-top-left"
-            style={{
-              width: PREVIEW_BROWSER_FULL_WIDTH,
-              transform: `scale(${scale})`,
-            }}
+            className="relative w-full overflow-hidden"
+            style={{ height: Math.max(canvasHeight * scale, 1) }}
           >
-            <div className="p-4">{children}</div>
+            <div
+              ref={canvasRef}
+              data-testid="guest-preview-fullsize-canvas"
+              data-preview-scale={scale.toFixed(3)}
+              className="origin-top-left"
+              style={{
+                width: PREVIEW_BROWSER_FULL_WIDTH,
+                transform: `scale(${scale})`,
+              }}
+            >
+              <div className="p-4">{children}</div>
+            </div>
           </div>
         </div>
+
+        {toastMounted ? (
+          <FetchingIndicator
+            exiting={toastExiting}
+            // Clear stable scrollbar gutter (~15px) + padding so the chip
+            // does not sit on top of the track.
+            className="absolute right-7 bottom-3 z-20"
+          />
+        ) : null}
       </div>
     </div>
   );

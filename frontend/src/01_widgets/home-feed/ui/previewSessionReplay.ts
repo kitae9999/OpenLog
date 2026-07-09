@@ -40,6 +40,13 @@ export const PREVIEW_STAGE_PILLS = [
 
 export type PreviewStageId = (typeof PREVIEW_STAGE_PILLS)[number]["id"];
 
+const PREVIEW_STAGE_ORDER: readonly PreviewStageId[] =
+  PREVIEW_STAGE_PILLS.map((pill) => pill.id);
+
+function previewStageIndex(stageId: PreviewStageId): number {
+  return PREVIEW_STAGE_ORDER.indexOf(stageId);
+}
+
 export function getPreviewStageId(
   stepId: PreviewReplayStepId,
 ): PreviewStageId {
@@ -59,6 +66,14 @@ export function getPreviewStageId(
     case "complete":
       return "link";
   }
+}
+
+/** Stage pills only move forward within a playback pass. */
+export function advancePreviewStageId(
+  current: PreviewStageId,
+  next: PreviewStageId,
+): PreviewStageId {
+  return previewStageIndex(next) >= previewStageIndex(current) ? next : current;
 }
 
 export type PreviewReplayHighlight =
@@ -142,6 +157,38 @@ export type PreviewDemoEvent =
       showCta?: boolean;
     };
 
+/** Demo pre-allocates final rail counts so the browser does not grow per item. */
+export const PREVIEW_RESERVED_COUNTS = {
+  tasks: 2,
+  logs: 4,
+  todos: 2,
+  output: 1,
+  memory: 1,
+} as const;
+
+export type SyncFillZone =
+  | "logs"
+  | "tasks"
+  | "todos"
+  | "output"
+  | "memory";
+
+export type SyncFillState = {
+  status: "idle" | "fetching" | "filling" | "settled";
+  zone?: SyncFillZone;
+  reserved: {
+    tasks: number;
+    logs: number;
+    todos: number;
+    output: number;
+    memory: number;
+  };
+  /** Among empty rails in the active zone, which one pulses (usually 0). */
+  pendingSlotIndex?: number;
+  /** Ids that should play enter animation this frame. */
+  incomingIds: string[];
+};
+
 export type PreviewReplaySnapshot = {
   stepId: PreviewReplayStepId;
   stageId: PreviewStageId;
@@ -167,6 +214,41 @@ export type PreviewReplaySnapshot = {
   logLinks: WorkspaceLogLinkItem[];
   highlight: PreviewReplayHighlight;
   showCta: boolean;
+  /** Fetching → reserved-slot fill (demo + product-shaped). */
+  syncFill: SyncFillState;
+};
+
+/** Terminal lines that mean “browser is about to receive a sync”. */
+const SYNC_INTENT_BY_LINE: Record<
+  string,
+  { zone: SyncFillZone; incomingIds: string[] }
+> = {
+  "tool-task": { zone: "tasks", incomingIds: ["guest-preview"] },
+  "ok-task": { zone: "tasks", incomingIds: ["guest-preview"] },
+  "tool-issue": { zone: "logs", incomingIds: ["preview-issue"] },
+  "ok-issue": { zone: "logs", incomingIds: ["preview-issue"] },
+  "tool-decision": { zone: "logs", incomingIds: ["preview-decision"] },
+  "ok-decision": { zone: "logs", incomingIds: ["preview-decision"] },
+  "tool-fix": {
+    zone: "logs",
+    incomingIds: ["preview-fix", "preview-todo-overlay"],
+  },
+  "ok-fix": {
+    zone: "logs",
+    incomingIds: ["preview-fix", "preview-todo-overlay"],
+  },
+  "tool-draft": {
+    zone: "output",
+    incomingIds: ["guest-preview-post", "preview-todo-ship", "memory"],
+  },
+  "ok-draft": {
+    zone: "output",
+    incomingIds: ["guest-preview-post", "preview-todo-ship", "memory"],
+  },
+  done: {
+    zone: "tasks",
+    incomingIds: ["workspace-switcher", "switcher-done"],
+  },
 };
 
 const guestTask = previewTasks.find((task) => task.id === "guest-preview")!;
@@ -425,7 +507,7 @@ export const PREVIEW_DEMO_EVENTS: readonly PreviewDemoEvent[] = [
   {
     type: "agent_line",
     lineId: "ok-task",
-    holdMs: 700,
+    holdMs: 1100,
     clock: "14:02",
     agentStatus: "Running",
     cursor: "task",
@@ -453,7 +535,7 @@ export const PREVIEW_DEMO_EVENTS: readonly PreviewDemoEvent[] = [
     holdMs: 1200,
     clock: "14:05",
     agentStatus: "Thinking",
-    stepId: "chat",
+    // Keep stage on task — do not rewind the status bar to chat.
   },
   {
     type: "agent_line",
@@ -529,7 +611,7 @@ export const PREVIEW_DEMO_EVENTS: readonly PreviewDemoEvent[] = [
   {
     type: "agent_line",
     lineId: "ok-issue",
-    holdMs: 800,
+    holdMs: 1100,
     clock: "14:10",
     agentStatus: "Running",
     cursor: "logs",
@@ -572,7 +654,7 @@ export const PREVIEW_DEMO_EVENTS: readonly PreviewDemoEvent[] = [
   {
     type: "agent_line",
     lineId: "ok-decision",
-    holdMs: 800,
+    holdMs: 1100,
     clock: "15:40",
     agentStatus: "Running",
     cursor: "logs",
@@ -607,7 +689,7 @@ export const PREVIEW_DEMO_EVENTS: readonly PreviewDemoEvent[] = [
   {
     type: "agent_line",
     lineId: "ok-fix",
-    holdMs: 800,
+    holdMs: 1100,
     clock: "16:18",
     agentStatus: "Running",
     cursor: "graph",
@@ -643,7 +725,7 @@ export const PREVIEW_DEMO_EVENTS: readonly PreviewDemoEvent[] = [
   {
     type: "agent_line",
     lineId: "ok-draft",
-    holdMs: 900,
+    holdMs: 1200,
     clock: "16:22",
     agentStatus: "Drafting",
     cursor: "output",
@@ -820,11 +902,20 @@ export function getPreviewReplaySnapshot(
   const transcript: PreviewAgentLine[] = [];
   let visible = EMPTY_VISIBLE;
   let stepId: PreviewReplayStepId = "boot";
+  let stageId: PreviewStageId = "launch";
   let caption = "";
   let clock = "13:57";
   let agentStatus = "Ready";
   let highlight: PreviewReplayHighlight = { kind: "none" };
   let cursorTarget: PreviewCursorTarget = "none";
+  let syncFill: SyncFillState = {
+    status: "idle",
+    reserved: { ...PREVIEW_RESERVED_COUNTS },
+    incomingIds: [],
+  };
+  /** Last committed workspace visible — used to detect filling deltas. */
+  let previousVisible = EMPTY_VISIBLE;
+  let lastWorkspaceIncoming: string[] = [];
 
   for (let i = 0; i <= eventIndex; i += 1) {
     const event = PREVIEW_DEMO_EVENTS[i]!;
@@ -836,6 +927,11 @@ export function getPreviewReplaySnapshot(
       cursorTarget = "none";
       caption = "";
       if (isCurrent) {
+        syncFill = {
+          status: "idle",
+          reserved: { ...PREVIEW_RESERVED_COUNTS },
+          incomingIds: [],
+        };
         const count = Math.min(
           event.text.length,
           Number.isFinite(state.typedChars)
@@ -858,6 +954,13 @@ export function getPreviewReplaySnapshot(
       caption = "";
       shellText = PREVIEW_SHELL_COMMAND;
       shellComplete = true;
+      if (isCurrent) {
+        syncFill = {
+          status: "idle",
+          reserved: { ...PREVIEW_RESERVED_COUNTS },
+          incomingIds: [],
+        };
+      }
 
       const fullText = event.text;
       if (isCurrent) {
@@ -893,23 +996,60 @@ export function getPreviewReplaySnapshot(
       }
       if (event.stepId) {
         stepId = event.stepId;
+        stageId = advancePreviewStageId(stageId, getPreviewStageId(stepId));
       }
       const line = agentLineById.get(event.lineId);
       if (line && !transcript.some((item) => item.id === line.id)) {
         transcript.push(line);
       }
+
+      const intent = SYNC_INTENT_BY_LINE[event.lineId];
+      if (intent) {
+        // Fetching while tool/ok is on screen and before the matching workspace commit.
+        // Keep intended ids so secondary zones (e.g. todos) can pulse their next rail.
+        if (isCurrent) {
+          syncFill = {
+            status: "fetching",
+            zone: intent.zone,
+            reserved: { ...PREVIEW_RESERVED_COUNTS },
+            pendingSlotIndex: 0,
+            incomingIds: intent.incomingIds,
+          };
+        }
+      } else if (isCurrent) {
+        syncFill = {
+          status: "idle",
+          reserved: { ...PREVIEW_RESERVED_COUNTS },
+          incomingIds: [],
+        };
+      }
       continue;
     }
+
+    // workspace commit
+    const incomingIds = diffIncomingIds(previousVisible, event.visible);
+    previousVisible = event.visible;
+    lastWorkspaceIncoming = incomingIds;
 
     clock = event.clock;
     agentStatus = event.agentStatus;
     stepId = event.stepId;
+    stageId = advancePreviewStageId(stageId, getPreviewStageId(stepId));
     caption = event.caption;
     highlight = event.highlight;
     cursorTarget = event.cursor;
     visible = event.visible;
     shellText = PREVIEW_SHELL_COMMAND;
     shellComplete = true;
+
+    if (isCurrent) {
+      syncFill = {
+        status: incomingIds.length > 0 ? "filling" : "settled",
+        zone: zoneForIncoming(incomingIds, event.highlight),
+        reserved: { ...PREVIEW_RESERVED_COUNTS },
+        incomingIds,
+      };
+    }
   }
 
   if (eventIndex > 0 && !shellText) {
@@ -919,9 +1059,26 @@ export function getPreviewReplaySnapshot(
 
   const slice = buildWorkspaceSlice(visible);
 
+  // After a workspace commit, keep incomingIds briefly for enter animation;
+  // when we have moved past that event, clear to settled/idle.
+  const currentEvent = PREVIEW_DEMO_EVENTS[eventIndex];
+  if (currentEvent?.type !== "workspace" && syncFill.status !== "fetching") {
+    if (
+      lastWorkspaceIncoming.length > 0 &&
+      currentEvent?.type === "agent_line" &&
+      !SYNC_INTENT_BY_LINE[currentEvent.lineId]
+    ) {
+      syncFill = {
+        status: "settled",
+        reserved: { ...PREVIEW_RESERVED_COUNTS },
+        incomingIds: [],
+      };
+    }
+  }
+
   return {
     stepId,
-    stageId: getPreviewStageId(stepId),
+    stageId,
     caption,
     clock,
     agentName: "Claude Code",
@@ -941,7 +1098,93 @@ export function getPreviewReplaySnapshot(
     logLinks: slice.logLinks,
     highlight,
     showCta: false,
+    syncFill,
   };
+}
+
+function diffIncomingIds(
+  previous: PreviewWorkspaceVisible,
+  next: PreviewWorkspaceVisible,
+): string[] {
+  const incoming: string[] = [];
+  for (const id of next.taskIds) {
+    if (!previous.taskIds.includes(id)) {
+      incoming.push(id);
+    }
+  }
+  for (const id of next.logIds) {
+    if (!previous.logIds.includes(id)) {
+      incoming.push(id);
+    }
+  }
+  for (const id of next.todoIds) {
+    if (!previous.todoIds.includes(id)) {
+      incoming.push(id);
+    }
+  }
+  for (const id of next.outputIds) {
+    if (!previous.outputIds.includes(id)) {
+      incoming.push(id);
+    }
+  }
+  if (next.memory && !previous.memory) {
+    incoming.push("memory");
+  }
+  return incoming;
+}
+
+function zoneForIncoming(
+  incomingIds: string[],
+  highlight: PreviewReplayHighlight,
+): SyncFillZone | undefined {
+  if (highlight.kind === "log") {
+    return "logs";
+  }
+  if (highlight.kind === "task") {
+    return "tasks";
+  }
+  if (highlight.kind === "todo") {
+    return "todos";
+  }
+  if (highlight.kind === "output") {
+    return "output";
+  }
+  if (highlight.kind === "memory") {
+    return "memory";
+  }
+  if (incomingIds.some((id) => id.startsWith("preview-") && id.includes("todo"))) {
+    return "todos";
+  }
+  if (incomingIds.some((id) => id.includes("log") || id.startsWith("preview-") || id === "switcher-done")) {
+    if (incomingIds.some((id) => id.includes("todo"))) {
+      return "todos";
+    }
+    if (incomingIds.some((id) => id.includes("post") || id.includes("output"))) {
+      return "output";
+    }
+    if (incomingIds.includes("memory")) {
+      return "memory";
+    }
+    if (
+      incomingIds.some(
+        (id) =>
+          id === "preview-issue" ||
+          id === "preview-decision" ||
+          id === "preview-fix" ||
+          id === "switcher-done",
+      )
+    ) {
+      return "logs";
+    }
+  }
+  if (
+    incomingIds.some(
+      (id) => id === "guest-preview" || id === "workspace-switcher",
+    )
+  ) {
+    return "tasks";
+  }
+  return undefined;
 }
 
 export function getPreviewReplayWorkspaceData(
@@ -994,17 +1237,26 @@ export function getPreviewStageStartEventIndex(
   }
 
   let stepId: PreviewReplayStepId = "boot";
+  let currentStage: PreviewStageId = "launch";
 
   for (let i = 0; i < PREVIEW_DEMO_EVENTS.length; i += 1) {
     const event = PREVIEW_DEMO_EVENTS[i]!;
 
     if (event.type === "agent_line" && event.stepId) {
       stepId = event.stepId;
+      currentStage = advancePreviewStageId(
+        currentStage,
+        getPreviewStageId(stepId),
+      );
     } else if (event.type === "workspace") {
       stepId = event.stepId;
+      currentStage = advancePreviewStageId(
+        currentStage,
+        getPreviewStageId(stepId),
+      );
     }
 
-    if (getPreviewStageId(stepId) === stageId) {
+    if (currentStage === stageId) {
       return i;
     }
   }
