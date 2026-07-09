@@ -40,6 +40,11 @@ out/
 .claude/
 .cursor/
 .playwright-mcp/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/e2e/todos-layout.spec.ts-snapshots/
+frontend/.next-e2e/
 
 ### Kotlin ###
 .kotlin

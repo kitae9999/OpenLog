@@ -7,6 +7,7 @@ import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboar
 import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { HomeFeedShell } from "./HomeFeedShell";
+import { getWorkspaceUiData } from "./workspaceApi";
 
 export async function HomeFeed({
   activeTab,
@@ -19,6 +20,10 @@ export async function HomeFeed({
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
   const isLoggedIn = !!data;
   const resolvedTab = activeTab ?? getDefaultTab(isLoggedIn);
+  const workspaceData =
+    resolvedTab === "workspace" && isLoggedIn
+      ? await getWorkspaceUiData()
+      : null;
   const recentPosts =
     resolvedTab === "home" || resolvedTab === "explore"
       ? await getRecentPosts(null, 10)
@@ -47,6 +52,7 @@ export async function HomeFeed({
       initialLikedHasNext={likedPosts?.hasNext ?? false}
       profileImageUrl={data?.profileImageUrl}
       profileHref={data ? buildViewerProfileHref(data.username) : undefined}
+      workspaceData={workspaceData}
       footer={<Footer />}
     />
   );

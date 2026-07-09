@@ -13,51 +13,65 @@ import { cn } from "@/shared/lib/cn";
 import { LogTypeLabel } from "./LogTypeLabel";
 import {
   buildLogsListHref,
-  countLogsByType,
-  countUnassignedLogsForType,
   getLogHref,
   getLogListTitle,
-  getLogsFiltered,
   getTabHref,
-  getTaskById,
   getTaskHref,
-  getTaskFiltersForLogs,
   logsSubnavItems,
   workspaceLogs,
+  workspaceWorkItems,
   type LogListTypeFilter,
   type LogTaskFilter,
   type WorkspaceLogItem,
   type WorkspaceWorkItem,
 } from "./data";
 import { mergeLogWithOverrides } from "./logOverrides";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 type SortFilter = "newest" | "oldest";
 
 export function LogsListView({
   isLoggedIn,
   typeFilter,
+  workspaceData,
 }: {
   isLoggedIn: boolean;
   typeFilter: LogListTypeFilter;
+  workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [logs, setLogs] = useState(workspaceLogs);
+  const initialLogs = workspaceData?.logs ?? workspaceLogs;
+  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
+  const logs = useMemo(
+    () =>
+      workspaceData
+        ? initialLogs
+        : initialLogs.map((log) => mergeLogWithOverrides(log)),
+    [initialLogs, workspaceData],
+  );
   const [sortFilter, setSortFilter] = useState<SortFilter>("newest");
 
   const taskFilter = parseTaskFilter(searchParams.get("task"));
   const title = getLogListTitle(typeFilter);
-  const totalForType = countLogsByType(typeFilter);
-  const unassignedForType = countUnassignedLogsForType(typeFilter);
-  const taskFilters = getTaskFiltersForLogs(typeFilter);
-
-  useEffect(() => {
-    setLogs(workspaceLogs.map((log) => mergeLogWithOverrides(log)));
-  }, []);
+  const unassignedForType = logs.filter(
+    (log) => matchesLogTypeFilter(log, typeFilter) && !log.taskId,
+  ).length;
+  const taskFilters = getTaskFiltersForLogs(tasks, logs, typeFilter);
 
   const filteredLogs = useMemo(() => {
-    const ids = getLogsFiltered(typeFilter, taskFilter).map((log) => log.id);
-    const items = logs.filter((log) => ids.includes(log.id));
+    const items = logs.filter((log) => {
+      if (!matchesLogTypeFilter(log, typeFilter)) {
+        return false;
+      }
+      if (taskFilter === "unassigned") {
+        return !log.taskId;
+      }
+      if (taskFilter !== "all") {
+        return log.taskId === taskFilter;
+      }
+      return true;
+    });
 
     if (sortFilter === "oldest") {
       return [...items].reverse();
@@ -127,9 +141,9 @@ export function LogsListView({
                       close();
                     }}
                   >
-                    {item.label}
+                      {item.label}
                     <span className="ml-auto tabular-nums text-zinc-400">
-                      {countLogsByType(item.key)}
+                      {countLogsByType(logs, item.key)}
                     </span>
                   </FilterMenuItem>
                 ))
@@ -223,7 +237,11 @@ export function LogsListView({
               <LogListRow
                 key={log.id}
                 log={log}
-                task={log.taskId ? getTaskById(log.taskId) : undefined}
+                task={
+                  log.taskId
+                    ? tasks.find((task) => task.id === log.taskId)
+                    : undefined
+                }
               />
             ))
           )}
@@ -254,6 +272,38 @@ function parseTaskFilter(value: string | null): LogTaskFilter {
   }
 
   return value;
+}
+
+function matchesLogTypeFilter(log: WorkspaceLogItem, type: LogListTypeFilter) {
+  switch (type) {
+    case "issues":
+      return log.label.toLowerCase() === "issue";
+    case "fixes":
+      return log.label.toLowerCase() === "fix";
+    case "decisions":
+      return log.label.toLowerCase() === "decision";
+    default:
+      return true;
+  }
+}
+
+function countLogsByType(logs: WorkspaceLogItem[], type: LogListTypeFilter) {
+  return logs.filter((log) => matchesLogTypeFilter(log, type)).length;
+}
+
+function getTaskFiltersForLogs(
+  tasks: WorkspaceWorkItem[],
+  logs: WorkspaceLogItem[],
+  type: LogListTypeFilter,
+) {
+  const taskIds = new Set(
+    logs
+      .filter((log) => matchesLogTypeFilter(log, type))
+      .map((log) => log.taskId)
+      .filter((taskId): taskId is string => Boolean(taskId)),
+  );
+
+  return tasks.filter((task) => taskIds.has(task.id));
 }
 
 function FilterDropdown({

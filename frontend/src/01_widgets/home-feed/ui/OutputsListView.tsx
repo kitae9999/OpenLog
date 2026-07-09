@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
-  countOutputsByStatus,
   getNewOutputHref,
   getOutputHref,
   getOutputsHref,
@@ -19,15 +18,18 @@ import {
   getOutputsWithOverrideSnapshot,
   subscribeOutputOverrides,
 } from "./outputOverrides";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 const statusItems: WorkspaceOutputStatus[] = ["draft", "published"];
 
 export function OutputsListView({
   isLoggedIn,
   status,
+  workspaceData,
 }: {
   isLoggedIn: boolean;
   status: WorkspaceOutputStatus;
+  workspaceData?: WorkspaceUiData | null;
 }) {
   const outputOverridesSnapshot = useSyncExternalStore(
     subscribeOutputOverrides,
@@ -36,11 +38,12 @@ export function OutputsListView({
   );
   const outputs = useMemo(
     () =>
+      workspaceData?.outputs ??
       getOutputsWithOverrideSnapshot(
-        workspaceTaskOutputs,
-        outputOverridesSnapshot,
-      ),
-    [outputOverridesSnapshot],
+          workspaceTaskOutputs,
+          outputOverridesSnapshot,
+        ),
+    [outputOverridesSnapshot, workspaceData],
   );
 
   const filteredOutputs = useMemo(
@@ -92,11 +95,9 @@ export function OutputsListView({
                     : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-950",
                 )}
               >
-                {getOutputStatusLabel(item)}
+                  {getOutputStatusLabel(item)}
                 <span className={status === item ? "text-zinc-300" : "text-zinc-400"}>
-                  {outputs === workspaceTaskOutputs
-                    ? countOutputsByStatus(item)
-                    : outputs.filter((output) => output.status === item).length}
+                  {outputs.filter((output) => output.status === item).length}
                 </span>
               </Link>
             ))}

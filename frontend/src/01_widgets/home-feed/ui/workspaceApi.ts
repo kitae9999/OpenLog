@@ -1,0 +1,435 @@
+import "server-only";
+
+import { cache } from "react";
+import { headers } from "next/headers";
+import { API_CONFIG } from "@/shared/api";
+import { todayIso } from "@/shared/lib/todayIso";
+import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
+import {
+  getLogHref,
+  type WorkspaceLogItem,
+  type WorkspaceOutputStatus,
+  type WorkspaceTaskOutput,
+  type WorkspaceTodoItem,
+  type WorkspaceWorkItem,
+  type WorkspaceWorkStatus,
+} from "./data";
+import type {
+  WorkspaceLogLinkItem,
+  WorkspaceTaskLinkItem,
+  WorkspaceUiData,
+} from "./workspaceTypes";
+
+type WorkspaceResponse = {
+  id: number;
+  slug: string;
+  name: string;
+  repoFullName: string | null;
+};
+
+type TaskStatus = "TODO" | "DOING" | "DONE";
+type LogKind = "ISSUE" | "FIX" | "DECISION" | "NOTE";
+type LogStatus = "NONE" | "OPEN" | "CLOSED";
+type OutputStatus = "DRAFT" | "EXPORTED" | "PUBLISHED";
+
+type WorkspaceTaskResponse = {
+  id: number;
+  title: string;
+  description: string | null;
+  content: string | null;
+  status: TaskStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type WorkspaceTaskCursorResponse = {
+  tasks: WorkspaceTaskResponse[];
+  nextCursor: string | null;
+  hasNext: boolean;
+};
+
+type WorkspaceLogResponse = {
+  id: number;
+  kind: LogKind;
+  status: LogStatus;
+  title: string;
+  summary: string | null;
+  taskId: number | null;
+  createdAt: string;
+};
+
+type WorkspaceLogDetailResponse = WorkspaceLogResponse & {
+  content: string;
+  updatedAt: string;
+  closedAt: string | null;
+};
+
+type WorkspaceLogCursorResponse = {
+  logs: WorkspaceLogResponse[];
+  nextCursor: string | null;
+  hasNext: boolean;
+};
+
+type TaskLinkResponse = {
+  id: number;
+  fromTask: WorkspaceTaskResponse;
+  toTask: WorkspaceTaskResponse;
+  relation: WorkspaceTaskLinkItem["relation"];
+};
+
+type LogLinkResponse = {
+  id: number;
+  fromLog: WorkspaceLogResponse;
+  toLog: WorkspaceLogResponse;
+  relation: WorkspaceLogLinkItem["relation"];
+};
+
+type TodoResponse = {
+  id: number;
+  title: string;
+  done: boolean;
+  taskId: number | null;
+};
+
+type OutputResponse = {
+  id: number;
+  status: OutputStatus;
+  title: string;
+  taskCount: number;
+  logCount: number;
+  updatedAt: string;
+  publishedAt: string | null;
+};
+
+type OutputDetailResponse = {
+  id: number;
+  status: OutputStatus;
+  title: string;
+  content: string;
+  tasks: Array<{ id: number; title: string; status: TaskStatus }>;
+  logs: Array<{
+    id: number;
+    title: string;
+    kind: LogKind;
+    status: LogStatus;
+    taskId: number | null;
+  }>;
+  publishedPost: { authorUsername: string; slug: string } | null;
+  updatedAt: string;
+  publishedAt: string | null;
+};
+
+type WorkspaceApiSnapshot = {
+  workspace: WorkspaceResponse;
+  tasks: WorkspaceTaskResponse[];
+  logs: WorkspaceLogDetailResponse[];
+  outputs: Array<OutputDetailResponse | OutputResponse>;
+  todos: TodoResponse[];
+  taskLinks: TaskLinkResponse[];
+  logLinks: LogLinkResponse[];
+};
+
+export const getWorkspaceUiData = cache(async (): Promise<WorkspaceUiData | null> => {
+  try {
+    const headerStore = await headers();
+    const cookie = headerStore.get("cookie") ?? "";
+    const workspaces = await fetchJson<WorkspaceResponse[]>("/workspaces", cookie);
+    const workspace = workspaces[0];
+
+    if (!workspace) {
+      return null;
+    }
+
+    const workspaceId = workspace.id;
+    const [tasks, logs, taskLinks, logLinks, todos, outputSummaries] =
+      await Promise.all([
+        fetchAllTasks(workspaceId, cookie),
+        fetchAllLogs(workspaceId, cookie),
+        fetchJson<TaskLinkResponse[]>(`/workspaces/${workspaceId}/task-links`, cookie),
+        fetchJson<LogLinkResponse[]>(`/workspaces/${workspaceId}/log-links`, cookie),
+        fetchJson<TodoResponse[]>(
+          `/workspaces/${workspaceId}/todos?plannedFor=${todayIso()}`,
+          cookie,
+        ),
+        fetchOutputs(workspaceId, cookie),
+      ]);
+
+    const outputDetails = await Promise.all(
+      outputSummaries.map((output) =>
+        fetchJson<OutputDetailResponse>(
+          `/workspaces/${workspaceId}/outputs/${output.id}`,
+          cookie,
+        ).catch(() => output),
+      ),
+    );
+
+    return mapWorkspaceSnapshot({
+      workspace,
+      tasks,
+      logs,
+      outputs: outputDetails,
+      todos,
+      taskLinks,
+      logLinks,
+    });
+  } catch {
+    return null;
+  }
+});
+
+async function fetchAllTasks(workspaceId: number, cookie: string) {
+  const tasks: WorkspaceTaskResponse[] = [];
+  let cursor: string | null = null;
+  let hasNext = true;
+
+  while (hasNext) {
+    const params = new URLSearchParams({ size: "50" });
+    if (cursor) params.set("cursor", cursor);
+    const page = await fetchJson<WorkspaceTaskCursorResponse>(
+      `/workspaces/${workspaceId}/tasks?${params}`,
+      cookie,
+    );
+    tasks.push(...page.tasks);
+    cursor = page.nextCursor;
+    hasNext = page.hasNext && !!cursor;
+  }
+
+  return tasks;
+}
+
+async function fetchOutputs(workspaceId: number, cookie: string) {
+  const groups = await Promise.all(
+    (["DRAFT", "EXPORTED", "PUBLISHED"] as const).map((status) =>
+      fetchJson<OutputResponse[]>(
+        `/workspaces/${workspaceId}/outputs?status=${status}`,
+        cookie,
+      ),
+    ),
+  );
+
+  return groups.flat();
+}
+
+async function fetchAllLogs(workspaceId: number, cookie: string) {
+  const logs: WorkspaceLogResponse[] = [];
+  let cursor: string | null = null;
+  let hasNext = true;
+
+  while (hasNext) {
+    const params = new URLSearchParams({ size: "50" });
+    if (cursor) params.set("cursor", cursor);
+    const page = await fetchJson<WorkspaceLogCursorResponse>(
+      `/workspaces/${workspaceId}/logs?${params}`,
+      cookie,
+    );
+    logs.push(...page.logs);
+    cursor = page.nextCursor;
+    hasNext = page.hasNext && !!cursor;
+  }
+
+  return Promise.all(
+    logs.map((log) =>
+      fetchJson<WorkspaceLogDetailResponse>(
+        `/workspaces/${workspaceId}/logs/${log.id}`,
+        cookie,
+      ).catch(
+        (): WorkspaceLogDetailResponse => ({
+          ...log,
+          content: log.summary ?? "",
+          updatedAt: log.createdAt,
+          closedAt: null,
+        }),
+      ),
+    ),
+  );
+}
+
+async function fetchJson<T>(path: string, cookie: string): Promise<T> {
+  const response = await fetch(`${API_CONFIG.baseURL}${path}`, {
+    cache: "no-store",
+    headers: {
+      accept: "application/json",
+      cookie,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Workspace API request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
+  const logs = snapshot.logs.map(mapLog);
+  const tasks = snapshot.tasks.map(mapTask);
+  const outputs = snapshot.outputs.map(mapOutput);
+
+  return {
+    workspaceId: String(snapshot.workspace.id),
+    workspaceName: snapshot.workspace.name || snapshot.workspace.slug,
+    repositoryFullName: snapshot.workspace.repoFullName,
+    tasks,
+    logs,
+    outputs,
+    todos: snapshot.todos.map(mapTodo),
+    taskLinks: snapshot.taskLinks.map((link) => ({
+      id: String(link.id),
+      fromTaskId: String(link.fromTask.id),
+      toTaskId: String(link.toTask.id),
+      relation: link.relation,
+    })),
+    logLinks: snapshot.logLinks.map((link) => ({
+      id: String(link.id),
+      fromLogId: String(link.fromLog.id),
+      toLogId: String(link.toLog.id),
+      relation: link.relation,
+    })),
+  };
+}
+
+function mapTask(task: WorkspaceTaskResponse): WorkspaceWorkItem {
+  return {
+    id: String(task.id),
+    title: task.title,
+    description: task.description,
+    status: mapTaskStatus(task.status),
+    apiStatus: task.status,
+    body: task.content ?? task.description ?? "",
+  };
+}
+
+function mapLog(log: WorkspaceLogDetailResponse): WorkspaceLogItem {
+  const label = mapLogLabel(log.kind);
+  const description = log.summary ?? excerpt(log.content) ?? "";
+
+  return {
+    id: String(log.id),
+    tone: mapLogTone(log.kind),
+    label,
+    kind: log.kind,
+    status: log.status,
+    title: log.title,
+    description,
+    summary: log.summary ?? undefined,
+    meta: buildLogMeta(log),
+    href: getLogHref(String(log.id)),
+    taskId: log.taskId ? String(log.taskId) : undefined,
+    body: log.content,
+  };
+}
+
+function mapOutput(output: OutputDetailResponse | OutputResponse): WorkspaceTaskOutput {
+  const isDetail = "content" in output;
+  const taskIds = isDetail ? output.tasks.map((task) => String(task.id)) : [];
+  const logIds = isDetail ? output.logs.map((log) => String(log.id)) : [];
+  const status = mapOutputStatus(output.status);
+
+  return {
+    id: String(output.id),
+    taskId: taskIds[0] ?? "",
+    taskIds,
+    logIds,
+    status,
+    title: output.title,
+    description: [
+      `${isDetail ? taskIds.length : output.taskCount} task${(isDetail ? taskIds.length : output.taskCount) === 1 ? "" : "s"}`,
+      `${isDetail ? logIds.length : output.logCount} log${(isDetail ? logIds.length : output.logCount) === 1 ? "" : "s"}`,
+    ].join(" · "),
+    content: isDetail ? output.content : "",
+    updatedLabel: formatDateLabel(output.updatedAt),
+    publishedHref:
+      isDetail && output.publishedPost
+        ? buildPublicPostPath(
+            output.publishedPost.authorUsername,
+            output.publishedPost.slug,
+          )
+        : undefined,
+  };
+}
+
+function mapTodo(todo: TodoResponse): WorkspaceTodoItem {
+  return {
+    id: String(todo.id),
+    title: todo.title,
+    done: todo.done,
+    taskId: todo.taskId ? String(todo.taskId) : undefined,
+  };
+}
+
+function mapTaskStatus(status: TaskStatus): WorkspaceWorkStatus {
+  switch (status) {
+    case "DONE":
+      return "done";
+    case "DOING":
+      return "doing";
+    default:
+      return "todo";
+  }
+}
+
+function mapLogLabel(kind: LogKind) {
+  switch (kind) {
+    case "ISSUE":
+      return "Issue";
+    case "FIX":
+      return "Fix";
+    case "DECISION":
+      return "Decision";
+    default:
+      return "Log";
+  }
+}
+
+function mapLogTone(kind: LogKind): WorkspaceLogItem["tone"] {
+  switch (kind) {
+    case "ISSUE":
+      return "amber";
+    case "FIX":
+      return "green";
+    case "DECISION":
+      return "blue";
+    default:
+      return "zinc";
+  }
+}
+
+function mapOutputStatus(status: OutputStatus): WorkspaceOutputStatus {
+  return status === "PUBLISHED" ? "published" : "draft";
+}
+
+function buildLogMeta(log: WorkspaceLogDetailResponse) {
+  if (log.status === "OPEN") {
+    return `open · ${formatDateLabel(log.createdAt)}`;
+  }
+  if (log.status === "CLOSED") {
+    return `closed · ${formatDateLabel(log.closedAt ?? log.createdAt)}`;
+  }
+
+  return formatDateLabel(log.createdAt);
+}
+
+function excerpt(content: string, maxLength = 120) {
+  const plain = content
+    .replace(/^#+\s+/gm, "")
+    .replace(/[*`_~[\]()]/g, "")
+    .trim();
+
+  if (!plain) return "";
+  return plain.length <= maxLength ? plain : `${plain.slice(0, maxLength).trim()}...`;
+}
+
+function formatDateLabel(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    timeZone: "Asia/Seoul",
+  }).format(date);
+}
+

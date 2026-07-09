@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.todo
 
 import io.github.kitae9999.openlog.common.exception.BadRequestException
+import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.todo.dto.TodoResponse
 import io.github.kitae9999.openlog.todo.entity.Todo
 import io.github.kitae9999.openlog.todo.repository.TodoRepository
@@ -9,6 +10,7 @@ import io.github.kitae9999.openlog.workspace.WorkspaceAccessResolver
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import kotlin.jvm.optionals.getOrNull
 
 @Service
 class TodoService(
@@ -51,6 +53,46 @@ class TodoService(
             workspaceId = workspaceId,
             plannedFor = plannedFor,
         ).map(todoMapper::toResponse) // 함수 참조 넘김
+    }
+
+    @Transactional
+    fun updateTodoDone(
+        userId: Long,
+        workspaceId: Long,
+        todoId: Long,
+        done: Boolean,
+    ): TodoResponse {
+        val todo = requireOwnedTodo(userId, workspaceId, todoId)
+
+        if (done) {
+            todo.markDone()
+        } else {
+            todo.markOpen()
+        }
+
+        return todoMapper.toResponse(todoRepository.save(todo))
+    }
+
+    @Transactional
+    fun deleteTodo(
+        userId: Long,
+        workspaceId: Long,
+        todoId: Long,
+    ) {
+        val todo = requireOwnedTodo(userId, workspaceId, todoId)
+        todoRepository.delete(todo)
+    }
+
+    private fun requireOwnedTodo(userId: Long, workspaceId: Long, todoId: Long): Todo {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val todo = todoRepository.findById(todoId).getOrNull()
+            ?: throw NotFoundException("Todo를 찾을 수 없습니다.")
+
+        if (todo.workspace.id != workspace.id) {
+            throw BadRequestException("현재 워크스페이스에 속한 Todo만 수정할 수 있습니다.")
+        }
+
+        return todo
     }
 
     private fun resolveNextSortOrder(workspaceId: Long, plannedFor: LocalDate): Int {

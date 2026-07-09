@@ -13,12 +13,23 @@ import {
   type WorkspaceLogItem,
 } from "./data";
 import { LogTypeLabel } from "./LogTypeLabel";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
-export function LogDetailView({ log }: { log: WorkspaceLogItem }) {
+export function LogDetailView({
+  log,
+  workspaceData,
+}: {
+  log: WorkspaceLogItem;
+  workspaceData?: WorkspaceUiData | null;
+}) {
   const recipe = getLogRecipe(log.id);
   const body = getLogBody(log);
-  const task = log.taskId ? getTaskById(log.taskId) : undefined;
-  const activeTask = getTaskById(activeWorkspaceTaskId);
+  const task = log.taskId
+    ? workspaceData?.tasks.find((item) => item.id === log.taskId) ??
+      getTaskById(log.taskId)
+    : undefined;
+  const activeTask =
+    workspaceData?.tasks[0] ?? getTaskById(activeWorkspaceTaskId);
   const hasBody = body.trim().length > 0;
 
   return (

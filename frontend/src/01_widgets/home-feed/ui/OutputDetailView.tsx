@@ -14,6 +14,9 @@ import {
   getTaskHref,
   getTasksForOutput,
   workspaceTaskOutputs,
+  type WorkspaceLogItem,
+  type WorkspaceTaskOutput,
+  type WorkspaceWorkItem,
 } from "./data";
 import {
   getOutputOverridesSnapshot,
@@ -21,13 +24,22 @@ import {
   saveOutputOverride,
   subscribeOutputOverrides,
 } from "./outputOverrides";
+import {
+  publishWorkspaceOutput,
+  updateWorkspaceOutput,
+} from "./workspaceActions";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 export function OutputDetailView({
   isLoggedIn,
   outputId,
+  output: apiOutput,
+  workspaceData,
 }: {
   isLoggedIn: boolean;
   outputId: string;
+  output?: WorkspaceTaskOutput;
+  workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
   const outputOverridesSnapshot = useSyncExternalStore(
@@ -37,17 +49,21 @@ export function OutputDetailView({
   );
   const output = useMemo(
     () =>
+      apiOutput ??
       getOutputWithOverrideSnapshot(
-        outputId,
-        workspaceTaskOutputs,
-        outputOverridesSnapshot,
-      ) ?? null,
-    [outputId, outputOverridesSnapshot],
+          outputId,
+          workspaceTaskOutputs,
+          outputOverridesSnapshot,
+        ) ??
+      null,
+    [apiOutput, outputId, outputOverridesSnapshot],
   );
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(output?.title ?? "");
   const [content, setContent] = useState(output?.content ?? "");
   const [mode, setMode] = useState<"write" | "preview">("preview");
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   if (!output) {
     return (
@@ -64,13 +80,47 @@ export function OutputDetailView({
     );
   }
 
-  const tasks = getTasksForOutput(output);
-  const logs = getLogsForOutput(output);
+  const tasks = workspaceData
+    ? output.taskIds
+        .map((taskId) => workspaceData.tasks.find((task) => task.id === taskId))
+        .filter((task): task is WorkspaceWorkItem => Boolean(task))
+    : getTasksForOutput(output);
+  const logs = workspaceData
+    ? output.logIds
+        .map((logId) => workspaceData.logs.find((log) => log.id === logId))
+        .filter((log): log is WorkspaceLogItem => Boolean(log))
+    : getLogsForOutput(output);
   const canMutate = output.status === "draft";
   const canSave = title.trim().length > 0 && content.trim().length > 0;
 
-  function saveChanges() {
-    if (!canSave || !output) {
+  async function saveChanges() {
+    if (!canSave || !output || isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    if (workspaceData) {
+      const result = await updateWorkspaceOutput({
+        workspaceId: workspaceData.workspaceId,
+        outputId: output.id,
+        title: title.trim(),
+        content,
+        taskIds: output.taskIds,
+        logIds: output.logIds,
+      });
+
+      setIsSaving(false);
+
+      if (!result.ok) {
+        setError(result.message ?? "Failed to save output.");
+        return;
+      }
+
+      setIsEditing(false);
+      setMode("preview");
+      router.refresh();
       return;
     }
 
@@ -83,11 +133,34 @@ export function OutputDetailView({
     saveOutputOverride(nextOutput);
     setIsEditing(false);
     setMode("preview");
+    setIsSaving(false);
     router.refresh();
   }
 
-  function publishOutput() {
-    if (!output || !canMutate) {
+  async function publishOutput() {
+    if (!output || !canMutate || isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    if (workspaceData) {
+      const result = await publishWorkspaceOutput({
+        workspaceId: workspaceData.workspaceId,
+        outputId: output.id,
+      });
+
+      setIsSaving(false);
+
+      if (!result.ok) {
+        setError(result.message ?? "Failed to publish output.");
+        return;
+      }
+
+      setIsEditing(false);
+      setMode("preview");
+      router.refresh();
       return;
     }
 
@@ -100,6 +173,7 @@ export function OutputDetailView({
     saveOutputOverride(nextOutput);
     setIsEditing(false);
     setMode("preview");
+    setIsSaving(false);
   }
 
   return (
@@ -172,9 +246,10 @@ export function OutputDetailView({
                 <button
                   type="button"
                   onClick={publishOutput}
-                  className="inline-flex h-[30px] items-center rounded-[10px] bg-zinc-950 px-[13px] text-[12.5px] font-semibold text-white transition hover:bg-zinc-800"
+                  disabled={isSaving}
+                  className="inline-flex h-[30px] items-center rounded-[10px] bg-zinc-950 px-[13px] text-[12.5px] font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
                 >
-                  Publish
+                  {isSaving ? "Publishing..." : "Publish"}
                 </button>
               ) : null}
               {output.publishedHref ? (
@@ -270,7 +345,7 @@ export function OutputDetailView({
         {isEditing ? (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/80 px-6 py-4">
             <span className="text-[12px] text-zinc-500">
-              Draft outputs can be edited before publish.
+              {error ?? "Draft outputs can be edited before publish."}
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -288,15 +363,15 @@ export function OutputDetailView({
               <button
                 type="button"
                 onClick={saveChanges}
-                disabled={!canSave}
+                disabled={!canSave || isSaving}
                 className={cn(
                   "inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-white transition",
-                  canSave
+                  canSave && !isSaving
                     ? "bg-zinc-950 hover:bg-zinc-800"
                     : "cursor-not-allowed bg-zinc-400",
                 )}
               >
-                Save changes
+                {isSaving ? "Saving..." : "Save changes"}
               </button>
             </div>
           </div>

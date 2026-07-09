@@ -1,23 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
-  countLogsForTask,
-  countTasksByStatus,
-  getOutputsForTask,
   getTabHref,
   getTaskExcerpt,
   getTaskHref,
   getTaskMeta,
-  getTasksFiltered,
+  workspaceLogs,
+  workspaceTaskOutputs,
   workspaceWorkItems,
   type TaskListFilter,
+  type WorkspaceLogItem,
+  type WorkspaceTaskOutput,
   type WorkspaceWorkItem,
   type WorkspaceWorkStatus,
 } from "./data";
 import { mergeTaskWithOverrides } from "./taskOverrides";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 const filterItems: Array<{ key: TaskListFilter; label: string }> = [
   { key: "all", label: "All" },
@@ -26,23 +27,34 @@ const filterItems: Array<{ key: TaskListFilter; label: string }> = [
   { key: "done", label: "Done" },
 ];
 
-export function TasksListView({ isLoggedIn }: { isLoggedIn: boolean }) {
+export function TasksListView({
+  isLoggedIn,
+  workspaceData,
+}: {
+  isLoggedIn: boolean;
+  workspaceData?: WorkspaceUiData | null;
+}) {
+  const initialTasks = workspaceData?.tasks ?? workspaceWorkItems;
+  const logs = workspaceData?.logs ?? workspaceLogs;
+  const outputs = workspaceData?.outputs ?? workspaceTaskOutputs;
   const [filter, setFilter] = useState<TaskListFilter>("all");
-  const [tasks, setTasks] = useState(workspaceWorkItems);
-
-  useEffect(() => {
-    setTasks(workspaceWorkItems.map((task) => mergeTaskWithOverrides(task)));
-  }, []);
+  const tasks = useMemo(
+    () =>
+      workspaceData
+        ? initialTasks
+        : initialTasks.map((task) => mergeTaskWithOverrides(task)),
+    [initialTasks, workspaceData],
+  );
 
   const filteredTasks = useMemo(
     () =>
-      getTasksFiltered(filter).map(
-        (task) => tasks.find((item) => item.id === task.id) ?? task,
-      ),
+      filter === "all"
+        ? tasks
+        : tasks.filter((task) => task.status === filter),
     [filter, tasks],
   );
 
-  const doingCount = countTasksByStatus("doing");
+  const doingCount = tasks.filter((task) => task.status === "doing").length;
 
   return (
     <div>
@@ -68,7 +80,7 @@ export function TasksListView({ isLoggedIn }: { isLoggedIn: boolean }) {
                 Tasks
               </h1>
               <p className="mt-1.5 text-[13px] text-zinc-500">
-                {workspaceWorkItems.length} total
+                {tasks.length} total
                 {doingCount > 0 ? ` · ${doingCount} in progress` : ""}
               </p>
             </div>
@@ -81,8 +93,8 @@ export function TasksListView({ isLoggedIn }: { isLoggedIn: boolean }) {
             {filterItems.map((item) => {
               const count =
                 item.key === "all"
-                  ? workspaceWorkItems.length
-                  : countTasksByStatus(item.key);
+                  ? tasks.length
+                  : tasks.filter((task) => task.status === item.key).length;
 
               return (
                 <FilterChip
@@ -107,7 +119,14 @@ export function TasksListView({ isLoggedIn }: { isLoggedIn: boolean }) {
               No tasks in this view.
             </p>
           ) : (
-            filteredTasks.map((task) => <TaskListRow key={task.id} task={task} />)
+            filteredTasks.map((task) => (
+              <TaskListRow
+                key={task.id}
+                task={task}
+                logs={logs}
+                outputs={outputs}
+              />
+            ))
           )}
         </div>
       </article>
@@ -115,9 +134,20 @@ export function TasksListView({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
 }
 
-function TaskListRow({ task }: { task: WorkspaceWorkItem }) {
-  const logCount = countLogsForTask(task.id);
-  const outputCount = getOutputsForTask(task.id).length;
+function TaskListRow({
+  task,
+  logs,
+  outputs,
+}: {
+  task: WorkspaceWorkItem;
+  logs: WorkspaceLogItem[];
+  outputs: WorkspaceTaskOutput[];
+}) {
+  const taskLogs = logs.filter((log) => log.taskId === task.id);
+  const logCount = taskLogs.length;
+  const outputCount = outputs.filter((output) =>
+    output.taskIds.includes(task.id),
+  ).length;
   const meta = getTaskMeta(task.id);
   const excerpt = getTaskExcerpt(task.body);
   const statusLabel =
@@ -147,7 +177,7 @@ function TaskListRow({ task }: { task: WorkspaceWorkItem }) {
             ? ` · ${outputCount} output${outputCount === 1 ? "" : "s"}`
             : ""}
           {" · "}
-          Last {meta.lastActivityLabel}
+          Last {taskLogs[0]?.meta.split(" · ")[0] ?? meta.lastActivityLabel}
         </p>
       </div>
       <Link

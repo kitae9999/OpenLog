@@ -6,18 +6,21 @@ import { cn } from "@/shared/lib/cn";
 import { LogsListView } from "./LogsListView";
 import { HomeSidebar } from "./HomeFeedShell";
 import type { LogListTypeFilter } from "./data";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 export function LogsListShell({
   isLoggedIn,
   typeFilter,
   profileImageUrl,
   profileHref,
+  workspaceData,
   footer,
 }: {
   isLoggedIn: boolean;
   typeFilter: LogListTypeFilter;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -64,6 +67,7 @@ export function LogsListShell({
           logsFilter={typeFilter}
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {
               setIsSidebarOpen(false);
@@ -82,7 +86,11 @@ export function LogsListShell({
             className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 xl:px-10"
           >
             <Suspense fallback={null}>
-              <LogsListView isLoggedIn={isLoggedIn} typeFilter={typeFilter} />
+              <LogsListView
+                isLoggedIn={isLoggedIn}
+                typeFilter={typeFilter}
+                workspaceData={workspaceData}
+              />
             </Suspense>
           </section>
         </main>

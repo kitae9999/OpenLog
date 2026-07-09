@@ -19,8 +19,6 @@ import { cn } from "@/shared/lib/cn";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import { LockIcon } from "@/shared/ui/icons";
 import {
-  countDoingTasks,
-  countOpenIssues,
   feedPosts,
   getLogsHref,
   getMcpGuideHref,
@@ -32,6 +30,7 @@ import {
   recommendedTopics,
   topContributors,
   workspaceLogs,
+  workspaceWorkItems,
   type FeedPost,
   type LogListTypeFilter,
   type TabKey,
@@ -39,6 +38,7 @@ import {
 import { WorkspaceView } from "./WorkspaceView";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { FeedArticleCard } from "./FeedArticleCard";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 type ExploreTabKey = "trending" | "recent" | "following" | "liked";
 type ExploreSubTab = Exclude<ExploreTabKey, "trending">;
@@ -88,6 +88,7 @@ export function HomeFeedShell({
   initialLikedHasNext,
   profileImageUrl,
   profileHref,
+  workspaceData,
   footer,
 }: {
   activeTab: TabKey;
@@ -103,6 +104,7 @@ export function HomeFeedShell({
   initialLikedHasNext: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -364,6 +366,7 @@ export function HomeFeedShell({
           activeTab={activeTab}
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {
               setIsSidebarOpen(false);
@@ -407,7 +410,10 @@ export function HomeFeedShell({
             ) : null}
 
             {activeTab === "workspace" ? (
-              <WorkspaceView isLoggedIn={isLoggedIn} />
+              <WorkspaceView
+                isLoggedIn={isLoggedIn}
+                workspaceData={workspaceData}
+              />
             ) : activeTab === "explore" ? (
               <ExploreView
                 posts={posts}
@@ -511,6 +517,7 @@ export function HomeSidebar({
   workspaceNav = "dashboard",
   logsFilter = "all",
   settingsNav,
+  workspaceData,
 }: {
   activeTab: TabKey;
   isLoggedIn: boolean;
@@ -519,7 +526,18 @@ export function HomeSidebar({
   workspaceNav?: "dashboard" | "tasks" | "logs" | "graph" | "outputs";
   logsFilter?: LogListTypeFilter;
   settingsNav?: "mcp-guide";
+  workspaceData?: WorkspaceUiData | null;
 }) {
+  const sidebarTasks = workspaceData?.tasks ?? workspaceWorkItems;
+  const sidebarLogs = workspaceData?.logs ?? workspaceLogs;
+  const doingTaskCount =
+    sidebarTasks.filter((task) => task.status === "doing").length ||
+    sidebarTasks.filter((task) => task.status === "todo").length;
+  const logsCount = sidebarLogs.length;
+  const openIssuesCount = sidebarLogs.filter(
+    (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
+  ).length;
+
   return (
     <aside
       aria-label="Workspace navigation"
@@ -546,9 +564,7 @@ export function HomeSidebar({
               <SidebarLink
                 href={getTasksHref()}
                 label="Tasks"
-                badge={
-                  countDoingTasks() > 0 ? String(countDoingTasks()) : undefined
-                }
+                badge={doingTaskCount > 0 ? String(doingTaskCount) : undefined}
                 active={workspaceNav === "tasks"}
                 icon={<IconTasks className="size-[15px]" />}
                 onNavigate={onNavigate}
@@ -556,6 +572,8 @@ export function HomeSidebar({
               <SidebarLogsGroup
                 logsFilter={logsFilter}
                 active={workspaceNav === "logs"}
+                logsCount={logsCount}
+                openIssuesCount={openIssuesCount}
                 onNavigate={onNavigate}
               />
               <SidebarLink
@@ -655,10 +673,14 @@ export function HomeSidebar({
 function SidebarLogsGroup({
   logsFilter = "all",
   active = false,
+  logsCount,
+  openIssuesCount,
   onNavigate,
 }: {
   logsFilter?: LogListTypeFilter;
   active?: boolean;
+  logsCount: number;
+  openIssuesCount: number;
   onNavigate: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -683,7 +705,7 @@ function SidebarLogsGroup({
         />
         <span className="min-w-0 flex-1 truncate text-left">Logs</span>
         <span className="rounded-full bg-zinc-100 px-2 text-[11px] font-semibold tabular-nums text-zinc-500">
-          {workspaceLogs.length}
+          {logsCount}
         </span>
         <button
           type="button"
@@ -709,8 +731,8 @@ function SidebarLogsGroup({
         <div className="mb-1 ml-[22px] flex flex-col gap-px border-l border-zinc-200 pl-[7px]">
           {logsSubnavItems.map((item) => {
             const badge =
-              item.key === "issues" && countOpenIssues() > 0
-                ? String(countOpenIssues())
+              item.key === "issues" && openIssuesCount > 0
+                ? String(openIssuesCount)
                 : undefined;
 
             return (

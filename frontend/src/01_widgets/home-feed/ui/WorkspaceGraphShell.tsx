@@ -5,16 +5,19 @@ import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
 import { HomeSidebar } from "./HomeFeedShell";
 import { WorkspaceGraphView } from "./WorkspaceGraphView";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 export function WorkspaceGraphShell({
   isLoggedIn,
   profileImageUrl,
   profileHref,
+  workspaceData,
   footer,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -60,6 +63,7 @@ export function WorkspaceGraphShell({
           workspaceNav="graph"
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {
               setIsSidebarOpen(false);
@@ -77,7 +81,10 @@ export function WorkspaceGraphShell({
             aria-label="Workspace Graph"
             className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 xl:px-10"
           >
-            <WorkspaceGraphView isLoggedIn={isLoggedIn} />
+            <WorkspaceGraphView
+              isLoggedIn={isLoggedIn}
+              workspaceData={workspaceData}
+            />
           </section>
         </main>
       </div>

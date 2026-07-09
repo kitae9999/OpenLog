@@ -3,16 +3,19 @@ import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboar
 import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { WorkspaceGraphShell } from "./WorkspaceGraphShell";
+import { getWorkspaceUiData } from "./workspaceApi";
 
 export async function WorkspaceGraphFeed({ viewer }: { viewer?: User | null }) {
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
+  const workspaceData = user ? await getWorkspaceUiData() : null;
 
   return (
     <WorkspaceGraphShell
       isLoggedIn={!!user}
       profileImageUrl={user?.profileImageUrl}
       profileHref={user ? buildViewerProfileHref(user.username) : undefined}
+      workspaceData={workspaceData}
       footer={<Footer />}
     />
   );

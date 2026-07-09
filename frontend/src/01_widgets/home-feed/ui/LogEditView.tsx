@@ -13,11 +13,20 @@ import {
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import { getLogBody, getLogHref, getTabHref, type WorkspaceLogItem } from "./data";
 import { saveLogOverride } from "./logOverrides";
+import { updateWorkspaceLog } from "./workspaceActions";
 
-export function LogEditView({ log }: { log: WorkspaceLogItem }) {
+export function LogEditView({
+  log,
+  workspaceId,
+}: {
+  log: WorkspaceLogItem;
+  workspaceId?: string;
+}) {
   const router = useRouter();
   const [title, setTitle] = useState(log.title);
   const [body, setBody] = useState(() => getLogBody(log));
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [mode, setMode] = useState<"write" | "preview">("write");
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
@@ -53,8 +62,34 @@ export function LogEditView({ log }: { log: WorkspaceLogItem }) {
     });
   }
 
-  function saveLog() {
-    if (!canSave) {
+  async function saveLog() {
+    if (!canSave || isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    if (workspaceId) {
+      const result = await updateWorkspaceLog({
+        workspaceId,
+        logId: log.id,
+        title: trimmedTitle,
+        content: body,
+        summary: log.summary ?? log.description,
+        taskId: log.taskId ?? null,
+        status: log.status ?? "NONE",
+      });
+
+      setIsSaving(false);
+
+      if (!result.ok) {
+        setError(result.message ?? "Failed to save log.");
+        return;
+      }
+
+      router.push(getLogHref(log.id));
+      router.refresh();
       return;
     }
 
@@ -62,6 +97,7 @@ export function LogEditView({ log }: { log: WorkspaceLogItem }) {
       title: trimmedTitle,
       body,
     });
+    setIsSaving(false);
     router.push(getLogHref(log.id));
     router.refresh();
   }
@@ -153,7 +189,7 @@ export function LogEditView({ log }: { log: WorkspaceLogItem }) {
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/80 px-6 py-4">
           <span className="text-[12px] text-zinc-500">
-            Markdown supported · title and body save together
+            {error ?? "Markdown supported · title and body save together"}
           </span>
           <div className="flex items-center gap-2">
             <Link
@@ -165,15 +201,15 @@ export function LogEditView({ log }: { log: WorkspaceLogItem }) {
             <button
               type="button"
               onClick={saveLog}
-              disabled={!canSave}
+              disabled={!canSave || isSaving}
               className={cn(
                 "inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                canSave
+                canSave && !isSaving
                   ? "bg-zinc-950 hover:bg-zinc-800"
                   : "cursor-not-allowed bg-zinc-400",
               )}
             >
-              Save changes
+              {isSaving ? "Saving..." : "Save changes"}
             </button>
           </div>
         </div>

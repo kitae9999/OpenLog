@@ -11,23 +11,36 @@ import {
   getOutputHref,
   getOutputsHref,
   getTabHref,
+  workspaceLogs,
   workspaceWorkItems,
 } from "./data";
 import { createOutputOverride } from "./outputOverrides";
+import { createWorkspaceOutput } from "./workspaceActions";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 export function OutputCreateView({
   isLoggedIn,
   initialTaskId,
+  workspaceData,
 }: {
   isLoggedIn: boolean;
   initialTaskId?: string;
+  workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
+  const logs = workspaceData?.logs ?? workspaceLogs;
   const initialTask =
-    workspaceWorkItems.find((task) => task.id === initialTaskId) ??
-    workspaceWorkItems[0];
+    tasks.find((task) => task.id === initialTaskId) ??
+    tasks[0];
   const [taskId, setTaskId] = useState(initialTask?.id ?? "");
-  const candidateLogs = useMemo(() => getLogsForTask(taskId), [taskId]);
+  const candidateLogs = useMemo(
+    () =>
+      workspaceData
+        ? logs.filter((log) => log.taskId === taskId)
+        : getLogsForTask(taskId),
+    [logs, taskId, workspaceData],
+  );
   const [selectedLogIds, setSelectedLogIds] = useState<string[]>(() =>
     candidateLogs.map((log) => log.id),
   );
@@ -41,12 +54,16 @@ export function OutputCreateView({
     return `## Summary\n\n${source.map((log) => log.description).join("\n\n")}\n\n## Source logs\n\n${source.map((log) => `- ${log.title}`).join("\n")}`;
   });
   const [mode, setMode] = useState<"write" | "preview">("write");
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const trimmedTitle = title.trim();
   const canSave = trimmedTitle.length > 0 && content.trim().length > 0;
 
   function changeTask(nextTaskId: string) {
     setTaskId(nextTaskId);
-    setSelectedLogIds(getLogsForTask(nextTaskId).map((log) => log.id));
+    setSelectedLogIds(
+      logs.filter((log) => log.taskId === nextTaskId).map((log) => log.id),
+    );
   }
 
   function toggleLog(logId: string) {
@@ -57,8 +74,32 @@ export function OutputCreateView({
     );
   }
 
-  function saveOutput() {
-    if (!canSave) {
+  async function saveOutput() {
+    if (!canSave || isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    if (workspaceData) {
+      const result = await createWorkspaceOutput({
+        workspaceId: workspaceData.workspaceId,
+        title: trimmedTitle,
+        content,
+        taskIds: taskId ? [taskId] : [],
+        logIds: selectedLogIds,
+      });
+
+      setIsSaving(false);
+
+      if (!result.ok || !result.href) {
+        setError(result.message ?? "Failed to save output.");
+        return;
+      }
+
+      router.push(result.href);
+      router.refresh();
       return;
     }
 
@@ -73,6 +114,7 @@ export function OutputCreateView({
       logIds: selectedLogIds,
     });
 
+    setIsSaving(false);
     router.push(getOutputHref(output.id));
     router.refresh();
   }
@@ -163,7 +205,7 @@ export function OutputCreateView({
                 onChange={(event) => changeTask(event.target.value)}
                 className="mt-2 h-9 w-full rounded-[10px] border border-zinc-200 bg-white px-3 text-[13px] font-medium text-zinc-800 outline-none focus:ring-2 focus:ring-zinc-900/10"
               >
-                {workspaceWorkItems.map((task) => (
+                {tasks.map((task) => (
                   <option key={task.id} value={task.id}>
                     {task.title}
                   </option>
@@ -210,7 +252,8 @@ export function OutputCreateView({
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/80 px-6 py-4">
           <span className="text-[12px] text-zinc-500">
-            {selectedLogIds.length} source log{selectedLogIds.length === 1 ? "" : "s"} selected
+            {error ??
+              `${selectedLogIds.length} source log${selectedLogIds.length === 1 ? "" : "s"} selected`}
           </span>
           <div className="flex items-center gap-2">
             <Link
@@ -222,15 +265,15 @@ export function OutputCreateView({
             <button
               type="button"
               onClick={saveOutput}
-              disabled={!canSave}
+              disabled={!canSave || isSaving}
               className={cn(
                 "inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                canSave
+                canSave && !isSaving
                   ? "bg-zinc-950 hover:bg-zinc-800"
                   : "cursor-not-allowed bg-zinc-400",
               )}
             >
-              Save output
+              {isSaving ? "Saving..." : "Save output"}
             </button>
           </div>
         </div>

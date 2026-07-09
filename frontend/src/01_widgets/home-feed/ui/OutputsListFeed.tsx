@@ -4,6 +4,7 @@ import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import type { WorkspaceOutputStatus } from "./data";
 import { OutputsListShell } from "./OutputsListShell";
+import { getWorkspaceUiData } from "./workspaceApi";
 
 export async function OutputsListFeed({
   viewer,
@@ -14,6 +15,7 @@ export async function OutputsListFeed({
 }) {
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
+  const workspaceData = user ? await getWorkspaceUiData() : null;
 
   return (
     <OutputsListShell
@@ -21,6 +23,7 @@ export async function OutputsListFeed({
       status={status}
       profileImageUrl={user?.profileImageUrl}
       profileHref={user ? buildViewerProfileHref(user.username) : undefined}
+      workspaceData={workspaceData}
       footer={<Footer />}
     />
   );

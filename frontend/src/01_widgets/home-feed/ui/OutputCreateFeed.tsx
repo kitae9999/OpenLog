@@ -3,6 +3,7 @@ import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboar
 import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { OutputCreateShell } from "./OutputCreateShell";
+import { getWorkspaceUiData } from "./workspaceApi";
 
 export async function OutputCreateFeed({
   viewer,
@@ -13,6 +14,7 @@ export async function OutputCreateFeed({
 }) {
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
+  const workspaceData = user ? await getWorkspaceUiData() : null;
 
   return (
     <OutputCreateShell
@@ -20,6 +22,7 @@ export async function OutputCreateFeed({
       taskId={taskId}
       profileImageUrl={user?.profileImageUrl}
       profileHref={user ? buildViewerProfileHref(user.username) : undefined}
+      workspaceData={workspaceData}
       footer={<Footer />}
     />
   );

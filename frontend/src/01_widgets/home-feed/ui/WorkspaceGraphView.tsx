@@ -21,9 +21,12 @@ import {
   workspaceMemories,
   workspaceTaskOutputs,
   workspaceWorkItems,
+  type WorkspaceLogItem,
+  type WorkspaceTaskOutput,
   type WorkspaceWorkItem,
 } from "./data";
 import { LogTypeLabel } from "./LogTypeLabel";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 type WorkspaceGraphNodeKind = "task" | "log" | "output" | "memory";
 type WorkspaceGraphNode = {
@@ -78,19 +81,38 @@ const CENTER_FORCE = 0.0012;
 const DAMPING = 0.94;
 const ALL_TASKS = "all";
 
-export function WorkspaceGraphView({ isLoggedIn }: { isLoggedIn: boolean }) {
+export function WorkspaceGraphView({
+  isLoggedIn,
+  workspaceData,
+}: {
+  isLoggedIn: boolean;
+  workspaceData?: WorkspaceUiData | null;
+}) {
+  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
+  const logs = workspaceData?.logs ?? workspaceLogs;
+  const outputs = workspaceData?.outputs ?? workspaceTaskOutputs;
   const [selectedTaskId, setSelectedTaskId] = useState(ALL_TASKS);
   const [searchQuery, setSearchQuery] = useState("");
-  const fullGraph = useMemo(() => buildWorkspaceGraph(), []);
+  const fullGraph = useMemo(
+    () =>
+      buildWorkspaceGraph({
+        tasks,
+        logs,
+        outputs,
+        taskLinks: workspaceData?.taskLinks ?? [],
+        logLinks: workspaceData?.logLinks ?? [],
+      }),
+    [logs, outputs, tasks, workspaceData],
+  );
   const graph = useMemo(
-    () => filterWorkspaceGraph(fullGraph, selectedTaskId, searchQuery),
-    [fullGraph, selectedTaskId, searchQuery],
+    () => filterWorkspaceGraph(fullGraph, selectedTaskId, searchQuery, tasks),
+    [fullGraph, selectedTaskId, searchQuery, tasks],
   );
   const graphKey = graph.nodes.map((node) => node.id).join("|");
   const selectedTask =
     selectedTaskId === ALL_TASKS
       ? null
-      : workspaceWorkItems.find((task) => task.id === selectedTaskId);
+      : tasks.find((task) => task.id === selectedTaskId);
 
   return (
     <div className="space-y-3.5">
@@ -132,7 +154,7 @@ export function WorkspaceGraphView({ isLoggedIn }: { isLoggedIn: boolean }) {
                 className="h-9 w-full rounded-[10px] border border-zinc-200 bg-white px-3 text-[13px] font-medium text-zinc-700 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10"
               >
                 <option value={ALL_TASKS}>All tasks</option>
-                {workspaceWorkItems.map((task) => (
+                {tasks.map((task) => (
                   <option key={task.id} value={task.id}>
                     {task.title}
                   </option>
@@ -702,17 +724,29 @@ function GraphResultList({ graph }: { graph: WorkspaceGraph }) {
   );
 }
 
-function buildWorkspaceGraph(): WorkspaceGraph {
+function buildWorkspaceGraph({
+  tasks,
+  logs,
+  outputs,
+  taskLinks,
+  logLinks,
+}: {
+  tasks: WorkspaceWorkItem[];
+  logs: WorkspaceLogItem[];
+  outputs: WorkspaceTaskOutput[];
+  taskLinks: WorkspaceUiData["taskLinks"];
+  logLinks: WorkspaceUiData["logLinks"];
+}): WorkspaceGraph {
   const nodes: WorkspaceGraphNode[] = [
-    ...workspaceWorkItems.map((task) => ({
+    ...tasks.map((task) => ({
       id: getTaskNodeId(task.id),
       kind: "task" as const,
       title: task.title,
-      description: getTaskNodeDescription(task),
+      description: getTaskNodeDescription(task, logs),
       href: getTaskHref(task.id),
       taskId: task.id,
     })),
-    ...workspaceLogs.map((log) => ({
+    ...logs.map((log) => ({
       id: getLogNodeId(log.id),
       kind: "log" as const,
       title: log.title,
@@ -720,7 +754,7 @@ function buildWorkspaceGraph(): WorkspaceGraph {
       href: getLogHref(log.id),
       taskId: log.taskId,
     })),
-    ...workspaceTaskOutputs.map((output) => ({
+    ...outputs.map((output) => ({
       id: getOutputNodeId(output.id),
       kind: "output" as const,
       title: output.title,
@@ -739,7 +773,7 @@ function buildWorkspaceGraph(): WorkspaceGraph {
   ];
   const edges: WorkspaceGraphEdge[] = [];
 
-  for (const log of workspaceLogs) {
+  for (const log of logs) {
     if (log.taskId) {
       edges.push({
         sourceId: getTaskNodeId(log.taskId),
@@ -749,7 +783,7 @@ function buildWorkspaceGraph(): WorkspaceGraph {
     }
   }
 
-  for (const output of workspaceTaskOutputs) {
+  for (const output of outputs) {
     for (const taskId of output.taskIds) {
       edges.push({
         sourceId: getTaskNodeId(taskId),
@@ -757,6 +791,29 @@ function buildWorkspaceGraph(): WorkspaceGraph {
         label: "refined",
       });
     }
+    for (const logId of output.logIds) {
+      edges.push({
+        sourceId: getLogNodeId(logId),
+        targetId: getOutputNodeId(output.id),
+        label: "source",
+      });
+    }
+  }
+
+  for (const link of taskLinks) {
+    edges.push({
+      sourceId: getTaskNodeId(link.fromTaskId),
+      targetId: getTaskNodeId(link.toTaskId),
+      label: link.relation.toLowerCase().replaceAll("_", " "),
+    });
+  }
+
+  for (const link of logLinks) {
+    edges.push({
+      sourceId: getLogNodeId(link.fromLogId),
+      targetId: getLogNodeId(link.toLogId),
+      label: link.relation.toLowerCase().replaceAll("_", " "),
+    });
   }
 
   workspaceMemories.forEach((memory, index) => {
@@ -772,9 +829,9 @@ function buildWorkspaceGraph(): WorkspaceGraph {
     });
   });
 
-  for (let index = 0; index < workspaceLogs.length; index += 1) {
-    const log = workspaceLogs[index];
-    const nextLog = workspaceLogs[index + 1];
+  for (let index = 0; index < logs.length; index += 1) {
+    const log = logs[index];
+    const nextLog = logs[index + 1];
     if (!nextLog || log.taskId !== nextLog.taskId || !log.taskId) {
       continue;
     }
@@ -793,6 +850,7 @@ function filterWorkspaceGraph(
   graph: WorkspaceGraph,
   selectedTaskId: string,
   query: string,
+  tasks: WorkspaceWorkItem[],
 ): WorkspaceGraph {
   let visibleIds = new Set(graph.nodes.map((node) => node.id));
 
@@ -815,7 +873,7 @@ function filterWorkspaceGraph(
         (node) =>
           visibleIds.has(node.id) &&
           normalizeSearch(
-            `${node.title} ${node.description} ${node.kind} ${getNodeTaskTitle(node)}`,
+            `${node.title} ${node.description} ${node.kind} ${getNodeTaskTitle(node, tasks)}`,
           ).includes(normalizedQuery),
       )
       .map((node) => node.id);
@@ -979,18 +1037,24 @@ function stepForceSimulation(
   return nextNodes;
 }
 
-function getTaskNodeDescription(task: WorkspaceWorkItem) {
-  const logCount = workspaceLogs.filter((log) => log.taskId === task.id).length;
+function getTaskNodeDescription(
+  task: WorkspaceWorkItem,
+  logs: WorkspaceLogItem[],
+) {
+  const logCount = logs.filter((log) => log.taskId === task.id).length;
 
   return `${task.status} · ${logCount} log${logCount === 1 ? "" : "s"}`;
 }
 
-function getNodeTaskTitle(node: WorkspaceGraphNode) {
+function getNodeTaskTitle(
+  node: WorkspaceGraphNode,
+  tasks: WorkspaceWorkItem[],
+) {
   if (!node.taskId) {
     return "";
   }
 
-  return workspaceWorkItems.find((task) => task.id === node.taskId)?.title ?? "";
+  return tasks.find((task) => task.id === node.taskId)?.title ?? "";
 }
 
 function inferMemoryTaskId(title: string, description: string) {

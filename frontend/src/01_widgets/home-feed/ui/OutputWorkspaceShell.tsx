@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
 import { HomeSidebar } from "./HomeFeedShell";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 export function OutputWorkspaceShell({
   isLoggedIn,
@@ -12,6 +13,7 @@ export function OutputWorkspaceShell({
   footer,
   children,
   label,
+  workspaceData,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
@@ -19,6 +21,7 @@ export function OutputWorkspaceShell({
   footer: ReactNode;
   children: ReactNode;
   label: string;
+  workspaceData?: WorkspaceUiData | null;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -63,6 +66,7 @@ export function OutputWorkspaceShell({
           workspaceNav="outputs"
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {
               setIsSidebarOpen(false);

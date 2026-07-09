@@ -13,11 +13,20 @@ import {
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import { getTabHref, getTaskHref, type WorkspaceWorkItem } from "./data";
 import { saveTaskOverride } from "./taskOverrides";
+import { updateWorkspaceTask } from "./workspaceActions";
 
-export function TaskEditView({ task }: { task: WorkspaceWorkItem }) {
+export function TaskEditView({
+  task,
+  workspaceId,
+}: {
+  task: WorkspaceWorkItem;
+  workspaceId?: string;
+}) {
   const router = useRouter();
   const [title, setTitle] = useState(task.title);
   const [body, setBody] = useState(task.body);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [mode, setMode] = useState<"write" | "preview">("write");
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
@@ -53,8 +62,33 @@ export function TaskEditView({ task }: { task: WorkspaceWorkItem }) {
     });
   }
 
-  function saveTask() {
-    if (!canSave) {
+  async function saveTask() {
+    if (!canSave || isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    if (workspaceId) {
+      const result = await updateWorkspaceTask({
+        workspaceId,
+        taskId: task.id,
+        title: trimmedTitle,
+        description: task.description ?? null,
+        content: body,
+        status: task.apiStatus ?? toApiTaskStatus(task.status),
+      });
+
+      setIsSaving(false);
+
+      if (!result.ok) {
+        setError(result.message ?? "Failed to save task.");
+        return;
+      }
+
+      router.push(getTaskHref(task.id));
+      router.refresh();
       return;
     }
 
@@ -62,6 +96,7 @@ export function TaskEditView({ task }: { task: WorkspaceWorkItem }) {
       title: trimmedTitle,
       body,
     });
+    setIsSaving(false);
     router.push(getTaskHref(task.id));
     router.refresh();
   }
@@ -153,7 +188,7 @@ export function TaskEditView({ task }: { task: WorkspaceWorkItem }) {
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/80 px-6 py-4">
           <span className="text-[12px] text-zinc-500">
-            Markdown supported · title and body save together
+            {error ?? "Markdown supported · title and body save together"}
           </span>
           <div className="flex items-center gap-2">
             <Link
@@ -165,21 +200,32 @@ export function TaskEditView({ task }: { task: WorkspaceWorkItem }) {
             <button
               type="button"
               onClick={saveTask}
-              disabled={!canSave}
+              disabled={!canSave || isSaving}
               className={cn(
                 "inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                canSave
+                canSave && !isSaving
                   ? "bg-zinc-950 hover:bg-zinc-800"
                   : "cursor-not-allowed bg-zinc-400",
               )}
             >
-              Save changes
+              {isSaving ? "Saving..." : "Save changes"}
             </button>
           </div>
         </div>
       </article>
     </div>
   );
+}
+
+function toApiTaskStatus(status: WorkspaceWorkItem["status"]) {
+  switch (status) {
+    case "done":
+      return "DONE" as const;
+    case "doing":
+      return "DOING" as const;
+    default:
+      return "TODO" as const;
+  }
 }
 
 function TabButton({

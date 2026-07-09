@@ -16,17 +16,36 @@ import {
   getTaskMeta,
   getLogHref,
   type WorkspaceLogItem,
+  type WorkspaceSpawnedTodo,
+  type WorkspaceTodoItem,
   type WorkspaceWorkItem,
   type WorkspaceWorkStatus,
 } from "./data";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
-export function TaskDetailView({ task }: { task: WorkspaceWorkItem }) {
-  const logs = getLogsForTask(task.id);
-  const outputs = getOutputsForTask(task.id);
-  const branches = getTaskBranches(task.id);
-  const meta = getTaskMeta(task.id);
-  const spawnedTodos = getSpawnedTodosForTask(task.id);
-  const unassignedCount = countUnassignedLogs();
+export function TaskDetailView({
+  task,
+  workspaceData,
+}: {
+  task: WorkspaceWorkItem;
+  workspaceData?: WorkspaceUiData | null;
+}) {
+  const logs = workspaceData
+    ? workspaceData.logs.filter((log) => log.taskId === task.id)
+    : getLogsForTask(task.id);
+  const outputs = workspaceData
+    ? workspaceData.outputs.filter((output) => output.taskIds.includes(task.id))
+    : getOutputsForTask(task.id);
+  const branches = workspaceData
+    ? getTaskBranchesFromLogs(logs)
+    : getTaskBranches(task.id);
+  const meta = workspaceData ? getApiTaskMeta(logs) : getTaskMeta(task.id);
+  const spawnedTodos = workspaceData
+    ? getApiSpawnedTodos(task.id, workspaceData.todos)
+    : getSpawnedTodosForTask(task.id);
+  const unassignedCount = workspaceData
+    ? workspaceData.logs.filter((log) => !log.taskId).length
+    : countUnassignedLogs();
   const statusLabel =
     task.status === "doing"
       ? "doing"
@@ -385,6 +404,40 @@ function TaskOutputRow({
 
 function formatLogMeta(meta: string) {
   return meta.split(" · ")[0] ?? meta;
+}
+
+function getTaskBranchesFromLogs(logs: WorkspaceLogItem[]) {
+  const counts = new Map<string, number>();
+
+  for (const log of logs) {
+    if (!log.branch) continue;
+    counts.set(log.branch, (counts.get(log.branch) ?? 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([branch, count]) => ({ branch, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function getApiTaskMeta(logs: WorkspaceLogItem[]) {
+  const latest = logs[0]?.meta.split(" · ")[0] ?? "-";
+
+  return {
+    startedLabel: logs.at(-1)?.meta.split(" · ")[0] ?? latest,
+    lastActivityLabel: latest,
+  };
+}
+
+function getApiSpawnedTodos(
+  taskId: string,
+  todos: WorkspaceTodoItem[],
+): Array<{ todo: WorkspaceTodoItem; link: WorkspaceSpawnedTodo }> {
+  return todos
+    .filter((todo) => todo.taskId === taskId)
+    .map((todo) => ({
+      todo,
+      link: { taskId, todoId: todo.id },
+    }));
 }
 
 function SidebarBlock({

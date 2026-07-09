@@ -1,20 +1,26 @@
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import {
+  forwardRef,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { handleOAuth } from "@/features/auth/api/handleOAuth";
 import { cn } from "@/shared/lib/cn";
+import { todayIso } from "@/shared/lib/todayIso";
 import { GitHubIcon } from "@/shared/ui/icons";
 import {
-  countLogsForTask,
-  countUnassignedLogs,
   getLogHref,
   getLogsHref,
   getNewOutputHref,
-  getTaskById,
+  getTaskExcerpt,
   getTaskHref,
   getTasksHref,
   getWorkspaceGraphHref,
-  workspaceIssues,
   workspaceLogs,
   workspaceMemories,
   workspaceTodos,
@@ -28,10 +34,31 @@ import {
 } from "./data";
 import { LogTypeLabel } from "./LogTypeLabel";
 import { WorkspaceRepositoryLink } from "./WorkspaceRepositoryLink";
+import {
+  createWorkspaceTodo,
+  deleteWorkspaceTodo,
+  updateWorkspaceTodoDone,
+} from "./workspaceActions";
+import type { WorkspaceActionResult } from "./workspaceActions";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
-export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
+export function WorkspaceView({
+  isLoggedIn,
+  workspaceData,
+  createTodoOverride,
+}: {
+  isLoggedIn: boolean;
+  workspaceData?: WorkspaceUiData | null;
+  createTodoOverride?: (title: string) => Promise<WorkspaceActionResult>;
+}) {
   const isPreview = !isLoggedIn;
-  const dashboard = <WorkspaceDashboard isPreview={isPreview} />;
+  const dashboard = (
+    <WorkspaceDashboard
+      isPreview={isPreview}
+      workspaceData={workspaceData}
+      createTodoOverride={createTodoOverride}
+    />
+  );
 
   if (isLoggedIn) {
     return dashboard;
@@ -40,22 +67,39 @@ export function WorkspaceView({ isLoggedIn }: { isLoggedIn: boolean }) {
   return <GuestWorkspacePreview>{dashboard}</GuestWorkspacePreview>;
 }
 
-function WorkspaceDashboard({ isPreview = false }: { isPreview?: boolean }) {
+function WorkspaceDashboard({
+  isPreview = false,
+  workspaceData,
+  createTodoOverride,
+}: {
+  isPreview?: boolean;
+  workspaceData?: WorkspaceUiData | null;
+  createTodoOverride?: (title: string) => Promise<WorkspaceActionResult>;
+}) {
+  const tasks = workspaceData?.tasks ?? workspaceWorkItems;
+  const logs = workspaceData?.logs ?? workspaceLogs;
+  const todos = workspaceData?.todos ?? workspaceTodos;
+
   return (
     <div className="space-y-3.5">
       {isPreview ? <DemoRepositoryBanner /> : <WorkspaceRepositoryLink />}
       <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-3.5">
-          <NowWorkingCard isPreview={isPreview} />
-          <WorkTasksCard isPreview={isPreview} />
-          <RecentLogsCard isPreview={isPreview} />
+          <NowWorkingCard tasks={tasks} logs={logs} isPreview={isPreview} />
+          <WorkTasksCard tasks={tasks} logs={logs} isPreview={isPreview} />
+          <RecentLogsCard tasks={tasks} logs={logs} isPreview={isPreview} />
         </div>
 
         <div className="min-w-0 space-y-3.5">
-          <TodosCard isPreview={isPreview} />
-          <MonthActivityCard isPreview={isPreview} />
+          <TodosCard
+            todos={todos}
+            workspaceId={workspaceData?.workspaceId}
+            isPreview={isPreview}
+            createTodoOverride={createTodoOverride}
+          />
+          <MonthActivityCard />
           <GraphCard isPreview={isPreview} />
-          <OpenIssuesCard isPreview={isPreview} />
+          <OpenIssuesCard logs={logs} isPreview={isPreview} />
           <MemoryCard />
         </div>
       </div>
@@ -150,7 +194,26 @@ function DemoRepositoryBanner() {
   );
 }
 
-function NowWorkingCard({ isPreview = false }: { isPreview?: boolean }) {
+function NowWorkingCard({
+  tasks,
+  logs,
+  isPreview = false,
+}: {
+  tasks: WorkspaceWorkItem[];
+  logs: WorkspaceLogItem[];
+  isPreview?: boolean;
+}) {
+  const task =
+    tasks.find((item) => item.status === "doing") ??
+    tasks.find((item) => item.status === "todo") ??
+    tasks[0] ??
+    workspaceWorkItems[0]!;
+  const latestLog = logs.find((log) => log.taskId === task.id);
+  const summary =
+    getTaskExcerpt(task.body, 160) ||
+    latestLog?.description ||
+    "No active task summary yet.";
+
   return (
     <DashboardCard
       title="NOW WORKING"
@@ -159,27 +222,30 @@ function NowWorkingCard({ isPreview = false }: { isPreview?: boolean }) {
       <div className="px-[18px] pb-[18px] pt-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-[17px] font-bold tracking-[-0.01em] text-zinc-950">
-            홈 피드 → 워크스페이스 뷰 전환
+            {task.title}
           </h2>
-          <BranchBadge>fix/pnpm</BranchBadge>
+          {latestLog?.branch ? <BranchBadge>{latestLog.branch}</BranchBadge> : null}
         </div>
 
         <p className="mt-2 max-w-[62ch] text-[13px] leading-[1.6] text-zinc-500">
-          WorkspaceView·WorkspaceGuestPrompt 신규 추가, HomeFeedShell에서 로그인
-          분기 처리 중. — session summary
+          {summary}
         </p>
 
         <dl className="mt-3 flex flex-wrap gap-x-[18px] gap-y-2 text-[12.5px] tabular-nums text-zinc-500">
           <div>
-            Last commit&nbsp;
+            Linked logs&nbsp;
             <dd className="inline font-semibold text-zinc-950">
-              fix: turbopack 버그 수정
+              {logs.filter((log) => log.taskId === task.id).length}
             </dd>
           </div>
-          <div>
-            Uncommitted&nbsp;
-            <dd className="inline font-semibold text-zinc-950">+412 −96</dd>
-          </div>
+          {latestLog ? (
+            <div>
+              Latest&nbsp;
+              <dd className="inline font-semibold text-zinc-950">
+                {latestLog.meta.split(" · ")[0]}
+              </dd>
+            </div>
+          ) : null}
         </dl>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -193,7 +259,7 @@ function NowWorkingCard({ isPreview = false }: { isPreview?: boolean }) {
             Log now
           </LinkButton>
           <LinkButton
-            href={getNewOutputHref("workspace-view")}
+            href={getNewOutputHref(task.id)}
             tone="outline"
             size="sm"
             isPreview={isPreview}
@@ -214,7 +280,15 @@ function NowWorkingCard({ isPreview = false }: { isPreview?: boolean }) {
   );
 }
 
-function WorkTasksCard({ isPreview = false }: { isPreview?: boolean }) {
+function WorkTasksCard({
+  tasks,
+  logs,
+  isPreview = false,
+}: {
+  tasks: WorkspaceWorkItem[];
+  logs: WorkspaceLogItem[];
+  isPreview?: boolean;
+}) {
   return (
     <DashboardCard
       title="TASKS"
@@ -228,11 +302,11 @@ function WorkTasksCard({ isPreview = false }: { isPreview?: boolean }) {
       }
     >
       <PanelList>
-        {workspaceWorkItems.map((item) => (
+        {tasks.map((item) => (
           <WorkItemRow
             key={item.id}
             item={item}
-            logCount={countLogsForTask(item.id)}
+            logCount={logs.filter((log) => log.taskId === item.id).length}
             isPreview={isPreview}
           />
         ))}
@@ -331,12 +405,185 @@ function TaskStatusLegend() {
   );
 }
 
-function TodosCard({ isPreview = false }: { isPreview?: boolean }) {
+function TodosCard({
+  todos,
+  workspaceId,
+  isPreview = false,
+  createTodoOverride,
+}: {
+  todos: WorkspaceTodoItem[];
+  workspaceId?: string;
+  isPreview?: boolean;
+  createTodoOverride?: (title: string) => Promise<WorkspaceActionResult>;
+}) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"today" | "week">("today");
+  const [isAdding, setIsAdding] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [localTodos, setLocalTodos] = useState(todos);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setLocalTodos(todos);
+  }, [todos]);
+
+  useEffect(() => {
+    if (isAdding) {
+      inputRef.current?.focus();
+    }
+  }, [isAdding]);
+
+  const canAdd = !isPreview && activeTab === "today" && Boolean(workspaceId);
+
+  function openAddRow() {
+    if (!canAdd) {
+      return;
+    }
+
+    setIsAdding(true);
+    setDraftTitle("");
+    setError(null);
+  }
+
+  function cancelAdd() {
+    setIsAdding(false);
+    setDraftTitle("");
+    setError(null);
+  }
+
+  function submitTodo() {
+    const trimmed = draftTitle.trim();
+    if (!trimmed || !workspaceId || isPending) {
+      return;
+    }
+
+    if (createTodoOverride) {
+      setIsAdding(false);
+      setDraftTitle("");
+      setError(null);
+
+      startTransition(async () => {
+        const result = await createTodoOverride(trimmed);
+
+        if (!result.ok) {
+          setError(result.message ?? "Failed to add todo.");
+          setIsAdding(true);
+          setDraftTitle(trimmed);
+        }
+      });
+      return;
+    }
+
+    const optimisticId = `pending-${Date.now()}`;
+    const optimisticTodo: WorkspaceTodoItem = {
+      id: optimisticId,
+      title: trimmed,
+      done: false,
+    };
+
+    setLocalTodos((current) => [...current, optimisticTodo]);
+    setIsAdding(false);
+    setDraftTitle("");
+    setError(null);
+
+    startTransition(async () => {
+      const result = await createWorkspaceTodo({
+        workspaceId,
+        title: trimmed,
+        plannedFor: todayIso(),
+      });
+
+      if (!result.ok) {
+        setLocalTodos((current) =>
+          current.filter((todo) => todo.id !== optimisticId),
+        );
+        setError(result.message ?? "Failed to add todo.");
+        setIsAdding(true);
+        setDraftTitle(trimmed);
+        return;
+      }
+
+      router.refresh();
+    });
+  }
+
+  function toggleTodo(todoId: string) {
+    if (!workspaceId || isPreview || isPending || todoId.startsWith("pending-")) {
+      return;
+    }
+
+    const targetTodo = localTodos.find((todo) => todo.id === todoId);
+    if (!targetTodo) {
+      return;
+    }
+
+    const nextDone = !targetTodo.done;
+
+    setLocalTodos((current) =>
+      current.map((todo) =>
+        todo.id === todoId ? { ...todo, done: nextDone } : todo,
+      ),
+    );
+    setError(null);
+
+    startTransition(async () => {
+      const result = await updateWorkspaceTodoDone({
+        workspaceId,
+        todoId,
+        done: nextDone,
+      });
+
+      if (!result.ok) {
+        setLocalTodos((current) =>
+          current.map((todo) =>
+            todo.id === todoId ? { ...todo, done: !nextDone } : todo,
+          ),
+        );
+        setError(result.message ?? "Failed to update todo.");
+        return;
+      }
+
+      router.refresh();
+    });
+  }
+
+  function removeTodo(todoId: string) {
+    if (!workspaceId || isPreview || isPending) {
+      return;
+    }
+
+    if (todoId.startsWith("pending-")) {
+      setLocalTodos((current) => current.filter((todo) => todo.id !== todoId));
+      return;
+    }
+
+    const previousTodos = localTodos;
+
+    setLocalTodos((current) => current.filter((todo) => todo.id !== todoId));
+    setError(null);
+
+    startTransition(async () => {
+      const result = await deleteWorkspaceTodo({
+        workspaceId,
+        todoId,
+      });
+
+      if (!result.ok) {
+        setLocalTodos(previousTodos);
+        setError(result.message ?? "Failed to remove todo.");
+        return;
+      }
+
+      router.refresh();
+    });
+  }
 
   return (
     <DashboardCard
       title="TODOS"
+      testId="todos-card"
       action={
         <MiniTabs
           active={activeTab}
@@ -349,55 +596,211 @@ function TodosCard({ isPreview = false }: { isPreview?: boolean }) {
         />
       }
     >
-      <PanelList>
-        {workspaceTodos.map((todo) => (
-          <TodoRow key={todo.id} todo={todo} />
+      <div className="divide-y divide-zinc-100">
+        {localTodos.map((todo) => (
+          <TodoRow
+            key={todo.id}
+            todo={todo}
+            disabled={
+              isPreview || isPending || todo.id.startsWith("pending-")
+            }
+            onToggle={() => toggleTodo(todo.id)}
+            onRemove={
+              isPreview ? undefined : () => removeTodo(todo.id)
+            }
+          />
         ))}
-      </PanelList>
-      <PreviewableLink
-        href="/write"
-        isPreview={isPreview}
-        className="block border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-        previewClassName="block cursor-default border-t border-zinc-100 px-[18px] py-2.5 text-[12.5px] font-medium text-zinc-300"
-      >
-        + Add todo
-      </PreviewableLink>
+        {isAdding ? (
+          <TodoAddRow
+            ref={inputRef}
+            value={draftTitle}
+            disabled={isPending}
+            onChange={setDraftTitle}
+            onSubmit={submitTodo}
+            onCancel={cancelAdd}
+          />
+        ) : null}
+      </div>
+      {error ? (
+        <p className="border-t border-zinc-100 px-[18px] py-2 text-[12px] text-rose-600">
+          {error}
+        </p>
+      ) : null}
+      {isPreview ? (
+        <span className="flex h-10 items-center border-t border-zinc-100 px-[18px] text-[12.5px] font-medium text-zinc-300">
+          + Add todo
+        </span>
+      ) : (
+        <button
+          type="button"
+          data-testid="todo-add-button"
+          onClick={openAddRow}
+          disabled={!canAdd || isAdding}
+          className={cn(
+            "flex h-10 w-full items-center border-t border-zinc-100 px-[18px] text-left text-[12.5px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+            canAdd && !isAdding
+              ? "text-zinc-400 hover:text-zinc-950"
+              : "cursor-not-allowed text-zinc-300",
+          )}
+        >
+          + Add todo
+        </button>
+      )}
     </DashboardCard>
   );
 }
 
-function TodoRow({ todo }: { todo: WorkspaceTodoItem }) {
+const TodoAddRow = forwardRef<
+  HTMLInputElement,
+  {
+    value: string;
+    disabled?: boolean;
+    onChange: (value: string) => void;
+    onSubmit: () => void;
+    onCancel: () => void;
+  }
+>(function TodoAddRow(
+  { value, disabled = false, onChange, onSubmit, onCancel },
+  ref,
+) {
   return (
-    <PanelItem align="start">
-      <span
+    <TodoPanelRow testId="todo-add-row">
+      <span className="size-[15px] shrink-0 rounded-[5px] border-[1.5px] border-zinc-300 bg-white" />
+      <input
+        ref={ref}
+        data-testid="todo-add-input"
+        type="text"
+        value={value}
+        disabled={disabled}
+        placeholder="What needs to be done?"
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            onSubmit();
+          }
+
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onCancel();
+          }
+        }}
+        className="min-w-0 bg-transparent text-[13px] font-semibold leading-5 text-zinc-950 outline-none placeholder:font-medium placeholder:text-zinc-400 disabled:text-zinc-400"
+      />
+      <span className="size-6 shrink-0" aria-hidden="true" />
+    </TodoPanelRow>
+  );
+});
+
+function TodoPanelRow({
+  multiline = false,
+  testId = "todo-row",
+  className,
+  children,
+}: {
+  multiline?: boolean;
+  testId?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      data-testid={testId}
+      data-multiline={multiline ? "true" : "false"}
+      className={cn(
+        "flex gap-[11px] px-[18px]",
+        multiline
+          ? "items-start py-2.5"
+          : "h-10 max-h-10 shrink-0 items-center overflow-hidden",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function TodoRow({
+  todo,
+  disabled = false,
+  onToggle,
+  onRemove,
+}: {
+  todo: WorkspaceTodoItem;
+  disabled?: boolean;
+  onToggle?: () => void;
+  onRemove?: () => void;
+}) {
+  const hasDescription = Boolean(todo.description);
+
+  return (
+    <TodoPanelRow multiline={hasDescription} className="group">
+      <button
+        type="button"
+        data-testid="todo-checkbox"
+        aria-label={todo.done ? "Mark todo open" : "Mark todo done"}
+        aria-pressed={todo.done}
+        disabled={disabled || !onToggle}
+        onClick={onToggle}
         className={cn(
-          "mt-[2.5px] flex size-[15px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px]",
+          "flex size-[15px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed",
+          hasDescription && "self-start mt-0.5",
           todo.done
             ? "border-zinc-950 bg-zinc-950 text-white"
-            : "border-zinc-300 bg-white",
+            : "border-zinc-300 bg-white hover:border-zinc-400",
+          disabled && "opacity-60",
         )}
       >
         {todo.done ? <IconCheck className="size-[9px]" /> : null}
-      </span>
-      <div className="min-w-0 flex-1">
-        <h3
+      </button>
+      <div className={cn("min-w-0 flex-1", hasDescription && "self-start")}>
+        <p
+          data-testid="todo-title"
           className={cn(
-            "text-[13px] font-semibold leading-[1.45] text-zinc-950",
+            "m-0 text-[13px] font-semibold leading-5 text-zinc-950",
+            !hasDescription && "truncate",
             todo.done && "text-zinc-400 line-through",
           )}
         >
           {todo.title}
-        </h3>
+        </p>
         {todo.description ? (
-          <p className="mt-0.5 text-[12px] text-zinc-500">{todo.description}</p>
+          <p className="mt-0.5 text-[12px] leading-4 text-zinc-500">
+            {todo.description}
+          </p>
         ) : null}
       </div>
-    </PanelItem>
+      {onRemove ? (
+        <button
+          type="button"
+          data-testid="todo-remove"
+          aria-label="Remove todo"
+          disabled={disabled}
+          onClick={onRemove}
+          className={cn(
+            "flex size-6 shrink-0 items-center justify-center rounded-md text-zinc-400 opacity-0 transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50",
+            hasDescription && "self-start mt-0.5",
+          )}
+        >
+          <IconClose className="size-3" />
+        </button>
+      ) : (
+        <span className="size-6 shrink-0" aria-hidden="true" />
+      )}
+    </TodoPanelRow>
   );
 }
 
-function RecentLogsCard({ isPreview = false }: { isPreview?: boolean }) {
-  const unassignedCount = countUnassignedLogs();
+function RecentLogsCard({
+  tasks,
+  logs,
+  isPreview = false,
+}: {
+  tasks: WorkspaceWorkItem[];
+  logs: WorkspaceLogItem[];
+  isPreview?: boolean;
+}) {
+  const unassignedCount = logs.filter((log) => !log.taskId).length;
 
   return (
     <DashboardCard
@@ -416,11 +819,15 @@ function RecentLogsCard({ isPreview = false }: { isPreview?: boolean }) {
         </p>
       ) : null}
       <div className="pb-1.5 pt-1.5">
-        {workspaceLogs.map((item) => (
+        {logs.map((item) => (
           <WorkspaceLogRow
             key={item.id}
             item={item}
-            task={item.taskId ? getTaskById(item.taskId) : undefined}
+            task={
+              item.taskId
+                ? tasks.find((task) => task.id === item.taskId)
+                : undefined
+            }
             isPreview={isPreview}
           />
         ))}
@@ -429,14 +836,9 @@ function RecentLogsCard({ isPreview = false }: { isPreview?: boolean }) {
   );
 }
 
-function MonthActivityCard({ isPreview = false }: { isPreview?: boolean }) {
+function MonthActivityCard() {
   return (
-    <DashboardCard
-      title="THIS MONTH"
-      action={
-        <HeaderLink href="/write" label="Planner" isPreview={isPreview} />
-      }
-    >
+    <DashboardCard title="THIS MONTH">
       <p className="px-[18px] pt-1 text-[12px] font-medium text-zinc-500">
         {workspaceMonthLabel}
       </p>
@@ -613,22 +1015,32 @@ function GraphCard({ isPreview = false }: { isPreview?: boolean }) {
   );
 }
 
-function OpenIssuesCard({ isPreview = false }: { isPreview?: boolean }) {
+function OpenIssuesCard({
+  logs,
+  isPreview = false,
+}: {
+  logs: WorkspaceLogItem[];
+  isPreview?: boolean;
+}) {
+  const issues = logs.filter(
+    (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
+  );
+
   return (
     <DashboardCard
       title="OPEN ISSUES"
       action={<HeaderLink href="/write" isPreview={isPreview} />}
     >
       <PanelList>
-        {workspaceIssues.map((issue) => (
-          <PanelItem key={issue.title} align="start">
+        {issues.map((issue) => (
+          <PanelItem key={issue.id} align="start">
             <span className="mt-[5px] size-2 shrink-0 rounded-full border-[1.5px] border-amber-700" />
             <div className="min-w-0">
               <h3 className="text-[13px] font-semibold leading-[1.45] text-zinc-950">
                 {issue.title}
               </h3>
               <p className="mt-0.5 text-[12px] text-zinc-500">
-                {issue.description}
+                {issue.meta}
               </p>
             </div>
           </PanelItem>
@@ -739,15 +1151,20 @@ function DashboardCard({
   title,
   titleAside,
   action,
+  testId,
   children,
 }: {
   title: string;
   titleAside?: ReactNode;
   action?: ReactNode;
+  testId?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
+    <section
+      data-testid={testId}
+      className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white"
+    >
       <div className="flex items-center justify-between gap-3 px-[18px] pt-3.5">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
           <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
@@ -772,9 +1189,11 @@ function PanelList({ children }: { children: ReactNode }) {
 
 function PanelItem({
   align = "center",
+  className,
   children,
 }: {
   align?: "center" | "start";
+  className?: string;
   children: ReactNode;
 }) {
   return (
@@ -782,6 +1201,7 @@ function PanelItem({
       className={cn(
         "flex gap-[11px] border-t border-zinc-100 px-[18px] py-2 first:border-t-0",
         align === "center" ? "items-center" : "items-start",
+        className,
       )}
     >
       {children}
@@ -965,6 +1385,30 @@ function IconCheck({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="3.2"
+      />
+    </svg>
+  );
+}
+
+function IconClose({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M4 4l8 8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 4L4 12"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
     </svg>
   );

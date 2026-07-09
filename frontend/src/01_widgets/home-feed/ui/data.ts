@@ -21,8 +21,11 @@ export type WorkspaceLogItem = {
   id: string;
   tone: WorkspaceTone;
   label: string;
+  kind?: "ISSUE" | "FIX" | "DECISION" | "NOTE";
+  status?: "NONE" | "OPEN" | "CLOSED";
   title: string;
   description: string;
+  summary?: string;
   meta: string;
   commit?: string;
   href: string;
@@ -266,7 +269,9 @@ export type WorkspaceWorkStatus = "doing" | "done" | "todo";
 export type WorkspaceWorkItem = {
   id: string;
   title: string;
+  description?: string | null;
   status: WorkspaceWorkStatus;
+  apiStatus?: "TODO" | "DOING" | "DONE";
   body: string;
 };
 
@@ -748,6 +753,7 @@ export type WorkspaceTodoItem = {
   title: string;
   description?: string;
   done?: boolean;
+  taskId?: string;
 };
 
 export const workspaceTodos: WorkspaceTodoItem[] = [

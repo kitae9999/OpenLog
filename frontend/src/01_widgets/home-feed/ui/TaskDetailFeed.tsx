@@ -5,6 +5,7 @@ import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { getTaskById } from "./data";
 import { TaskDetailShell } from "./TaskDetailShell";
+import { getWorkspaceUiData } from "./workspaceApi";
 
 export async function TaskDetailFeed({
   taskId,
@@ -15,7 +16,8 @@ export async function TaskDetailFeed({
 }) {
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
-  const task = getTaskById(taskId);
+  const workspaceData = user ? await getWorkspaceUiData() : null;
+  const task = workspaceData?.tasks.find((item) => item.id === taskId) ?? getTaskById(taskId);
 
   if (!task) {
     notFound();
@@ -24,6 +26,8 @@ export async function TaskDetailFeed({
   return (
     <TaskDetailShell
       taskId={taskId}
+      task={task}
+      workspaceData={workspaceData}
       isLoggedIn={!!user}
       profileImageUrl={user?.profileImageUrl}
       profileHref={user ? buildViewerProfileHref(user.username) : undefined}

@@ -5,16 +5,19 @@ import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
 import { TasksListView } from "./TasksListView";
 import { HomeSidebar } from "./HomeFeedShell";
+import type { WorkspaceUiData } from "./workspaceTypes";
 
 export function TasksListShell({
   isLoggedIn,
   profileImageUrl,
   profileHref,
+  workspaceData,
   footer,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
+  workspaceData?: WorkspaceUiData | null;
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -60,6 +63,7 @@ export function TasksListShell({
           workspaceNav="tasks"
           isLoggedIn={isLoggedIn}
           isOpen={isSidebarOpen}
+          workspaceData={workspaceData}
           onNavigate={() => {
             if (!window.matchMedia("(min-width: 1024px)").matches) {
               setIsSidebarOpen(false);
@@ -77,7 +81,10 @@ export function TasksListShell({
             aria-label="Tasks"
             className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 xl:px-10"
           >
-            <TasksListView isLoggedIn={isLoggedIn} />
+            <TasksListView
+              isLoggedIn={isLoggedIn}
+              workspaceData={workspaceData}
+            />
           </section>
         </main>
       </div>
