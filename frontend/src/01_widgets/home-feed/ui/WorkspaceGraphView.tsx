@@ -13,39 +13,25 @@ import {
 } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
-  getLogHref,
-  getOutputHref,
-  getTaskHref,
   getTabHref,
   workspaceLogs,
-  workspaceMemories,
   workspaceTaskOutputs,
   workspaceWorkItems,
-  type WorkspaceLogItem,
-  type WorkspaceTaskOutput,
   type WorkspaceWorkItem,
 } from "./data";
 import { LogTypeLabel } from "./LogTypeLabel";
+import {
+  buildWorkspaceGraph,
+  getLogNodeId,
+  getNodeFill,
+  getNodeRadius,
+  getTaskNodeId,
+  type WorkspaceGraph,
+  type WorkspaceGraphEdge,
+  type WorkspaceGraphNode,
+} from "./workspaceGraphModel";
 import type { WorkspaceUiData } from "./workspaceTypes";
 
-type WorkspaceGraphNodeKind = "task" | "log" | "output" | "memory";
-type WorkspaceGraphNode = {
-  id: string;
-  kind: WorkspaceGraphNodeKind;
-  title: string;
-  description: string;
-  href: string;
-  taskId?: string;
-};
-type WorkspaceGraphEdge = {
-  sourceId: string;
-  targetId: string;
-  label: string;
-};
-type WorkspaceGraph = {
-  nodes: WorkspaceGraphNode[];
-  edges: WorkspaceGraphEdge[];
-};
 type GraphTransform = {
   x: number;
   y: number;
@@ -185,12 +171,26 @@ export function WorkspaceGraphView({
   );
 }
 
-function WorkspaceGraphCanvas({ graph }: { graph: WorkspaceGraph }) {
+export function WorkspaceGraphCanvas({
+  graph,
+  heightClassName = "h-[520px]",
+  className,
+  initialScale = INITIAL_GRAPH_SCALE,
+  emptyTitle = "No graph matches",
+  emptyDescription = "Try another task filter or search term.",
+}: {
+  graph: WorkspaceGraph;
+  heightClassName?: string;
+  className?: string;
+  initialScale?: number;
+  emptyTitle?: string;
+  emptyDescription?: string;
+}) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [transform, setTransform] = useState<GraphTransform>({
-    x: GRAPH_WIDTH * (1 - INITIAL_GRAPH_SCALE) * 0.5,
-    y: GRAPH_HEIGHT * (1 - INITIAL_GRAPH_SCALE) * 0.5,
-    scale: INITIAL_GRAPH_SCALE,
+    x: GRAPH_WIDTH * (1 - initialScale) * 0.5,
+    y: GRAPH_HEIGHT * (1 - initialScale) * 0.5,
+    scale: initialScale,
   });
   const [nodeStates, setNodeStates] = useState<GraphNodeState[]>(() =>
     buildInitialGraphNodes(graph),
@@ -276,12 +276,10 @@ function WorkspaceGraphCanvas({ graph }: { graph: WorkspaceGraph }) {
 
   if (graph.nodes.length === 0) {
     return (
-      <div className="px-[18px] py-6">
+      <div className={cn("px-[18px] py-6", className)}>
         <div className="rounded-[8px] border border-dashed border-zinc-300 bg-zinc-50 px-5 py-6 text-sm text-zinc-500">
-          <p className="font-semibold text-zinc-800">No graph matches</p>
-          <p className="mt-2 leading-6">
-            Try another task filter or search term.
-          </p>
+          <p className="font-semibold text-zinc-800">{emptyTitle}</p>
+          <p className="mt-2 leading-6">{emptyDescription}</p>
         </div>
       </div>
     );
@@ -477,13 +475,16 @@ function WorkspaceGraphCanvas({ graph }: { graph: WorkspaceGraph }) {
   }
 
   return (
-    <div ref={graphViewportRef} className="overscroll-contain">
+    <div ref={graphViewportRef} className={cn("overscroll-contain", className)}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`}
         role="img"
         aria-label="Workspace graph"
-        className="h-[520px] w-full cursor-grab select-none bg-[radial-gradient(circle_at_50%_45%,#f4f4f5_0,#fff_56%)] active:cursor-grabbing"
+        className={cn(
+          "w-full cursor-grab select-none bg-[radial-gradient(circle_at_50%_45%,#f4f4f5_0,#fff_56%)] active:cursor-grabbing",
+          heightClassName,
+        )}
         style={{ touchAction: "none" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -724,128 +725,6 @@ function GraphResultList({ graph }: { graph: WorkspaceGraph }) {
   );
 }
 
-function buildWorkspaceGraph({
-  tasks,
-  logs,
-  outputs,
-  taskLinks,
-  logLinks,
-}: {
-  tasks: WorkspaceWorkItem[];
-  logs: WorkspaceLogItem[];
-  outputs: WorkspaceTaskOutput[];
-  taskLinks: WorkspaceUiData["taskLinks"];
-  logLinks: WorkspaceUiData["logLinks"];
-}): WorkspaceGraph {
-  const nodes: WorkspaceGraphNode[] = [
-    ...tasks.map((task) => ({
-      id: getTaskNodeId(task.id),
-      kind: "task" as const,
-      title: task.title,
-      description: getTaskNodeDescription(task, logs),
-      href: getTaskHref(task.id),
-      taskId: task.id,
-    })),
-    ...logs.map((log) => ({
-      id: getLogNodeId(log.id),
-      kind: "log" as const,
-      title: log.title,
-      description: log.description,
-      href: getLogHref(log.id),
-      taskId: log.taskId,
-    })),
-    ...outputs.map((output) => ({
-      id: getOutputNodeId(output.id),
-      kind: "output" as const,
-      title: output.title,
-      description: output.description,
-      href: getOutputHref(output.id),
-      taskId: output.taskId,
-    })),
-    ...workspaceMemories.map((memory, index) => ({
-      id: getMemoryNodeId(index),
-      kind: "memory" as const,
-      title: memory.title,
-      description: memory.description,
-      href: getTabHref("workspace", true),
-      taskId: inferMemoryTaskId(memory.title, memory.description),
-    })),
-  ];
-  const edges: WorkspaceGraphEdge[] = [];
-
-  for (const log of logs) {
-    if (log.taskId) {
-      edges.push({
-        sourceId: getTaskNodeId(log.taskId),
-        targetId: getLogNodeId(log.id),
-        label: "captured",
-      });
-    }
-  }
-
-  for (const output of outputs) {
-    for (const taskId of output.taskIds) {
-      edges.push({
-        sourceId: getTaskNodeId(taskId),
-        targetId: getOutputNodeId(output.id),
-        label: "refined",
-      });
-    }
-    for (const logId of output.logIds) {
-      edges.push({
-        sourceId: getLogNodeId(logId),
-        targetId: getOutputNodeId(output.id),
-        label: "source",
-      });
-    }
-  }
-
-  for (const link of taskLinks) {
-    edges.push({
-      sourceId: getTaskNodeId(link.fromTaskId),
-      targetId: getTaskNodeId(link.toTaskId),
-      label: link.relation.toLowerCase().replaceAll("_", " "),
-    });
-  }
-
-  for (const link of logLinks) {
-    edges.push({
-      sourceId: getLogNodeId(link.fromLogId),
-      targetId: getLogNodeId(link.toLogId),
-      label: link.relation.toLowerCase().replaceAll("_", " "),
-    });
-  }
-
-  workspaceMemories.forEach((memory, index) => {
-    const taskId = inferMemoryTaskId(memory.title, memory.description);
-    if (!taskId) {
-      return;
-    }
-
-    edges.push({
-      sourceId: getTaskNodeId(taskId),
-      targetId: getMemoryNodeId(index),
-      label: "remembered",
-    });
-  });
-
-  for (let index = 0; index < logs.length; index += 1) {
-    const log = logs[index];
-    const nextLog = logs[index + 1];
-    if (!nextLog || log.taskId !== nextLog.taskId || !log.taskId) {
-      continue;
-    }
-
-    edges.push({
-      sourceId: getLogNodeId(log.id),
-      targetId: getLogNodeId(nextLog.id),
-      label: "sequence",
-    });
-  }
-
-  return { nodes, edges: dedupeEdges(edges, nodes) };
-}
-
 function filterWorkspaceGraph(
   graph: WorkspaceGraph,
   selectedTaskId: string,
@@ -1037,15 +916,6 @@ function stepForceSimulation(
   return nextNodes;
 }
 
-function getTaskNodeDescription(
-  task: WorkspaceWorkItem,
-  logs: WorkspaceLogItem[],
-) {
-  const logCount = logs.filter((log) => log.taskId === task.id).length;
-
-  return `${task.status} · ${logCount} log${logCount === 1 ? "" : "s"}`;
-}
-
 function getNodeTaskTitle(
   node: WorkspaceGraphNode,
   tasks: WorkspaceWorkItem[],
@@ -1055,82 +925,6 @@ function getNodeTaskTitle(
   }
 
   return tasks.find((task) => task.id === node.taskId)?.title ?? "";
-}
-
-function inferMemoryTaskId(title: string, description: string) {
-  const value = normalizeSearch(`${title} ${description}`);
-
-  if (value.includes("turbopack")) {
-    return "pnpm-migration";
-  }
-  if (value.includes("auth") || value.includes("cli")) {
-    return "workspace-view";
-  }
-
-  return undefined;
-}
-
-function dedupeEdges(edges: WorkspaceGraphEdge[], nodes: WorkspaceGraphNode[]) {
-  const nodeIds = new Set(nodes.map((node) => node.id));
-  const seen = new Set<string>();
-
-  return edges.filter((edge) => {
-    if (!nodeIds.has(edge.sourceId) || !nodeIds.has(edge.targetId)) {
-      return false;
-    }
-
-    const key = `${edge.sourceId}:${edge.targetId}:${edge.label}`;
-    if (seen.has(key)) {
-      return false;
-    }
-
-    seen.add(key);
-    return true;
-  });
-}
-
-function getNodeRadius(kind: WorkspaceGraphNodeKind, focused: boolean) {
-  if (kind === "task") {
-    return focused ? 11 : 9;
-  }
-  if (kind === "output") {
-    return focused ? 8.2 : 6.4;
-  }
-  if (kind === "memory") {
-    return focused ? 8 : 6.2;
-  }
-
-  return focused ? 7.5 : 5.6;
-}
-
-function getNodeFill(kind: WorkspaceGraphNodeKind, focused: boolean) {
-  if (kind === "task") {
-    return "#09090b";
-  }
-  if (kind === "output") {
-    return focused ? "#1d4ed8" : "#2563eb";
-  }
-  if (kind === "memory") {
-    return "#ffffff";
-  }
-
-  return focused ? "#18181b" : "#a1a1aa";
-}
-
-function getTaskNodeId(taskId: string) {
-  return `task:${taskId}`;
-}
-
-function getLogNodeId(logId: string) {
-  return `log:${logId}`;
-}
-
-function getOutputNodeId(outputId: string) {
-  return `output:${outputId}`;
-}
-
-function getMemoryNodeId(index: number) {
-  return `memory:${index}`;
 }
 
 function normalizeSearch(value: string) {

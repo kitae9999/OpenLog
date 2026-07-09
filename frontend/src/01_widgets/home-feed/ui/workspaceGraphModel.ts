@@ -1,0 +1,240 @@
+import {
+  getLogHref,
+  getOutputHref,
+  getTabHref,
+  getTaskHref,
+  workspaceMemories,
+  type WorkspaceLogItem,
+  type WorkspaceTaskOutput,
+  type WorkspaceWorkItem,
+} from "./data";
+import type { WorkspaceUiData } from "./workspaceTypes";
+
+export type WorkspaceGraphNodeKind = "task" | "log" | "output" | "memory";
+
+export type WorkspaceGraphNode = {
+  id: string;
+  kind: WorkspaceGraphNodeKind;
+  title: string;
+  description: string;
+  href: string;
+  taskId?: string;
+};
+
+export type WorkspaceGraphEdge = {
+  sourceId: string;
+  targetId: string;
+  label: string;
+};
+
+export type WorkspaceGraph = {
+  nodes: WorkspaceGraphNode[];
+  edges: WorkspaceGraphEdge[];
+};
+
+export function buildWorkspaceGraph({
+  tasks,
+  logs,
+  outputs,
+  taskLinks,
+  logLinks,
+}: {
+  tasks: WorkspaceWorkItem[];
+  logs: WorkspaceLogItem[];
+  outputs: WorkspaceTaskOutput[];
+  taskLinks: WorkspaceUiData["taskLinks"];
+  logLinks: WorkspaceUiData["logLinks"];
+}): WorkspaceGraph {
+  const nodes: WorkspaceGraphNode[] = [
+    ...tasks.map((task) => ({
+      id: getTaskNodeId(task.id),
+      kind: "task" as const,
+      title: task.title,
+      description: getTaskNodeDescription(task, logs),
+      href: getTaskHref(task.id),
+      taskId: task.id,
+    })),
+    ...logs.map((log) => ({
+      id: getLogNodeId(log.id),
+      kind: "log" as const,
+      title: log.title,
+      description: log.description,
+      href: getLogHref(log.id),
+      taskId: log.taskId,
+    })),
+    ...outputs.map((output) => ({
+      id: getOutputNodeId(output.id),
+      kind: "output" as const,
+      title: output.title,
+      description: output.description,
+      href: getOutputHref(output.id),
+      taskId: output.taskId,
+    })),
+    ...workspaceMemories.map((memory, index) => ({
+      id: getMemoryNodeId(index),
+      kind: "memory" as const,
+      title: memory.title,
+      description: memory.description,
+      href: getTabHref("workspace", true),
+      taskId: inferMemoryTaskId(memory.title, memory.description),
+    })),
+  ];
+  const edges: WorkspaceGraphEdge[] = [];
+
+  for (const log of logs) {
+    if (log.taskId) {
+      edges.push({
+        sourceId: getTaskNodeId(log.taskId),
+        targetId: getLogNodeId(log.id),
+        label: "captured",
+      });
+    }
+  }
+
+  for (const output of outputs) {
+    for (const taskId of output.taskIds) {
+      edges.push({
+        sourceId: getTaskNodeId(taskId),
+        targetId: getOutputNodeId(output.id),
+        label: "refined",
+      });
+    }
+    for (const logId of output.logIds) {
+      edges.push({
+        sourceId: getLogNodeId(logId),
+        targetId: getOutputNodeId(output.id),
+        label: "source",
+      });
+    }
+  }
+
+  for (const link of taskLinks) {
+    edges.push({
+      sourceId: getTaskNodeId(link.fromTaskId),
+      targetId: getTaskNodeId(link.toTaskId),
+      label: link.relation.toLowerCase().replaceAll("_", " "),
+    });
+  }
+
+  for (const link of logLinks) {
+    edges.push({
+      sourceId: getLogNodeId(link.fromLogId),
+      targetId: getLogNodeId(link.toLogId),
+      label: link.relation.toLowerCase().replaceAll("_", " "),
+    });
+  }
+
+  workspaceMemories.forEach((memory, index) => {
+    const taskId = inferMemoryTaskId(memory.title, memory.description);
+    if (!taskId) {
+      return;
+    }
+
+    edges.push({
+      sourceId: getTaskNodeId(taskId),
+      targetId: getMemoryNodeId(index),
+      label: "remembered",
+    });
+  });
+
+  for (let index = 0; index < logs.length; index += 1) {
+    const log = logs[index];
+    const nextLog = logs[index + 1];
+    if (!nextLog || log.taskId !== nextLog.taskId || !log.taskId) {
+      continue;
+    }
+
+    edges.push({
+      sourceId: getLogNodeId(log.id),
+      targetId: getLogNodeId(nextLog.id),
+      label: "sequence",
+    });
+  }
+
+  return { nodes, edges: dedupeEdges(edges, nodes) };
+}
+
+export function getTaskNodeId(taskId: string) {
+  return `task:${taskId}`;
+}
+
+export function getLogNodeId(logId: string) {
+  return `log:${logId}`;
+}
+
+export function getOutputNodeId(outputId: string) {
+  return `output:${outputId}`;
+}
+
+export function getMemoryNodeId(index: number) {
+  return `memory:${index}`;
+}
+
+export function getNodeFill(kind: WorkspaceGraphNodeKind, focused = false) {
+  if (kind === "task") {
+    return "#09090b";
+  }
+  if (kind === "output") {
+    return focused ? "#1d4ed8" : "#2563eb";
+  }
+  if (kind === "memory") {
+    return "#ffffff";
+  }
+
+  return focused ? "#18181b" : "#a1a1aa";
+}
+
+export function getNodeRadius(kind: WorkspaceGraphNodeKind, focused = false) {
+  if (kind === "task") {
+    return focused ? 11 : 9;
+  }
+  if (kind === "output") {
+    return focused ? 8.2 : 6.4;
+  }
+  if (kind === "memory") {
+    return focused ? 8 : 6.2;
+  }
+
+  return focused ? 7.5 : 5.6;
+}
+
+function getTaskNodeDescription(
+  task: WorkspaceWorkItem,
+  logs: WorkspaceLogItem[],
+) {
+  const logCount = logs.filter((log) => log.taskId === task.id).length;
+
+  return `${task.status} · ${logCount} log${logCount === 1 ? "" : "s"}`;
+}
+
+function inferMemoryTaskId(title: string, description: string) {
+  const value = `${title} ${description}`.trim().toLowerCase();
+
+  if (value.includes("turbopack")) {
+    return "pnpm-migration";
+  }
+  if (value.includes("auth") || value.includes("cli")) {
+    return "workspace-view";
+  }
+
+  return undefined;
+}
+
+function dedupeEdges(edges: WorkspaceGraphEdge[], nodes: WorkspaceGraphNode[]) {
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const seen = new Set<string>();
+
+  return edges.filter((edge) => {
+    if (!nodeIds.has(edge.sourceId) || !nodeIds.has(edge.targetId)) {
+      return false;
+    }
+
+    const key = `${edge.sourceId}:${edge.targetId}:${edge.label}`;
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}

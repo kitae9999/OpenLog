@@ -35,6 +35,7 @@ import {
   type WorkspaceWorkStatus,
 } from "./data";
 import { LogTypeLabel } from "./LogTypeLabel";
+import { WorkspaceGraphPreview } from "./WorkspaceGraphPreview";
 import { WorkspaceRepositoryLink } from "./WorkspaceRepositoryLink";
 import {
   createWorkspaceTodo,
@@ -100,7 +101,7 @@ function WorkspaceDashboard({
             createTodoOverride={createTodoOverride}
           />
           <MonthActivityCard />
-          <GraphCard isPreview={isPreview} />
+          <GraphCard isPreview={isPreview} workspaceData={workspaceData} />
           <OpenIssuesCard logs={logs} isPreview={isPreview} />
           <MemoryCard />
         </div>
@@ -968,7 +969,13 @@ function GrassLegend() {
   );
 }
 
-function GraphCard({ isPreview = false }: { isPreview?: boolean }) {
+function GraphCard({
+  isPreview = false,
+  workspaceData,
+}: {
+  isPreview?: boolean;
+  workspaceData?: WorkspaceUiData | null;
+}) {
   return (
     <DashboardCard
       title="GRAPH"
@@ -980,45 +987,7 @@ function GraphCard({ isPreview = false }: { isPreview?: boolean }) {
         />
       }
     >
-      <div className="mx-[18px] mt-3 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
-        <svg
-          viewBox="0 0 264 150"
-          fill="none"
-          aria-hidden="true"
-          className="block w-full"
-        >
-          <path
-            d="M118 78L62 44M118 78L56 110M118 78L152 34M118 78L204 57M118 78L196 116M62 44L152 34"
-            stroke="#d4d4d8"
-            strokeWidth="1.2"
-          />
-          <circle cx="62" cy="44" r="5" fill="#a1a1aa" />
-          <circle cx="56" cy="110" r="5" fill="#a1a1aa" />
-          <circle cx="152" cy="34" r="5" fill="#a1a1aa" />
-          <circle cx="118" cy="78" r="7.5" fill="#09090b" />
-          <text x="118" y="99" textAnchor="middle" fontSize="9" fill="#71717a">
-            current log
-          </text>
-          <circle cx="204" cy="57" r="6" fill="#2563eb" />
-          <text x="204" y="43" textAnchor="middle" fontSize="9" fill="#71717a">
-            post
-          </text>
-          <circle
-            cx="196"
-            cy="116"
-            r="6"
-            fill="#ffffff"
-            stroke="#09090b"
-            strokeWidth="1.6"
-          />
-          <text x="196" y="137" textAnchor="middle" fontSize="9" fill="#71717a">
-            memory
-          </text>
-        </svg>
-      </div>
-      <p className="mx-[18px] mb-[15px] mt-2.5 text-[12px] text-zinc-400">
-        이 프로젝트의 log·post·memory 파생 관계.
-      </p>
+      <WorkspaceGraphPreview workspaceData={workspaceData} />
     </DashboardCard>
   );
 }
