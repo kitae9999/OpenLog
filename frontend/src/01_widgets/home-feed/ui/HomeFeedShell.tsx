@@ -20,8 +20,10 @@ import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import { LockIcon } from "@/shared/ui/icons";
 import {
   feedPosts,
+  getActivityHref,
   getLogsHref,
   getManageHref,
+  getMemoryHref,
   getMcpGuideHref,
   getOutputsHref,
   getTabHref,
@@ -526,7 +528,7 @@ export function HomeSidebar({
   isLoggedIn: boolean;
   isOpen: boolean;
   onNavigate: () => void;
-  workspaceNav?: "dashboard" | "tasks" | "logs" | "graph" | "outputs";
+  workspaceNav?: "dashboard" | "tasks" | "logs" | "graph" | "outputs" | "memory" | "activity";
   logsFilter?: LogListTypeFilter;
   settingsNav?: "mcp-guide" | "manage";
   workspaces?: ManagedWorkspace[];
@@ -582,6 +584,13 @@ export function HomeSidebar({
                 icon={<IconTasks className="size-[15px]" />}
                 onNavigate={onNavigate}
               />
+              <SidebarLink
+                href={getActivityHref()}
+                label="Activity"
+                active={workspaceNav === "activity"}
+                icon={<IconPlanner className="size-[15px]" />}
+                onNavigate={onNavigate}
+              />
               <SidebarLogsGroup
                 logsFilter={logsFilter}
                 active={workspaceNav === "logs"}
@@ -604,8 +613,9 @@ export function HomeSidebar({
                 onNavigate={onNavigate}
               />
               <SidebarLink
-                href={getTabHref("workspace", isLoggedIn)}
+                href={getMemoryHref()}
                 label="Memory"
+                active={workspaceNav === "memory"}
                 icon={<IconDatabase className="size-[15px]" />}
                 onNavigate={onNavigate}
               />

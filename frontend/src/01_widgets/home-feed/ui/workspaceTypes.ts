@@ -29,6 +29,30 @@ export type WorkspaceUiData = {
   todos: WorkspaceTodoItem[];
   taskLinks: WorkspaceTaskLinkItem[];
   logLinks: WorkspaceLogLinkItem[];
+  memories: WorkspaceMemoryItem[];
+};
+
+export type WorkspaceMemoryItem = {
+  id: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  task: { id: string; title: string } | null;
+  originLog: { id: string; title: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkspaceActivityDay = {
+  date: string;
+  logCount: number;
+};
+
+export type WorkspaceActivity = {
+  from: string;
+  to: string;
+  totalLogCount: number;
+  days: WorkspaceActivityDay[];
 };
 
 export type ManagedWorkspace = {

@@ -158,6 +158,88 @@ export async function updateWorkspaceLog(input: {
   });
 }
 
+export async function createWorkspaceMemory(input: {
+  workspaceId: string;
+  title: string;
+  content: string;
+  taskId?: string | null;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    const memory = await requestJson<{ id: number }>(
+      `/workspaces/${input.workspaceId}/memories`,
+      cookie,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: input.title,
+          content: input.content,
+          taskId: input.taskId ? Number(input.taskId) : null,
+        }),
+      },
+    );
+    const memoryId = String(memory.id);
+    revalidateMemoryPaths(memoryId);
+    return { ok: true, id: memoryId, href: `/memory/${memoryId}` };
+  });
+}
+
+export async function createWorkspaceMemoryFromLog(input: {
+  workspaceId: string;
+  logId: string;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    const memory = await requestJson<{ id: number }>(
+      `/workspaces/${input.workspaceId}/logs/${input.logId}/memory`,
+      cookie,
+      { method: "POST" },
+    );
+    const memoryId = String(memory.id);
+    revalidateMemoryPaths(memoryId);
+    revalidatePath(`/logs/${input.logId}`);
+    return { ok: true, id: memoryId, href: `/memory/${memoryId}` };
+  });
+}
+
+export async function updateWorkspaceMemory(input: {
+  workspaceId: string;
+  memoryId: string;
+  title: string;
+  content: string;
+  taskId?: string | null;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(
+      `/workspaces/${input.workspaceId}/memories/${input.memoryId}`,
+      cookie,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          title: input.title,
+          content: input.content,
+          taskId: input.taskId ? Number(input.taskId) : null,
+        }),
+      },
+    );
+    revalidateMemoryPaths(input.memoryId);
+    return { ok: true, href: `/memory/${input.memoryId}` };
+  });
+}
+
+export async function deleteWorkspaceMemory(input: {
+  workspaceId: string;
+  memoryId: string;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(
+      `/workspaces/${input.workspaceId}/memories/${input.memoryId}`,
+      cookie,
+      { method: "DELETE" },
+    );
+    revalidateMemoryPaths(input.memoryId);
+    return { ok: true, href: "/memory" };
+  });
+}
+
 export async function createWorkspaceTodo(input: {
   workspaceId: string;
   title: string;
@@ -353,6 +435,14 @@ async function mutateWorkspace(
   }
 }
 
+function revalidateMemoryPaths(memoryId: string) {
+  revalidatePath("/");
+  revalidatePath("/graph");
+  revalidatePath("/memory");
+  revalidatePath(`/memory/${memoryId}`);
+  revalidatePath(`/memory/${memoryId}/edit`);
+}
+
 async function requestJson<T = unknown>(
   path: string,
   cookie: string,
@@ -371,6 +461,10 @@ async function requestJson<T = unknown>(
 
   if (!response.ok) {
     throw new Error(await getWorkspaceErrorMessage(response));
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return (await response.json()) as T;

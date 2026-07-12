@@ -14,6 +14,7 @@ const baseFixture: Omit<WorkspaceUiData, "todos"> = {
   outputs: [],
   taskLinks: [],
   logLinks: [],
+  memories: [],
 };
 
 const initialTodos: WorkspaceTodoItem[] = [

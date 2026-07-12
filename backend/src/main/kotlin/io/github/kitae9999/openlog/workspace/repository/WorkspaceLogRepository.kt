@@ -70,4 +70,27 @@ interface WorkspaceLogRepository : JpaRepository<WorkspaceLog, Long> {
         @Param("id") id: Long,
         pageable: Pageable,
     ): List<WorkspaceLog>
+
+    @Query(
+        """
+        select l.createdAt
+        from WorkspaceLog l
+        where l.workspace.id = :workspaceId
+          and l.createdAt >= :from
+          and l.createdAt < :toExclusive
+        order by l.createdAt asc
+        """
+    )
+    fun findCreatedAtByWorkspaceIdAndRange(
+        @Param("workspaceId") workspaceId: Long,
+        @Param("from") from: LocalDateTime,
+        @Param("toExclusive") toExclusive: LocalDateTime,
+    ): List<LocalDateTime>
+
+    @EntityGraph(attributePaths = ["author", "task"])
+    fun findAllByWorkspaceIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDescIdDesc(
+        workspaceId: Long,
+        from: LocalDateTime,
+        toExclusive: LocalDateTime,
+    ): List<WorkspaceLog>
 }

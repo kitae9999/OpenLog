@@ -19,6 +19,7 @@ export function WorkspaceGraphPreview({
   const outputs = workspaceData?.outputs ?? [];
   const taskLinks = workspaceData?.taskLinks ?? [];
   const logLinks = workspaceData?.logLinks ?? [];
+  const memories = workspaceData?.memories ?? [];
   const graph = useMemo(
     () =>
       buildWorkspaceGraph({
@@ -27,8 +28,9 @@ export function WorkspaceGraphPreview({
         outputs,
         taskLinks,
         logLinks,
+        memories,
       }),
-    [logs, logLinks, outputs, taskLinks, tasks],
+    [logs, logLinks, memories, outputs, taskLinks, tasks],
   );
 
   return (

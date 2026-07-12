@@ -1,14 +1,12 @@
 import {
   getLogHref,
   getOutputHref,
-  getTabHref,
   getTaskHref,
-  workspaceMemories,
   type WorkspaceLogItem,
   type WorkspaceTaskOutput,
   type WorkspaceWorkItem,
 } from "./data";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { WorkspaceMemoryItem, WorkspaceUiData } from "./workspaceTypes";
 
 export type WorkspaceGraphNodeKind = "task" | "log" | "output" | "memory";
 
@@ -48,6 +46,7 @@ export function buildWorkspaceGraph({
   outputs,
   taskLinks,
   logLinks,
+  memories,
   includeMemories = true,
 }: {
   tasks: WorkspaceWorkItem[];
@@ -55,16 +54,17 @@ export function buildWorkspaceGraph({
   outputs: WorkspaceTaskOutput[];
   taskLinks: WorkspaceUiData["taskLinks"];
   logLinks: WorkspaceUiData["logLinks"];
+  memories: WorkspaceMemoryItem[];
   includeMemories?: boolean;
 }): WorkspaceGraph {
   const memoryNodes = includeMemories
-    ? workspaceMemories.map((memory, index) => ({
-        id: getMemoryNodeId(index),
+    ? memories.map((memory) => ({
+        id: getMemoryNodeId(memory.id),
         kind: "memory" as const,
         title: memory.title,
-        description: memory.description,
-        href: getTabHref("workspace", true),
-        taskId: inferMemoryTaskId(memory.title, memory.description),
+        description: memory.excerpt,
+        href: `/memory/${memory.id}`,
+        taskId: memory.task?.id,
       }))
     : [];
 
@@ -141,17 +141,13 @@ export function buildWorkspaceGraph({
   }
 
   if (includeMemories) {
-    workspaceMemories.forEach((memory, index) => {
-      const taskId = inferMemoryTaskId(memory.title, memory.description);
-      if (!taskId) {
-        return;
+    memories.forEach((memory) => {
+      if (memory.originLog) {
+        edges.push({ sourceId: getLogNodeId(memory.originLog.id), targetId: getMemoryNodeId(memory.id), label: "remembered" });
       }
-
-      edges.push({
-        sourceId: getTaskNodeId(taskId),
-        targetId: getMemoryNodeId(index),
-        label: "remembered",
-      });
+      if (memory.task) {
+        edges.push({ sourceId: getTaskNodeId(memory.task.id), targetId: getMemoryNodeId(memory.id), label: "context" });
+      }
     });
   }
 
@@ -184,8 +180,8 @@ export function getOutputNodeId(outputId: string) {
   return `output:${outputId}`;
 }
 
-export function getMemoryNodeId(index: number) {
-  return `memory:${index}`;
+export function getMemoryNodeId(memoryId: string) {
+  return `memory:${memoryId}`;
 }
 
 export function getNodeFill(kind: WorkspaceGraphNodeKind, focused = false) {
@@ -237,19 +233,6 @@ function getTaskNodeDescription(
   const logCount = logs.filter((log) => log.taskId === task.id).length;
 
   return `${task.status} · ${logCount} log${logCount === 1 ? "" : "s"}`;
-}
-
-function inferMemoryTaskId(title: string, description: string) {
-  const value = `${title} ${description}`.trim().toLowerCase();
-
-  if (value.includes("turbopack")) {
-    return "pnpm-migration";
-  }
-  if (value.includes("auth") || value.includes("cli")) {
-    return "workspace-view";
-  }
-
-  return undefined;
 }
 
 function dedupeEdges(edges: WorkspaceGraphEdge[], nodes: WorkspaceGraphNode[]) {

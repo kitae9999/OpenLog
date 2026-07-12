@@ -200,7 +200,7 @@ export function LandingTerminalDemo({
       new MutationObserver(() => {
         if (tryStart()) {
           io.disconnect();
-          mo.disconnect();
+          mo?.disconnect();
         }
       });
     if (reveal && mo) {

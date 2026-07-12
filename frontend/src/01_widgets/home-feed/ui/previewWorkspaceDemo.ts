@@ -177,5 +177,15 @@ export function getPreviewWorkspaceData(): WorkspaceUiData {
     outputs: previewOutputs,
     taskLinks: previewTaskLinks,
     logLinks: previewLogLinks,
+    memories: previewMemories.map((memory, index) => ({
+      id: `preview-${index}`,
+      title: memory.title,
+      content: memory.description,
+      excerpt: memory.description,
+      task: null,
+      originLog: null,
+      createdAt: "2026-07-13T12:00:00",
+      updatedAt: "2026-07-13T12:00:00",
+    })),
   };
 }

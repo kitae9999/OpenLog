@@ -3,6 +3,8 @@ package io.github.kitae9999.openlog.workspace
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.memory.entity.WorkspaceMemory
+import io.github.kitae9999.openlog.memory.repository.WorkspaceMemoryRepository
 import io.github.kitae9999.openlog.workspace.entity.Workspace
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceLog
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
@@ -17,6 +19,7 @@ class WorkspaceAccessResolver(
     private val workspaceRepository: WorkspaceRepository,
     private val workspaceTaskRepository: WorkspaceTaskRepository,
     private val workspaceLogRepository: WorkspaceLogRepository,
+    private val workspaceMemoryRepository: WorkspaceMemoryRepository,
 ) {
     /**
      * workspace가 사용자 소유인지 검증
@@ -66,5 +69,16 @@ class WorkspaceAccessResolver(
         }
 
         return log
+    }
+
+    fun requireOwnedMemory(workspace: Workspace, memoryId: Long): WorkspaceMemory {
+        val memory = workspaceMemoryRepository.findById(memoryId).getOrNull()
+            ?: throw NotFoundException("Memory를 찾을 수 없습니다.")
+
+        if (memory.workspace.id != workspace.id) {
+            throw BadRequestException("현재 워크스페이스에 속한 Memory만 사용할 수 있습니다.")
+        }
+
+        return memory
     }
 }

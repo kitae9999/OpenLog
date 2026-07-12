@@ -16,7 +16,9 @@ import {
 } from "./data";
 import type {
   ManagedWorkspace,
+  WorkspaceActivity,
   WorkspaceLogLinkItem,
+  WorkspaceMemoryItem,
   WorkspaceTaskLinkItem,
   WorkspaceUiData,
 } from "./workspaceTypes";
@@ -135,6 +137,29 @@ type WorkspaceApiSnapshot = {
   todos: TodoResponse[];
   taskLinks: TaskLinkResponse[];
   logLinks: LogLinkResponse[];
+  memories: MemoryResponse[];
+};
+
+type MemoryResponse = {
+  id: number;
+  title: string;
+  content: string;
+  excerpt: string;
+  task: { id: number; title: string } | null;
+  originLog: { id: number; title: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type MemoryCursorResponse = {
+  memories: MemoryResponse[];
+  nextCursor: string | null;
+  hasNext: boolean;
+};
+
+type ActivityDayLogsResponse = {
+  date: string;
+  logs: WorkspaceLogResponse[];
 };
 
 export const listManagedWorkspaces = cache(
@@ -205,7 +230,7 @@ export const getWorkspaceUiData = cache(
       }
 
       const selectedId = selected.id;
-      const [tasks, logs, taskLinks, logLinks, todos, outputSummaries] =
+      const [tasks, logs, taskLinks, logLinks, todos, outputSummaries, memories] =
         await Promise.all([
           fetchAllTasks(selectedId, cookie),
           fetchAllLogs(selectedId, cookie),
@@ -222,6 +247,9 @@ export const getWorkspaceUiData = cache(
             cookie,
           ),
           fetchOutputs(selectedId, cookie),
+          // A newly deployed optional feature must not make the existing
+          // workspace snapshot disappear while its backend rolls out.
+          fetchAllMemories(selectedId, cookie).catch(() => []),
         ]);
 
       const outputDetails = await Promise.all(
@@ -241,12 +269,65 @@ export const getWorkspaceUiData = cache(
         todos,
         taskLinks,
         logLinks,
+        memories,
       });
     } catch {
       return null;
     }
   },
 );
+
+export const getWorkspaceMemory = cache(
+  async (workspaceId: string, memoryId: string): Promise<WorkspaceMemoryItem | null> => {
+    try {
+      const headerStore = await headers();
+      const response = await fetchJson<MemoryResponse>(
+        `/workspaces/${workspaceId}/memories/${memoryId}`,
+        headerStore.get("cookie") ?? "",
+      );
+      return mapMemory(response);
+    } catch {
+      return null;
+    }
+  },
+);
+
+export async function getWorkspaceActivity(
+  workspaceId: string,
+  from: string,
+  to: string,
+): Promise<WorkspaceActivity | null> {
+  try {
+    const headerStore = await headers();
+    return await fetchJson<WorkspaceActivity>(
+      `/workspaces/${workspaceId}/activity?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      headerStore.get("cookie") ?? "",
+    );
+  } catch {
+    return null;
+  }
+}
+
+export async function getWorkspaceActivityDayLogs(
+  workspaceId: string,
+  date: string,
+): Promise<WorkspaceLogItem[]> {
+  try {
+    const headerStore = await headers();
+    const response = await fetchJson<ActivityDayLogsResponse>(
+      `/workspaces/${workspaceId}/activity/${date}/logs`,
+      headerStore.get("cookie") ?? "",
+    );
+    return response.logs.map((log) => mapLog({
+      ...log,
+      content: log.summary ?? "",
+      updatedAt: log.createdAt,
+      closedAt: null,
+    }));
+  } catch {
+    return [];
+  }
+}
 
 function mapManagedWorkspace(workspace: WorkspaceResponse): ManagedWorkspace {
   return {
@@ -317,6 +398,26 @@ async function fetchOutputs(workspaceId: number, cookie: string) {
   );
 
   return groups.flat();
+}
+
+async function fetchAllMemories(workspaceId: number, cookie: string) {
+  const memories: MemoryResponse[] = [];
+  let cursor: string | null = null;
+  let hasNext = true;
+
+  while (hasNext) {
+    const params = new URLSearchParams({ size: "50" });
+    if (cursor) params.set("cursor", cursor);
+    const page = await fetchJson<MemoryCursorResponse>(
+      `/workspaces/${workspaceId}/memories?${params}`,
+      cookie,
+    );
+    memories.push(...page.memories);
+    cursor = page.nextCursor;
+    hasNext = page.hasNext && !!cursor;
+  }
+
+  return memories;
 }
 
 async function fetchAllLogs(workspaceId: number, cookie: string) {
@@ -394,6 +495,22 @@ function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
       toLogId: String(link.toLog.id),
       relation: link.relation,
     })),
+    memories: snapshot.memories.map(mapMemory),
+  };
+}
+
+function mapMemory(memory: MemoryResponse): WorkspaceMemoryItem {
+  return {
+    id: String(memory.id),
+    title: memory.title,
+    content: memory.content,
+    excerpt: memory.excerpt,
+    task: memory.task ? { id: String(memory.task.id), title: memory.task.title } : null,
+    originLog: memory.originLog
+      ? { id: String(memory.originLog.id), title: memory.originLog.title }
+      : null,
+    createdAt: memory.createdAt,
+    updatedAt: memory.updatedAt,
   };
 }
 
@@ -425,6 +542,7 @@ function mapLog(log: WorkspaceLogDetailResponse): WorkspaceLogItem {
     href: getLogHref(String(log.id)),
     taskId: log.taskId ? String(log.taskId) : undefined,
     body: log.content,
+    createdAt: log.createdAt,
   };
 }
 
@@ -541,4 +659,3 @@ function formatDateLabel(value: string) {
     timeZone: "Asia/Seoul",
   }).format(date);
 }
-

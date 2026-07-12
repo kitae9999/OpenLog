@@ -29,7 +29,7 @@ import {
   type WorkspaceWorkItem,
 } from "./data";
 import { saveLogOverride } from "./logOverrides";
-import { updateWorkspaceLog } from "./workspaceActions";
+import { createWorkspaceMemoryFromLog, updateWorkspaceLog } from "./workspaceActions";
 import type { WorkspaceUiData } from "./workspaceTypes";
 
 export function LogDetailView({
@@ -53,6 +53,8 @@ export function LogDetailView({
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [isSendingToMemory, setIsSendingToMemory] = useState(false);
+  const [memoryError, setMemoryError] = useState<string | null>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const recipe = getLogRecipe(log.id);
@@ -76,6 +78,30 @@ export function LogDetailView({
       : log.status === "CLOSED"
         ? "Closed"
         : null;
+  const existingMemory = workspaceData?.memories.find(
+    (memory) => memory.originLog?.id === log.id,
+  );
+
+  async function sendToMemory() {
+    if (existingMemory) {
+      router.push(`/memory/${existingMemory.id}`);
+      return;
+    }
+    if (!workspaceData || isSendingToMemory) return;
+    setIsSendingToMemory(true);
+    setMemoryError(null);
+    const result = await createWorkspaceMemoryFromLog({
+      workspaceId: workspaceData.workspaceId,
+      logId: log.id,
+    });
+    if (!result.ok || !result.href) {
+      setMemoryError(result.message ?? "Failed to send log to memory.");
+      setIsSendingToMemory(false);
+      return;
+    }
+    router.push(result.href);
+    router.refresh();
+  }
 
   function startEditing() {
     setDraftBody(body);
@@ -431,11 +457,14 @@ export function LogDetailView({
           ) : null}
 
           <div className="flex flex-wrap justify-end gap-2.5 pt-1">
+            {memoryError ? <p className="w-full text-right text-[12px] text-red-600">{memoryError}</p> : null}
             <button
               type="button"
+              onClick={sendToMemory}
+              disabled={!workspaceData || isSendingToMemory}
               className="inline-flex h-9 items-center justify-center rounded-xl bg-zinc-950 px-4 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
             >
-              Send to memory
+              {isSendingToMemory ? "Saving..." : existingMemory ? "Open memory" : "Send to memory"}
             </button>
           </div>
         </div>

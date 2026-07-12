@@ -25,9 +25,8 @@ import {
   getTaskHref,
   getTasksHref,
   getWorkspaceGraphHref,
-  workspaceMemories,
-  workspaceMonthGrass,
-  workspaceMonthLabel,
+  getActivityHref,
+  getMemoryHref,
   type WorkspaceLogItem,
   type WorkspaceTaskOutput,
   type WorkspaceTodoItem,
@@ -38,6 +37,7 @@ import { LogTypeLabel } from "./LogTypeLabel";
 import {
   type PreviewMemory,
 } from "./previewWorkspaceDemo";
+import type { WorkspaceMemoryItem } from "./workspaceTypes";
 import {
   getPreviewReplayWorkspaceData,
   isPreviewHighlight,
@@ -232,7 +232,7 @@ function WorkspaceDashboard({
     : (workspaceData?.todos ?? []);
   const memories = isPreview
     ? (replaySnapshot?.memories ?? [])
-    : workspaceMemories;
+    : (workspaceData?.memories ?? []);
   const outputs = isPreview
     ? (replaySnapshot?.outputs ?? [])
     : (workspaceData?.outputs ?? []);
@@ -296,7 +296,7 @@ function WorkspaceDashboard({
                 workspaceId={workspaceData?.workspaceId}
                 createTodoOverride={createTodoOverride}
               />
-              <MonthActivityCard />
+              <MonthActivityCard logs={logs} />
               <GraphCard workspaceData={graphWorkspaceData} />
               <OpenIssuesCard logs={logs} />
               <MemoryCard memories={memories} />
@@ -1078,15 +1078,17 @@ function RecentLogsCard({
   );
 }
 
-function MonthActivityCard() {
+function MonthActivityCard({ logs }: { logs: WorkspaceLogItem[] }) {
+  const month = buildCurrentMonthGrass(logs);
   return (
     <DashboardCard title="THIS MONTH">
-      <p className="px-[18px] pt-1 text-[12px] font-medium text-zinc-500">
-        {workspaceMonthLabel}
-      </p>
+      <div className="flex items-center justify-between gap-3 px-[18px] pt-1 text-[12px] font-medium text-zinc-500">
+        <p>{month.label}</p>
+        <Link href={getActivityHref()} className="text-[11px] font-semibold text-zinc-400 transition hover:text-zinc-950">View year →</Link>
+      </div>
       <div className="overflow-x-auto px-4 pb-1 pt-2.5">
         <div className="inline-flex min-w-full justify-center gap-[3px]">
-          {workspaceMonthGrass.map((week, weekIndex) => (
+          {month.weeks.map((week, weekIndex) => (
             <div key={weekIndex} className="flex flex-col gap-[3px]">
               {week.map((cell, dayIndex) =>
                 cell.day === null ? (
@@ -1098,7 +1100,7 @@ function MonthActivityCard() {
                 ) : (
                   <GrassCell
                     key={dayIndex}
-                    day={cell.day}
+                    date={cell.date}
                     logCount={cell.logCount}
                     isToday={cell.isToday}
                     isFuture={cell.isFuture}
@@ -1135,26 +1137,26 @@ function getGrassLevel(logCount: number) {
 }
 
 function GrassCell({
-  day,
+  date,
   logCount,
   isToday,
   isFuture,
   size = "md",
 }: {
-  day?: number;
+  date?: string;
   logCount: number;
   isToday?: boolean;
   isFuture?: boolean;
   size?: "sm" | "md";
 }) {
-  const dateLabel = day ? `Jul ${day}` : "";
+  const dateLabel = date ? formatGrassDate(date) : "";
   const countLabel =
     logCount === 0
       ? isFuture
         ? "Planned"
         : "No logs"
       : `${logCount} log${logCount === 1 ? "" : "s"}`;
-  const label = day ? `${dateLabel} · ${countLabel}` : countLabel;
+  const label = date ? `${dateLabel} · ${countLabel}` : countLabel;
 
   return (
     <div
@@ -1445,10 +1447,10 @@ function TaskLink({
 }
 
 function MemoryCard({
-  memories = workspaceMemories,
+  memories,
   isPreview = false,
 }: {
-  memories?: ReadonlyArray<PreviewMemory | (typeof workspaceMemories)[number]>;
+  memories: ReadonlyArray<PreviewMemory | WorkspaceMemoryItem>;
   isPreview?: boolean;
 }) {
   const highlight = usePreviewReplayHighlight();
@@ -1488,9 +1490,9 @@ function MemoryCard({
             isHighlighted && "preview-replay-highlight",
           )}
         >
-          {memories.map((memory) => (
+          {memories.slice(0, 3).map((memory) => (
             <article
-              key={memory.title}
+              key={"id" in memory ? memory.id : memory.title}
               className="border-t border-zinc-100 px-[18px] py-2.5 first:border-t-0"
             >
               <div className="flex flex-wrap items-center gap-2">
@@ -1500,18 +1502,65 @@ function MemoryCard({
                 {memoryIncoming ? <NewUpdateBadge /> : null}
               </div>
               <p className="mt-0.5 text-[12px] leading-5 text-zinc-500">
-                {memory.description}
+                {"excerpt" in memory ? memory.excerpt : memory.description}
               </p>
               <div className="mt-1.5 flex gap-2.5 font-mono text-[10.5px] text-zinc-400">
-                <span>{memory.source}</span>
-                <span>{memory.reads}</span>
+                <span>{"originLog" in memory ? (memory.originLog ? "from log" : "manual") : memory.source}</span>
+                <span>{"task" in memory && memory.task ? memory.task.title : "workspace"}</span>
               </div>
             </article>
           ))}
         </div>
       )}
+      {!isPreview && memories.length > 0 ? (
+        <Link href={getMemoryHref()} className="block border-t border-zinc-100 px-[18px] py-2.5 text-[12px] font-semibold text-zinc-400 transition hover:text-zinc-950">View all memory →</Link>
+      ) : null}
     </DashboardCard>
   );
+}
+
+type MonthGrassCell = {
+  day: number | null;
+  date?: string;
+  logCount: number;
+  isToday?: boolean;
+  isFuture?: boolean;
+};
+
+function buildCurrentMonthGrass(logs: WorkspaceLogItem[]) {
+  const todayIso = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const [year, month, today] = todayIso.split("-").map(Number);
+  const countByDate = new Map<string, number>();
+  for (const log of logs) {
+    if (!log.createdAt) continue;
+    // Backend timestamps are timezone-free Asia/Seoul local datetimes.
+    const date = log.createdAt.slice(0, 10);
+    countByDate.set(date, (countByDate.get(date) ?? 0) + 1);
+  }
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const firstWeekday = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  const mondayOffset = (firstWeekday + 6) % 7;
+  const cells: MonthGrassCell[] = Array.from({ length: mondayOffset }, () => ({ day: null, logCount: 0 }));
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    cells.push({ day, date, logCount: countByDate.get(date) ?? 0, isToday: day === today, isFuture: day > today });
+  }
+  while (cells.length % 7 !== 0) cells.push({ day: null, logCount: 0 });
+  const weeks: MonthGrassCell[][] = [];
+  for (let index = 0; index < cells.length; index += 7) weeks.push(cells.slice(index, index + 7));
+  return {
+    label: new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, 1))),
+    weeks,
+  };
+}
+
+function formatGrassDate(date: string) {
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
 }
 
 function DashboardCard({

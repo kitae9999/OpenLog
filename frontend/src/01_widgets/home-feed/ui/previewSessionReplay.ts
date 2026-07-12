@@ -1200,6 +1200,16 @@ export function getPreviewReplayWorkspaceData(
     outputs: snapshot.outputs,
     taskLinks: snapshot.taskLinks,
     logLinks: snapshot.logLinks,
+    memories: snapshot.memories.map((memory, index) => ({
+      id: `preview-${index}`,
+      title: memory.title,
+      content: memory.description,
+      excerpt: memory.description,
+      task: null,
+      originLog: null,
+      createdAt: "2026-07-13T12:00:00",
+      updatedAt: "2026-07-13T12:00:00",
+    })),
   };
 }
 

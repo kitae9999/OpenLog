@@ -34,6 +34,7 @@ export type WorkspaceLogItem = {
   branch?: string;
   /** Markdown recipe body. Falls back to generated content from description/recipe. */
   body?: string;
+  createdAt?: string;
 };
 
 export type WorkspaceMetric = {
@@ -864,6 +865,14 @@ export function getLogsHref(type: LogListTypeFilter = "all") {
   }
 
   return `/logs/${type}`;
+}
+
+export function getMemoryHref(memoryId?: string) {
+  return memoryId ? `/memory/${memoryId}` : "/memory";
+}
+
+export function getActivityHref(date?: string) {
+  return date ? `/activity?date=${encodeURIComponent(date)}` : "/activity";
 }
 
 export function buildLogsListHref(
