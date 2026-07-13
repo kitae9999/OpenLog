@@ -22,6 +22,7 @@ import {
   getLogRecipe,
   getLogsHref,
   getOutputHref,
+  getTabHref,
   getTaskById,
   getTaskHref,
   type WorkspaceLogItem,
@@ -39,6 +40,7 @@ import type { WorkspaceUiData } from "./workspaceTypes";
 export function LogDetailView({
   log,
   workspaceData,
+  isLoggedIn = true,
 }: {
   log: WorkspaceLogItem;
   workspaceData?: WorkspaceUiData | null;
@@ -264,101 +266,131 @@ export function LogDetailView({
   }
 
   return (
-    <div data-testid="log-detail-layout" className="pb-4">
-      <Link
-        href={getLogsHref()}
-        className="inline-flex items-center gap-2 text-[13px] text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+    <div
+      data-testid="log-detail-layout"
+      className="mx-auto w-full max-w-[920px] pb-4"
+    >
+      <nav
+        aria-label="Breadcrumb"
+        className="mb-6 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
       >
-        <IconArrowLeft className="size-3.5" />
-        Back to Logs
-      </Link>
+        <Link
+          href={getTabHref("workspace", isLoggedIn)}
+          className="font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          openlog
+        </Link>
+        <span className="text-zinc-300">/</span>
+        <Link
+          href={getLogsHref()}
+          className="font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          Logs
+        </Link>
+        <span className="text-zinc-300">/</span>
+        <span className="max-w-[45vw] truncate font-semibold text-zinc-950">
+          {log.title}
+        </span>
+      </nav>
 
-      <header
-        data-testid="log-title-block"
-        className="mt-6 border-b border-zinc-200/80 pb-6"
-      >
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-          <h1 className="max-w-[28ch] text-[28px] font-bold leading-[1.2] tracking-[-0.02em] text-zinc-950 sm:max-w-[40ch] sm:text-[30px]">
-            {log.title}
-          </h1>
-          <span className="font-mono text-[18px] tracking-tight text-zinc-400 sm:text-[20px]">
-            #{log.id}
-          </span>
-        </div>
-
-        <div className="mt-3.5 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[13px] text-zinc-500">
-          <StatusBadge
-            tone={
-              statusLabel
-                ? log.status === "OPEN"
-                  ? "open"
-                  : "closed"
-                : "type"
-            }
-            label={statusLabel ?? typeLabel}
-          />
-          {statusLabel ? (
-            <>
-              <MetaSep />
-              <span>{typeLabel}</span>
-            </>
-          ) : null}
-          {log.branch ? (
-            <>
-              <MetaSep />
-              <CodePill>{log.branch}</CodePill>
-            </>
-          ) : null}
-          <MetaSep />
-          <span>{metaLabel}</span>
-          {task ? (
-            <>
-              <MetaSep />
-              <span>
-                on{" "}
-                <Link
-                  href={getTaskHref(task.id)}
-                  className="font-semibold text-zinc-800 underline-offset-2 transition hover:text-zinc-950 hover:underline"
-                >
-                  {task.title}
-                </Link>
+      <header data-testid="log-title-block" className="pb-8">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+              <h1 className="text-[22px] font-semibold tracking-tight text-zinc-950">
+                {log.title}
+              </h1>
+              <span className="font-mono text-[13px] text-zinc-400">
+                #{log.id}
               </span>
-            </>
-          ) : (
-            <>
+            </div>
+
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-zinc-500">
+              {statusLabel ? (
+                <>
+                  <span className="font-medium text-zinc-600">{statusLabel}</span>
+                  <MetaSep />
+                  <span>{typeLabel}</span>
+                </>
+              ) : (
+                <span className="font-medium text-zinc-600">{typeLabel}</span>
+              )}
+              {log.branch ? (
+                <>
+                  <MetaSep />
+                  <CodePill>{log.branch}</CodePill>
+                </>
+              ) : null}
               <MetaSep />
-              <span className="font-medium text-zinc-600">Unassigned</span>
-            </>
-          )}
+              <span>{metaLabel}</span>
+              {task ? (
+                <>
+                  <MetaSep />
+                  <span>
+                    on{" "}
+                    <Link
+                      href={getTaskHref(task.id)}
+                      className="font-semibold text-zinc-800 underline-offset-2 transition hover:text-zinc-950 hover:underline"
+                    >
+                      {task.title}
+                    </Link>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <MetaSep />
+                  <span className="font-medium text-zinc-600">Unassigned</span>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={sendToMemory}
+              disabled={!workspaceData || isSendingToMemory}
+              className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+            >
+              {isSendingToMemory
+                ? "Saving..."
+                : existingMemory
+                  ? "Open memory"
+                  : "Send to memory"}
+            </button>
+          </div>
         </div>
+        {memoryError ? (
+          <p className="mt-3 text-[12.5px] font-medium text-rose-600">
+            {memoryError}
+          </p>
+        ) : null}
       </header>
 
-      <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1fr)_240px]">
-        <div className="min-w-0 space-y-6">
-          <section
-            data-testid="log-content-block"
-            className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]"
-          >
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_200px] lg:gap-12">
+        <div className="min-w-0">
+          <section data-testid="log-content-block">
             {isEditing ? (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4">
-                  <div className="flex items-center gap-4">
-                    <TabButton
-                      active={mode === "write"}
-                      onClick={() => setMode("write")}
-                    >
-                      Write
-                    </TabButton>
-                    <TabButton
-                      active={mode === "preview"}
-                      onClick={() => setMode("preview")}
-                    >
-                      Preview
-                    </TabButton>
-                  </div>
+              <div>
+                <div
+                  role="tablist"
+                  aria-label="Log content editor"
+                  className="flex items-end gap-1 border-b border-zinc-200"
+                >
+                  <TabButton
+                    active={mode === "write"}
+                    onClick={() => setMode("write")}
+                  >
+                    Write
+                  </TabButton>
+                  <TabButton
+                    active={mode === "preview"}
+                    onClick={() => setMode("preview")}
+                  >
+                    Preview
+                  </TabButton>
                 </div>
 
-                <div className="border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
+                <div className="mt-3">
                   <MarkdownToolbar
                     disabled={mode === "preview"}
                     onAction={insertFormatting}
@@ -366,18 +398,18 @@ export function LogDetailView({
                 </div>
 
                 {mode === "write" ? (
-                  <label className="block">
+                  <label className="mt-3 block">
                     <span className="sr-only">Log content</span>
                     <textarea
                       ref={editorRef}
                       value={draftBody}
                       onChange={(event) => setDraftBody(event.target.value)}
                       placeholder={`## Problem\nWhat went wrong\n\n## Cause\nWhy it happened\n\n## Fix\nWhat changed\n\n## Verification\nHow you confirmed`}
-                      className="min-h-[320px] w-full resize-y border-0 bg-white px-5 py-5 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
+                      className="openlog-scroll min-h-[320px] w-full resize-none overflow-y-auto border-0 bg-transparent py-2 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
                     />
                   </label>
                 ) : (
-                  <div className="min-h-[320px] px-5 py-5 text-[15px] leading-7 text-zinc-800">
+                  <div className="mt-3 min-h-[320px] py-2 text-[15px] leading-7 text-zinc-800">
                     <MarkdownContent
                       markdown={draftBody}
                       variant="dense"
@@ -388,15 +420,15 @@ export function LogDetailView({
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/80 px-4 py-3">
-                  <span className="text-[12px] text-zinc-500">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <span className="text-[12.5px] text-zinc-500">
                     {editError ?? "Markdown supported"}
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={cancelEditing}
-                      className="inline-flex h-8 items-center rounded-lg px-3 text-[12.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                      className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                     >
                       Cancel
                     </button>
@@ -405,114 +437,111 @@ export function LogDetailView({
                       onClick={saveContent}
                       disabled={isSaving}
                       className={cn(
-                        "inline-flex h-8 items-center rounded-lg px-3 text-[12.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                        "text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
                         !isSaving
-                          ? "bg-zinc-950 hover:bg-zinc-800"
-                          : "cursor-not-allowed bg-zinc-400",
+                          ? "text-zinc-950 hover:text-zinc-700"
+                          : "cursor-not-allowed text-zinc-400",
                       )}
                     >
                       {isSaving ? "Updating..." : "Update"}
                     </button>
                   </div>
                 </div>
-              </>
+              </div>
             ) : (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4 py-2.5">
-                  <span className="text-[13px] font-semibold text-zinc-900">
+              <div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
                     Content
-                  </span>
+                  </h2>
                   <button
                     type="button"
                     onClick={startEditing}
-                    className="rounded-md px-1.5 py-0.5 text-[12px] font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                    className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                   >
                     Edit
                   </button>
                 </div>
-                <div className="px-5 py-5">
+                <div className="mt-4">
                   {hasBody ? (
                     <div className="max-w-[68ch]">
                       <MarkdownContent markdown={body} variant="dense" />
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 px-5 py-9 text-center">
-                      <p className="text-[14px] font-medium text-zinc-700">
-                        No log content yet.
+                    <div>
+                      <p className="text-sm text-zinc-500">
+                        No log content yet. Write the recipe in markdown —
+                        problem, cause, fix, verification.
                       </p>
-                      <p className="mt-1.5 text-[13px] leading-5 text-zinc-500">
-                        Write the recipe in markdown — problem, cause, fix,
-                        verification.
-                      </p>
-                      <div className="mt-4">
-                        <button
-                          type="button"
-                          onClick={startEditing}
-                          className="inline-flex h-8 items-center justify-center rounded-[10px] border border-zinc-300 bg-white px-3 text-[12.5px] font-semibold text-zinc-700 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                        >
-                          Write log content
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={startEditing}
+                        className="mt-3 text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                      >
+                        + Write log content
+                      </button>
                     </div>
                   )}
                 </div>
-              </>
+              </div>
             )}
           </section>
 
           {log.commit ? (
-            <section
-              data-testid="log-commit-block"
-              className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4 py-2.5">
-                <h2 className="flex items-center gap-2 text-[13px] font-semibold text-zinc-900">
+            <>
+              <div
+                className="my-8 h-px w-full bg-zinc-200"
+                aria-hidden="true"
+              />
+              <section data-testid="log-commit-block">
+                <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
                   Related commit
                 </h2>
-              </div>
-              <div className="px-5 py-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <CodePill>{log.commit}</CodePill>
-                  {recipe?.commitMessage ? (
-                    <span className="text-[13px] text-zinc-600">
-                      {recipe.commitMessage}
-                    </span>
+                <div className="mt-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CodePill>{log.commit}</CodePill>
+                    {recipe?.commitMessage ? (
+                      <span className="text-[13px] text-zinc-600">
+                        {recipe.commitMessage}
+                      </span>
+                    ) : null}
+                  </div>
+                  {log.branch ? (
+                    <p className="mt-2 text-[12px] text-zinc-400">
+                      Captured on <CodePill>{log.branch}</CodePill>
+                    </p>
                   ) : null}
                 </div>
-                {log.branch ? (
-                  <p className="mt-2 text-[12px] text-zinc-400">
-                    Captured on <CodePill>{log.branch}</CodePill>
-                  </p>
-                ) : null}
-              </div>
-            </section>
+              </section>
+            </>
           ) : null}
 
-          <div className="flex flex-wrap justify-end gap-2.5 pt-1">
-            {memoryError ? <p className="w-full text-right text-[12px] text-red-600">{memoryError}</p> : null}
-            {deleteError ? <p className="w-full text-right text-[12px] text-red-600">{deleteError}</p> : null}
-            {workspaceData ? (
-              <button
-                type="button"
-                onClick={deleteLog}
-                disabled={isDeleting}
-                className="inline-flex h-9 items-center justify-center rounded-xl border border-red-200 bg-white px-4 text-[13px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600/20 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isDeleting ? "Deleting..." : "Delete log"}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={sendToMemory}
-              disabled={!workspaceData || isSendingToMemory}
-              className="inline-flex h-9 items-center justify-center rounded-xl bg-zinc-950 px-4 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            >
-              {isSendingToMemory ? "Saving..." : existingMemory ? "Open memory" : "Send to memory"}
-            </button>
-          </div>
+          {workspaceData ? (
+            <>
+              <div
+                className="my-8 h-px w-full bg-zinc-200"
+                aria-hidden="true"
+              />
+              <div>
+                {deleteError ? (
+                  <p className="mb-3 text-[12.5px] font-medium text-rose-600">
+                    {deleteError}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={deleteLog}
+                  disabled={isDeleting}
+                  className="text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isDeleting ? "Deleting..." : "Delete log"}
+                </button>
+              </div>
+            </>
+          ) : null}
         </div>
 
-        <aside className="space-y-5 px-1 lg:sticky lg:top-6 lg:px-0">
+        <aside className="space-y-6 border-t border-zinc-200/80 pt-6 lg:sticky lg:top-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-10">
           <SidebarField label="Task">
             <TaskSwitcher
               selected={task}
@@ -523,13 +552,13 @@ export function LogDetailView({
             {task ? (
               <Link
                 href={getTaskHref(task.id)}
-                className="mt-2 inline-flex text-[12px] font-semibold text-zinc-500 transition hover:text-zinc-950"
+                className="mt-2 inline-flex text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950"
               >
                 Open task →
               </Link>
             ) : null}
             {assignError ? (
-              <p className="mt-2 text-[12px] text-red-600">{assignError}</p>
+              <p className="mt-2 text-[12px] text-rose-600">{assignError}</p>
             ) : null}
           </SidebarField>
 
@@ -562,7 +591,7 @@ export function LogDetailView({
                   <li key={output.id}>
                     <Link
                       href={getOutputHref(output.id)}
-                      className="text-[13px] font-medium leading-5 text-zinc-800 transition hover:text-zinc-950 hover:underline"
+                      className="text-[13px] font-medium leading-5 text-zinc-800 transition hover:text-zinc-950"
                     >
                       {output.title}
                     </Link>
@@ -737,41 +766,19 @@ function TabButton({
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={cn(
-        "relative h-11 text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        active
-          ? "font-semibold text-zinc-950"
-          : "font-medium text-zinc-500 hover:text-zinc-950",
+        "relative h-9 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-800",
       )}
     >
       {children}
       {active ? (
-        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-zinc-950" />
+        <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
       ) : null}
     </button>
-  );
-}
-
-function StatusBadge({
-  tone,
-  label,
-}: {
-  tone: "open" | "closed" | "type";
-  label: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold tracking-wide text-white shadow-sm",
-        tone === "open" && "bg-emerald-600",
-        tone === "closed" && "bg-zinc-600",
-        tone === "type" && "bg-zinc-500",
-      )}
-    >
-      <span className="size-1.5 rounded-full bg-white/90" />
-      {label}
-    </span>
   );
 }
 
@@ -784,9 +791,7 @@ function SidebarField({
 }) {
   return (
     <div>
-      <p className="text-[11px] font-medium tracking-wide text-zinc-400">
-        {label}
-      </p>
+      <p className="text-[12px] font-medium text-zinc-400">{label}</p>
       <div className="mt-1.5">{children}</div>
     </div>
   );
@@ -797,31 +802,6 @@ function CodePill({ children }: { children: ReactNode }) {
     <code className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10.5px] text-zinc-500">
       {children}
     </code>
-  );
-}
-
-function IconArrowLeft({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M19 12H5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 19l-7-7 7-7"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 

@@ -145,76 +145,83 @@ export function WorkspaceGraphView({
       : tasks.find((task) => task.id === selectedTaskId);
 
   return (
-    <div className="space-y-3.5">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] font-medium text-zinc-400">
+    <div className="mx-auto w-full max-w-[920px]">
+      <nav
+        aria-label="Breadcrumb"
+        className="mb-6 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
+      >
         <Link
           href={getTabHref("workspace", isLoggedIn)}
-          className="transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          className="font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
-          Workspace
+          openlog
         </Link>
         <span className="text-zinc-300">/</span>
         <span className="font-semibold text-zinc-950">Graph</span>
-      </div>
+      </nav>
 
-      <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <div className="border-b border-zinc-100 px-[18px] py-3.5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-[18px] font-bold tracking-[-0.01em] text-zinc-950">
-                Workspace Graph
-              </h1>
-              <p className="mt-1 text-[13px] leading-5 text-zinc-500">
-                {selectedTask
-                  ? `${selectedTask.title} context`
-                  : "Tasks, logs, outputs, and memory in one project map"}
-              </p>
-            </div>
+      <header className="flex flex-wrap items-end justify-between gap-3 pb-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="text-[22px] font-semibold tracking-tight text-zinc-950">
+              Graph
+            </h1>
             <GraphLegend />
           </div>
-
-          <div className="mt-3 grid gap-2.5 md:grid-cols-[minmax(180px,260px)_minmax(0,1fr)]">
-            <label className="block">
-              <span className="sr-only">Filter by task</span>
-              <select
-                value={selectedTaskId}
-                onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                  setSelectedTaskId(event.target.value)
-                }
-                className="h-9 w-full rounded-[10px] border border-zinc-200 bg-white px-3 text-[13px] font-medium text-zinc-700 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10"
-              >
-                <option value={ALL_TASKS}>All tasks</option>
-                {tasks.map((task) => (
-                  <option key={task.id} value={task.id}>
-                    {task.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="relative block">
-              <span className="sr-only">Search graph</span>
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
-                <IconSearch className="size-4" />
-              </span>
-              <input
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search tasks, logs, outputs, memory..."
-                className="h-9 w-full rounded-[10px] border border-zinc-200 bg-white pl-9 pr-3 text-[13px] font-medium text-zinc-700 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10"
-              />
-            </label>
-          </div>
+          <p className="mt-1.5 text-[13px] text-zinc-500">
+            {selectedTask
+              ? `${selectedTask.title} context`
+              : "Tasks, logs, outputs, and memory in one project map"}
+          </p>
         </div>
+      </header>
 
+      <div className="grid gap-2.5 border-b border-zinc-200 pb-4 md:grid-cols-[minmax(160px,220px)_minmax(0,1fr)]">
+        <label className="block">
+          <span className="sr-only">Filter by task</span>
+          <select
+            value={selectedTaskId}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+              setSelectedTaskId(event.target.value)
+            }
+            className="h-9 w-full border-0 border-b border-zinc-200 bg-transparent px-0 text-[13px] font-medium text-zinc-700 outline-none transition focus:border-zinc-400"
+          >
+            <option value={ALL_TASKS}>All tasks</option>
+            {tasks.map((task) => (
+              <option key={task.id} value={task.id}>
+                {task.title}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="relative block">
+          <span className="sr-only">Search graph</span>
+          <span className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-zinc-400">
+            <IconSearch className="size-4" />
+          </span>
+          <input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search tasks, logs, outputs, memory..."
+            className="h-9 w-full border-0 border-b border-zinc-200 bg-transparent pl-7 pr-0 text-[13px] font-medium text-zinc-700 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400"
+          />
+        </label>
+      </div>
+
+      <div className="mt-4 overflow-hidden rounded-lg border border-zinc-200/80">
         <WorkspaceGraphCanvas key={graphKey} graph={graph} />
-      </section>
+      </div>
 
       {workspaceData ? (
-        <WorkspaceLinkManager workspaceData={workspaceData} />
+        <div className="mt-10">
+          <WorkspaceLinkManager workspaceData={workspaceData} />
+        </div>
       ) : null}
 
-      <GraphResultList graph={graph} logs={logs} />
+      <div className="mt-10">
+        <GraphResultList graph={graph} logs={logs} />
+      </div>
     </div>
   );
 }
@@ -522,11 +529,9 @@ export function WorkspaceGraphCanvas({
 
   if (graph.nodes.length === 0) {
     return (
-      <div className={cn("px-[18px] py-6", className)}>
-        <div className="rounded-[8px] border border-dashed border-zinc-300 bg-zinc-50 px-5 py-6 text-sm text-zinc-500">
-          <p className="font-semibold text-zinc-800">{emptyTitle}</p>
-          <p className="mt-2 leading-6">{emptyDescription}</p>
-        </div>
+      <div className={cn("px-5 py-10", className)}>
+        <p className="text-sm font-medium text-zinc-800">{emptyTitle}</p>
+        <p className="mt-2 text-sm leading-6 text-zinc-500">{emptyDescription}</p>
       </div>
     );
   }
@@ -1074,77 +1079,78 @@ function GraphResultList({
   const logNodes = graph.nodes.filter((node) => node.kind === "log");
 
   return (
-    <section className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
-      <div className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <div className="flex items-center justify-between gap-3 px-[18px] pt-3.5">
-          <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+    <section className="grid gap-10 lg:grid-cols-2 lg:gap-0">
+      <div className="lg:pr-10">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
             Visible logs
           </h2>
-          <span className="text-[11.5px] font-semibold tabular-nums text-zinc-400">
+          <span className="text-[12.5px] font-medium tabular-nums text-zinc-500">
             {logNodes.length}
           </span>
         </div>
-        <div className="pb-1.5 pt-1.5">
-          {logNodes.length === 0 ? (
-            <p className="border-t border-zinc-100 px-[18px] py-3 text-[13px] text-zinc-500">
-              No logs in this graph view.
-            </p>
-          ) : (
-            logNodes.map((node) => {
+        {logNodes.length === 0 ? (
+          <p className="mt-3 text-sm text-zinc-500">No logs in this graph view.</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-zinc-200/80">
+            {logNodes.map((node) => {
               const log = logs.find(
                 (item) => getLogNodeId(item.id) === node.id,
               );
 
               return (
-                <Link
-                  key={node.id}
-                  href={node.href}
-                  className="block border-t border-zinc-100 px-[18px] py-3 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-[13px] font-semibold text-zinc-950">
-                      {node.title}
-                    </h3>
+                <li key={node.id}>
+                  <Link
+                    href={node.href}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-lg px-2.5 py-2.5 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[14.5px] font-medium text-zinc-950">
+                        {node.title}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[12.5px] text-zinc-500">
+                        {node.description}
+                      </span>
+                    </span>
                     {log ? <LogTypeLabel>{log.label}</LogTypeLabel> : null}
-                  </div>
-                  <p className="mt-0.5 text-[12px] leading-5 text-zinc-500">
-                    {node.description}
-                  </p>
-                </Link>
+                  </Link>
+                </li>
               );
-            })
-          )}
-        </div>
+            })}
+          </ul>
+        )}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <div className="flex items-center justify-between gap-3 px-[18px] pt-3.5">
-          <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+      <div className="lg:border-l lg:border-zinc-200 lg:pl-10">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
             Tasks
           </h2>
-          <span className="text-[11.5px] font-semibold tabular-nums text-zinc-400">
+          <span className="text-[12.5px] font-medium tabular-nums text-zinc-500">
             {taskNodes.length}
           </span>
         </div>
-        <div className="pb-1.5 pt-1.5">
-          {taskNodes.map((node) => (
-            <Link
-              key={node.id}
-              href={node.href}
-              className="flex items-start gap-3 border-t border-zinc-100 px-[18px] py-3 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            >
-              <span className="mt-[5px] size-[9px] shrink-0 rounded-full bg-zinc-950" />
-              <span className="min-w-0">
-                <span className="block text-[13px] font-semibold leading-[1.45] text-zinc-950">
-                  {node.title}
-                </span>
-                <span className="mt-0.5 block text-[12px] text-zinc-500">
-                  {node.description}
-                </span>
-              </span>
-            </Link>
-          ))}
-        </div>
+        {taskNodes.length === 0 ? (
+          <p className="mt-3 text-sm text-zinc-500">No tasks in this graph view.</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-zinc-200/80">
+            {taskNodes.map((node) => (
+              <li key={node.id}>
+                <Link
+                  href={node.href}
+                  className="block rounded-lg px-2.5 py-2.5 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                >
+                  <span className="block truncate text-[14.5px] font-medium text-zinc-950">
+                    {node.title}
+                  </span>
+                  <span className="mt-0.5 block truncate text-[12.5px] text-zinc-500">
+                    {node.description}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   );

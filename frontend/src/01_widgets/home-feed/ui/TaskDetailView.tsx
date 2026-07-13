@@ -21,6 +21,7 @@ import {
   getOutputHref,
   getOutputsForTask,
   getSpawnedTodosForTask,
+  getTabHref,
   getTaskBranches,
   getTaskMeta,
   getLogHref,
@@ -82,7 +83,7 @@ export function TaskDetailView({
     ? workspaceData.logs.filter((log) => !log.taskId).length
     : countUnassignedLogs();
   const statusLabel =
-    status === "doing" ? "Open" : status === "done" ? "Done" : "Todo";
+    status === "doing" ? "doing" : status === "done" ? "done" : "todo";
   const hasBody = body.trim().length > 0;
   const canMarkDone = status !== "done";
 
@@ -238,81 +239,114 @@ export function TaskDetailView({
   }
 
   return (
-    <div data-testid="task-detail-layout" className="pb-4">
-      <Link
-        href={getTasksHref()}
-        className="inline-flex items-center gap-2 text-[13px] text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+    <div
+      data-testid="task-detail-layout"
+      className="mx-auto w-full max-w-[920px] pb-4"
+    >
+      <nav
+        aria-label="Breadcrumb"
+        className="mb-6 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
       >
-        <IconArrowLeft className="size-3.5" />
-        Back to Tasks
-      </Link>
+        <Link
+          href={getTabHref("workspace", isLoggedIn)}
+          className="font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          openlog
+        </Link>
+        <span className="text-zinc-300">/</span>
+        <Link
+          href={getTasksHref()}
+          className="font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          Tasks
+        </Link>
+        <span className="text-zinc-300">/</span>
+        <span className="max-w-[45vw] truncate font-semibold text-zinc-950">
+          {task.title}
+        </span>
+      </nav>
 
-      <header
-        data-testid="task-title-block"
-        className="mt-6 border-b border-zinc-200/80 pb-6"
-      >
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-          <h1 className="max-w-[28ch] text-[28px] font-bold leading-[1.2] tracking-[-0.02em] text-zinc-950 sm:max-w-[40ch] sm:text-[30px]">
-            {task.title}
-          </h1>
-          <span className="font-mono text-[18px] tracking-tight text-zinc-400 sm:text-[20px]">
-            #{task.id}
-          </span>
+      <header data-testid="task-title-block" className="pb-8">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+              <h1 className="text-[22px] font-semibold tracking-tight text-zinc-950">
+                {task.title}
+              </h1>
+              <span className="font-mono text-[13px] text-zinc-400">
+                #{task.id}
+              </span>
+            </div>
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-zinc-500">
+              <span className="inline-flex items-center gap-1.5 font-medium text-zinc-600">
+                <StatusDot status={status} />
+                {statusLabel}
+              </span>
+              <MetaSep />
+              <span>
+                {logs.length} linked log{logs.length === 1 ? "" : "s"}
+                {outputs.length > 0
+                  ? ` · ${outputs.length} output${outputs.length === 1 ? "" : "s"}`
+                  : ""}
+              </span>
+              <MetaSep />
+              <span>started {meta.startedLabel}</span>
+              <MetaSep />
+              <span>updated {meta.lastActivityLabel}</span>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-3">
+            {canMarkDone ? (
+              <button
+                type="button"
+                onClick={markDone}
+                disabled={isUpdatingStatus}
+                className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+              >
+                {isUpdatingStatus ? "Updating..." : "Mark done"}
+              </button>
+            ) : (
+              <Link
+                href={getNewOutputHref(task.id)}
+                className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                + New output
+              </Link>
+            )}
+          </div>
         </div>
-
-        <div className="mt-3.5 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[13px] text-zinc-500">
-          <StatusBadge status={status} label={statusLabel} />
-          <MetaSep />
-          <span>
-            <span className="font-semibold text-zinc-800">{logs.length}</span>{" "}
-            linked logs
-            {outputs.length > 0 ? (
-              <>
-                {" · "}
-                <span className="font-semibold text-zinc-800">
-                  {outputs.length}
-                </span>{" "}
-                outputs
-              </>
-            ) : null}
-          </span>
-          <MetaSep />
-          <span>started {meta.startedLabel}</span>
-          <MetaSep />
-          <span>updated {meta.lastActivityLabel}</span>
-        </div>
-
         {statusError ? (
-          <p className="mt-3 text-[12px] text-red-600">{statusError}</p>
+          <p className="mt-3 text-[12.5px] font-medium text-rose-600">
+            {statusError}
+          </p>
         ) : null}
       </header>
 
-      <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1fr)_240px]">
-        <div className="min-w-0 space-y-6">
-          <section
-            data-testid="task-description-block"
-            className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]"
-          >
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_200px] lg:gap-12">
+        <div className="min-w-0">
+          <section data-testid="task-description-block">
             {isEditing ? (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4">
-                  <div className="flex items-center gap-4">
-                    <TabButton
-                      active={mode === "write"}
-                      onClick={() => setMode("write")}
-                    >
-                      Write
-                    </TabButton>
-                    <TabButton
-                      active={mode === "preview"}
-                      onClick={() => setMode("preview")}
-                    >
-                      Preview
-                    </TabButton>
-                  </div>
+              <div>
+                <div
+                  role="tablist"
+                  aria-label="Description editor"
+                  className="flex items-end gap-1 border-b border-zinc-200"
+                >
+                  <TabButton
+                    active={mode === "write"}
+                    onClick={() => setMode("write")}
+                  >
+                    Write
+                  </TabButton>
+                  <TabButton
+                    active={mode === "preview"}
+                    onClick={() => setMode("preview")}
+                  >
+                    Preview
+                  </TabButton>
                 </div>
 
-                <div className="border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
+                <div className="mt-3">
                   <MarkdownToolbar
                     disabled={mode === "preview"}
                     onAction={insertFormatting}
@@ -320,18 +354,18 @@ export function TaskDetailView({
                 </div>
 
                 {mode === "write" ? (
-                  <label className="block">
+                  <label className="mt-3 block">
                     <span className="sr-only">Task description</span>
                     <textarea
                       ref={editorRef}
                       value={draftBody}
                       onChange={(event) => setDraftBody(event.target.value)}
                       placeholder={`## Context\nWhy this task exists\n\n## Goal\nWhat done looks like\n\n## Scope\n- In\n- Out`}
-                      className="min-h-[320px] w-full resize-y border-0 bg-white px-5 py-5 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
+                      className="openlog-scroll min-h-[320px] w-full resize-none overflow-y-auto border-0 bg-transparent py-2 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
                     />
                   </label>
                 ) : (
-                  <div className="min-h-[320px] px-5 py-5 text-[15px] leading-7 text-zinc-800">
+                  <div className="mt-3 min-h-[320px] py-2 text-[15px] leading-7 text-zinc-800">
                     <MarkdownContent
                       markdown={draftBody}
                       variant="dense"
@@ -342,15 +376,15 @@ export function TaskDetailView({
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/80 px-4 py-3">
-                  <span className="text-[12px] text-zinc-500">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <span className="text-[12.5px] text-zinc-500">
                     {editError ?? "Markdown supported"}
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={cancelEditing}
-                      className="inline-flex h-8 items-center rounded-lg px-3 text-[12.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                      className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                     >
                       Cancel
                     </button>
@@ -359,83 +393,80 @@ export function TaskDetailView({
                       onClick={saveDescription}
                       disabled={isSaving}
                       className={cn(
-                        "inline-flex h-8 items-center rounded-lg px-3 text-[12.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                        "text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
                         !isSaving
-                          ? "bg-zinc-950 hover:bg-zinc-800"
-                          : "cursor-not-allowed bg-zinc-400",
+                          ? "text-zinc-950 hover:text-zinc-700"
+                          : "cursor-not-allowed text-zinc-400",
                       )}
                     >
                       {isSaving ? "Updating..." : "Update"}
                     </button>
                   </div>
                 </div>
-              </>
+              </div>
             ) : (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4 py-2.5">
-                  <span className="text-[13px] font-semibold text-zinc-900">
+              <div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
                     Description
-                  </span>
+                  </h2>
                   <button
                     type="button"
                     onClick={startEditing}
-                    className="rounded-md px-1.5 py-0.5 text-[12px] font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                    className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                   >
                     Edit
                   </button>
                 </div>
-                <div className="px-5 py-5">
+                <div className="mt-4">
                   {hasBody ? (
                     <div className="max-w-[68ch]">
                       <MarkdownContent markdown={body} variant="dense" />
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 px-5 py-9 text-center">
-                      <p className="text-[14px] font-medium text-zinc-700">
-                        No description yet.
+                    <div>
+                      <p className="text-sm text-zinc-500">
+                        No description yet. Add context, goals, and scope.
                       </p>
-                      <p className="mt-1.5 text-[13px] leading-5 text-zinc-500">
-                        Add context, goals, and scope — like a PR description.
-                      </p>
-                      <div className="mt-4">
-                        <button
-                          type="button"
-                          onClick={startEditing}
-                          className="inline-flex h-8 items-center justify-center rounded-[10px] border border-zinc-300 bg-white px-3 text-[12.5px] font-semibold text-zinc-700 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                        >
-                          Write description
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={startEditing}
+                        className="mt-3 text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                      >
+                        + Write description
+                      </button>
                     </div>
                   )}
                 </div>
-              </>
+              </div>
             )}
           </section>
 
-          <section
-            data-testid="task-logs-block"
-            className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/70 px-4 py-2.5">
-              <h2 className="flex items-baseline gap-2 text-[13px] font-semibold text-zinc-900">
+          <div
+            className="my-8 h-px w-full bg-zinc-200"
+            aria-hidden="true"
+          />
+
+          <section data-testid="task-logs-block">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
                 Linked logs
-                <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-zinc-500">
+                <span className="ml-2 tabular-nums text-zinc-400">
                   {logs.length}
                 </span>
               </h2>
-              <div className="flex flex-wrap items-center gap-1">
+              <div className="flex flex-wrap items-center gap-3">
                 {unassignedCount > 0 ? (
                   <Link
                     href={buildLogsListHref("all", "unassigned")}
-                    className="rounded-md px-2 py-1 text-[12px] font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950"
+                    className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                   >
                     Unassigned ({unassignedCount})
                   </Link>
                 ) : null}
                 <Link
                   href={buildLogsListHref("all", "unassigned")}
-                  className="rounded-md px-2 py-1 text-[12px] font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950"
+                  className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                 >
                   Link existing
                 </Link>
@@ -443,77 +474,69 @@ export function TaskDetailView({
             </div>
 
             {logs.length === 0 ? (
-              <p className="px-5 py-9 text-[13px] leading-5 text-zinc-500">
+              <p className="mt-4 text-sm text-zinc-500">
                 No logs linked yet. Capture decisions and progress against this
                 task.
               </p>
             ) : (
-              <div className="divide-y divide-zinc-100">
+              <ul className="mt-3 divide-y divide-zinc-200/80">
                 {logs.map((log) => (
-                  <TaskLogRow key={log.id} log={log} />
+                  <li key={log.id}>
+                    <TaskLogRow log={log} />
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
 
-            <div className="border-t border-zinc-200/80 bg-white px-4 py-2.5">
-              <Link
-                href={getNewLogHref(task.id)}
-                className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] font-semibold text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950"
-              >
-                <span className="text-zinc-400" aria-hidden="true">
-                  +
-                </span>
-                Log to this task
-              </Link>
-            </div>
+            <Link
+              href={getNewLogHref(task.id)}
+              className="mt-3 inline-flex text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              + Log to this task
+            </Link>
           </section>
 
-          <div className="flex flex-wrap justify-end gap-2.5 pt-1">
-            {deleteError ? (
-              <p className="w-full text-right text-[12px] text-red-600">
-                {deleteError}
-              </p>
-            ) : null}
-            {workspaceData ? (
+          {workspaceData ? (
+            <>
+              <div
+                className="my-8 h-px w-full bg-zinc-200"
+                aria-hidden="true"
+              />
+              <div>
+              {deleteError ? (
+                <p className="mb-3 text-[12.5px] font-medium text-rose-600">
+                  {deleteError}
+                </p>
+              ) : null}
               <button
                 type="button"
                 onClick={deleteTask}
                 disabled={isDeleting}
-                className="inline-flex h-9 items-center justify-center rounded-xl border border-red-200 bg-white px-4 text-[13px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isDeleting ? "Deleting..." : "Delete task"}
               </button>
-            ) : null}
-            {canMarkDone ? (
-              <button
-                type="button"
-                onClick={markDone}
-                disabled={isUpdatingStatus}
-                className="inline-flex h-9 items-center justify-center rounded-xl bg-emerald-600 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 disabled:cursor-not-allowed disabled:bg-zinc-400"
-              >
-                {isUpdatingStatus ? "Updating..." : "Mark done"}
-              </button>
-            ) : (
-              <LinkButton href={getNewOutputHref(task.id)} tone="solid">
-                Create output
-              </LinkButton>
-            )}
-          </div>
+              </div>
+            </>
+          ) : null}
         </div>
 
-        <aside className="space-y-5 px-1 lg:sticky lg:top-6 lg:px-0">
+        <aside className="space-y-6 border-t border-zinc-200/80 pt-6 lg:sticky lg:top-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-10">
           <SidebarField label="Status">
-            <p className="text-[13.5px] font-medium text-zinc-900">{statusLabel}</p>
+            <p className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-zinc-950">
+              <StatusDot status={status} />
+              {statusLabel}
+            </p>
           </SidebarField>
 
           <SidebarField label="Started">
-            <p className="text-[13.5px] font-medium text-zinc-900">
+            <p className="text-[13.5px] font-medium text-zinc-950">
               {meta.startedLabel}
             </p>
           </SidebarField>
 
           <SidebarField label="Updated">
-            <p className="text-[13.5px] font-medium text-zinc-900">
+            <p className="text-[13.5px] font-medium text-zinc-950">
               {meta.lastActivityLabel}
             </p>
           </SidebarField>
@@ -526,7 +549,9 @@ export function TaskDetailView({
                     key={branch}
                     className="flex items-center justify-between gap-2"
                   >
-                    <CodePill>{branch}</CodePill>
+                    <code className="font-mono text-[12px] text-zinc-600">
+                      {branch}
+                    </code>
                     <span className="text-[11px] tabular-nums text-zinc-400">
                       {count}
                     </span>
@@ -568,7 +593,7 @@ export function TaskDetailView({
                   <li key={output.id}>
                     <Link
                       href={getOutputHref(output.id)}
-                      className="text-[13px] font-medium leading-5 text-zinc-800 transition hover:text-zinc-950 hover:underline"
+                      className="text-[13px] font-medium leading-5 text-zinc-800 transition hover:text-zinc-950"
                     >
                       {output.title}
                     </Link>
@@ -579,7 +604,7 @@ export function TaskDetailView({
             {status === "done" ? (
               <Link
                 href={getNewOutputHref(task.id)}
-                className="mt-2 inline-flex text-[12px] font-semibold text-zinc-500 transition hover:text-zinc-950"
+                className="mt-2 inline-flex text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950"
               >
                 + New output
               </Link>
@@ -595,25 +620,34 @@ function TaskLogRow({ log }: { log: WorkspaceLogItem }) {
   return (
     <Link
       href={getLogHref(log.id)}
-      className="group flex items-start gap-3 px-4 py-3.5 transition hover:bg-zinc-50/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20"
+      className="group block rounded-lg px-2.5 py-2.5 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
     >
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <LogTypeLabel>{log.label}</LogTypeLabel>
-          <h3 className="text-[13.5px] font-semibold leading-snug text-zinc-950 group-hover:text-zinc-800">
-            {log.title}
-          </h3>
-        </div>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <LogTypeLabel>{log.label}</LogTypeLabel>
+        <span className="min-w-0 truncate text-[14.5px] font-medium text-zinc-950 group-hover:text-zinc-700">
+          {log.title}
+        </span>
+      </div>
+      {log.description ? (
         <p className="mt-1 line-clamp-1 text-[12.5px] leading-5 text-zinc-500">
           {log.description}
         </p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-zinc-400">
-          <span>{formatLogMeta(log.meta)}</span>
-          {log.branch ? <CodePill>{log.branch}</CodePill> : null}
-          {log.commit ? <CodePill>{log.commit}</CodePill> : null}
-        </div>
-      </div>
-      <IconArrowRight className="mt-0.5 size-3.5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-zinc-500" />
+      ) : null}
+      <p className="mt-1.5 text-[12px] text-zinc-400">
+        {formatLogMeta(log.meta)}
+        {log.branch ? (
+          <>
+            {" · "}
+            <span className="font-mono">{log.branch}</span>
+          </>
+        ) : null}
+        {log.commit ? (
+          <>
+            {" · "}
+            <span className="font-mono">{log.commit}</span>
+          </>
+        ) : null}
+      </p>
     </Link>
   );
 }
@@ -687,41 +721,33 @@ function TabButton({
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={cn(
-        "relative h-11 text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        active
-          ? "font-semibold text-zinc-950"
-          : "font-medium text-zinc-500 hover:text-zinc-950",
+        "relative h-9 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-800",
       )}
     >
       {children}
       {active ? (
-        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-zinc-950" />
+        <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
       ) : null}
     </button>
   );
 }
 
-function StatusBadge({
-  status,
-  label,
-}: {
-  status: WorkspaceWorkStatus;
-  label: string;
-}) {
+function StatusDot({ status }: { status: WorkspaceWorkStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold tracking-wide text-white shadow-sm",
-        status === "doing" && "bg-emerald-600",
-        status === "done" && "bg-zinc-600",
-        status === "todo" && "bg-zinc-500",
+        "size-[7px] shrink-0 rounded-full",
+        status === "doing" && "border-2 border-blue-600",
+        status === "done" && "bg-green-600",
+        status === "todo" && "border-2 border-zinc-300",
       )}
-    >
-      <span className="size-1.5 rounded-full bg-white/90" />
-      {label}
-    </span>
+      aria-hidden="true"
+    />
   );
 }
 
@@ -734,92 +760,8 @@ function SidebarField({
 }) {
   return (
     <div>
-      <p className="text-[11px] font-medium tracking-wide text-zinc-400">
-        {label}
-      </p>
+      <p className="text-[12px] font-medium text-zinc-400">{label}</p>
       <div className="mt-1.5">{children}</div>
     </div>
-  );
-}
-
-function CodePill({ children }: { children: ReactNode }) {
-  return (
-    <code className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10.5px] text-zinc-500">
-      {children}
-    </code>
-  );
-}
-
-function LinkButton({
-  href,
-  tone,
-  size = "md",
-  children,
-}: {
-  href: string;
-  tone: "solid" | "outline" | "ghost";
-  size?: "md" | "sm";
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex items-center justify-center gap-1.5 font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        size === "sm"
-          ? "h-8 rounded-[10px] px-3 text-[12.5px]"
-          : "h-9 rounded-xl px-4 text-[13px]",
-        tone === "solid" && "bg-zinc-950 text-white hover:bg-zinc-800",
-        tone === "outline" &&
-          "border border-zinc-300 bg-white font-medium text-zinc-700 hover:bg-zinc-50",
-        tone === "ghost" && "text-zinc-500 hover:text-zinc-950",
-      )}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function IconArrowLeft({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M19 12H5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 19l-7-7 7-7"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconArrowRight({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M5 12h14M13 6l6 6-6 6"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
   );
 }

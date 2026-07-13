@@ -154,7 +154,7 @@ function ToolbarButton({
         "inline-flex size-8 items-center justify-center rounded-md text-zinc-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
         disabled
           ? "cursor-not-allowed opacity-40"
-          : "hover:bg-white hover:text-zinc-950",
+          : "hover:bg-zinc-50 hover:text-zinc-950",
       )}
     >
       {children}

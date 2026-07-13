@@ -15,7 +15,12 @@ test.describe("Log detail layout", () => {
   }) => {
     await expect(page.getByTestId("log-title-block")).toBeVisible();
     await expect(page.getByTestId("log-content-block")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Back to Logs" })).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Breadcrumb" }),
+    ).toContainText("openlog");
+    await expect(
+      page.getByRole("navigation", { name: "Breadcrumb" }),
+    ).toContainText("Logs");
     await expect(page.getByText("Task", { exact: true })).toBeVisible();
     await expect(page.getByTestId("task-switcher")).toBeVisible();
     await expect(page.getByText("Branch", { exact: true })).toBeVisible();
