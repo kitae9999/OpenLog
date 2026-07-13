@@ -4,11 +4,16 @@ import { getActivityHref, getLogHref, getTabHref, type WorkspaceLogItem } from "
 import type { WorkspaceActivity } from "./workspaceTypes";
 
 const LEVELS = ["bg-zinc-100", "bg-[#fce8e0]", "bg-[#f0c4b0]", "bg-[#da7756]", "bg-[#a85638]"] as const;
+const FUTURE_LEVEL = "border border-dashed border-orange-200/70 bg-orange-50/40";
 const CELL_SIZE_PX = 13;
 const CELL_GAP_PX = 4;
 const MONTH_GAP_PX = 10;
 // 주 중간 시작 달을 한 칸 왼쪽으로 당겨, 이전 달 오목에 볼록이 테트리스처럼 맞물리게 한다.
 // 월 박스가 아니라 실제 셀 외곽선을 비교해 이 간격만 남긴다.
+
+type ActivityGridDay = WorkspaceActivity["days"][number] & {
+  isFuture?: boolean;
+};
 
 export function ActivityView({ activity, selectedDate, selectedLogs }: { activity: WorkspaceActivity | null; selectedDate: string; selectedLogs: WorkspaceLogItem[] }) {
   const months = activity ? buildActivityMonths(activity) : [];
@@ -64,6 +69,7 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
                           key={day.date}
                           day={day}
                           selected={day.date === selectedDate}
+                          isToday={day.date === activity.to}
                         />
                       ) : (
                         <span
@@ -106,33 +112,58 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
 function ActivityDayCell({
   day,
   selected,
+  isToday,
 }: {
-  day: WorkspaceActivity["days"][number];
+  day: ActivityGridDay;
   selected: boolean;
+  isToday: boolean;
 }) {
   const dateLabel = formatDate(day.date);
-  const logLabel = `${day.logCount} log${day.logCount === 1 ? "" : "s"}`;
+  const logLabel = day.isFuture
+    ? "Planned"
+    : `${day.logCount} log${day.logCount === 1 ? "" : "s"}`;
+  const label = `${dateLabel} · ${logLabel}`;
+  const cellClassName = cn(
+    "pointer-events-auto group relative rounded-[3px] transition-transform duration-150 hover:z-20 hover:scale-125 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/40",
+    day.isFuture ? FUTURE_LEVEL : LEVELS[getLevel(day.logCount)],
+    selected
+      ? "ring-2 ring-zinc-800 ring-offset-1"
+      : isToday && "ring-1 ring-[#a85638] ring-offset-1 ring-offset-white",
+  );
+  const tooltip = (
+    <span
+      role="tooltip"
+      className="pointer-events-none invisible absolute bottom-[calc(100%+7px)] left-1/2 z-30 w-max -translate-x-1/2 translate-y-1 rounded-lg bg-zinc-950 px-2.5 py-1.5 text-center text-[10.5px] font-medium leading-4 text-white opacity-0 shadow-[0_8px_24px_rgba(24,24,27,0.22)] transition duration-150 after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-zinc-950 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:visible group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+    >
+      <span className="block whitespace-nowrap">{dateLabel}</span>
+      <span className="block whitespace-nowrap text-zinc-300">{logLabel}</span>
+    </span>
+  );
+
+  if (day.isFuture) {
+    return (
+      <span
+        role="img"
+        title={label}
+        aria-label={`${dateLabel}, ${logLabel}`}
+        className={cellClassName}
+        style={{ width: CELL_SIZE_PX, height: CELL_SIZE_PX }}
+      >
+        {tooltip}
+      </span>
+    );
+  }
 
   return (
     <Link
       href={getActivityHref(day.date)}
-      title={`${dateLabel} · ${logLabel}`}
+      title={label}
       aria-label={`${dateLabel}, ${logLabel}`}
       aria-current={selected ? "date" : undefined}
-      className={cn(
-        "pointer-events-auto group relative rounded-[3px] transition-transform duration-150 hover:z-20 hover:scale-125 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/40",
-        LEVELS[getLevel(day.logCount)],
-        selected && "ring-2 ring-zinc-800 ring-offset-1",
-      )}
+      className={cellClassName}
       style={{ width: CELL_SIZE_PX, height: CELL_SIZE_PX }}
     >
-      <span
-        role="tooltip"
-        className="pointer-events-none invisible absolute bottom-[calc(100%+7px)] left-1/2 z-30 w-max -translate-x-1/2 translate-y-1 rounded-lg bg-zinc-950 px-2.5 py-1.5 text-center text-[10.5px] font-medium leading-4 text-white opacity-0 shadow-[0_8px_24px_rgba(24,24,27,0.22)] transition duration-150 after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-zinc-950 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:visible group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
-      >
-        <span className="block whitespace-nowrap">{dateLabel}</span>
-        <span className="block whitespace-nowrap text-zinc-300">{logLabel}</span>
-      </span>
+      {tooltip}
     </Link>
   );
 }
@@ -151,13 +182,14 @@ function buildActivityMonths(activity: WorkspaceActivity) {
 
   return Array.from(daysByMonth, ([key, days]) => ({
     key,
-    ...buildMonthGrid(key, days),
+    ...buildMonthGrid(key, days, activity.to),
   }));
 }
 
 function buildMonthGrid(
   month: string,
   activityDays: WorkspaceActivity["days"],
+  today: string,
 ) {
   const [year, monthNumber] = month.split("-").map(Number);
   const firstDay = new Date(Date.UTC(year, monthNumber - 1, 1));
@@ -166,13 +198,19 @@ function buildMonthGrid(
   const activityByDate = new Map(
     activityDays.map((day) => [day.date, day] as const),
   );
-  const cells: Array<WorkspaceActivity["days"][number] | null> = Array.from(
+  const cells: Array<ActivityGridDay | null> = Array.from(
     { length: mondayOffset },
     () => null,
   );
   for (let day = 1; day <= dayCount; day += 1) {
     const date = `${month}-${String(day).padStart(2, "0")}`;
-    cells.push(activityByDate.get(date) ?? null);
+    const activityDay = activityByDate.get(date);
+    cells.push(
+      activityDay
+        ?? (month === today.slice(0, 7) && date > today
+          ? { date, logCount: 0, isFuture: true }
+          : null),
+    );
   }
   while (cells.length % 7 !== 0) cells.push(null);
 

@@ -19,6 +19,16 @@ test.describe("Memory and activity UI", () => {
     await expect(selected).toHaveAttribute("aria-current", "date");
     await expect(page.getByRole("heading", { name: "Friday, July 10, 2026" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Memory decision/ })).toBeVisible();
+
+    const today = page.getByRole("link", { name: "Jul 13, 2026, 0 logs" });
+    await expect(today).toHaveClass(/ring-\[#a85638\]/);
+
+    const future = page.getByRole("img", { name: "Jul 31, 2026, Planned" });
+    await expect(future).toBeVisible();
+    await expect(future).toHaveClass(/border-dashed/);
+    await expect(future).not.toHaveAttribute("href");
+    await future.hover();
+    await expect(future.getByRole("tooltip")).toContainText("Planned");
   });
 
   test("shows date tooltip and keeps each month in its own group", async ({
