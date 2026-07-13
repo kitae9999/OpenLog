@@ -2,17 +2,24 @@ package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
+import io.github.kitae9999.openlog.memory.entity.WorkspaceMemory
+import io.github.kitae9999.openlog.output.entity.WorkspaceOutput
+import io.github.kitae9999.openlog.output.repository.WorkspaceOutputRepository
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.workspace.entity.CrossLinkRelation
 import io.github.kitae9999.openlog.workspace.entity.LogKind
 import io.github.kitae9999.openlog.workspace.entity.LogLink
 import io.github.kitae9999.openlog.workspace.entity.LogLinkRelation
 import io.github.kitae9999.openlog.workspace.entity.TaskLink
 import io.github.kitae9999.openlog.workspace.entity.TaskLinkRelation
 import io.github.kitae9999.openlog.workspace.entity.Workspace
+import io.github.kitae9999.openlog.workspace.entity.WorkspaceCrossLink
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceLog
+import io.github.kitae9999.openlog.workspace.entity.WorkspaceNodeType
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
 import io.github.kitae9999.openlog.workspace.repository.LogLinkRepository
 import io.github.kitae9999.openlog.workspace.repository.TaskLinkRepository
+import io.github.kitae9999.openlog.workspace.repository.WorkspaceCrossLinkRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -36,6 +43,12 @@ class WorkspaceLinkServiceTest {
     private lateinit var taskLinkRepository: TaskLinkRepository
 
     @Mock
+    private lateinit var crossLinkRepository: WorkspaceCrossLinkRepository
+
+    @Mock
+    private lateinit var workspaceOutputRepository: WorkspaceOutputRepository
+
+    @Mock
     private lateinit var workspaceAccessResolver: WorkspaceAccessResolver
 
     private lateinit var workspaceLinkService: WorkspaceLinkService
@@ -45,6 +58,8 @@ class WorkspaceLinkServiceTest {
         workspaceLinkService = WorkspaceLinkService(
             logLinkRepository = logLinkRepository,
             taskLinkRepository = taskLinkRepository,
+            crossLinkRepository = crossLinkRepository,
+            workspaceOutputRepository = workspaceOutputRepository,
             workspaceAccessResolver = workspaceAccessResolver,
             workspaceMapper = WorkspaceMapper(),
         )
@@ -233,6 +248,130 @@ class WorkspaceLinkServiceTest {
         }.isInstanceOf(NotFoundException::class.java)
 
         verify(taskLinkRepository, never()).delete(any(TaskLink::class.java))
+    }
+
+    @Test
+    // 다른 타입이며 같은 워크스페이스에 속한 태스크와 Memory를 cross link로 저장한다.
+    fun `createCrossLink saves task to memory link`() {
+        val owner = User(id = 1L, username = "alice")
+        val workspace = workspace(owner)
+        val task = task(id = 10L, workspace = workspace, author = owner)
+        val memory = WorkspaceMemory(
+            id = 20L,
+            workspace = workspace,
+            author = owner,
+            title = "Memory",
+            content = "content",
+        )
+        given(workspaceAccessResolver.requireOwnedWorkspace(1L, 100L)).willReturn(workspace)
+        given(workspaceAccessResolver.requireOwnedTask(workspace, 10L)).willReturn(task)
+        given(workspaceAccessResolver.requireOwnedMemory(workspace, 20L)).willReturn(memory)
+        given(crossLinkRepository.findAllByWorkspaceIdOrderByCreatedAtAsc(100L)).willReturn(emptyList())
+        given(crossLinkRepository.save(any(WorkspaceCrossLink::class.java))).willAnswer { invocation ->
+            val link = invocation.getArgument<WorkspaceCrossLink>(0)
+            WorkspaceCrossLink(
+                id = 30L,
+                workspace = link.workspace,
+                relation = link.relation,
+                fromTask = link.fromTask,
+                toMemory = link.toMemory,
+            )
+        }
+
+        val response = workspaceLinkService.createCrossLink(
+            userId = 1L,
+            workspaceId = 100L,
+            fromType = WorkspaceNodeType.TASK,
+            fromNodeId = 10L,
+            toType = WorkspaceNodeType.MEMORY,
+            toNodeId = 20L,
+            relation = CrossLinkRelation.REFERENCES,
+        )
+
+        assertThat(response.id).isEqualTo(30L)
+        assertThat(response.fromType).isEqualTo(WorkspaceNodeType.TASK)
+        assertThat(response.fromNodeId).isEqualTo(10L)
+        assertThat(response.toType).isEqualTo(WorkspaceNodeType.MEMORY)
+        assertThat(response.toNodeId).isEqualTo(20L)
+        assertThat(response.relation).isEqualTo(CrossLinkRelation.REFERENCES)
+    }
+
+    @Test
+    // 같은 타입은 기존 전용 링크를 사용해야 하므로 cross link 생성을 거부한다.
+    fun `createCrossLink rejects same node types`() {
+        assertThatThrownBy {
+            workspaceLinkService.createCrossLink(
+                userId = 1L,
+                workspaceId = 100L,
+                fromType = WorkspaceNodeType.LOG,
+                fromNodeId = 10L,
+                toType = WorkspaceNodeType.LOG,
+                toNodeId = 20L,
+                relation = CrossLinkRelation.RELATES_TO,
+            )
+        }.isInstanceOf(BadRequestException::class.java)
+
+        verify(crossLinkRepository, never()).save(any(WorkspaceCrossLink::class.java))
+    }
+
+    @Test
+    // 다른 워크스페이스의 output은 cross link 대상으로 사용할 수 없다.
+    fun `createCrossLink rejects output from another workspace`() {
+        val owner = User(id = 1L, username = "alice")
+        val workspace = workspace(owner)
+        val otherWorkspace = Workspace(
+            id = 200L,
+            owner = owner,
+            slug = "other",
+            name = "Other Workspace",
+        )
+        val task = task(id = 10L, workspace = workspace, author = owner)
+        val output = WorkspaceOutput(
+            id = 20L,
+            workspace = otherWorkspace,
+            author = owner,
+            title = "Output",
+            content = "content",
+        )
+        given(workspaceAccessResolver.requireOwnedWorkspace(1L, 100L)).willReturn(workspace)
+        given(workspaceAccessResolver.requireOwnedTask(workspace, 10L)).willReturn(task)
+        given(workspaceOutputRepository.findById(20L)).willReturn(Optional.of(output))
+
+        assertThatThrownBy {
+            workspaceLinkService.createCrossLink(
+                userId = 1L,
+                workspaceId = 100L,
+                fromType = WorkspaceNodeType.TASK,
+                fromNodeId = 10L,
+                toType = WorkspaceNodeType.OUTPUT,
+                toNodeId = 20L,
+                relation = CrossLinkRelation.SUPPORTS,
+            )
+        }.isInstanceOf(BadRequestException::class.java)
+
+        verify(crossLinkRepository, never()).save(any(WorkspaceCrossLink::class.java))
+    }
+
+    @Test
+    // 현재 워크스페이스에 속한 cross link를 삭제한다.
+    fun `deleteCrossLink deletes owned link`() {
+        val owner = User(id = 1L, username = "alice")
+        val workspace = workspace(owner)
+        val task = task(id = 10L, workspace = workspace, author = owner)
+        val log = log(id = 20L, workspace = workspace, author = owner)
+        val link = WorkspaceCrossLink(
+            id = 30L,
+            workspace = workspace,
+            relation = CrossLinkRelation.RELATES_TO,
+            fromTask = task,
+            toLog = log,
+        )
+        given(workspaceAccessResolver.requireOwnedWorkspace(1L, 100L)).willReturn(workspace)
+        given(crossLinkRepository.findById(30L)).willReturn(Optional.of(link))
+
+        workspaceLinkService.deleteCrossLink(userId = 1L, workspaceId = 100L, crossLinkId = 30L)
+
+        verify(crossLinkRepository).delete(link)
     }
 
     private fun workspace(owner: User): Workspace {

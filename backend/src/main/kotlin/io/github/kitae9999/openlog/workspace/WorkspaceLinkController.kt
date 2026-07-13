@@ -1,8 +1,10 @@
 package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.workspace.dto.CreateCrossLinkRequest
 import io.github.kitae9999.openlog.workspace.dto.CreateLogLinkRequest
 import io.github.kitae9999.openlog.workspace.dto.CreateTaskLinkRequest
+import io.github.kitae9999.openlog.workspace.dto.CrossLinkResponse
 import io.github.kitae9999.openlog.workspace.entity.LogLinkResponse
 import io.github.kitae9999.openlog.workspace.dto.TaskLinkResponse
 import jakarta.validation.Valid
@@ -103,6 +105,51 @@ class WorkspaceLinkController(
             userId = requireNotNull(user.id),
             workspaceId = workspaceId,
             taskLinkId = taskLinkId,
+        )
+
+        return ResponseEntity.noContent().build()
+    }
+
+    @GetMapping("/{workspaceId}/cross-links")
+    fun getCrossLinks(
+        @AuthenticationPrincipal user: User,
+        @PathVariable workspaceId: Long,
+    ): List<CrossLinkResponse> {
+        return workspaceLinkService.getCrossLinks(
+            userId = requireNotNull(user.id),
+            workspaceId = workspaceId,
+        )
+    }
+
+    @PostMapping("/{workspaceId}/cross-links")
+    fun createCrossLink(
+        @AuthenticationPrincipal user: User,
+        @PathVariable workspaceId: Long,
+        @Valid @RequestBody request: CreateCrossLinkRequest,
+    ): ResponseEntity<CrossLinkResponse> {
+        val createdLink = workspaceLinkService.createCrossLink(
+            userId = requireNotNull(user.id),
+            workspaceId = workspaceId,
+            fromType = request.fromType,
+            fromNodeId = request.fromNodeId,
+            toType = request.toType,
+            toNodeId = request.toNodeId,
+            relation = request.relation,
+        )
+
+        return ResponseEntity.status(201).body(createdLink)
+    }
+
+    @DeleteMapping("/{workspaceId}/cross-links/{crossLinkId}")
+    fun deleteCrossLink(
+        @AuthenticationPrincipal user: User,
+        @PathVariable workspaceId: Long,
+        @PathVariable crossLinkId: Long,
+    ): ResponseEntity<Void> {
+        workspaceLinkService.deleteCrossLink(
+            userId = requireNotNull(user.id),
+            workspaceId = workspaceId,
+            crossLinkId = crossLinkId,
         )
 
         return ResponseEntity.noContent().build()
