@@ -142,6 +142,7 @@ export default async function PublicPostSuggestionDetailPage({
           suggestionId={suggestionDetail.id}
           articleHref={articleHref}
           suggestsHref={suggestsHref}
+          canDiscuss={!!viewer}
           currentUserAvatarSrc={viewer?.profileImageUrl}
           editHref={isOpen && isSuggestionAuthor ? suggestionEditHref : undefined}
           closeAction={closeAction}

@@ -24,11 +24,13 @@ export function SuggestionDiscussionSection({
   postId,
   suggestionId,
   initialComments,
+  canComment,
   currentUserAvatarSrc,
 }: {
   postId: number;
   suggestionId: number;
   initialComments: DiscussionComment[];
+  canComment: boolean;
   currentUserAvatarSrc?: string | null;
 }) {
   const router = useRouter();
@@ -146,7 +148,7 @@ export function SuggestionDiscussionSection({
             <DiscussionCard
               key={comment.id}
               comment={comment}
-              canManage={comment.canManage}
+              canManage={canComment && comment.canManage}
               isEditing={editingDiscussionId === comment.id}
               isDeleting={deletingDiscussionId === comment.id}
               onEdit={() => {
@@ -165,18 +167,20 @@ export function SuggestionDiscussionSection({
         <p className="mt-4 text-sm font-medium text-rose-600">{actionError}</p>
       ) : null}
 
-      <div className="mt-6 flex items-start gap-4">
-        <Image
-          src={resolvedAvatarSrc}
-          alt="Current user avatar"
-          width={40}
-          height={40}
-          className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
-        />
-        <div className="min-w-0 flex-1">
-          <DiscussionComposer onSubmit={submitDiscussion} />
+      {canComment ? (
+        <div className="mt-6 flex items-start gap-4">
+          <Image
+            src={resolvedAvatarSrc}
+            alt="Current user avatar"
+            width={40}
+            height={40}
+            className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
+          />
+          <div className="min-w-0 flex-1">
+            <DiscussionComposer onSubmit={submitDiscussion} />
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

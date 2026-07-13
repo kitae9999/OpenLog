@@ -168,6 +168,7 @@ export default async function PublicPostPage({
             suggestsHref={suggestsHref}
             suggestCount={suggestions.length}
             sourceTeaser={viewer ? undefined : { locked: true }}
+            isAuthenticated={!!viewer}
           >
             <div className="mt-8 space-y-6 text-[16px] leading-8 text-zinc-700">
               <MarkdownContent
@@ -221,6 +222,7 @@ export default async function PublicPostPage({
           suggestsHref={suggestsHref}
           suggestCount={entry.suggestCount}
           sourceTeaser={viewer ? undefined : { locked: true }}
+          isAuthenticated={!!viewer}
         >
           {entry.body}
         </PostArticle>
