@@ -74,16 +74,8 @@ export function TasksListView({
 
   async function deleteSelectedTasks() {
     if (!workspaceData || isDeleting || selection.selectedIdList.length === 0) {
-      return;
+      return false;
     }
-    if (
-      !window.confirm(
-        `Delete ${selection.selectedIdList.length} selected task${selection.selectedIdList.length === 1 ? "" : "s"}? Linked records will be kept.`,
-      )
-    ) {
-      return;
-    }
-
     setIsDeleting(true);
     setDeleteError(null);
     const result = await deleteWorkspaceDocuments({
@@ -94,10 +86,11 @@ export function TasksListView({
     setIsDeleting(false);
     if (!result.ok) {
       setDeleteError(result.message ?? "Failed to delete selected tasks.");
-      return;
+      return false;
     }
     selection.clear();
     router.refresh();
+    return true;
   }
 
   return (
@@ -164,6 +157,7 @@ export function TasksListView({
             allVisibleSelected={selection.allVisibleSelected}
             someVisibleSelected={selection.someVisibleSelected}
             documentLabel="tasks"
+            deleteImpact="Linked records will be kept."
             isDeleting={isDeleting}
             error={deleteError}
             onToggleAll={selection.toggleAllVisible}

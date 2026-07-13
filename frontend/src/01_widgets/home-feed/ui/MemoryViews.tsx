@@ -33,13 +33,9 @@ export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiD
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function deleteSelectedMemories() {
-    if (!workspaceData || isDeleting || selection.selectedIdList.length === 0) return;
-    if (
-      !window.confirm(
-        `Delete ${selection.selectedIdList.length} selected memor${selection.selectedIdList.length === 1 ? "y" : "ies"}? This cannot be undone.`,
-      )
-    ) return;
-
+    if (!workspaceData || isDeleting || selection.selectedIdList.length === 0) {
+      return false;
+    }
     setIsDeleting(true);
     setDeleteError(null);
     const result = await deleteWorkspaceDocuments({
@@ -50,10 +46,11 @@ export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiD
     setIsDeleting(false);
     if (!result.ok) {
       setDeleteError(result.message ?? "Failed to delete selected memories.");
-      return;
+      return false;
     }
     selection.clear();
     router.refresh();
+    return true;
   }
 
   return (

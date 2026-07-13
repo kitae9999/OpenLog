@@ -54,11 +54,19 @@ test.describe("Workspace document bulk delete", () => {
   }) => {
     const fixture = page.getByRole("region", { name: "Logs bulk fixture" });
     await fixture.getByRole("checkbox", { name: "Select First log" }).click();
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toContain("Delete 1 selected log?");
-      await dialog.dismiss();
-    });
     await fixture.getByRole("button", { name: "Delete selected" }).click();
+
+    const dialog = page.getByRole("dialog", {
+      name: "Delete selected logs?",
+    });
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(
+      "1 selected log will be permanently deleted.",
+    );
+    await expect(dialog).toContainText("Linked memories will be kept.");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+
+    await expect(dialog).toHaveCount(0);
     await expect(fixture.getByText("1 selected")).toBeVisible();
   });
 
@@ -70,6 +78,10 @@ test.describe("Workspace document bulk delete", () => {
       .click();
     await expect(
       fixture.getByRole("button", { name: "Delete selected" }),
+    ).toBeInViewport();
+    await fixture.getByRole("button", { name: "Delete selected" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Delete selected memories?" }),
     ).toBeInViewport();
   });
 });

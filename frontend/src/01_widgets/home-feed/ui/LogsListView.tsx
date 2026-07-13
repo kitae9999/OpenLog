@@ -105,16 +105,8 @@ export function LogsListView({
 
   async function deleteSelectedLogs() {
     if (!workspaceData || isDeleting || selection.selectedIdList.length === 0) {
-      return;
+      return false;
     }
-    if (
-      !window.confirm(
-        `Delete ${selection.selectedIdList.length} selected log${selection.selectedIdList.length === 1 ? "" : "s"}? Linked memories will be kept.`,
-      )
-    ) {
-      return;
-    }
-
     setIsDeleting(true);
     setDeleteError(null);
     const result = await deleteWorkspaceDocuments({
@@ -125,10 +117,11 @@ export function LogsListView({
     setIsDeleting(false);
     if (!result.ok) {
       setDeleteError(result.message ?? "Failed to delete selected logs.");
-      return;
+      return false;
     }
     selection.clear();
     router.refresh();
+    return true;
   }
 
   return (
@@ -276,6 +269,7 @@ export function LogsListView({
             allVisibleSelected={selection.allVisibleSelected}
             someVisibleSelected={selection.someVisibleSelected}
             documentLabel="logs"
+            deleteImpact="Linked memories will be kept."
             isDeleting={isDeleting}
             error={deleteError}
             onToggleAll={selection.toggleAllVisible}

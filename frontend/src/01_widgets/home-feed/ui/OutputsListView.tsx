@@ -71,16 +71,8 @@ export function OutputsListView({
 
   async function deleteSelectedOutputs() {
     if (!workspaceData || isDeleting || selection.selectedIdList.length === 0) {
-      return;
+      return false;
     }
-    if (
-      !window.confirm(
-        `Delete ${selection.selectedIdList.length} selected output${selection.selectedIdList.length === 1 ? "" : "s"}? Published posts will be kept.`,
-      )
-    ) {
-      return;
-    }
-
     setIsDeleting(true);
     setDeleteError(null);
     const result = await deleteWorkspaceDocuments({
@@ -91,10 +83,11 @@ export function OutputsListView({
     setIsDeleting(false);
     if (!result.ok) {
       setDeleteError(result.message ?? "Failed to delete selected outputs.");
-      return;
+      return false;
     }
     selection.clear();
     router.refresh();
+    return true;
   }
 
   return (
@@ -157,6 +150,7 @@ export function OutputsListView({
             allVisibleSelected={selection.allVisibleSelected}
             someVisibleSelected={selection.someVisibleSelected}
             documentLabel="outputs"
+            deleteImpact="Published posts will be kept."
             isDeleting={isDeleting}
             error={deleteError}
             onToggleAll={selection.toggleAllVisible}
