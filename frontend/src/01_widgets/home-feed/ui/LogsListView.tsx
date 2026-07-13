@@ -25,6 +25,12 @@ import {
   type WorkspaceWorkItem,
 } from "./data";
 import { mergeLogWithOverrides } from "./logOverrides";
+import {
+  DocumentBulkBar,
+  SelectionCheckbox,
+  useDocumentSelection,
+} from "./DocumentBulkSelection";
+import { deleteWorkspaceDocuments } from "./workspaceActions";
 import type { WorkspaceUiData } from "./workspaceTypes";
 
 type SortFilter = "newest" | "oldest";
@@ -40,14 +46,15 @@ export function LogsListView({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialLogs = workspaceData?.logs ?? [];
   const tasks = workspaceData?.tasks ?? [];
   const logs = useMemo(
-    () =>
-      workspaceData
+    () => {
+      const initialLogs = workspaceData?.logs ?? [];
+      return workspaceData
         ? initialLogs
-        : initialLogs.map((log) => mergeLogWithOverrides(log)),
-    [initialLogs, workspaceData],
+        : initialLogs.map((log) => mergeLogWithOverrides(log));
+    },
+    [workspaceData],
   );
   const [sortFilter, setSortFilter] = useState<SortFilter>("newest");
 
@@ -78,15 +85,50 @@ export function LogsListView({
 
     return items;
   }, [logs, typeFilter, taskFilter, sortFilter]);
+  const selection = useDocumentSelection(filteredLogs.map((log) => log.id));
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const taskLabel = getTaskFilterLabel(taskFilter, taskFilters);
 
   function setTypeFilter(next: LogListTypeFilter) {
+    selection.clear();
+    setDeleteError(null);
     router.push(buildLogsListHref(next, taskFilter));
   }
 
   function setTaskFilter(next: LogTaskFilter) {
+    selection.clear();
+    setDeleteError(null);
     router.push(buildLogsListHref(typeFilter, next));
+  }
+
+  async function deleteSelectedLogs() {
+    if (!workspaceData || isDeleting || selection.selectedIdList.length === 0) {
+      return;
+    }
+    if (
+      !window.confirm(
+        `Delete ${selection.selectedIdList.length} selected log${selection.selectedIdList.length === 1 ? "" : "s"}? Linked memories will be kept.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    const result = await deleteWorkspaceDocuments({
+      workspaceId: workspaceData.workspaceId,
+      documentType: "logs",
+      ids: selection.selectedIdList,
+    });
+    setIsDeleting(false);
+    if (!result.ok) {
+      setDeleteError(result.message ?? "Failed to delete selected logs.");
+      return;
+    }
+    selection.clear();
+    router.refresh();
   }
 
   return (
@@ -227,6 +269,21 @@ export function LogsListView({
           </div>
         </header>
 
+        {workspaceData ? (
+          <DocumentBulkBar
+            visibleCount={filteredLogs.length}
+            selectedCount={selection.selectedIds.size}
+            allVisibleSelected={selection.allVisibleSelected}
+            someVisibleSelected={selection.someVisibleSelected}
+            documentLabel="logs"
+            isDeleting={isDeleting}
+            error={deleteError}
+            onToggleAll={selection.toggleAllVisible}
+            onClear={selection.clear}
+            onDelete={deleteSelectedLogs}
+          />
+        ) : null}
+
         <div className="px-[18px] pb-2 pt-1">
           {filteredLogs.length === 0 ? (
             <p className="py-10 text-center text-[13px] text-zinc-500">
@@ -242,6 +299,8 @@ export function LogsListView({
                     ? tasks.find((task) => task.id === log.taskId)
                     : undefined
                 }
+                selected={selection.selectedIds.has(log.id)}
+                onToggle={() => selection.toggle(log.id)}
               />
             ))
           )}
@@ -440,12 +499,27 @@ function FilterMenuItem({
 function LogListRow({
   log,
   task,
+  selected,
+  onToggle,
 }: {
   log: WorkspaceLogItem;
   task?: WorkspaceWorkItem;
+  selected: boolean;
+  onToggle: () => void;
 }) {
   return (
-    <article className="flex items-start gap-3 border-t border-zinc-100 py-3.5 first:border-t-0">
+    <article
+      className={cn(
+        "flex items-start gap-3 border-t border-zinc-100 py-3.5 first:border-t-0",
+        selected && "bg-[#fffaf7]",
+      )}
+    >
+      <SelectionCheckbox
+        checked={selected}
+        label={`${selected ? "Deselect" : "Select"} ${log.title}`}
+        onChange={onToggle}
+        className="mt-0.5"
+      />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-[15px] font-semibold leading-snug text-zinc-950">

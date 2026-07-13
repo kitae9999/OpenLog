@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import {
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   getNewOutputHref,
@@ -18,6 +24,12 @@ import {
   subscribeOutputOverrides,
 } from "./outputOverrides";
 import type { WorkspaceUiData } from "./workspaceTypes";
+import {
+  DocumentBulkBar,
+  SelectionCheckbox,
+  useDocumentSelection,
+} from "./DocumentBulkSelection";
+import { deleteWorkspaceDocuments } from "./workspaceActions";
 
 const statusItems: WorkspaceOutputStatus[] = ["draft", "published"];
 
@@ -30,6 +42,7 @@ export function OutputsListView({
   status: WorkspaceOutputStatus;
   workspaceData?: WorkspaceUiData | null;
 }) {
+  const router = useRouter();
   const outputOverridesSnapshot = useSyncExternalStore(
     subscribeOutputOverrides,
     getOutputOverridesSnapshot,
@@ -50,6 +63,39 @@ export function OutputsListView({
     () => outputs.filter((output) => output.status === status),
     [outputs, status],
   );
+  const selection = useDocumentSelection(
+    filteredOutputs.map((output) => output.id),
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  async function deleteSelectedOutputs() {
+    if (!workspaceData || isDeleting || selection.selectedIdList.length === 0) {
+      return;
+    }
+    if (
+      !window.confirm(
+        `Delete ${selection.selectedIdList.length} selected output${selection.selectedIdList.length === 1 ? "" : "s"}? Published posts will be kept.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    const result = await deleteWorkspaceDocuments({
+      workspaceId: workspaceData.workspaceId,
+      documentType: "outputs",
+      ids: selection.selectedIdList,
+    });
+    setIsDeleting(false);
+    if (!result.ok) {
+      setDeleteError(result.message ?? "Failed to delete selected outputs.");
+      return;
+    }
+    selection.clear();
+    router.refresh();
+  }
 
   return (
     <div>
@@ -104,6 +150,21 @@ export function OutputsListView({
           </div>
         </header>
 
+        {workspaceData ? (
+          <DocumentBulkBar
+            visibleCount={filteredOutputs.length}
+            selectedCount={selection.selectedIds.size}
+            allVisibleSelected={selection.allVisibleSelected}
+            someVisibleSelected={selection.someVisibleSelected}
+            documentLabel="outputs"
+            isDeleting={isDeleting}
+            error={deleteError}
+            onToggleAll={selection.toggleAllVisible}
+            onClear={selection.clear}
+            onDelete={deleteSelectedOutputs}
+          />
+        ) : null}
+
         <div className="px-[18px] pb-2 pt-1">
           {filteredOutputs.length === 0 ? (
             <div className="py-12 text-center">
@@ -120,7 +181,12 @@ export function OutputsListView({
             </div>
           ) : (
             filteredOutputs.map((output) => (
-              <OutputRow key={output.id} output={output} />
+              <OutputRow
+                key={output.id}
+                output={output}
+                selected={selection.selectedIds.has(output.id)}
+                onToggle={() => selection.toggle(output.id)}
+              />
             ))
           )}
         </div>
@@ -129,14 +195,33 @@ export function OutputsListView({
   );
 }
 
-function OutputRow({ output }: { output: WorkspaceTaskOutput }) {
+function OutputRow({
+  output,
+  selected,
+  onToggle,
+}: {
+  output: WorkspaceTaskOutput;
+  selected: boolean;
+  onToggle: () => void;
+}) {
   const sourceLabel = [
     `${output.taskIds.length} task${output.taskIds.length === 1 ? "" : "s"}`,
     `${output.logIds.length} log${output.logIds.length === 1 ? "" : "s"}`,
   ].join(" · ");
 
   return (
-    <article className="flex items-start gap-3 border-t border-zinc-100 py-3.5 first:border-t-0">
+    <article
+      className={cn(
+        "flex items-start gap-3 border-t border-zinc-100 py-3.5 first:border-t-0",
+        selected && "bg-[#fffaf7]",
+      )}
+    >
+      <SelectionCheckbox
+        checked={selected}
+        label={`${selected ? "Deselect" : "Select"} ${output.title}`}
+        onChange={onToggle}
+        className="mt-0.5"
+      />
       <div className="mt-1 size-2.5 shrink-0 rounded-full bg-zinc-950" />
       <div className="min-w-0 flex-1">
         <h2 className="text-[15px] font-semibold leading-snug text-zinc-950">

@@ -131,6 +131,26 @@ export async function deleteWorkspaceTask(input: {
   });
 }
 
+export async function deleteWorkspaceDocuments(input: {
+  workspaceId: string;
+  documentType: "tasks" | "logs" | "outputs" | "memories";
+  ids: string[];
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(
+      `/workspaces/${input.workspaceId}/${input.documentType}/bulk-delete`,
+      cookie,
+      {
+        method: "POST",
+        body: JSON.stringify({ ids: input.ids.map(Number) }),
+      },
+    );
+
+    revalidateWorkspaceCollectionPaths();
+    return { ok: true };
+  });
+}
+
 export async function createWorkspaceLog(input: {
   workspaceId: string;
   kind: LogKind;

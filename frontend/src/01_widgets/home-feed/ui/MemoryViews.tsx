@@ -13,14 +13,48 @@ import {
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import { getLogHref, getMemoryHref, getTaskHref, getTabHref } from "./data";
 import {
+  DocumentBulkBar,
+  SelectionCheckbox,
+  useDocumentSelection,
+} from "./DocumentBulkSelection";
+import {
   createWorkspaceMemory,
+  deleteWorkspaceDocuments,
   deleteWorkspaceMemory,
   updateWorkspaceMemory,
 } from "./workspaceActions";
 import type { WorkspaceMemoryItem, WorkspaceUiData } from "./workspaceTypes";
 
 export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiData | null }) {
+  const router = useRouter();
   const memories = workspaceData?.memories ?? [];
+  const selection = useDocumentSelection(memories.map((memory) => memory.id));
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  async function deleteSelectedMemories() {
+    if (!workspaceData || isDeleting || selection.selectedIdList.length === 0) return;
+    if (
+      !window.confirm(
+        `Delete ${selection.selectedIdList.length} selected memor${selection.selectedIdList.length === 1 ? "y" : "ies"}? This cannot be undone.`,
+      )
+    ) return;
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    const result = await deleteWorkspaceDocuments({
+      workspaceId: workspaceData.workspaceId,
+      documentType: "memories",
+      ids: selection.selectedIdList,
+    });
+    setIsDeleting(false);
+    if (!result.ok) {
+      setDeleteError(result.message ?? "Failed to delete selected memories.");
+      return;
+    }
+    selection.clear();
+    router.refresh();
+  }
 
   return (
     <div>
@@ -46,17 +80,37 @@ export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiD
         <EmptyMemory title="No memory yet" body="Create a memory or send a useful log here when a decision should outlive the session." />
       ) : (
         <div className="mt-5 overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]">
+          <DocumentBulkBar
+            visibleCount={memories.length}
+            selectedCount={selection.selectedIds.size}
+            allVisibleSelected={selection.allVisibleSelected}
+            someVisibleSelected={selection.someVisibleSelected}
+            documentLabel="memories"
+            isDeleting={isDeleting}
+            error={deleteError}
+            onToggleAll={selection.toggleAllVisible}
+            onClear={selection.clear}
+            onDelete={deleteSelectedMemories}
+          />
           {memories.map((memory) => (
-            <Link key={memory.id} href={getMemoryHref(memory.id)} className="group block border-t border-zinc-100 px-5 py-4 first:border-t-0 hover:bg-zinc-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-[14px] font-semibold text-zinc-950 group-hover:underline group-hover:underline-offset-4">{memory.title}</h2>
-                  <p className="mt-1 line-clamp-2 max-w-3xl text-[12.5px] leading-5 text-zinc-500">{memory.excerpt}</p>
+            <article key={memory.id} className={cn("flex items-start gap-3 border-t border-zinc-100 px-5 py-4", selection.selectedIds.has(memory.id) && "bg-[#fffaf7]")}>
+              <SelectionCheckbox
+                checked={selection.selectedIds.has(memory.id)}
+                label={`${selection.selectedIds.has(memory.id) ? "Deselect" : "Select"} ${memory.title}`}
+                onChange={() => selection.toggle(memory.id)}
+                className="mt-0.5"
+              />
+              <Link href={getMemoryHref(memory.id)} className="group min-w-0 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-[14px] font-semibold text-zinc-950 group-hover:underline group-hover:underline-offset-4">{memory.title}</h2>
+                    <p className="mt-1 line-clamp-2 max-w-3xl text-[12.5px] leading-5 text-zinc-500">{memory.excerpt}</p>
+                  </div>
+                  <time className="shrink-0 font-mono text-[10.5px] text-zinc-400">{formatMemoryDate(memory.updatedAt)}</time>
                 </div>
-                <time className="shrink-0 font-mono text-[10.5px] text-zinc-400">{formatMemoryDate(memory.updatedAt)}</time>
-              </div>
-              <MemoryMeta memory={memory} />
-            </Link>
+                <MemoryMeta memory={memory} />
+              </Link>
+            </article>
           ))}
         </div>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
@@ -16,6 +17,12 @@ import {
   type WorkspaceWorkStatus,
 } from "./data";
 import { mergeTaskWithOverrides } from "./taskOverrides";
+import {
+  DocumentBulkBar,
+  SelectionCheckbox,
+  useDocumentSelection,
+} from "./DocumentBulkSelection";
+import { deleteWorkspaceDocuments } from "./workspaceActions";
 import type { WorkspaceUiData } from "./workspaceTypes";
 
 const filterItems: Array<{ key: TaskListFilter; label: string }> = [
@@ -32,16 +39,18 @@ export function TasksListView({
   isLoggedIn: boolean;
   workspaceData?: WorkspaceUiData | null;
 }) {
-  const initialTasks = workspaceData?.tasks ?? [];
+  const router = useRouter();
   const logs = workspaceData?.logs ?? [];
   const outputs = workspaceData?.outputs ?? [];
   const [filter, setFilter] = useState<TaskListFilter>("all");
   const tasks = useMemo(
-    () =>
-      workspaceData
+    () => {
+      const initialTasks = workspaceData?.tasks ?? [];
+      return workspaceData
         ? initialTasks
-        : initialTasks.map((task) => mergeTaskWithOverrides(task)),
-    [initialTasks, workspaceData],
+        : initialTasks.map((task) => mergeTaskWithOverrides(task));
+    },
+    [workspaceData],
   );
 
   const filteredTasks = useMemo(
@@ -53,6 +62,43 @@ export function TasksListView({
   );
 
   const doingCount = tasks.filter((task) => task.status === "doing").length;
+  const selection = useDocumentSelection(filteredTasks.map((task) => task.id));
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  function changeFilter(nextFilter: TaskListFilter) {
+    setFilter(nextFilter);
+    selection.clear();
+    setDeleteError(null);
+  }
+
+  async function deleteSelectedTasks() {
+    if (!workspaceData || isDeleting || selection.selectedIdList.length === 0) {
+      return;
+    }
+    if (
+      !window.confirm(
+        `Delete ${selection.selectedIdList.length} selected task${selection.selectedIdList.length === 1 ? "" : "s"}? Linked records will be kept.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    const result = await deleteWorkspaceDocuments({
+      workspaceId: workspaceData.workspaceId,
+      documentType: "tasks",
+      ids: selection.selectedIdList,
+    });
+    setIsDeleting(false);
+    if (!result.ok) {
+      setDeleteError(result.message ?? "Failed to delete selected tasks.");
+      return;
+    }
+    selection.clear();
+    router.refresh();
+  }
 
   return (
     <div>
@@ -98,7 +144,7 @@ export function TasksListView({
                 <FilterChip
                   key={item.key}
                   active={filter === item.key}
-                  onClick={() => setFilter(item.key)}
+                  onClick={() => changeFilter(item.key)}
                 >
                   {item.label}
                   <span className="tabular-nums text-zinc-400">{count}</span>
@@ -110,6 +156,21 @@ export function TasksListView({
             </span>
           </div>
         </header>
+
+        {workspaceData ? (
+          <DocumentBulkBar
+            visibleCount={filteredTasks.length}
+            selectedCount={selection.selectedIds.size}
+            allVisibleSelected={selection.allVisibleSelected}
+            someVisibleSelected={selection.someVisibleSelected}
+            documentLabel="tasks"
+            isDeleting={isDeleting}
+            error={deleteError}
+            onToggleAll={selection.toggleAllVisible}
+            onClear={selection.clear}
+            onDelete={deleteSelectedTasks}
+          />
+        ) : null}
 
         <div className="px-[18px] pb-2 pt-1">
           {filteredTasks.length === 0 ? (
@@ -123,6 +184,8 @@ export function TasksListView({
                 task={task}
                 logs={logs}
                 outputs={outputs}
+                selected={selection.selectedIds.has(task.id)}
+                onToggle={() => selection.toggle(task.id)}
               />
             ))
           )}
@@ -136,10 +199,14 @@ function TaskListRow({
   task,
   logs,
   outputs,
+  selected,
+  onToggle,
 }: {
   task: WorkspaceWorkItem;
   logs: WorkspaceLogItem[];
   outputs: WorkspaceTaskOutput[];
+  selected: boolean;
+  onToggle: () => void;
 }) {
   const taskLogs = logs.filter((log) => log.taskId === task.id);
   const logCount = taskLogs.length;
@@ -156,7 +223,18 @@ function TaskListRow({
         : "todo";
 
   return (
-    <article className="flex items-start gap-3 border-t border-zinc-100 py-3.5 first:border-t-0">
+    <article
+      className={cn(
+        "flex items-start gap-3 border-t border-zinc-100 py-3.5 first:border-t-0",
+        selected && "bg-[#fffaf7]",
+      )}
+    >
+      <SelectionCheckbox
+        checked={selected}
+        label={`${selected ? "Deselect" : "Select"} ${task.title}`}
+        onChange={onToggle}
+        className="mt-0.5"
+      />
       <TaskStatusDot status={task.status} className="mt-1" />
       <div className="min-w-0 flex-1">
         <h2 className="text-[15px] font-semibold leading-snug text-zinc-950">
