@@ -59,6 +59,21 @@ test.describe("Memory and activity UI", () => {
       .getByRole("link", { name: "Jul 10, 2026, 3 logs" })
       .evaluate((cell) => Number.parseFloat(getComputedStyle(cell).width));
     expect(cellSize).toBe(11);
+    const labelToGrassGap = await page.evaluate(() => {
+      const labels = document.querySelector<HTMLElement>(
+        "[data-activity-weekday-labels]",
+      );
+      const months = document.querySelector<HTMLElement>(
+        "[data-activity-months]",
+      );
+      if (!labels || !months) return Number.NaN;
+      return months.getBoundingClientRect().left - labels.getBoundingClientRect().right;
+    });
+    expect(labelToGrassGap).toBe(4);
+    const scrollFitsContent = await page
+      .locator("[data-activity-scroll]")
+      .evaluate((element) => element.scrollWidth === element.clientWidth);
+    expect(scrollFitsContent).toBe(true);
     await expect(june.getByRole("link", { name: /Jul/ })).toHaveCount(0);
     await expect(july.getByRole("link", { name: /Jun/ })).toHaveCount(0);
     await expect(
