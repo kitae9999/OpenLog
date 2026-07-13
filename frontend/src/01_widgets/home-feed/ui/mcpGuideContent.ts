@@ -88,9 +88,7 @@ export const mcpGuideCopy = {
         title: "1. Log in with the CLI",
         body: "MCP tools require a local OpenLog session. Run device login once in your terminal and approve the request in the browser.",
         footnoteBefore: "Verify with",
-        footnoteAfter:
-          ". The sidebar footer shows MCP connected when a client is linked.",
-        mcpConnected: "MCP connected",
+        footnoteAfter: ".",
       },
       register: {
         title: "2. Register the MCP server",
@@ -149,9 +147,7 @@ export const mcpGuideCopy = {
         title: "1. CLI로 로그인",
         body: "MCP tool을 쓰려면 로컬 OpenLog 세션이 필요합니다. 터미널에서 device login을 한 번 실행하고 브라우저에서 승인하세요.",
         footnoteBefore: "확인:",
-        footnoteAfter:
-          ". client가 연결되면 사이드바 하단에 MCP connected가 표시됩니다.",
-        mcpConnected: "MCP connected",
+        footnoteAfter: ".",
       },
       register: {
         title: "2. MCP server 등록",

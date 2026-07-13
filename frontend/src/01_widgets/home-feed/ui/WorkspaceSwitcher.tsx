@@ -136,9 +136,9 @@ export function WorkspaceSwitcher({
         <div
           role="menu"
           aria-label="Workspaces"
-          className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-zinc-200/70 bg-white shadow-[0_12px_40px_rgba(24,24,27,0.12)]"
+          className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-lg border border-zinc-200/70 bg-white shadow-[0_4px_18px_rgba(24,24,27,0.08)]"
         >
-          <div className="max-h-[min(280px,50vh)] overflow-y-auto py-1">
+          <div className="openlog-scroll max-h-[min(280px,50vh)] overflow-y-auto">
             {workspaces.map((workspace) => {
               const isActive = workspace.id === resolvedActiveId;
 
@@ -178,7 +178,7 @@ export function WorkspaceSwitcher({
             })}
           </div>
 
-          <div className="border-t border-zinc-100 p-1.5">
+          <div className="border-t border-zinc-100">
             <Link
               href={getNewWorkspaceHref()}
               role="menuitem"
@@ -186,7 +186,7 @@ export function WorkspaceSwitcher({
                 setOpen(false);
                 onNavigate?.();
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-[13px] font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20"
             >
               <span className="grid size-6 shrink-0 place-items-center rounded-lg border border-dashed border-zinc-300 text-zinc-400">
                 <IconPlus className="size-3.5" />

@@ -39,7 +39,11 @@ import {
 import { WorkspaceView } from "./WorkspaceView";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { FeedArticleCard } from "./FeedArticleCard";
-import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
+import type {
+  ManagedWorkspace,
+  WorkspaceActivity,
+  WorkspaceUiData,
+} from "./workspaceTypes";
 
 type ExploreTabKey = "trending" | "recent" | "following" | "liked";
 type ExploreSubTab = Exclude<ExploreTabKey, "trending">;
@@ -93,6 +97,7 @@ export function HomeFeedShell({
   profileHref,
   workspaces = [],
   workspaceData,
+  workspaceActivity,
   footer,
 }: {
   activeTab: TabKey;
@@ -110,6 +115,7 @@ export function HomeFeedShell({
   profileHref?: string;
   workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
+  workspaceActivity?: WorkspaceActivity | null;
   footer: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -409,9 +415,15 @@ export function HomeFeedShell({
             )}
           >
             {activeTab === "home" && !isLoggedIn ? (
-              <div className="flex items-center gap-2 border-b border-zinc-200/80 pb-4 text-[15px] font-semibold text-zinc-950">
-                <IconClock className="size-5 text-zinc-600" />
-                <h1>Recent</h1>
+              <div className="mx-auto w-full max-w-[920px]">
+                <header className="pb-6">
+                  <h1 className="text-[22px] font-semibold tracking-tight text-zinc-950">
+                    Recent
+                  </h1>
+                  <p className="mt-1.5 text-[13px] text-zinc-500">
+                    Latest posts across OpenLog
+                  </p>
+                </header>
               </div>
             ) : null}
 
@@ -419,6 +431,7 @@ export function HomeFeedShell({
               <WorkspaceView
                 isLoggedIn={isLoggedIn}
                 workspaceData={workspaceData}
+                activity={workspaceActivity}
               />
             ) : activeTab === "explore" ? (
               <ExploreView
@@ -432,7 +445,7 @@ export function HomeFeedShell({
                 loadMore={
                   <div
                     ref={sentinelRef}
-                    className="flex min-h-16 items-center justify-center py-4 text-sm text-zinc-500"
+                    className="mt-6 flex min-h-16 items-center pl-5 text-sm text-zinc-500"
                     aria-live="polite"
                   >
                     {isLoadingMore
@@ -452,7 +465,7 @@ export function HomeFeedShell({
                 <PostsView posts={posts} />
                 <div
                   ref={sentinelRef}
-                  className="flex min-h-24 items-center justify-center py-6 text-sm text-zinc-500"
+                  className="mt-6 flex min-h-16 items-center pl-5 text-sm text-zinc-500"
                   aria-live="polite"
                 >
                   {isLoadingMore
@@ -467,10 +480,10 @@ export function HomeFeedShell({
                 </div>
               </>
             ) : (
-              <>
-                <div className="divide-y divide-zinc-200/80">
+              <div className="mx-auto w-full max-w-[920px]">
+                <div>
                   {posts.map((post) => (
-                    <ArticleCard key={post.id} post={post} />
+                    <FeedArticleCard key={post.id} post={post} />
                   ))}
                 </div>
 
@@ -479,7 +492,7 @@ export function HomeFeedShell({
                 activeTab === "liked" ? (
                   <div
                     ref={sentinelRef}
-                    className="flex min-h-24 items-center justify-center py-6 text-sm text-zinc-500"
+                    className="mt-6 flex min-h-16 items-center pl-5 text-sm text-zinc-500"
                     aria-live="polite"
                   >
                     {isLoadingMore
@@ -497,7 +510,7 @@ export function HomeFeedShell({
                             : "No more posts."}
                   </div>
                 ) : null}
-              </>
+              </div>
             )}
           </section>
         </main>
@@ -678,21 +691,6 @@ export function HomeSidebar({
             />
           ) : null}
         </SidebarSection>
-
-        <div className="mt-auto border-t border-zinc-200/70 px-2 pt-4 text-[11.5px] leading-5 text-zinc-500">
-          <div className="flex items-center gap-2 text-[12px] font-semibold text-zinc-950">
-            <span className="size-[7px] rounded-full bg-green-600" />
-            MCP connected
-          </div>
-          <div className="mt-1 text-zinc-400">
-            {isLoggedIn
-              ? "Claude Code · last read 4m ago"
-              : "Connect CLI to capture logs"}
-          </div>
-          <code className="font-mono text-[10.5px] text-zinc-400">
-            openlog-cli v0.4.2
-          </code>
-        </div>
       </nav>
     </aside>
   );
@@ -856,30 +854,57 @@ function SidebarLink({
 
 function PostsView({ posts }: { posts: FeedPost[] }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-      <div className="flex gap-6 border-b border-zinc-200/70 px-5">
-        {["Published", "Drafts"].map((tab, index) => (
-          <button
-            key={tab}
-            type="button"
-            className={cn(
-              "relative py-3 text-[13.5px] font-medium transition-colors",
-              index === 0
-                ? "text-zinc-950 after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-0.5 after:bg-zinc-950"
-                : "text-zinc-500 hover:text-zinc-950",
-            )}
-          >
-            {tab}
-          </button>
-        ))}
+    <div className="mx-auto w-full max-w-[920px]">
+      <header className="pb-6">
+        <h1 className="text-[22px] font-semibold tracking-tight text-zinc-950">
+          Posts
+        </h1>
+        <p className="mt-1.5 text-[13px] text-zinc-500">
+          {posts.length} published
+        </p>
+      </header>
+
+      <div
+        role="tablist"
+        aria-label="Post filters"
+        className="flex flex-wrap items-end gap-1 border-b border-zinc-200"
+      >
+        {["Published", "Drafts"].map((tab, index) => {
+          const active = index === 0;
+          return (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              className={cn(
+                "relative h-9 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                active
+                  ? "text-zinc-950"
+                  : "text-zinc-500 hover:text-zinc-800",
+              )}
+            >
+              {tab}
+              {active ? (
+                <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
+              ) : null}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="divide-y divide-zinc-200/70">
-        {posts.map((post) => (
-          <FeedArticleCard key={post.id} post={post} />
-        ))}
-      </div>
-    </section>
+      {posts.length === 0 ? (
+        <p className="mt-10 pl-5 text-sm text-zinc-500">No posts yet.</p>
+      ) : (
+        <ul className="mt-2">
+          {posts.map((post) => (
+            <li key={post.id}>
+              <FeedArticleCard post={post} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -896,181 +921,137 @@ function ExploreView({
   onSubTabChange: (tab: ExploreSubTab) => void;
   loadMore?: ReactNode;
 }) {
+  const visibleTabs = exploreTabs.filter(
+    (
+      tab,
+    ): tab is (typeof exploreTabs)[number] & { key: ExploreSubTab } =>
+      !tab.hidden &&
+      tab.key !== "trending" &&
+      (!tab.loginRequired || isLoggedIn),
+  );
+
   return (
     <div
       className={cn(
-        "grid items-start gap-4",
+        "mx-auto grid w-full max-w-[920px] items-start gap-10",
         SHOW_EXPLORE_INSIGHTS &&
-          "xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,1fr)]",
+          "max-w-[1180px] xl:grid-cols-[minmax(0,1fr)_280px]",
       )}
     >
-      <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <div className="flex gap-6 border-b border-zinc-200/70 px-5">
-          {exploreTabs
-            .filter(
-              (
-                tab,
-              ): tab is (typeof exploreTabs)[number] & { key: ExploreSubTab } =>
-                !tab.hidden &&
-                tab.key !== "trending" &&
-                (!tab.loginRequired || isLoggedIn),
-            )
-            .map((tab) => (
+      <div className="min-w-0">
+        <header className="pb-6">
+          <h1 className="text-[22px] font-semibold tracking-tight text-zinc-950">
+            Explore
+          </h1>
+          <p className="mt-1.5 text-[13px] text-zinc-500">
+            Discover posts across OpenLog
+          </p>
+        </header>
+
+        <div
+          role="tablist"
+          aria-label="Explore filters"
+          className="flex flex-wrap items-end gap-1 border-b border-zinc-200"
+        >
+          {visibleTabs.map((tab) => {
+            const active = activeSubTab === tab.key;
+            return (
               <button
                 key={tab.key}
                 type="button"
+                role="tab"
+                aria-selected={active}
                 onClick={() => onSubTabChange(tab.key)}
                 className={cn(
-                  "relative inline-flex items-center gap-2 py-3 text-[13.5px] font-medium transition-colors",
-                  activeSubTab === tab.key
-                    ? "text-zinc-950 after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-0.5 after:bg-zinc-950"
-                    : "text-zinc-500 hover:text-zinc-950",
+                  "relative inline-flex h-9 items-center gap-1.5 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                  active
+                    ? "text-zinc-950"
+                    : "text-zinc-500 hover:text-zinc-800",
                 )}
               >
                 <span
                   className={cn(
                     "shrink-0",
-                    activeSubTab === tab.key ? "text-zinc-950" : "text-zinc-400",
+                    active ? "text-zinc-700" : "text-zinc-400",
                   )}
                 >
                   {getExploreTabIcon(tab.key)}
                 </span>
                 {tab.label}
+                {active ? (
+                  <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
+                ) : null}
               </button>
+            );
+          })}
+        </div>
+
+        {posts.length === 0 ? null : (
+          <ul className="mt-2">
+            {posts.map((post) => (
+              <li key={post.id}>
+                <FeedArticleCard post={post} />
+              </li>
             ))}
-        </div>
+          </ul>
+        )}
+        {loadMore}
+      </div>
 
-        <div className="divide-y divide-zinc-200/70">
-          {posts.map((post) => (
-            <FeedArticleCard key={post.id} post={post} />
-          ))}
-          {loadMore}
-        </div>
-      </section>
-
-      {SHOW_EXPLORE_INSIGHTS ? <aside className="space-y-4">
-        <section className="rounded-2xl border border-zinc-200/70 bg-white">
-          <div className="flex items-center justify-between px-5 pt-4">
-            <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-              TOP CONTRIBUTORS
-            </h2>
-            <IconPullRequest className="size-[15px] text-zinc-400" />
-          </div>
-          <div className="pb-2 pt-2">
-            {topContributors.map((person) => (
-              <div
-                key={person.name}
-                className="flex items-center gap-3 border-t border-zinc-100 px-5 py-3 first:border-t-0"
-              >
-                <Image
-                  src={person.avatar}
-                  alt=""
-                  width={32}
-                  height={32}
-                  className="size-8 shrink-0 rounded-full border border-zinc-200 object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] font-semibold text-zinc-950">
-                    {person.name}
-                  </div>
-                  <div className="truncate text-[11.5px] text-zinc-500">
-                    {person.summary}
+      {SHOW_EXPLORE_INSIGHTS ? (
+        <aside className="space-y-8 pt-1">
+          <section>
+            <div className="flex items-baseline justify-between gap-3 border-b border-zinc-200 pb-3">
+              <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
+                Top contributors
+              </h2>
+              <IconPullRequest className="size-[15px] text-zinc-400" />
+            </div>
+            <div className="mt-2">
+              {topContributors.map((person) => (
+                <div
+                  key={person.name}
+                  className="flex items-center gap-3 rounded-lg px-2.5 py-2.5 transition hover:bg-zinc-50"
+                >
+                  <Image
+                    src={person.avatar}
+                    alt=""
+                    width={32}
+                    height={32}
+                    className="size-8 rounded-full border border-zinc-200 object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] font-medium text-zinc-950">
+                      {person.name}
+                    </p>
+                    <p className="truncate text-[12px] text-zinc-500">
+                      {person.summary}
+                    </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11.5px] font-semibold text-blue-700 transition hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              ))}
+            </div>
+          </section>
+          <section>
+            <div className="border-b border-zinc-200 pb-3">
+              <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
+                Trending topics
+              </h2>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {recommendedTopics.map((topic) => (
+                <span
+                  key={topic}
+                  className="text-[13px] font-medium text-zinc-500"
                 >
-                  Follow
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-zinc-200/70 bg-white">
-          <div className="px-5 pt-4">
-            <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-              TRENDING TOPICS
-            </h2>
-          </div>
-          <div className="flex flex-wrap gap-2 px-5 pb-5 pt-3">
-            {recommendedTopics.map((topic) => (
-              <Link
-                key={topic}
-                href={`/topics/${encodeURIComponent(topic.toLowerCase())}`}
-                className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[12px] font-medium text-zinc-600 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-              >
-                {topic}
-              </Link>
-            ))}
-          </div>
-        </section>
-      </aside> : null}
+                  #{topic}
+                </span>
+              ))}
+            </div>
+          </section>
+        </aside>
+      ) : null}
     </div>
-  );
-}
-
-function ArticleCard({ post }: { post: FeedPost }) {
-  const thumbnailSrc = post.thumbnailSrc;
-
-  return (
-    <article className="py-8">
-      <Link
-        href={post.href}
-        className={cn(
-          "group grid gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-          thumbnailSrc
-            ? "sm:grid-cols-[minmax(0,1fr)_184px] sm:items-center"
-            : "",
-        )}
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[13px] text-zinc-600">
-            <Image
-              src={post.profileImageSrc}
-              alt=""
-              width={24}
-              height={24}
-              className="size-6 rounded-full border border-zinc-200 object-cover"
-            />
-            <span className="font-medium text-zinc-800">{post.nickname}</span>
-          </div>
-
-          <h2 className="mt-4 max-w-[680px] text-[24px] font-bold leading-[1.16] tracking-tight text-zinc-950 transition-colors group-hover:text-zinc-700 sm:text-[30px]">
-            {post.title}
-          </h2>
-
-          <p className="mt-3 max-w-[650px] text-[16px] leading-7 text-zinc-600">
-            {post.description}
-          </p>
-        </div>
-
-        {thumbnailSrc ? (
-          <div className="relative h-[126px] w-full overflow-hidden rounded-md border border-zinc-200 bg-zinc-100 sm:h-[118px]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={thumbnailSrc}
-              alt=""
-              loading="lazy"
-              className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
-            />
-          </div>
-        ) : null}
-      </Link>
-
-      <div className="mt-5 flex flex-wrap items-center gap-3 text-[13px] text-zinc-500">
-        <span>{post.dateLabel}</span>
-        <span className="inline-flex items-center gap-1.5">
-          <IconComment className="size-4" />
-          {post.commentCount}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <IconHeart className="size-4" />
-          {post.likeCount}
-        </span>
-      </div>
-    </article>
   );
 }
 

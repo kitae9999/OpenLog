@@ -18,14 +18,14 @@ export function ManageView({
   workspaces: ManagedWorkspace[];
 }) {
   return (
-    <div>
+    <div className="mx-auto w-full max-w-[920px]">
       <nav
         aria-label="Breadcrumb"
-        className="mb-4 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
+        className="mb-6 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
       >
         <Link
           href={getTabHref("workspace", isLoggedIn)}
-          className="font-semibold text-zinc-700 transition hover:text-zinc-950"
+          className="font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
           openlog
         </Link>
@@ -35,45 +35,46 @@ export function ManageView({
         <span className="font-semibold text-zinc-950">Manage</span>
       </nav>
 
-      <article className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <header className="border-b border-zinc-100 px-6 pb-5 pt-[22px]">
-          <h1 className="text-[20px] font-bold tracking-[-0.01em] text-zinc-950">
+      <header className="flex flex-wrap items-end justify-between gap-3 pb-6">
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-semibold tracking-tight text-zinc-950">
             Manage
           </h1>
-          <p className="mt-2 max-w-[54ch] text-[13.5px] leading-6 text-zinc-500">
+          <p className="mt-1.5 max-w-[54ch] text-[13px] leading-6 text-zinc-500">
             Review your workspaces. Deletion is permanent.
           </p>
-        </header>
+        </div>
+        <Link
+          href={getNewWorkspaceHref()}
+          className="inline-flex text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          + New workspace
+        </Link>
+      </header>
 
-        <section className="px-6 py-5">
-          <h2 className="text-[15px] font-bold tracking-[-0.01em] text-zinc-950">
-            Workspaces
-          </h2>
+      <div className="border-b border-zinc-200 pb-3">
+        <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
+          Workspaces
+        </h2>
+      </div>
 
-          {workspaces.length === 0 ? (
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-              <p className="text-[13.5px] leading-6 text-zinc-500">
-                No workspaces yet.
-              </p>
-              <Link
-                href={getNewWorkspaceHref()}
-                className="text-[13px] font-semibold text-zinc-700 transition hover:text-zinc-950"
-              >
-                Create one
-              </Link>
-            </div>
-          ) : (
-            <ul className="mt-4 divide-y divide-zinc-100 border-t border-zinc-100">
-              {workspaces.map((workspace) => (
-                <WorkspaceManageRow
-                  key={workspace.id}
-                  workspace={workspace}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
-      </article>
+      {workspaces.length === 0 ? (
+        <div className="mt-10 pl-5">
+          <p className="text-sm text-zinc-500">No workspaces yet.</p>
+          <Link
+            href={getNewWorkspaceHref()}
+            className="mt-3 inline-flex text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          >
+            + New workspace
+          </Link>
+        </div>
+      ) : (
+        <ul className="mt-2">
+          {workspaces.map((workspace) => (
+            <WorkspaceManageRow key={workspace.id} workspace={workspace} />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -199,11 +200,12 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
   }
 
   return (
-    <li className="flex flex-wrap items-start justify-between gap-3 py-4">
+    <li className="border-t border-zinc-200/80 first:border-t-0">
+      <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg px-2.5 py-3 transition hover:bg-zinc-50">
       <div className="min-w-0 flex-1">
         {isEditing ? (
           <div className="grid max-w-xl gap-3 sm:grid-cols-2">
-            <label className="grid gap-1.5 text-[12px] font-semibold text-zinc-600">
+            <label className="grid gap-1.5 text-[12px] font-medium text-zinc-500">
               Name
               <input
                 value={name}
@@ -212,7 +214,7 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
                 className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-[13px] font-normal text-zinc-950 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-50"
               />
             </label>
-            <label className="grid gap-1.5 text-[12px] font-semibold text-zinc-600">
+            <label className="grid gap-1.5 text-[12px] font-medium text-zinc-500">
               Repository
               <input
                 value={repoFullName}
@@ -225,7 +227,7 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
           </div>
         ) : (
           <>
-            <p className="truncate text-[14px] font-semibold text-zinc-950">
+            <p className="truncate text-[14.5px] font-medium text-zinc-950">
               {workspace.name}
             </p>
             <p className="mt-1 truncate text-[12.5px] text-zinc-500">
@@ -240,14 +242,14 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
         ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center gap-3 pt-1">
+      <div className="flex shrink-0 items-center gap-3 pt-0.5">
         {isEditing ? (
           <>
             <button
               type="button"
               onClick={cancelEdit}
               disabled={isSaving}
-              className="text-[13px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+              className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
             >
               Cancel
             </button>
@@ -255,7 +257,7 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
               type="button"
               onClick={saveWorkspace}
               disabled={isSaving || !name.trim()}
-              className="text-[13px] font-semibold text-zinc-950 transition hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+              className="text-[13px] font-medium text-zinc-950 transition hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
             >
               {isSaving ? "Saving…" : "Save"}
             </button>
@@ -268,7 +270,7 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
               setIsEditing(true);
             }}
             disabled={isPending}
-            className="text-[13px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+            className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
           >
             Edit
           </button>
@@ -280,7 +282,7 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
             disabled={isPending}
             aria-haspopup="dialog"
             aria-expanded={isConfirmOpen}
-            className="cursor-pointer text-[13px] font-semibold text-zinc-500 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+            className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
           >
             Delete
           </button>
@@ -351,6 +353,7 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
             document.body,
           )
         : null}
+      </div>
     </li>
   );
 }
