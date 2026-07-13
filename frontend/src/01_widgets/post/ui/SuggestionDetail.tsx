@@ -38,15 +38,6 @@ export function SuggestionDetail({
   const isOutdated = suggestion.status === "outdated";
   const isMerged = suggestion.status === "merged";
   const isRejected = suggestion.status === "rejected";
-  const statusClassName = isOpen
-    ? "bg-emerald-600"
-    : isOutdated
-      ? "bg-amber-600"
-      : isMerged
-        ? "bg-violet-600"
-        : isRejected
-          ? "bg-rose-600"
-          : "bg-zinc-500";
   const statusLabel = isOpen
     ? "Open"
     : isOutdated
@@ -62,7 +53,7 @@ export function SuggestionDetail({
     <div className="mx-auto w-full max-w-[1024px] pb-12">
       <Link
         href={suggestsHref}
-        className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        className="inline-flex items-center gap-2 text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >
         <IconArrowLeft className="size-4" />
         Back to Suggestions
@@ -70,7 +61,7 @@ export function SuggestionDetail({
 
       <header className="mt-7 border-b border-zinc-200 pb-6">
         <div className="flex flex-wrap items-baseline gap-2">
-          <h1 className="text-[30px] font-bold leading-[1.2] tracking-tight text-zinc-950">
+          <h1 className="text-[30px] font-semibold leading-[1.2] tracking-tight text-zinc-950">
             {suggestion.title}
           </h1>
           <span className="font-mono text-[20px] text-zinc-400">
@@ -78,16 +69,13 @@ export function SuggestionDetail({
           </span>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-zinc-600">
-          <span
-            className={cn(
-              "inline-flex h-6 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-white shadow-sm",
-              statusClassName,
-            )}
-          >
+        <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-zinc-500">
+          <span className="inline-flex items-center gap-1.5 font-medium text-zinc-600">
+            <SuggestionStatusDot status={suggestion.status} />
             <GitPullRequestIcon className="size-3.5" />
             {statusLabel}
           </span>
+          <span className="text-zinc-300">·</span>
           <span className="font-semibold text-zinc-950">
             {suggestion.authorName}
           </span>
@@ -95,7 +83,7 @@ export function SuggestionDetail({
             suggested an edit
             {suggestion.baseVersionLabel ? " based on " : ""}
             {suggestion.baseVersionLabel ? (
-              <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-800">
+              <span className="font-mono text-xs text-zinc-600">
                 {suggestion.baseVersionLabel}
               </span>
             ) : null}
@@ -117,12 +105,12 @@ export function SuggestionDetail({
           ) : null}
 
           {hasActions ? (
-            <div className="flex flex-wrap justify-end gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-4 border-t border-zinc-200 pt-6">
               {closeAction ? (
                 <form action={closeAction}>
                   <button
                     type="submit"
-                    className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 px-5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                    className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                   >
                     Close suggestion
                   </button>
@@ -132,7 +120,7 @@ export function SuggestionDetail({
                 <form action={rejectAction}>
                   <button
                     type="submit"
-                    className="inline-flex h-10 items-center justify-center rounded-xl border border-rose-200 px-5 text-sm font-medium text-rose-700 transition hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20"
+                    className="cursor-pointer text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20"
                   >
                     Reject
                   </button>
@@ -142,9 +130,9 @@ export function SuggestionDetail({
                 <form action={mergeAction}>
                   <button
                     type="submit"
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30"
+                    className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-medium text-zinc-950 transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                   >
-                    <GitPullRequestIcon className="size-4" />
+                    <GitPullRequestIcon className="size-3.5" />
                     Accept Suggestion
                   </button>
                 </form>
@@ -160,11 +148,11 @@ export function SuggestionDetail({
           />
         </div>
 
-        <aside className="space-y-6">
+        <aside className="space-y-6 border-t border-zinc-200/80 pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-10">
           <InfoCard title="Target Article">
             <Link
               href={articleHref}
-              className="text-sm leading-6 text-blue-600 underline underline-offset-4 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/20"
+              className="text-[13.5px] font-medium leading-6 text-zinc-700 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
             >
               {post.title}
             </Link>
@@ -189,52 +177,52 @@ function SuggestionLeadComment({
         alt={`${suggestion.comment.authorName} avatar`}
         width={40}
         height={40}
-        className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
+        className="mt-0.5 size-10 rounded-full border border-zinc-200 object-cover"
       />
 
-      <section className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-500">
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
             <span className="font-semibold text-zinc-950">
               {suggestion.comment.authorName}
             </span>
-            <span>commented on {suggestion.comment.commentedAtLabel}</span>
+            <span className="text-zinc-400">
+              commented on {suggestion.comment.commentedAtLabel}
+            </span>
           </div>
           {editHref ? (
             <Link
               href={editHref}
-              className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
             >
               Edit
             </Link>
           ) : null}
         </div>
 
-        <div className="px-4 py-5">
+        <div className="mt-2">
           <MarkdownContent
             markdown={suggestion.comment.message}
             variant="compact"
           />
         </div>
-      </section>
+      </div>
     </div>
   );
 }
 
 function SuggestionDiff({ suggestion }: { suggestion: Suggestion }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50/80 px-4 py-4">
-        <div className="flex items-center gap-3 text-sm text-zinc-600">
-          <span className="inline-flex items-center gap-2 font-semibold text-zinc-700">
-            <IconFileDiff className="size-4" />
-            <span className="font-mono text-sm">Changes</span>
-          </span>
-          <span className="font-mono text-xs text-zinc-500">Unified view</span>
-        </div>
+    <section>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="inline-flex items-center gap-2 text-[13.5px] font-semibold tracking-tight text-zinc-600">
+          <IconFileDiff className="size-4" />
+          Changes
+        </h2>
+        <span className="font-mono text-[12px] text-zinc-400">Unified view</span>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="mt-3 overflow-x-auto border-t border-zinc-200">
         <div className="min-w-[664px]">
           {suggestion.diffRows.map((row, index) => (
             <DiffRow
@@ -248,10 +236,10 @@ function SuggestionDiff({ suggestion }: { suggestion: Suggestion }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border-t border-zinc-200 bg-zinc-50/80 px-4 py-2 text-xs text-zinc-500">
+      <p className="mt-2 flex items-center gap-1.5 text-[12px] text-zinc-400">
         <IconArrowRight className="size-3" />
         Green lines indicate additions, red lines indicate deletions.
-      </div>
+      </p>
     </section>
   );
 }
@@ -264,13 +252,17 @@ function MergedNotice({
   description: string;
 }) {
   return (
-    <section className="flex items-start gap-3 rounded-xl border border-violet-100 bg-violet-50 px-4 py-4">
-      <span className="mt-0.5 inline-flex size-7 items-center justify-center rounded-full bg-violet-600 text-white">
-        <GitPullRequestIcon className="size-4" />
-      </span>
-      <div>
-        <h2 className="text-sm font-bold text-violet-900">{title}</h2>
-        <p className="mt-1 text-xs text-violet-700">{description}</p>
+    <section className="border-t border-zinc-200 pt-6">
+      <div className="flex items-start gap-2.5">
+        <GitPullRequestIcon className="mt-0.5 size-4 shrink-0 text-violet-600" />
+        <div>
+          <h2 className="text-[13.5px] font-semibold tracking-tight text-violet-900">
+            {title}
+          </h2>
+          <p className="mt-1 text-[13px] leading-5 text-violet-700/80">
+            {description}
+          </p>
+        </div>
       </div>
     </section>
   );
@@ -284,12 +276,34 @@ function InfoCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 shadow-sm">
-      <h2 className="border-b border-zinc-100 pb-3 text-sm font-bold text-zinc-950">
-        {title}
-      </h2>
-      <div className="pt-3">{children}</div>
-    </section>
+    <div>
+      <p className="text-[12px] font-medium text-zinc-400">{title}</p>
+      <div className="mt-1.5">{children}</div>
+    </div>
+  );
+}
+
+function SuggestionStatusDot({
+  status,
+}: {
+  status: Suggestion["status"];
+}) {
+  return (
+    <span
+      className={cn(
+        "size-[7px] shrink-0 rounded-full",
+        status === "open" && "bg-emerald-600",
+        status === "outdated" && "bg-amber-500",
+        status === "merged" && "bg-violet-600",
+        status === "rejected" && "bg-rose-600",
+        status !== "open" &&
+          status !== "outdated" &&
+          status !== "merged" &&
+          status !== "rejected" &&
+          "bg-zinc-400",
+      )}
+      aria-hidden="true"
+    />
   );
 }
 

@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { Footer, Header } from "@/widgets/chrome/ui";
+import { Footer } from "@/widgets/chrome/ui";
+import { AppChromeShell } from "@/widgets/home-feed/ui/AppChromeShell";
+import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
 import { SuggestionDetail } from "@/widgets/post/ui";
 import { getPostSuggestionDetail } from "@/entities/post/api/getPostSuggestionDetail";
 import {
@@ -52,6 +54,7 @@ export default async function PublicPostSuggestionDetailPage({
     getUser(),
     getPostDetail(authorUsername, canonicalPostSlug),
   ]);
+  const chrome = await loadAppChromeWorkspace(!!viewer);
 
   if (!detail) {
     notFound();
@@ -122,14 +125,16 @@ export default async function PublicPostSuggestionDetailPage({
       : undefined;
 
   return (
-    <div className="min-h-dvh bg-white text-zinc-950">
-      <Header
-        isLoggedIn={!!viewer}
-        profileImageUrl={viewer?.profileImageUrl}
-        profileHref={viewer ? buildViewerProfileHref(viewer.username) : undefined}
-      />
-
-      <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
+    <AppChromeShell
+      isLoggedIn={!!viewer}
+      profileImageUrl={viewer?.profileImageUrl}
+      profileHref={viewer ? buildViewerProfileHref(viewer.username) : undefined}
+      activeTab="home"
+      workspaces={chrome.workspaces}
+      workspaceData={chrome.workspaceData}
+      footer={<Footer />}
+    >
+      <div className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <SuggestionDetail
           post={post}
           suggestion={suggestion}
@@ -143,10 +148,8 @@ export default async function PublicPostSuggestionDetailPage({
           mergeAction={mergeAction}
           rejectAction={rejectAction}
         />
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AppChromeShell>
   );
 }
 

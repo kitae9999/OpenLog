@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import {
@@ -97,43 +97,24 @@ export function DiscussionComposer({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-      <div className="border-b border-zinc-200 bg-zinc-50/80 px-4">
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => setMode("write")}
-            className={cn(
-              "relative h-12 text-[16px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-              mode === "write"
-                ? "font-semibold text-zinc-950"
-                : "font-medium text-zinc-500 hover:text-zinc-950",
-            )}
-          >
-            Write
-            {mode === "write" ? (
-              <span className="absolute inset-x-0 bottom-0 h-0.5 bg-zinc-950" />
-            ) : null}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("preview")}
-            className={cn(
-              "relative h-12 text-[16px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-              mode === "preview"
-                ? "font-semibold text-zinc-950"
-                : "font-medium text-zinc-500 hover:text-zinc-950",
-            )}
-          >
-            Preview
-            {mode === "preview" ? (
-              <span className="absolute inset-x-0 bottom-0 h-0.5 bg-zinc-950" />
-            ) : null}
-          </button>
-        </div>
+    <div>
+      <div
+        role="tablist"
+        aria-label="Comment editor"
+        className="flex items-end gap-1 border-b border-zinc-200"
+      >
+        <TabButton active={mode === "write"} onClick={() => setMode("write")}>
+          Write
+        </TabButton>
+        <TabButton
+          active={mode === "preview"}
+          onClick={() => setMode("preview")}
+        >
+          Preview
+        </TabButton>
       </div>
 
-      <div className="border-b border-zinc-200 bg-zinc-50/80 px-4 py-2">
+      <div className="mt-3">
         <MarkdownToolbar
           disabled={mode === "preview"}
           onAction={insertFormatting}
@@ -141,18 +122,18 @@ export function DiscussionComposer({
       </div>
 
       {mode === "write" ? (
-        <label className="block">
+        <label className="mt-3 block">
           <span className="sr-only">Leave a comment</span>
           <textarea
             ref={editorRef}
             value={value}
             onChange={(event) => setValue(event.target.value)}
             placeholder="Leave a comment"
-            className="min-h-[160px] w-full resize-none border-0 bg-white px-4 py-4 text-sm leading-6 text-zinc-800 outline-none placeholder:text-zinc-400"
+            className="openlog-scroll min-h-[140px] w-full resize-none overflow-y-auto border-0 bg-transparent py-2 text-[14px] leading-6 text-zinc-800 outline-none placeholder:text-zinc-400"
           />
         </label>
       ) : (
-        <div className="min-h-[160px] px-4 py-4 text-sm leading-6 text-zinc-800">
+        <div className="mt-3 min-h-[140px] py-2 text-[14px] leading-6 text-zinc-800">
           <MarkdownContent
             markdown={value}
             variant="compact"
@@ -163,17 +144,19 @@ export function DiscussionComposer({
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-zinc-200 bg-zinc-50/80 px-4 py-3">
-        <span className="text-xs text-zinc-500">
-          Styling with Markdown is supported
-        </span>
-        <div className="flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        {error ? (
+          <span className="text-[12.5px] font-medium text-rose-600">{error}</span>
+        ) : (
+          <span className="text-[12.5px] text-zinc-500">Markdown supported</span>
+        )}
+        <div className="flex items-center gap-3">
           {onCancel ? (
             <button
               type="button"
               onClick={onCancel}
               disabled={isPending}
-              className="inline-flex h-8 items-center rounded-xl px-3 text-sm font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+              className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
             >
               Cancel
             </button>
@@ -183,21 +166,44 @@ export function DiscussionComposer({
             onClick={submitComment}
             disabled={!canSubmit}
             className={cn(
-              "inline-flex h-8 items-center rounded-xl px-4 text-sm font-bold text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30",
-              !canSubmit
-                ? "cursor-not-allowed bg-emerald-600/50"
-                : "bg-emerald-600 hover:bg-emerald-700",
+              "cursor-pointer text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+              canSubmit
+                ? "text-zinc-950 hover:text-zinc-700"
+                : "cursor-not-allowed text-zinc-400",
             )}
           >
             {isPending ? pendingLabel : submitLabel}
           </button>
         </div>
       </div>
-      {error ? (
-        <p className="border-t border-rose-100 bg-rose-50 px-4 py-2 text-xs font-medium text-rose-700">
-          {error}
-        </p>
-      ) : null}
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "relative h-9 cursor-pointer px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-950",
+      )}
+    >
+      {children}
+      {active ? (
+        <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
+      ) : null}
+    </button>
   );
 }

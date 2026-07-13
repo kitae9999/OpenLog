@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   useEffect,
@@ -13,7 +12,6 @@ import {
 } from "react";
 import type { PublicUserPostSummary } from "@/entities/user/api/getPublicUserPosts";
 import type { PublicUserPostGraph } from "@/entities/user/api/getPublicUserPostGraph";
-import { assets } from "@/shared/config/assets";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import { cn } from "@/shared/lib/cn";
 import {
@@ -61,49 +59,38 @@ const DAMPING = 0.94;
 
 export function AuthoredPostsSection({
   username,
-  profileName,
-  profileImageUrl,
   posts,
   graph,
 }: {
   username: string;
-  profileName: string;
-  profileImageUrl?: string | null;
   posts: PublicUserPostSummary[];
   graph: PublicUserPostGraph;
 }) {
   const [view, setView] = useState<AuthoredPostsView>("list");
 
   return (
-    <div className="mt-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-zinc-500">
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
+        <div className="flex items-center gap-1">
+          <AuthoredPostsModeButton
+            active={view === "list"}
+            label="List"
+            onClick={() => setView("list")}
+          />
+          <AuthoredPostsModeButton
+            active={view === "graph"}
+            label="Graph"
+            onClick={() => setView("graph")}
+          />
+        </div>
+        <span className="text-sm text-zinc-400">
           {posts.length} {posts.length === 1 ? "post" : "posts"}
-        </div>
-        <div className="rounded-xl bg-zinc-100 p-1">
-          <div className="flex items-center gap-1">
-            <AuthoredPostsModeButton
-              active={view === "list"}
-              label="List"
-              onClick={() => setView("list")}
-            />
-            <AuthoredPostsModeButton
-              active={view === "graph"}
-              label="Graph"
-              onClick={() => setView("graph")}
-            />
-          </div>
-        </div>
+        </span>
       </div>
 
-      <div className="mt-4 min-h-[520px]">
+      <div className="mt-2 min-h-[320px]">
         {view === "list" ? (
-          <AuthoredPostList
-            username={username}
-            profileName={profileName}
-            profileImageUrl={profileImageUrl}
-            posts={posts}
-          />
+          <AuthoredPostList username={username} posts={posts} />
         ) : (
           <SecondBrainGraph username={username} graph={graph} />
         )}
@@ -127,34 +114,28 @@ function AuthoredPostsModeButton({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 items-center rounded-[8px] px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        active
-          ? "bg-white text-zinc-950 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]"
-          : "text-zinc-500 hover:text-zinc-950",
+        "relative inline-flex h-8 items-center px-1 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active ? "text-zinc-950" : "text-zinc-400 hover:text-zinc-950",
       )}
     >
       {label}
+      {active ? (
+        <span className="absolute inset-x-0 -bottom-3 h-px bg-zinc-950" />
+      ) : null}
     </button>
   );
 }
 
 function AuthoredPostList({
   username,
-  profileName,
-  profileImageUrl,
   posts,
 }: {
   username: string;
-  profileName: string;
-  profileImageUrl?: string | null;
   posts: PublicUserPostSummary[];
 }) {
   if (posts.length === 0) {
     return (
-      <EmptyGraphState
-        title="No posts yet"
-        description="This profile has not published any posts."
-      />
+      <p className="text-sm leading-6 text-zinc-500">No posts yet.</p>
     );
   }
 
@@ -165,43 +146,32 @@ function AuthoredPostList({
           key={post.slug}
           href={buildPublicPostPath(username, post.slug)}
           className={cn(
-            "group grid items-start gap-4 rounded-xl border-b border-zinc-200/80 px-2 py-4 transition hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10",
+            "group grid items-start gap-4 border-b border-zinc-100 py-5 transition first:pt-0 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10",
             post.thumbnailSrc ? "grid-cols-[minmax(0,1fr)_64px]" : "",
           )}
         >
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <Image
-                src={profileImageUrl ?? assets.defaultAvatar}
-                alt=""
-                width={20}
-                height={20}
-                aria-hidden="true"
-                className="size-5 rounded-full object-cover"
-              />
-              <span className="font-medium text-zinc-900">{profileName}</span>
-            </div>
-
-            <h2 className="mt-2 text-[17px] font-bold leading-6 tracking-normal text-zinc-950">
+            <h3 className="text-[17px] font-semibold leading-6 tracking-tight text-zinc-950 transition group-hover:text-zinc-600">
               {post.title}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-500">
-              {post.description}
+            </h3>
+            {post.description ? (
+              <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-zinc-500">
+                {post.description}
+              </p>
+            ) : null}
+            <p className="mt-2 text-[12.5px] text-zinc-400">
+              {post.publishedAtLabel}
             </p>
-
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
-              <span>{post.publishedAtLabel}</span>
-            </div>
           </div>
 
           {post.thumbnailSrc ? (
-            <div className="relative size-16 overflow-hidden rounded-[4px] bg-zinc-200">
+            <div className="relative size-16 overflow-hidden rounded bg-zinc-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={post.thumbnailSrc}
                 alt={`${post.title} thumbnail`}
                 loading="lazy"
-                className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                className="size-full object-cover"
               />
             </div>
           ) : null}
@@ -530,7 +500,7 @@ function SecondBrainGraph({
   }
 
   return (
-    <div className="overflow-hidden rounded-[8px] border border-zinc-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]">
+    <div className="overflow-hidden border border-zinc-200">
       {graph.edges.length === 0 ? (
         <div className="border-b border-zinc-100 px-4 py-3 text-sm text-zinc-500">
           Add [[post title]] references between posts to connect these nodes.
@@ -730,9 +700,9 @@ function EmptyGraphState({
   description: string;
 }) {
   return (
-    <div className="rounded-[8px] border border-dashed border-zinc-300 bg-white px-5 py-6 text-sm text-zinc-500">
-      <p className="font-semibold text-zinc-800">{title}</p>
-      <p className="mt-2 leading-6">{description}</p>
+    <div className="text-sm text-zinc-500">
+      <p className="font-medium text-zinc-800">{title}</p>
+      <p className="mt-1.5 leading-6">{description}</p>
     </div>
   );
 }
