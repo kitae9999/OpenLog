@@ -76,12 +76,18 @@ class TodoController(
     fun getTodos(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
-        @RequestParam plannedFor: LocalDate,
+        @RequestParam(required = false) plannedFor: LocalDate?,
+        @RequestParam(required = false) from: LocalDate?,
+        @RequestParam(required = false) to: LocalDate?,
     ): List<TodoResponse> {
-        return todoService.getTodos(
-            userId = requireNotNull(user.id),
-            workspaceId = workspaceId,
-            plannedFor = plannedFor,
-        )
+        val userId = requireNotNull(user.id)
+        if (plannedFor != null && from == null && to == null) {
+            return todoService.getTodos(userId, workspaceId, plannedFor)
+        }
+        if (plannedFor == null && from != null && to != null) {
+            return todoService.getTodosInRange(userId, workspaceId, from, to)
+        }
+
+        throw BadRequestException("plannedFor 또는 from과 to를 지정해야 합니다.")
     }
 }

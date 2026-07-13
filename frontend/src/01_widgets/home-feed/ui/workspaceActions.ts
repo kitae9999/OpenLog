@@ -387,6 +387,7 @@ export async function createWorkspaceTodo(input: {
     );
 
     revalidatePath("/");
+    revalidatePath("/planner");
     return { ok: true, id: String(todo.id) };
   });
 }
@@ -409,6 +410,7 @@ export async function updateWorkspaceTodoDone(input: {
     );
 
     revalidatePath("/");
+    revalidatePath("/planner");
     return { ok: true, id: input.todoId };
   });
 }
@@ -435,6 +437,7 @@ export async function deleteWorkspaceTodo(input: {
     }
 
     revalidatePath("/");
+    revalidatePath("/planner");
     return { ok: true };
   });
 }

@@ -18,7 +18,7 @@ export function WorkspaceSectionShell({
   children,
 }: {
   label: string;
-  workspaceNav: "memory" | "activity";
+  workspaceNav: "memory" | "activity" | "planner";
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;

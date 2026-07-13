@@ -737,6 +737,7 @@ export type WorkspaceTodoItem = {
   description?: string;
   done?: boolean;
   taskId?: string;
+  plannedFor?: string;
 };
 
 export const workspaceTodos: WorkspaceTodoItem[] = [
@@ -873,6 +874,14 @@ export function getMemoryHref(memoryId?: string) {
 
 export function getActivityHref(date?: string) {
   return date ? `/activity?date=${encodeURIComponent(date)}` : "/activity";
+}
+
+export function getPlannerHref(month?: string, date?: string) {
+  const params = new URLSearchParams();
+  if (month) params.set("month", month);
+  if (date) params.set("date", date);
+  const query = params.toString();
+  return query ? `/planner?${query}` : "/planner";
 }
 
 export function buildLogsListHref(

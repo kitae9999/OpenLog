@@ -100,6 +100,7 @@ type TodoResponse = {
   title: string;
   done: boolean;
   taskId: number | null;
+  plannedFor: string;
 };
 
 type OutputResponse = {
@@ -340,6 +341,23 @@ export async function getWorkspaceActivityDayLogs(
     }));
   } catch {
     return [];
+  }
+}
+
+export async function getWorkspaceTodosInRange(
+  workspaceId: string,
+  from: string,
+  to: string,
+): Promise<WorkspaceTodoItem[] | null> {
+  try {
+    const headerStore = await headers();
+    const response = await fetchJson<TodoResponse[]>(
+      `/workspaces/${workspaceId}/todos?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      headerStore.get("cookie") ?? "",
+    );
+    return response.map(mapTodo);
+  } catch {
+    return null;
   }
 }
 
@@ -595,6 +613,7 @@ function mapTodo(todo: TodoResponse): WorkspaceTodoItem {
     title: todo.title,
     done: todo.done,
     taskId: todo.taskId ? String(todo.taskId) : undefined,
+    plannedFor: todo.plannedFor,
   };
 }
 

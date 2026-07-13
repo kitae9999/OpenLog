@@ -23,7 +23,7 @@ export function OutputWorkspaceShell({
   footer: ReactNode;
   children: ReactNode;
   label: string;
-  workspaceNav?: "dashboard" | "tasks" | "logs" | "graph" | "outputs";
+  workspaceNav?: "dashboard" | "tasks" | "logs" | "planner" | "graph" | "outputs";
   workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
 }) {

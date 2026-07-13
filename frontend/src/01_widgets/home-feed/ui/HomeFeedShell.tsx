@@ -21,6 +21,7 @@ import { LockIcon } from "@/shared/ui/icons";
 import {
   feedPosts,
   getActivityHref,
+  getPlannerHref,
   getLogsHref,
   getManageHref,
   getMemoryHref,
@@ -530,7 +531,7 @@ export function HomeSidebar({
   isLoggedIn: boolean;
   isOpen: boolean;
   onNavigate: () => void;
-  workspaceNav?: "dashboard" | "tasks" | "logs" | "graph" | "outputs" | "memory" | "activity";
+  workspaceNav?: "dashboard" | "tasks" | "logs" | "planner" | "graph" | "outputs" | "memory" | "activity";
   logsFilter?: LogListTypeFilter;
   settingsNav?: "mcp-guide" | "manage";
   workspaces?: ManagedWorkspace[];
@@ -587,9 +588,9 @@ export function HomeSidebar({
                 onNavigate={onNavigate}
               />
               <SidebarLink
-                href={getActivityHref()}
-                label="Activity"
-                active={workspaceNav === "activity"}
+                href={getPlannerHref()}
+                label="Planner"
+                active={workspaceNav === "planner"}
                 icon={<IconPlanner className="size-[15px]" />}
                 onNavigate={onNavigate}
               />
@@ -598,6 +599,13 @@ export function HomeSidebar({
                 active={workspaceNav === "logs"}
                 logsCount={logsCount}
                 openIssuesCount={openIssuesCount}
+                onNavigate={onNavigate}
+              />
+              <SidebarLink
+                href={getActivityHref()}
+                label="Activity"
+                active={workspaceNav === "activity"}
+                icon={<IconActivity className="size-[15px]" />}
                 onNavigate={onNavigate}
               />
               <SidebarLink
@@ -1204,6 +1212,22 @@ function IconPlanner({ className }: { className?: string }) {
         stroke="currentColor"
         strokeLinecap="round"
         strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconActivity({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M4 16.5h3v3H4zM10.5 10.5h3v9h-3zM17 4.5h3v15h-3z"
+        fill="currentColor"
       />
     </svg>
   );

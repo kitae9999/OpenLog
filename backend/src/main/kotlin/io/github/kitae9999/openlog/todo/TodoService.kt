@@ -10,6 +10,7 @@ import io.github.kitae9999.openlog.workspace.WorkspaceAccessResolver
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import kotlin.jvm.optionals.getOrNull
 
 @Service
@@ -53,6 +54,30 @@ class TodoService(
             workspaceId = workspaceId,
             plannedFor = plannedFor,
         ).map(todoMapper::toResponse) // 함수 참조 넘김
+    }
+
+    @Transactional(readOnly = true)
+    fun getTodosInRange(
+        userId: Long,
+        workspaceId: Long,
+        from: LocalDate,
+        to: LocalDate,
+    ): List<TodoResponse> {
+        if (to.isBefore(from)) {
+            throw BadRequestException("Todo 조회 종료일은 시작일보다 빠를 수 없습니다.")
+        }
+        if (ChronoUnit.DAYS.between(from, to) + 1 > MAX_RANGE_DAYS) {
+            throw BadRequestException("Todo 조회 기간은 최대 366일입니다.")
+        }
+
+        workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        return todoRepository
+            .findAllByWorkspaceIdAndPlannedForBetweenOrderByPlannedForAscSortOrderAscIdAsc(
+                workspaceId = workspaceId,
+                from = from,
+                to = to,
+            )
+            .map(todoMapper::toResponse)
     }
 
     @Transactional
@@ -102,5 +127,9 @@ class TodoService(
         )
 
         return (lastTodo?.sortOrder ?: -1) + 1 // 그날 todo 없으면 -1 +1 = 0 인덱스, 있으면 마지막 order + 1
+    }
+
+    private companion object {
+        const val MAX_RANGE_DAYS = 366
     }
 }
