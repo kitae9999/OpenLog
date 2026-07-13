@@ -140,6 +140,16 @@ type WorkspaceApiSnapshot = {
   taskLinks: TaskLinkResponse[];
   logLinks: LogLinkResponse[];
   memories: MemoryResponse[];
+  workingBrief: WorkingBriefResponse | null;
+};
+
+type WorkingBriefResponse = {
+  title: string;
+  prose: string;
+  taskId: number | null;
+  taskTitle: string | null;
+  branch: string | null;
+  updatedAt: string;
 };
 
 type MemoryResponse = {
@@ -249,8 +259,16 @@ async function fetchWorkspaceUiData(
   }
 
   const selectedId = selected.id;
-  const [tasks, logs, taskLinks, logLinks, todos, outputSummaries, memories] =
-    await Promise.all([
+  const [
+    tasks,
+    logs,
+    taskLinks,
+    logLinks,
+    todos,
+    outputSummaries,
+    memories,
+    workingBrief,
+  ] = await Promise.all([
       fetchAllTasks(selectedId, cookie),
       fetchAllLogs(selectedId, cookie),
       fetchJson<TaskLinkResponse[]>(
@@ -269,6 +287,10 @@ async function fetchWorkspaceUiData(
       // A newly deployed optional feature must not make the existing
       // workspace snapshot disappear while its backend rolls out.
       fetchAllMemories(selectedId, cookie).catch(() => []),
+      fetchJson<WorkingBriefResponse>(
+        `/workspaces/${selectedId}/working-brief`,
+        cookie,
+      ).catch(() => null),
     ]);
 
   const outputDetails = await Promise.all(
@@ -289,6 +311,7 @@ async function fetchWorkspaceUiData(
     taskLinks,
     logLinks,
     memories,
+    workingBrief,
   });
 }
 
@@ -528,6 +551,20 @@ function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
       relation: link.relation,
     })),
     memories: snapshot.memories.map(mapMemory),
+    workingBrief: snapshot.workingBrief
+      ? mapWorkingBrief(snapshot.workingBrief)
+      : null,
+  };
+}
+
+function mapWorkingBrief(brief: WorkingBriefResponse) {
+  return {
+    title: brief.title,
+    prose: brief.prose,
+    taskId: brief.taskId != null ? String(brief.taskId) : undefined,
+    taskTitle: brief.taskTitle ?? undefined,
+    branch: brief.branch ?? undefined,
+    updatedLabel: formatDateLabel(brief.updatedAt),
   };
 }
 

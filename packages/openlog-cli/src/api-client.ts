@@ -37,6 +37,14 @@ export class OpenLogApiClient {
     });
   }
 
+  async put<T>(path: string, body?: unknown): Promise<T> {
+    return this.request<T>(path, {
+      method: "PUT",
+      headers: body ? { "content-type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
   async postNoContent(path: string, body?: unknown): Promise<void> {
     await this.request<void>(path, {
       method: "POST",

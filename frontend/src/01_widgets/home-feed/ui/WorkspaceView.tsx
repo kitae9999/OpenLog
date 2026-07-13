@@ -55,7 +55,7 @@ import {
   updateWorkspaceTodoDone,
 } from "./workspaceActions";
 import type { WorkspaceActionResult } from "./workspaceActions";
-import type { WorkspaceUiData } from "./workspaceTypes";
+import type { WorkspaceUiData, WorkspaceWorkingBrief } from "./workspaceTypes";
 
 const PreviewReplayHighlightContext =
   createContext<PreviewReplayHighlight>({ kind: "none" });
@@ -260,7 +260,12 @@ function WorkspaceDashboard({
         {isPreview ? (
           <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] items-start gap-3.5">
             <div className="min-w-0 space-y-3.5">
-              <NowWorkingCard tasks={tasks} logs={logs} isPreview />
+              <NowWorkingCard
+                tasks={tasks}
+                logs={logs}
+                workingBrief={replaySnapshot?.workingBrief ?? null}
+                isPreview
+              />
               <WorkTasksCard tasks={tasks} logs={logs} isPreview />
               <RecentLogsCard tasks={tasks} logs={logs} isPreview />
             </div>
@@ -286,7 +291,11 @@ function WorkspaceDashboard({
         ) : (
           <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
             <div className="min-w-0 space-y-3.5">
-              <NowWorkingCard tasks={tasks} logs={logs} />
+              <NowWorkingCard
+                tasks={tasks}
+                logs={logs}
+                workingBrief={workspaceData?.workingBrief ?? null}
+              />
               <WorkTasksCard tasks={tasks} logs={logs} />
               <RecentLogsCard tasks={tasks} logs={logs} />
             </div>
@@ -309,221 +318,158 @@ function WorkspaceDashboard({
   );
 }
 
-function NowWorkingCard({
-  tasks,
-  logs,
-  isPreview = false,
-}: {
-  tasks: WorkspaceWorkItem[];
-  logs: WorkspaceLogItem[];
-  isPreview?: boolean;
-}) {
-  const highlight = usePreviewReplayHighlight();
-  const syncFill = usePreviewSyncFill();
+function deriveWorkingBrief(
+  tasks: WorkspaceWorkItem[],
+  logs: WorkspaceLogItem[],
+): WorkspaceWorkingBrief | null {
   const task =
     tasks.find((item) => item.status === "doing") ??
     tasks.find((item) => item.status === "todo") ??
     tasks[0];
+  if (!task) {
+    return null;
+  }
+
+  const relatedLogs = logs.filter((log) => log.taskId === task.id);
+  const latestLog = relatedLogs[0];
+  const prose =
+    task.description?.trim() ||
+    getTaskExcerpt(task.body, 220) ||
+    latestLog?.description ||
+    null;
+  if (!prose) {
+    return null;
+  }
+
+  return {
+    title: task.title,
+    prose,
+    taskId: task.id,
+    taskTitle: task.title,
+    branch: latestLog?.branch,
+    updatedLabel: latestLog?.meta.split(" · ")[0],
+  };
+}
+
+function NowWorkingCard({
+  tasks,
+  logs,
+  workingBrief,
+  isPreview = false,
+}: {
+  tasks: WorkspaceWorkItem[];
+  logs: WorkspaceLogItem[];
+  workingBrief?: WorkspaceWorkingBrief | null;
+  isPreview?: boolean;
+}) {
+  const highlight = usePreviewReplayHighlight();
+  const syncFill = usePreviewSyncFill();
+  const brief = workingBrief ?? deriveWorkingBrief(tasks, logs);
+  const tasksFetching = isZoneFetching(syncFill, "tasks");
+  const briefIncoming =
+    isPreview &&
+    (isIncomingId(syncFill, "working-brief") ||
+      (brief?.taskId != null && isIncomingId(syncFill, brief.taskId)));
   const isHighlighted =
     isPreview &&
-    task != null &&
-    isPreviewHighlight(highlight, "task", task.id);
-  const taskIncoming =
-    isPreview && task != null && isIncomingId(syncFill, task.id);
-  const tasksFetching = isZoneFetching(syncFill, "tasks");
-  const taskLogs = task
-    ? logs.filter((log) => log.taskId === task.id)
-    : [];
-  const contextLogs = taskLogs.length > 0 ? taskLogs : logs;
-  const latestContext = contextLogs[0];
+    brief?.taskId != null &&
+    isPreviewHighlight(highlight, "task", brief.taskId);
 
-  if (!task && !latestContext) {
+  if (!brief) {
     return (
       <DashboardCard
         title="NOW WORKING"
-        action={<WorkingContextLive />}
-        testId="now-working"
         className={cn(tasksFetching && "sync-zone-fetching")}
         previewAnchor={isPreview ? "task" : undefined}
       >
         <EmptyPanel
-          title="No working context yet"
-          body="Agent updates will appear here as OpenLog receives the conversation context."
+          title="Nothing in progress"
+          body="When an agent works with OpenLog, it pushes a short brief here — branch, task, and how far things got."
           fetching={tasksFetching}
-          action={
-            <LinkButton
-              href={getNewTaskHref()}
-              tone="outline"
-              size="sm"
-              isPreview={isPreview}
-            >
-              New task
-            </LinkButton>
-          }
         />
       </DashboardCard>
     );
   }
 
-  const currentContext =
-    latestContext?.description ||
-    task?.description?.trim() ||
-    (task ? getTaskExcerpt(task.body, 180) : "") ||
-    "The agent has not sent a working-context sentence yet.";
-  const branch =
-    latestContext?.branch ?? contextLogs.find((log) => log.branch)?.branch;
-  const lastWork =
-    contextLogs.find(
-      (log) =>
-        log.id !== latestContext?.id
-        && log.kind !== "ISSUE"
-        && log.status !== "OPEN",
-    ) ?? latestContext;
-  const activeConcern = contextLogs.find(
-    (log) => log.kind === "ISSUE" && log.status === "OPEN",
-  );
-  const contextTrail = contextLogs
-    .filter(
-      (log) => log.id !== latestContext?.id && log.id !== activeConcern?.id,
-    )
-    .slice(0, 2);
-  const updatedLabel = latestContext?.meta.split(" · ")[0] ?? "Task context";
+  const headerMeta = [brief.branch, brief.updatedLabel]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <DashboardCard
       title="NOW WORKING"
-      action={<WorkingContextLive />}
-      testId="now-working"
+      action={
+        headerMeta ? (
+          <span className="max-w-[min(100%,18rem)] truncate font-mono text-[11px] font-medium text-zinc-400">
+            {brief.branch ? (
+              <span className="inline-flex items-center gap-1">
+                <IconBranch className="size-3 shrink-0" />
+                {headerMeta}
+              </span>
+            ) : (
+              headerMeta
+            )}
+          </span>
+        ) : undefined
+      }
       previewAnchor={isPreview ? "task" : undefined}
     >
       <div
+        key={brief.prose}
         className={cn(
-          "px-[18px] pb-[18px] pt-3",
-          taskIncoming && "sync-item-enter",
+          "px-[18px] pb-[16px] pt-2.5",
+          briefIncoming && "sync-item-enter",
           isHighlighted && "preview-replay-highlight",
         )}
       >
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.11em] text-zinc-400">
-              Current context
-            </span>
-            <span className="font-mono text-[10.5px] text-zinc-400">
-              {updatedLabel}
-            </span>
-          </div>
-          {taskIncoming ? <NewUpdateBadge /> : null}
-          {branch ? <BranchBadge>{branch}</BranchBadge> : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {brief.taskId ? (
+            <h2 className="text-[17px] font-bold tracking-[-0.01em] text-zinc-950">
+              <PreviewableLink
+                href={getTaskHref(brief.taskId)}
+                isPreview={isPreview}
+                className="transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                previewClassName="cursor-default"
+              >
+                {brief.title}
+              </PreviewableLink>
+            </h2>
+          ) : (
+            <h2 className="text-[17px] font-bold tracking-[-0.01em] text-zinc-950">
+              {brief.title}
+            </h2>
+          )}
+          {briefIncoming ? <NewUpdateBadge /> : null}
         </div>
 
-        <p className="mt-3 max-w-[68ch] text-[14px] font-medium leading-[1.65] text-zinc-800">
-          {currentContext}
+        <p className="mt-2.5 max-w-[62ch] text-[13.5px] leading-[1.65] text-zinc-600">
+          {brief.prose}
         </p>
 
-        <div className="mt-4 grid overflow-hidden rounded-xl border border-zinc-200/80 sm:grid-cols-2">
-          {task ? (
-            <PreviewableLink
-              href={getTaskHref(task.id)}
-              isPreview={isPreview}
-              className="group flex min-w-0 items-center justify-between gap-3 px-3.5 py-3 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20"
-              previewClassName="flex min-w-0 cursor-default items-center justify-between gap-3 px-3.5 py-3"
-            >
-              <span className="min-w-0">
-                <span className="block font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                  Active task
-                </span>
-                <span className="mt-1 block truncate text-[12.5px] font-semibold text-zinc-800">
-                  {task.title}
-                </span>
-              </span>
-              <IconArrowRight className="size-3.5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-zinc-600" />
-            </PreviewableLink>
+        <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-zinc-100 pt-3 text-[12px] text-zinc-400">
+          {brief.taskTitle && brief.taskId ? (
+            <span className="inline-flex min-w-0 items-center gap-1.5">
+              <span className="shrink-0 text-zinc-400">Task</span>
+              <PreviewableLink
+                href={getTaskHref(brief.taskId)}
+                isPreview={isPreview}
+                className="truncate font-medium text-zinc-600 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                previewClassName="cursor-default truncate font-medium text-zinc-500"
+              >
+                {brief.taskTitle}
+              </PreviewableLink>
+            </span>
+          ) : null}
+          {brief.updatedLabel ? (
+            <span className="tabular-nums">
+              Updated from session · {brief.updatedLabel}
+            </span>
           ) : (
-            <div className="px-3.5 py-3">
-              <span className="block font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                Active task
-              </span>
-              <span className="mt-1 block text-[12.5px] font-medium text-zinc-400">
-                No task linked
-              </span>
-            </div>
-          )}
-          {lastWork ? (
-            <PreviewableLink
-              href={getLogHref(lastWork.id)}
-              isPreview={isPreview}
-              className="group flex min-w-0 items-center justify-between gap-3 border-t border-zinc-200/80 px-3.5 py-3 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20 sm:border-l sm:border-t-0"
-              previewClassName="flex min-w-0 cursor-default items-center justify-between gap-3 border-t border-zinc-200/80 px-3.5 py-3 sm:border-l sm:border-t-0"
-            >
-              <span className="min-w-0">
-                <span className="block font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                  Last work
-                </span>
-                <span className="mt-1 flex min-w-0 items-center gap-2">
-                  <span className="truncate text-[12.5px] font-semibold text-zinc-800">
-                    {lastWork.title}
-                  </span>
-                  {lastWork.commit ? <CodePill>{lastWork.commit}</CodePill> : null}
-                </span>
-              </span>
-              <IconArrowRight className="size-3.5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-zinc-600" />
-            </PreviewableLink>
-          ) : (
-            <div className="border-t border-zinc-200/80 px-3.5 py-3 sm:border-l sm:border-t-0">
-              <span className="block font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                Last work
-              </span>
-              <span className="mt-1 block text-[12.5px] font-medium text-zinc-400">
-                Nothing captured yet
-              </span>
-            </div>
+            <span>Updated from session</span>
           )}
         </div>
-
-        {activeConcern ? (
-          <div className="mt-4 flex items-start gap-2.5 border-l-2 border-amber-300 pl-3">
-            <div>
-              <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-amber-700">
-                Considering
-              </p>
-              <p className="mt-1 text-[12.5px] leading-5 text-zinc-600">
-                {activeConcern.description}
-              </p>
-            </div>
-          </div>
-        ) : null}
-
-        {contextTrail.length > 0 ? (
-          <div className="mt-4 border-t border-zinc-100 pt-3">
-            <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-              Context trail
-            </p>
-            <ol className="mt-2 space-y-2.5">
-              {contextTrail.map((context) => (
-                <li key={context.id} className="grid grid-cols-[5px_minmax(0,1fr)_auto] items-start gap-2.5">
-                  <span className="mt-[7px] size-[5px] rounded-full bg-zinc-300" />
-                  <p className="text-[12px] leading-5 text-zinc-500">
-                    {context.description}
-                  </p>
-                  <span className="pt-0.5 font-mono text-[9.5px] text-zinc-400">
-                    {context.meta.split(" · ")[0]}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        ) : null}
       </div>
     </DashboardCard>
-  );
-}
-
-function WorkingContextLive() {
-  return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-medium text-zinc-400">
-      <span className="size-1.5 rounded-full bg-emerald-500" />
-      Context live
-    </span>
   );
 }
 
@@ -1761,15 +1707,6 @@ function MiniTabs<T extends string>({
         </button>
       ))}
     </div>
-  );
-}
-
-function BranchBadge({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-mono text-[11.5px] font-medium text-zinc-600">
-      <IconBranch className="size-3 text-zinc-400" />
-      {children}
-    </span>
   );
 }
 

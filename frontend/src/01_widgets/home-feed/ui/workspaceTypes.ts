@@ -19,6 +19,17 @@ export type WorkspaceLogLinkItem = {
   relation: "FIXES" | "RELATES_TO" | "SUPERSEDES";
 };
 
+/** Agent-pushed “where we are” brief — not a log. Latest one wins. */
+export type WorkspaceWorkingBrief = {
+  title: string;
+  prose: string;
+  taskId?: string;
+  taskTitle?: string;
+  branch?: string;
+  /** Short clock / relative label, e.g. "14:02" or "12m ago". */
+  updatedLabel?: string;
+};
+
 export type WorkspaceUiData = {
   workspaceId: string;
   workspaceName: string;
@@ -30,6 +41,8 @@ export type WorkspaceUiData = {
   taskLinks: WorkspaceTaskLinkItem[];
   logLinks: WorkspaceLogLinkItem[];
   memories: WorkspaceMemoryItem[];
+  /** Optional until a dedicated API exists; UI may also derive from task + logs. */
+  workingBrief?: WorkspaceWorkingBrief | null;
 };
 
 export type WorkspaceMemoryItem = {

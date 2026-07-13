@@ -21,7 +21,6 @@ import { LockIcon } from "@/shared/ui/icons";
 import {
   feedPosts,
   getActivityHref,
-  getPlannerHref,
   getLogsHref,
   getManageHref,
   getMemoryHref,
@@ -585,13 +584,6 @@ export function HomeSidebar({
                 badge={doingTaskCount > 0 ? String(doingTaskCount) : undefined}
                 active={workspaceNav === "tasks"}
                 icon={<IconTasks className="size-[15px]" />}
-                onNavigate={onNavigate}
-              />
-              <SidebarLink
-                href={getPlannerHref()}
-                label="Planner"
-                active={workspaceNav === "planner"}
-                icon={<IconPlanner className="size-[15px]" />}
                 onNavigate={onNavigate}
               />
               <SidebarLogsGroup
@@ -1186,33 +1178,6 @@ function IconTasks({ className }: { className?: string }) {
     >
       <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
       <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
-  );
-}
-
-function IconPlanner({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect
-        x="4"
-        y="5"
-        width="16"
-        height="16"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M8 3v4M16 3v4M4 10h16"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.8"
-      />
     </svg>
   );
 }

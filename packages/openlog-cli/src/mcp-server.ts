@@ -230,6 +230,35 @@ export async function runMcpServer(): Promise<void> {
   );
 
   server.registerTool(
+    "push_working_brief",
+    {
+      title: "Push OpenLog Working Brief",
+      description:
+        "Overwrite the workspace Now Working brief with a short status update: what was done, what is still open, and optional task/branch context. Latest write wins.",
+      annotations: {
+        ...WRITE_TOOL_ANNOTATIONS,
+        idempotentHint: true,
+      },
+      inputSchema: {
+        workspaceId: z.number().int().positive(),
+        title: z.string().min(1).max(255),
+        prose: z.string().min(1),
+        taskId: z.number().int().positive().optional(),
+        branch: z.string().max(255).optional(),
+      },
+    },
+    async ({ workspaceId, title, prose, taskId, branch }) =>
+      withAuthenticatedClient((client) =>
+        client.put(`/workspaces/${workspaceId}/working-brief`, {
+          title,
+          prose,
+          taskId: taskId ?? null,
+          branch: branch ?? null,
+        }),
+      ),
+  );
+
+  server.registerTool(
     "get_post_detail",
     {
       title: "Get OpenLog Post Detail",

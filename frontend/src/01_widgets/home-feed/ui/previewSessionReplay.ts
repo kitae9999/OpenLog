@@ -16,6 +16,7 @@ import type {
   WorkspaceLogLinkItem,
   WorkspaceTaskLinkItem,
   WorkspaceUiData,
+  WorkspaceWorkingBrief,
 } from "./workspaceTypes";
 
 export type PreviewReplayStepId =
@@ -212,6 +213,8 @@ export type PreviewReplaySnapshot = {
   outputs: WorkspaceTaskOutput[];
   taskLinks: WorkspaceTaskLinkItem[];
   logLinks: WorkspaceLogLinkItem[];
+  /** Agent-pushed status brief for Now Working (Status Brief). */
+  workingBrief: WorkspaceWorkingBrief | null;
   highlight: PreviewReplayHighlight;
   showCta: boolean;
   /** Fetching → reserved-slot fill (demo + product-shaped). */
@@ -878,6 +881,48 @@ function buildWorkspaceSlice(visible: PreviewWorkspaceVisible) {
   return { tasks, logs, todos, memories, outputs, logLinks };
 }
 
+/** Evolve the Now Working brief as the demo session progresses. */
+function buildWorkingBrief(
+  visible: PreviewWorkspaceVisible,
+  clock: string,
+): WorkspaceWorkingBrief | null {
+  if (!visible.taskIds.includes("guest-preview")) {
+    return null;
+  }
+
+  const hasIssue = visible.logIds.includes("preview-issue");
+  const hasDecision = visible.logIds.includes("preview-decision");
+  const hasFix = visible.logIds.includes("preview-fix");
+  const hasDraft = visible.outputIds.includes("guest-preview-post");
+
+  let prose: string;
+  if (hasDraft) {
+    prose =
+      "Draft is ready — Work first, writing follows. Guest preview now shows one real afternoon instead of a feature list. Switcher cleanup is parked for later.";
+  } else if (hasFix) {
+    prose =
+      "Rewrote the preview around OpenLog itself: one task, three logs, one draft. Overlay should point at the draft, not signup. Draft is next.";
+  } else if (hasDecision) {
+    prose =
+      "Locked the story: issue → decision → fix → draft in one afternoon. Skipping dark mode and search demos. Writing the rewrite now.";
+  } else if (hasIssue) {
+    prose =
+      "Named the problem — guest preview still reads like a fake notes app. Issue is captured and linked. Next: decide what this afternoon's story should be.";
+  } else {
+    prose =
+      "Started the guest preview rewrite. Selling the work→writing loop instead of a notes-app tutorial. Still deciding how much empty space to leave so it feels alive.";
+  }
+
+  return {
+    title: guestTask.title,
+    prose,
+    taskId: guestTask.id,
+    taskTitle: guestTask.title,
+    branch: "feat/guest-preview",
+    updatedLabel: clock,
+  };
+}
+
 export type PreviewDemoPlaybackState = {
   eventIndex: number;
   typedChars: number;
@@ -1058,6 +1103,7 @@ export function getPreviewReplaySnapshot(
   }
 
   const slice = buildWorkspaceSlice(visible);
+  const workingBrief = buildWorkingBrief(visible, clock);
 
   // After a workspace commit, keep incomingIds briefly for enter animation;
   // when we have moved past that event, clear to settled/idle.
@@ -1074,6 +1120,19 @@ export function getPreviewReplaySnapshot(
         incomingIds: [],
       };
     }
+  }
+
+  // Brief updates with every workspace commit that touches the active task.
+  if (
+    currentEvent?.type === "workspace" &&
+    workingBrief &&
+    syncFill.status === "filling" &&
+    !syncFill.incomingIds.includes("working-brief")
+  ) {
+    syncFill = {
+      ...syncFill,
+      incomingIds: [...syncFill.incomingIds, "working-brief"],
+    };
   }
 
   return {
@@ -1096,6 +1155,7 @@ export function getPreviewReplaySnapshot(
     outputs: slice.outputs,
     taskLinks: [],
     logLinks: slice.logLinks,
+    workingBrief,
     highlight,
     showCta: false,
     syncFill,
@@ -1210,6 +1270,7 @@ export function getPreviewReplayWorkspaceData(
       createdAt: "2026-07-13T12:00:00",
       updatedAt: "2026-07-13T12:00:00",
     })),
+    workingBrief: snapshot.workingBrief,
   };
 }
 

@@ -103,6 +103,7 @@ Available tools:
   list_my_liked_posts
   upload_post_image
   publish_post
+  push_working_brief
   get_post_detail
 `);
 }
