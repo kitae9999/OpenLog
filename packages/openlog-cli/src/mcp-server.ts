@@ -2,89 +2,140 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { OpenLogApiClient } from "./api-client.js";
-import { readAuthFile } from "./auth-store.js";
+import { readAuthFile, type AuthFile } from "./auth-store.js";
 import { createAuthenticatedApiClient } from "./authenticated-client.js";
 import { getApiBaseUrl, getWebBaseUrl } from "./config.js";
+import {
+  readMcpPermissions,
+  type ResolvedMcpPermissions,
+} from "./mcp-permissions.js";
+import {
+  createContentPreview,
+  McpToolRegistry,
+  READ_TOOL_ANNOTATIONS,
+  WRITE_TOOL_ANNOTATIONS,
+} from "./mcp-toolkit.js";
+import { registerWorkspaceTools } from "./mcp-workspace-tools.js";
 import { uploadPostImage } from "./post-image-upload.js";
 
-const WRITE_TOOL_ANNOTATIONS = {
-  readOnlyHint: false,
-  destructiveHint: false,
-  idempotentHint: false,
-  openWorldHint: true,
+type CreateOpenLogMcpServerOptions = {
+  permissions?: ResolvedMcpPermissions;
+  createAuthenticatedClient?: () => Promise<OpenLogApiClient>;
+  readAuth?: () => Promise<AuthFile | null>;
+  uploadImage?: typeof uploadPostImage;
+  apiBaseUrl?: string;
+  webBaseUrl?: string;
 };
 
-export async function runMcpServer(): Promise<void> {
+export type CreatedOpenLogMcpServer = {
+  server: McpServer;
+  permissions: ResolvedMcpPermissions;
+  toolNames: string[];
+};
+
+export async function createOpenLogMcpServer(
+  options: CreateOpenLogMcpServerOptions = {},
+): Promise<CreatedOpenLogMcpServer> {
+  // 의존성을 주입할 수 있는 factory로 구성해 실제 네트워크 없이 도구 목록과 호출을 테스트한다.
+  const permissions = options.permissions ?? (await readMcpPermissions());
+  const createClient =
+    options.createAuthenticatedClient ?? createAuthenticatedApiClient;
+  const readAuth = options.readAuth ?? readAuthFile;
+  const uploadImage = options.uploadImage ?? uploadPostImage;
+  const apiBaseUrl = options.apiBaseUrl ?? getApiBaseUrl();
+  const webBaseUrl = options.webBaseUrl ?? getWebBaseUrl();
   const server = new McpServer({
     name: "openlog",
     version: "1.0.0",
   });
+  const registry = new McpToolRegistry(server, permissions, createClient);
 
-  server.registerTool(
+  registry.registerLocal(
+    "get_mcp_permissions",
+    "read",
+    {
+      title: "Get OpenLog MCP Permissions",
+      description:
+        "Return the active local MCP permission profile and capabilities.",
+      inputSchema: {},
+      annotations: READ_TOOL_ANNOTATIONS,
+    },
+    async () => ({
+      ...permissions,
+      note:
+        "This is a local agent safety policy, not a server-side authorization boundary.",
+    }),
+  );
+
+  registry.registerLocal(
     "get_auth_status",
+    "read",
     {
       title: "Get OpenLog Auth Status",
       description: "Check whether the local OpenLog CLI is authenticated.",
       inputSchema: {},
+      annotations: READ_TOOL_ANNOTATIONS,
     },
     async () => {
-      let apiBaseUrl = getApiBaseUrl();
+      let resolvedApiBaseUrl = apiBaseUrl;
       try {
-        const authFile = await readAuthFile();
+        const authFile = await readAuth();
         if (!authFile) {
-          return textResult({
+          return {
             authenticated: false,
-            apiBaseUrl,
-          });
+            apiBaseUrl: resolvedApiBaseUrl,
+          };
         }
-        apiBaseUrl = authFile.apiBaseUrl;
+        resolvedApiBaseUrl = authFile.apiBaseUrl;
+        const me = await createClient().then((client) => client.get("/auth/me"));
 
-        const me = await createAuthenticatedApiClient().then((client) =>
-          client.get("/auth/me"),
-        );
-
-        return textResult({
+        return {
           authenticated: true,
           apiBaseUrl: authFile.apiBaseUrl,
           user: me,
-        });
+        };
       } catch (error) {
-        return textResult({
+        return {
           authenticated: false,
-          apiBaseUrl,
+          apiBaseUrl: resolvedApiBaseUrl,
           error: error instanceof Error ? error.message : String(error),
-        });
+        };
       }
     },
   );
 
-  server.registerTool(
+  registry.registerAuthenticated(
     "get_me",
+    "read",
     {
       title: "Get OpenLog Me",
       description: "Return the currently authenticated OpenLog user.",
       inputSchema: {},
+      annotations: READ_TOOL_ANNOTATIONS,
     },
-    async () => withAuthenticatedClient((client) => client.get("/auth/me")),
+    (client) => client.get("/auth/me"),
   );
 
-  server.registerTool(
+  registry.registerAuthenticated(
     "list_my_notifications",
+    "read",
     {
       title: "List My OpenLog Notifications",
       description: "Return notifications for the authenticated OpenLog user.",
       inputSchema: {
         size: z.number().int().min(1).max(20).default(20),
       },
+      annotations: READ_TOOL_ANNOTATIONS,
     },
-    async ({ size }) =>
-      withAuthenticatedClient((client) =>
-        client.get(`/notifications?${new URLSearchParams({ size: String(size) })}`),
+    (client, { size }) =>
+      client.get(
+        `/notifications?${new URLSearchParams({ size: String(size) })}`,
       ),
   );
 
-  server.registerTool(
+  registry.registerAuthenticated(
     "list_my_liked_posts",
+    "read",
     {
       title: "List My Liked OpenLog Posts",
       description: "Return posts liked by the authenticated OpenLog user.",
@@ -92,79 +143,77 @@ export async function runMcpServer(): Promise<void> {
         cursor: z.string().optional(),
         size: z.number().int().min(1).max(20).default(10),
       },
+      annotations: READ_TOOL_ANNOTATIONS,
     },
-    async ({ cursor, size }) => {
+    (client, { cursor, size }) => {
       const params = new URLSearchParams({ size: String(size) });
       if (cursor) {
         params.set("cursor", cursor);
       }
-
-      return withAuthenticatedClient((client) =>
-        client.get(`/users/me/liked-posts?${params}`),
-      );
+      return client.get(`/users/me/liked-posts?${params}`);
     },
   );
 
-  server.registerTool(
+  registry.registerAuthenticated(
     "list_my_posts",
+    "read",
     {
       title: "List My OpenLog Posts",
       description: "Return posts authored by the authenticated OpenLog user.",
       inputSchema: {
         size: z.number().int().min(1).max(100).default(20),
       },
+      annotations: READ_TOOL_ANNOTATIONS,
     },
-    async ({ size }) =>
-      withAuthenticatedClient(async (client) => {
-        const me = await client.get<{ username?: string | null }>("/auth/me");
-        const username = me.username?.trim();
+    async (client, { size }) => {
+      const me = await client.get<{ username?: string | null }>("/auth/me");
+      const username = me.username?.trim();
 
-        if (!username) {
-          throw new Error("Complete OpenLog onboarding before listing your posts.");
-        }
+      if (!username) {
+        throw new Error("Complete OpenLog onboarding before listing your posts.");
+      }
 
-        const posts = await client.get<unknown[]>(
-          `/users/${encodeURIComponent(username)}/posts`,
-        );
+      const posts = await client.get<unknown[]>(
+        `/users/${encodeURIComponent(username)}/posts`,
+      );
 
-        return {
-          username,
-          total: posts.length,
-          size,
-          hasMore: posts.length > size,
-          posts: posts.slice(0, size),
-        };
-      }),
+      return {
+        username,
+        total: posts.length,
+        size,
+        hasMore: posts.length > size,
+        posts: posts.slice(0, size),
+      };
+    },
   );
 
-  server.registerTool(
+  registry.registerAuthenticated(
     "upload_post_image",
+    "write",
     {
       title: "Upload OpenLog Post Image",
       description:
         "Convert a local image file to WebP, upload it to OpenLog, and return markdown for post content.",
-      annotations: WRITE_TOOL_ANNOTATIONS,
       inputSchema: {
         filePath: z.string().min(1),
         altText: z.string().optional(),
       },
+      annotations: WRITE_TOOL_ANNOTATIONS,
     },
-    async ({ filePath, altText }) =>
-      withAuthenticatedClient((client) =>
-        uploadPostImage(client, {
-          filePath,
-          altText,
-        }),
-      ),
+    (client, { filePath, altText }) =>
+      uploadImage(client, {
+        filePath,
+        altText,
+      }),
   );
 
-  server.registerTool(
+  registry.registerAuthenticated(
     "publish_post",
+    "publish",
     {
       title: "Publish OpenLog Post",
       description:
-        "Publish a new post to the authenticated OpenLog account. Requires confirm: true unless skipConfirmation: true is explicitly provided.",
-      annotations: WRITE_TOOL_ANNOTATIONS,
+        "Publish a new post. Requires confirm: true unless skipConfirmation: true is explicitly provided.",
       inputSchema: {
         title: z.string().min(1),
         description: z.string().min(1),
@@ -181,86 +230,62 @@ export async function runMcpServer(): Promise<void> {
         confirm: z.boolean().optional(),
         skipConfirmation: z.boolean().optional(),
       },
+      annotations: WRITE_TOOL_ANNOTATIONS,
     },
-    async ({
-      title,
-      description,
-      content,
-      topics,
-      links,
-      confirm,
-      skipConfirmation,
-    }) =>
-      withAuthenticatedClient(async (client) => {
-        const post = normalizePostInput({
-          title,
-          description,
-          content,
-          topics,
-          links,
-        });
+    async (
+      client,
+      {
+        title,
+        description,
+        content,
+        topics,
+        links,
+        confirm,
+        skipConfirmation,
+      },
+    ) => {
+      const post = normalizePostInput({
+        title,
+        description,
+        content,
+        topics,
+        links,
+      });
 
-        if (confirm !== true && skipConfirmation !== true) {
-          return {
-            requiresConfirmation: true,
-            preview: {
-              title: post.title,
-              description: post.description,
-              contentPreview: createContentPreview(post.content),
-              contentLength: post.content.length,
-              topics: post.topics,
-              links: post.links,
-            },
-            nextStep:
-              "Call publish_post again with confirm: true, or skipConfirmation: true if the user explicitly requested publishing without confirmation.",
-          };
-        }
-
-        const published = await client.post<PostWriteResponse>("/posts", post);
-        const postPath = buildPublicPostPath(
-          published.authorUsername,
-          published.slug,
-        );
-
+      // 명시적 확인 전에는 POST를 실행하지 않고 실제 발행 입력의 미리보기만 반환한다.
+      if (confirm !== true && skipConfirmation !== true) {
         return {
-          ...published,
-          path: postPath,
-          url: new URL(postPath, `${getWebBaseUrl()}/`).toString(),
+          requiresConfirmation: true,
+          preview: {
+            title: post.title,
+            description: post.description,
+            contentPreview: createContentPreview(post.content),
+            contentLength: post.content.length,
+            topics: post.topics,
+            links: post.links,
+          },
+          nextStep:
+            "Call publish_post again with confirm: true, or skipConfirmation: true if the user explicitly requested publishing without confirmation.",
         };
-      }),
-  );
+      }
 
-  server.registerTool(
-    "push_working_brief",
-    {
-      title: "Push OpenLog Working Brief",
-      description:
-        "Overwrite the workspace Now Working brief with a short status update: what was done, what is still open, and optional task/branch context. Latest write wins.",
-      annotations: {
-        ...WRITE_TOOL_ANNOTATIONS,
-        idempotentHint: true,
-      },
-      inputSchema: {
-        workspaceId: z.number().int().positive(),
-        title: z.string().min(1).max(255),
-        prose: z.string().min(1),
-        taskId: z.number().int().positive().optional(),
-        branch: z.string().max(255).optional(),
-      },
+      const published = await client.post<PostWriteResponse>("/posts", post);
+      const postPath = buildPublicPostPath(
+        published.authorUsername,
+        published.slug,
+      );
+
+      return {
+        ...published,
+        path: postPath,
+        url: new URL(postPath, `${webBaseUrl}/`).toString(),
+      };
     },
-    async ({ workspaceId, title, prose, taskId, branch }) =>
-      withAuthenticatedClient((client) =>
-        client.put(`/workspaces/${workspaceId}/working-brief`, {
-          title,
-          prose,
-          taskId: taskId ?? null,
-          branch: branch ?? null,
-        }),
-      ),
   );
 
-  server.registerTool(
+  registry.registerAuthenticated(
     "get_post_detail",
+    "read",
     {
       title: "Get OpenLog Post Detail",
       description:
@@ -269,16 +294,28 @@ export async function runMcpServer(): Promise<void> {
         username: z.string().min(1),
         slug: z.string().min(1),
       },
+      annotations: READ_TOOL_ANNOTATIONS,
     },
-    async ({ username, slug }) =>
-      withAuthenticatedClient((client) =>
-        client.get(
-          `/users/${encodeURIComponent(username)}/posts/${encodeURIComponent(slug)}`,
-        ),
+    (client, { username, slug }) =>
+      client.get(
+        `/users/${encodeURIComponent(username)}/posts/${encodeURIComponent(slug)}`,
       ),
   );
 
-  await server.connect(new StdioServerTransport());
+  // 워크스페이스 도구는 별도 catalog에서 등록해 서버 시작 안내와 테스트 목록을 일치시킨다.
+  registerWorkspaceTools(registry, webBaseUrl);
+
+  return {
+    server,
+    permissions,
+    toolNames: [...registry.toolNames],
+  };
+}
+
+export async function runMcpServer(): Promise<void> {
+  const created = await createOpenLogMcpServer();
+  printMcpStartupHint(created.permissions, created.toolNames);
+  await created.server.connect(new StdioServerTransport());
 }
 
 type PostWriteResponse = {
@@ -307,11 +344,9 @@ function normalizePostInput(input: PostWriteInput): PostWriteInput {
   if (!title) {
     throw new Error("title is required.");
   }
-
   if (!description) {
     throw new Error("description is required.");
   }
-
   if (!content) {
     throw new Error("content is required.");
   }
@@ -329,7 +364,6 @@ function normalizeTopics(topics: string[]): string[] {
   const normalized = topics
     .map((topic) => topic.trim().toLowerCase())
     .filter(Boolean);
-
   return [...new Set(normalized)];
 }
 
@@ -353,43 +387,27 @@ function normalizeLinks(links: PostLinkInput[]): PostLinkInput[] {
   return normalized;
 }
 
-function createContentPreview(content: string): string {
-  const preview = content.replace(/\s+/g, " ").trim();
-  return preview.length > 500 ? `${preview.slice(0, 497)}...` : preview;
-}
-
 function buildPublicPostPath(username: string, slug: string): string {
   return `/@${encodeURIComponent(username)}/posts/${encodeURIComponent(slug)}`;
 }
 
-async function withAuthenticatedClient(
-  callback: (client: OpenLogApiClient) => Promise<unknown>,
-) {
-  try {
-    const client = await createAuthenticatedApiClient();
-    const result = await callback(client);
-    return textResult(result);
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-      isError: true,
-    };
+function printMcpStartupHint(
+  permissions: ResolvedMcpPermissions,
+  toolNames: string[],
+): void {
+  if (!process.stderr.isTTY) {
+    return;
   }
-}
 
-function textResult(value: unknown) {
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text:
-          typeof value === "string" ? value : JSON.stringify(value, null, 2),
-      },
-    ],
-  };
+  console.error(`OpenLog MCP server is running over stdio.
+
+Profile: ${permissions.profile}
+Capabilities: ${permissions.capabilities.join(", ")}
+
+This terminal is now reserved for MCP protocol traffic.
+Press Ctrl+C to stop it.
+
+Available tools:
+${toolNames.map((name) => `  ${name}`).join("\n")}
+`);
 }

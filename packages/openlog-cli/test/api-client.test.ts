@@ -107,3 +107,50 @@ test("shares one refresh request across concurrent 401 responses", async (t) => 
   assert.equal(refreshCount, 1);
   assert.deepEqual(responses, [{ path: "/first" }, { path: "/second" }]);
 });
+
+test("supports PATCH responses and DELETE without content", async (t) => {
+  const calls: Array<{ method: string; body?: string }> = [];
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  globalThis.fetch = async (_input, init) => {
+    calls.push({
+      method: init?.method ?? "GET",
+      ...(typeof init?.body === "string" ? { body: init.body } : {}),
+    });
+    if (init?.method === "PATCH") {
+      return Response.json({ done: true });
+    }
+    return new Response(null, { status: 204 });
+  };
+
+  const client = new OpenLogApiClient({
+    apiBaseUrl: "https://api.openlog.test",
+    accessToken: "access-token",
+  });
+
+  assert.deepEqual(await client.patch("/todos/1", { done: true }), {
+    done: true,
+  });
+  await client.deleteNoContent("/todos/1");
+  assert.deepEqual(calls, [
+    { method: "PATCH", body: JSON.stringify({ done: true }) },
+    { method: "DELETE" },
+  ]);
+});
+
+test("accepts an empty successful response with a non-204 status", async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  globalThis.fetch = async () => new Response(null, { status: 201 });
+
+  const client = new OpenLogApiClient({ apiBaseUrl: "https://api.openlog.test" });
+  await client.postNoContent("/workspaces/1/log-links", {
+    fromLogId: 1,
+    toLogId: 2,
+    relation: "FIXES",
+  });
+});

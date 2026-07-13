@@ -6,6 +6,7 @@ import { runMcpServer } from "./mcp-server.js";
 import { installMcp, printMcpInstallHelp } from "./mcp-install.js";
 import { ApiError, OpenLogApiClient } from "./api-client.js";
 import { createAuthenticatedApiClient } from "./authenticated-client.js";
+import { runMcpPermissionsCommand } from "./mcp-permissions-command.js";
 
 const command = process.argv[2] ?? "help";
 const subcommand = process.argv[3];
@@ -20,12 +21,13 @@ try {
   } else if (command === "mcp") {
     if (subcommand === "install") {
       await installMcpCommand();
+    } else if (subcommand === "permissions") {
+      await runMcpPermissionsCommand(process.argv.slice(4));
     } else if (
       subcommand === undefined ||
       subcommand === "serve" ||
       subcommand === "start"
     ) {
-      printMcpStartupHint();
       await runMcpServer();
     } else {
       printMcpInstallHelp();
@@ -86,39 +88,6 @@ async function logout(): Promise<void> {
   console.log("Logged out.");
 }
 
-function printMcpStartupHint(): void {
-  if (!process.stderr.isTTY) {
-    return;
-  }
-
-  console.error(`OpenLog MCP server is running over stdio.
-
-This terminal is now reserved for MCP protocol traffic.
-Press Ctrl+C to stop it.
-
-To use it from an MCP client, add:
-{
-  "mcpServers": {
-    "openlog": {
-      "command": "openlog",
-      "args": ["mcp"]
-    }
-  }
-}
-
-Available tools:
-  get_auth_status
-  get_me
-  list_my_notifications
-  list_my_posts
-  list_my_liked_posts
-  upload_post_image
-  publish_post
-  push_working_brief
-  get_post_detail
-`);
-}
-
 function printHelp(): void {
   console.log(`OpenLog CLI
 
@@ -131,11 +100,19 @@ Usage:
                   Register OpenLog MCP with Codex
   openlog mcp install claude-code
                   Register OpenLog MCP with Claude Code
+  openlog mcp permissions
+                  Show the active local MCP permission profile
+  openlog mcp permissions set read-only|safe-write|full
+                  Change the local MCP permission profile
+  openlog mcp permissions reset
+                  Restore the default safe-write profile
 
 Environment:
   OPENLOG_API_BASE_URL  Override the OpenLog API base URL
   OPENLOG_WEB_BASE_URL  Override the OpenLog web base URL for published post links
   OPENLOG_AUTH_FILE     Override the local auth file path
+  OPENLOG_MCP_CONFIG_FILE
+                        Override the local MCP permission config path
 `);
 }
 

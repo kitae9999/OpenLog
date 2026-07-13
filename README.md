@@ -105,21 +105,40 @@ openlog mcp install codex
 openlog mcp install claude-code
 ```
 
+### Local MCP permissions
+
+OpenLog registers MCP tools from a local permission profile:
+
+```bash
+openlog mcp permissions
+openlog mcp permissions set read-only
+openlog mcp permissions set safe-write
+openlog mcp permissions set full
+openlog mcp permissions reset
+```
+
+| Profile | Capabilities |
+| --- | --- |
+| `read-only` | Authentication and read tools |
+| `safe-write` | Read, create, update, link, upload, and confirmed publish tools |
+| `full` | `safe-write` plus immediate single-item delete and working-brief clear tools |
+
+`safe-write` is the default. Restart or reload the MCP server after changing the profile. This profile is a local agent safety policy; the API still enforces the authenticated user's server-side access.
+
 ### MCP tools
 
-| Tool | Purpose |
+| Area | Tools |
 | --- | --- |
-| `get_auth_status` | Check the local CLI authentication state |
-| `get_me` | Get the authenticated OpenLog user |
-| `list_my_notifications` | List account notifications |
-| `list_my_posts` | List posts authored by the current user |
-| `list_my_liked_posts` | List posts liked by the current user |
-| `get_post_detail` | Read a public post |
-| `upload_post_image` | Convert a local image to WebP and upload it |
-| `publish_post` | Preview and publish a post after explicit confirmation |
-| `push_working_brief` | Update the workspace's Now Working context |
+| Permissions and account | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts` |
+| Public posts | `get_post_detail`, `upload_post_image`, `publish_post` |
+| Workspace and activity | `list_workspaces`, `get_workspace`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
+| Tasks and logs | `list_workspace_tasks`, `get_workspace_task`, `create_workspace_task`, `update_workspace_task`, and the matching workspace-log tools |
+| Todos and memories | Todo list/create/done tools and memory list/get/create/from-log/update tools |
+| Outputs | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `publish_workspace_output` |
+| Graph links | `list_workspace_links` and task/log/cross-link create tools |
+| Full-profile deletes | Working-brief clear and individual task/log/todo/memory/output/link delete tools |
 
-`publish_post` returns a preview by default. Publishing requires `confirm: true`, or `skipConfirmation: true` when the user has explicitly requested publishing without another confirmation.
+`publish_post` and `publish_workspace_output` return a preview by default. Publishing requires `confirm: true`, or `skipConfirmation: true` when the user has explicitly requested publishing without another confirmation.
 
 ### Connect to a local server
 
@@ -132,6 +151,7 @@ npx -y @kitae9999/openlog-cli mcp
 - `OPENLOG_API_BASE_URL`: API base URL used by the CLI and MCP server
 - `OPENLOG_WEB_BASE_URL`: web base URL used in published-post responses
 - `OPENLOG_AUTH_FILE`: optional path replacing the default `~/.openlog/auth.json`
+- `OPENLOG_MCP_CONFIG_FILE`: optional path replacing the default `~/.openlog/mcp-config.json`
 
 ## Development
 
