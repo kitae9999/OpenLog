@@ -31,7 +31,9 @@ test.describe("Log detail layout", () => {
   }) => {
     await page.getByTestId("task-switcher").getByRole("button").first().click();
     await expect(page.getByRole("listbox")).toBeVisible();
-    await expect(page.getByRole("option", { name: "Unassigned" })).toBeVisible();
+    await expect(
+      page.getByRole("option", { name: "Unassigned" }),
+    ).toBeVisible();
     await expect(
       page.getByRole("option", { name: /홈 피드 → 워크스페이스 뷰 전환/ }),
     ).toBeVisible();
@@ -41,7 +43,9 @@ test.describe("Log detail layout", () => {
       .click();
     await expect(page.getByRole("listbox")).toHaveCount(0);
     await expect(
-      page.getByTestId("task-switcher").getByText("홈 피드 → 워크스페이스 뷰 전환"),
+      page
+        .getByTestId("task-switcher")
+        .getByText("홈 피드 → 워크스페이스 뷰 전환"),
     ).toBeVisible();
   });
 
@@ -54,8 +58,8 @@ test.describe("Log detail layout", () => {
 
     await content.getByRole("button", { name: "Edit" }).click();
 
-    await expect(content.getByRole("button", { name: "Write" })).toBeVisible();
-    await expect(content.getByRole("button", { name: "Preview" })).toBeVisible();
+    await expect(content.getByRole("tab", { name: "Write" })).toBeVisible();
+    await expect(content.getByRole("tab", { name: "Preview" })).toBeVisible();
     await expect(content.locator("textarea")).toBeVisible();
     await expect(page).toHaveURL(/\/e2e\/log-detail/);
 

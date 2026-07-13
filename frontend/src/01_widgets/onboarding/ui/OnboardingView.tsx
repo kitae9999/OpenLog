@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useActionState, useEffect, useState, type FormEvent } from "react";
 import { useFormStatus } from "react-dom";
 import type { User } from "@/entities/user/model/User";
@@ -259,7 +258,9 @@ function Field({
         />
       )}
 
-      <p className={`mt-2 text-sm ${error ? "text-rose-600" : "text-zinc-500"}`}>
+      <p
+        className={`mt-2 text-sm ${error ? "text-rose-600" : "text-zinc-500"}`}
+      >
         {error ?? description}
       </p>
     </label>

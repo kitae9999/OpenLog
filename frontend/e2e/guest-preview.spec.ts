@@ -101,4 +101,24 @@ test.describe("Guest preview demo", () => {
     );
     expect(["auto", "scroll", "overlay"]).toContain(overflowY);
   });
+
+  test("hydrates the landing page without a server/client mismatch", async ({
+    page,
+  }) => {
+    const hydrationErrors: string[] = [];
+    page.on("console", (message) => {
+      if (
+        message.type() === "error" &&
+        /hydration|hydrated but some attributes/i.test(message.text())
+      ) {
+        hydrationErrors.push(message.text());
+      }
+    });
+
+    await page.goto("/landing-preview");
+    await expect(page.locator("#session")).toBeAttached();
+    await page.waitForTimeout(500);
+
+    expect(hydrationErrors).toEqual([]);
+  });
 });

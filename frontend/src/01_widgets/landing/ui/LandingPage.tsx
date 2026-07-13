@@ -85,8 +85,6 @@ export function LandingPage() {
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  let heroWordIndex = 0;
-
   return (
     <GuestActions>
       {({ openLogin, openSignup, isModalOpen }) => (
@@ -177,8 +175,14 @@ export function LandingPage() {
                   {heroLines.map((line, lineIndex) => (
                     <span key={line.join("-")} className="block">
                       {line.map((word, wordIndex) => {
-                        const index = heroWordIndex;
-                        heroWordIndex += 1;
+                        const index =
+                          heroLines
+                            .slice(0, lineIndex)
+                            .reduce(
+                              (count, previousLine) =>
+                                count + previousLine.length,
+                              0,
+                            ) + wordIndex;
                         return (
                           <span key={`${lineIndex}-${word}`}>
                             <span
@@ -355,10 +359,7 @@ export function LandingPage() {
               </div>
             </section>
 
-            <section
-              id="graph"
-              className="border-y border-zinc-200/50 py-40"
-            >
+            <section id="graph" className="border-y border-zinc-200/50 py-40">
               <div className="relative mx-auto max-w-6xl px-6">
                 <div className="landing-reveal relative z-10 mb-16 text-center">
                   <h2 className="landing-display text-4xl leading-[1.1] font-bold tracking-tight text-black lg:text-5xl">

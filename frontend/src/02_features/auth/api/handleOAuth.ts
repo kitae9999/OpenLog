@@ -21,4 +21,3 @@ export const handleOAuth = (provider: OAuthProvider, returnTo?: string) => {
 
   window.location.assign(endpoint.toString());
 };
-

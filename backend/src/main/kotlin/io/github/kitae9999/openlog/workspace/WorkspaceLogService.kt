@@ -92,7 +92,7 @@ class WorkspaceLogService(
         val log = WorkspaceLog(
             workspace = workspace,
             author = user,
-            task = task,   
+            task = task,
             kind = request.kind,
             status = status,
             title = title,

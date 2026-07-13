@@ -50,13 +50,14 @@ export function usePreviewSessionReplay(
   const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const frame = window.requestAnimationFrame(() => setMounted(true));
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
     if (!enabled || !rootRef?.current) {
-      setInView(true);
-      return;
+      const frame = window.requestAnimationFrame(() => setInView(true));
+      return () => window.cancelAnimationFrame(frame);
     }
 
     const node = rootRef.current;
@@ -78,18 +79,21 @@ export function usePreviewSessionReplay(
       return;
     }
 
-    if (reducedMotion) {
-      setEventIndex(PREVIEW_REPLAY_FINAL_EVENT_INDEX);
-      setTypedChars(Number.POSITIVE_INFINITY);
-      setIsPlaying(false);
-      setHasStarted(true);
-      return;
-    }
+    const frame = window.requestAnimationFrame(() => {
+      if (reducedMotion) {
+        setEventIndex(PREVIEW_REPLAY_FINAL_EVENT_INDEX);
+        setTypedChars(Number.POSITIVE_INFINITY);
+        setIsPlaying(false);
+        setHasStarted(true);
+        return;
+      }
 
-    setEventIndex(0);
-    setTypedChars(0);
-    setIsPlaying(true);
-    setHasStarted(true);
+      setEventIndex(0);
+      setTypedChars(0);
+      setIsPlaying(true);
+      setHasStarted(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [enabled, mounted, inView, hasStarted, reducedMotion]);
 
   useEffect(() => {
@@ -111,8 +115,7 @@ export function usePreviewSessionReplay(
 
   const currentEvent = PREVIEW_DEMO_EVENTS[eventIndex];
   const isTypingEvent =
-    currentEvent?.type === "type_shell" ||
-    currentEvent?.type === "type_prompt";
+    currentEvent?.type === "type_shell" || currentEvent?.type === "type_prompt";
 
   useEffect(() => {
     if (

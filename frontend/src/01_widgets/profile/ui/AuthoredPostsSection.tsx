@@ -134,9 +134,7 @@ function AuthoredPostList({
   posts: PublicUserPostSummary[];
 }) {
   if (posts.length === 0) {
-    return (
-      <p className="text-sm leading-6 text-zinc-500">No posts yet.</p>
-    );
+    return <p className="text-sm leading-6 text-zinc-500">No posts yet.</p>;
   }
 
   return (
@@ -214,6 +212,24 @@ function SecondBrainGraph({
     [nodeStates],
   );
   const showLabels = transform.scale >= LABEL_VISIBILITY_ZOOM;
+
+  function getSvgPoint(clientX: number, clientY: number) {
+    const svg = svgRef.current;
+    if (!svg) {
+      return null;
+    }
+
+    const point = svg.createSVGPoint();
+    point.x = clientX;
+    point.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) {
+      return null;
+    }
+
+    const local = point.matrixTransform(ctm.inverse());
+    return { x: local.x, y: local.y };
+  }
 
   function zoomBy(factor: number) {
     setTransform((current) => {
@@ -444,24 +460,6 @@ function SecondBrainGraph({
 
     event.preventDefault();
     window.location.assign(href);
-  }
-
-  function getSvgPoint(clientX: number, clientY: number) {
-    const svg = svgRef.current;
-    if (!svg) {
-      return null;
-    }
-
-    const point = svg.createSVGPoint();
-    point.x = clientX;
-    point.y = clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) {
-      return null;
-    }
-
-    const local = point.matrixTransform(ctm.inverse());
-    return { x: local.x, y: local.y };
   }
 
   function getWorldPoint(clientX: number, clientY: number) {

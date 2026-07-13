@@ -62,10 +62,7 @@ const exploreTabs: Array<{
   { key: "liked", label: "Liked", loginRequired: true },
 ] as const;
 
-function getExploreEmptyMessage(
-  subTab: ExploreSubTab,
-  isLoggedIn: boolean,
-) {
+function getExploreEmptyMessage(subTab: ExploreSubTab, isLoggedIn: boolean) {
   if (!isLoggedIn || subTab === "recent") {
     return "No posts yet.";
   }
@@ -543,18 +540,22 @@ export function HomeSidebar({
   isLoggedIn: boolean;
   isOpen: boolean;
   onNavigate: () => void;
-  workspaceNav?: "dashboard" | "tasks" | "logs" | "planner" | "graph" | "outputs" | "memory" | "activity";
+  workspaceNav?:
+    | "dashboard"
+    | "tasks"
+    | "logs"
+    | "planner"
+    | "graph"
+    | "outputs"
+    | "memory"
+    | "activity";
   logsFilter?: LogListTypeFilter;
   settingsNav?: "mcp-guide" | "manage";
   workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
 }) {
-  const sidebarTasks = isLoggedIn
-    ? (workspaceData?.tasks ?? [])
-    : [];
-  const sidebarLogs = isLoggedIn
-    ? (workspaceData?.logs ?? [])
-    : [];
+  const sidebarTasks = isLoggedIn ? (workspaceData?.tasks ?? []) : [];
+  const sidebarLogs = isLoggedIn ? (workspaceData?.logs ?? []) : [];
   const doingTaskCount =
     sidebarTasks.filter((task) => task.status === "doing").length ||
     sidebarTasks.filter((task) => task.status === "todo").length;
@@ -879,9 +880,7 @@ function PostsView({ posts }: { posts: FeedPost[] }) {
               aria-selected={active}
               className={cn(
                 "relative h-9 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                active
-                  ? "text-zinc-950"
-                  : "text-zinc-500 hover:text-zinc-800",
+                active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-800",
               )}
             >
               {tab}
@@ -922,9 +921,7 @@ function ExploreView({
   loadMore?: ReactNode;
 }) {
   const visibleTabs = exploreTabs.filter(
-    (
-      tab,
-    ): tab is (typeof exploreTabs)[number] & { key: ExploreSubTab } =>
+    (tab): tab is (typeof exploreTabs)[number] & { key: ExploreSubTab } =>
       !tab.hidden &&
       tab.key !== "trending" &&
       (!tab.loginRequired || isLoggedIn),
@@ -1436,24 +1433,6 @@ function IconClock({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="1.8"
-      />
-    </svg>
-  );
-}
-
-function IconComment({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M6.5 18.5 3 21V5.5A2.5 2.5 0 0 1 5.5 3h13A2.5 2.5 0 0 1 21 5.5V16a2.5 2.5 0 0 1-2.5 2.5h-12Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
       />
     </svg>
   );

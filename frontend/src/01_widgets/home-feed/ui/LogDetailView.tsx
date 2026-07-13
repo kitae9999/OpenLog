@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   formatSelection,
@@ -34,6 +28,7 @@ import {
   createWorkspaceMemoryFromLog,
   deleteWorkspaceLog,
   updateWorkspaceLog,
+  type WorkspaceActionResult,
 } from "./workspaceActions";
 import type { WorkspaceUiData } from "./workspaceTypes";
 
@@ -41,10 +36,14 @@ export function LogDetailView({
   log,
   workspaceData,
   isLoggedIn = true,
+  assignTaskOverride,
 }: {
   log: WorkspaceLogItem;
   workspaceData?: WorkspaceUiData | null;
   isLoggedIn?: boolean;
+  assignTaskOverride?: (
+    taskId: string | null,
+  ) => Promise<WorkspaceActionResult>;
 }) {
   const router = useRouter();
   const [assignedTaskId, setAssignedTaskId] = useState<string | null>(
@@ -81,11 +80,7 @@ export function LogDetailView({
   const metaLabel = log.meta.split(" · ")[0] ?? log.meta;
   const typeLabel = log.label;
   const statusLabel =
-    log.status === "OPEN"
-      ? "Open"
-      : log.status === "CLOSED"
-        ? "Closed"
-        : null;
+    log.status === "OPEN" ? "Open" : log.status === "CLOSED" ? "Closed" : null;
   const existingMemory = workspaceData?.memories.find(
     (memory) => memory.originLog?.id === log.id,
   );
@@ -207,16 +202,18 @@ export function LogDetailView({
     setIsAssigning(true);
     setAssignError(null);
 
-    if (workspaceData) {
-      const result = await updateWorkspaceLog({
-        workspaceId: workspaceData.workspaceId,
-        logId: log.id,
-        title: log.title,
-        content: body,
-        summary: log.summary ?? log.description,
-        taskId: nextTaskId,
-        status: log.status ?? "NONE",
-      });
+    if (workspaceData || assignTaskOverride) {
+      const result = assignTaskOverride
+        ? await assignTaskOverride(nextTaskId)
+        : await updateWorkspaceLog({
+            workspaceId: workspaceData!.workspaceId,
+            logId: log.id,
+            title: log.title,
+            content: body,
+            summary: log.summary ?? log.description,
+            taskId: nextTaskId,
+            status: log.status ?? "NONE",
+          });
 
       setIsAssigning(false);
 
@@ -308,7 +305,9 @@ export function LogDetailView({
             <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-zinc-500">
               {statusLabel ? (
                 <>
-                  <span className="font-medium text-zinc-600">{statusLabel}</span>
+                  <span className="font-medium text-zinc-600">
+                    {statusLabel}
+                  </span>
                   <MetaSep />
                   <span>{typeLabel}</span>
                 </>
@@ -685,9 +684,7 @@ function TaskSwitcher({
             }}
             className={cn(
               "flex w-full items-center px-3 py-2.5 text-left text-[13px] transition hover:bg-zinc-50",
-              !selected
-                ? "font-semibold text-zinc-950"
-                : "text-zinc-600",
+              !selected ? "font-semibold text-zinc-950" : "text-zinc-600",
             )}
           >
             Unassigned
