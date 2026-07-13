@@ -38,51 +38,74 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
       <section className="mt-5 overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]" aria-label="365 day activity grid">
         {activity ? (
           <div className="overflow-x-auto px-16 pb-5 pt-11">
-            <div
-              data-activity-months
-              className="inline-flex min-w-full justify-center"
-            >
-              {months.map((month, monthIndex) => (
-                <div
-                  key={month.key}
-                  role="group"
-                  aria-label={formatMonth(month.key)}
-                  data-activity-month={month.key}
-                  className="pointer-events-none inline-flex"
-                  style={{
-                    gap: CELL_GAP_PX,
-                    marginLeft:
-                      monthIndex > 0
-                        ? getMonthMarginLeft(months[monthIndex - 1], month)
-                        : undefined,
-                  }}
-                >
-                  {month.weeks.map((week, weekIndex) => (
-                    <div
-                      key={weekIndex}
-                      data-activity-week
-                      className="flex flex-col"
-                      style={{ gap: CELL_GAP_PX }}
+            <div className="flex w-max min-w-full items-start justify-center">
+              <div
+                data-activity-weekday-labels
+                aria-hidden="true"
+                className="sticky left-0 z-10 mr-3 flex w-7 shrink-0 flex-col bg-white/95 pr-1 text-right font-mono text-[9.5px] font-medium text-zinc-400 backdrop-blur-sm"
+                style={{ gap: CELL_GAP_PX }}
+              >
+                {["Mon", "", "Wed", "", "Fri", "", ""].map((label, dayIndex) => (
+                  <span
+                    key={dayIndex}
+                    className="block"
+                    style={{ height: CELL_SIZE_PX, lineHeight: `${CELL_SIZE_PX}px` }}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <div data-activity-months className="inline-flex">
+                {months.map((month, monthIndex) => (
+                  <div
+                    key={month.key}
+                    role="group"
+                    aria-label={formatMonth(month.key)}
+                    data-activity-month={month.key}
+                    className="pointer-events-none relative inline-flex"
+                    style={{
+                      gap: CELL_GAP_PX,
+                      marginLeft:
+                        monthIndex > 0
+                          ? getMonthMarginLeft(months[monthIndex - 1], month)
+                          : undefined,
+                    }}
+                  >
+                    <span
+                      data-activity-month-label
+                      aria-hidden="true"
+                      className="absolute -top-7 font-mono text-[10px] font-semibold text-zinc-500"
+                      style={{ left: month.labelOffsetPx }}
                     >
-                      {week.map((day, dayIndex) => day ? (
-                        <ActivityDayCell
-                          key={day.date}
-                          day={day}
-                          selected={day.date === selectedDate}
-                          isToday={day.date === activity.to}
-                        />
-                      ) : (
-                        <span
-                          key={dayIndex}
-                          className="pointer-events-none"
-                          style={{ width: CELL_SIZE_PX, height: CELL_SIZE_PX }}
-                          aria-hidden="true"
-                        />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ))}
+                      {formatShortMonth(month.key)}
+                    </span>
+                    {month.weeks.map((week, weekIndex) => (
+                      <div
+                        key={weekIndex}
+                        data-activity-week
+                        className="flex flex-col"
+                        style={{ gap: CELL_GAP_PX }}
+                      >
+                        {week.map((day, dayIndex) => day ? (
+                          <ActivityDayCell
+                            key={day.date}
+                            day={day}
+                            selected={day.date === selectedDate}
+                            isToday={day.date === activity.to}
+                          />
+                        ) : (
+                          <span
+                            key={dayIndex}
+                            className="pointer-events-none"
+                            style={{ width: CELL_SIZE_PX, height: CELL_SIZE_PX }}
+                            aria-hidden="true"
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         ) : <div className="px-6 py-14 text-center text-[13px] text-zinc-500">Activity could not be loaded.</div>}
@@ -218,7 +241,12 @@ function buildMonthGrid(
   for (let index = 0; index < cells.length; index += 7) {
     weeks.push(cells.slice(index, index + 7));
   }
+  const firstOccupiedWeek = weeks.findIndex((week) =>
+    week.some((day) => day !== null),
+  );
   return {
+    labelOffsetPx:
+      Math.max(0, firstOccupiedWeek) * (CELL_SIZE_PX + CELL_GAP_PX),
     weeks,
   };
 }
@@ -270,6 +298,13 @@ function formatMonth(month: string) {
   return new Intl.DateTimeFormat("en", {
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${month}-01T00:00:00Z`));
+}
+
+function formatShortMonth(month: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
     timeZone: "UTC",
   }).format(new Date(`${month}-01T00:00:00Z`));
 }

@@ -43,8 +43,14 @@ test.describe("Memory and activity UI", () => {
 
     const june = page.locator('[data-activity-month="2026-06"]');
     const july = page.locator('[data-activity-month="2026-07"]');
+    const weekdayLabels = page.locator("[data-activity-weekday-labels]");
     await expect(june).toHaveCount(1);
     await expect(july).toHaveCount(1);
+    await expect(weekdayLabels.getByText("Mon", { exact: true })).toBeVisible();
+    await expect(weekdayLabels.getByText("Wed", { exact: true })).toBeVisible();
+    await expect(weekdayLabels.getByText("Fri", { exact: true })).toBeVisible();
+    await expect(june.getByText("Jun", { exact: true })).toBeVisible();
+    await expect(july.getByText("Jul", { exact: true })).toBeVisible();
     await expect(june.getByRole("link", { name: /Jul/ })).toHaveCount(0);
     await expect(july.getByRole("link", { name: /Jun/ })).toHaveCount(0);
     await expect(
