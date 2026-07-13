@@ -144,7 +144,7 @@ type OutputDetailResponse = {
 type WorkspaceApiSnapshot = {
   workspace: WorkspaceResponse;
   tasks: WorkspaceTaskResponse[];
-  logs: WorkspaceLogDetailResponse[];
+  logs: WorkspaceLogResponse[];
   outputs: Array<OutputDetailResponse | OutputResponse>;
   todos: TodoResponse[];
   taskLinks: TaskLinkResponse[];
@@ -240,6 +240,24 @@ export const getWorkspaceUiData = cache(
         cookie,
       );
       return await fetchWorkspaceUiData(workspaces, cookie, workspaceId);
+    } catch {
+      return null;
+    }
+  },
+);
+
+export const getWorkspaceLog = cache(
+  async (
+    workspaceId: string,
+    logId: string,
+  ): Promise<WorkspaceLogItem | null> => {
+    try {
+      const headerStore = await headers();
+      const log = await fetchJson<WorkspaceLogDetailResponse>(
+        `/workspaces/${workspaceId}/logs/${logId}`,
+        headerStore.get("cookie") ?? "",
+      );
+      return mapLog(log);
     } catch {
       return null;
     }
@@ -509,21 +527,7 @@ async function fetchAllLogs(workspaceId: number, cookie: string) {
     hasNext = page.hasNext && !!cursor;
   }
 
-  return Promise.all(
-    logs.map((log) =>
-      fetchJson<WorkspaceLogDetailResponse>(
-        `/workspaces/${workspaceId}/logs/${log.id}`,
-        cookie,
-      ).catch(
-        (): WorkspaceLogDetailResponse => ({
-          ...log,
-          content: log.summary ?? "",
-          updatedAt: log.createdAt,
-          closedAt: null,
-        }),
-      ),
-    ),
-  );
+  return logs;
 }
 
 async function fetchJson<T>(path: string, cookie: string): Promise<T> {
@@ -619,9 +623,12 @@ function mapTask(task: WorkspaceTaskResponse): WorkspaceWorkItem {
   };
 }
 
-function mapLog(log: WorkspaceLogDetailResponse): WorkspaceLogItem {
+function mapLog(
+  log: WorkspaceLogResponse | WorkspaceLogDetailResponse,
+): WorkspaceLogItem {
   const label = mapLogLabel(log.kind);
-  const description = log.summary ?? excerpt(log.content) ?? "";
+  const content = "content" in log ? log.content : undefined;
+  const description = log.summary ?? (content ? excerpt(content) : "");
 
   return {
     id: String(log.id),
@@ -635,7 +642,7 @@ function mapLog(log: WorkspaceLogDetailResponse): WorkspaceLogItem {
     meta: buildLogMeta(log),
     href: getLogHref(String(log.id)),
     taskId: log.taskId ? String(log.taskId) : undefined,
-    body: log.content,
+    body: content,
     createdAt: log.createdAt,
   };
 }
@@ -720,12 +727,13 @@ function mapOutputStatus(status: OutputStatus): WorkspaceOutputStatus {
   return status === "PUBLISHED" ? "published" : "draft";
 }
 
-function buildLogMeta(log: WorkspaceLogDetailResponse) {
+function buildLogMeta(log: WorkspaceLogResponse | WorkspaceLogDetailResponse) {
   if (log.status === "OPEN") {
     return `open · ${formatDateLabel(log.createdAt)}`;
   }
   if (log.status === "CLOSED") {
-    return `closed · ${formatDateLabel(log.closedAt ?? log.createdAt)}`;
+    const closedAt = "closedAt" in log ? log.closedAt : null;
+    return `closed · ${formatDateLabel(closedAt ?? log.createdAt)}`;
   }
 
   return formatDateLabel(log.createdAt);
