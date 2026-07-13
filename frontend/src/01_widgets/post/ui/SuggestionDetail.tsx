@@ -70,7 +70,7 @@ export function SuggestionDetail({
 
       <header className="mt-7 border-b border-zinc-200 pb-6">
         <div className="flex flex-wrap items-baseline gap-2">
-          <h1 className="font-serif text-[30px] font-bold leading-[1.2] tracking-tight text-zinc-950">
+          <h1 className="text-[30px] font-bold leading-[1.2] tracking-tight text-zinc-950">
             {suggestion.title}
           </h1>
           <span className="font-mono text-[20px] text-zinc-400">

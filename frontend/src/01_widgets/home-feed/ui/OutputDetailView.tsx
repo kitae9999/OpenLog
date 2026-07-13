@@ -267,12 +267,12 @@ export function OutputDetailView({
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                className="w-full max-w-[40ch] border-0 bg-transparent p-0 font-[family-name:var(--font-georgia,Georgia,serif)] text-[28px] font-bold leading-[1.2] tracking-[-0.02em] text-zinc-950 outline-none placeholder:text-zinc-300 sm:text-[30px]"
+                className="w-full max-w-[40ch] border-0 bg-transparent p-0 text-[28px] font-bold leading-[1.2] tracking-[-0.02em] text-zinc-950 outline-none placeholder:text-zinc-300 sm:text-[30px]"
                 placeholder="Output title"
               />
             </label>
           ) : (
-            <h1 className="max-w-[28ch] font-[family-name:var(--font-georgia,Georgia,serif)] text-[28px] font-bold leading-[1.2] tracking-[-0.02em] text-zinc-950 sm:max-w-[40ch] sm:text-[30px]">
+            <h1 className="max-w-[28ch] text-[28px] font-bold leading-[1.2] tracking-[-0.02em] text-zinc-950 sm:max-w-[40ch] sm:text-[30px]">
               {output.title}
             </h1>
           )}

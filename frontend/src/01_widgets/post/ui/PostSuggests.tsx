@@ -69,7 +69,7 @@ export function PostSuggests({
 
           <header className="mt-8">
             <div className="min-w-0">
-              <h1 className="font-serif text-[24px] font-bold leading-[1.25] tracking-tight text-zinc-950">
+              <h1 className="text-[24px] font-bold leading-[1.25] tracking-tight text-zinc-950">
                 Suggests for &quot;{post.title}&quot;
               </h1>
               <p className="mt-3 text-sm text-zinc-500">

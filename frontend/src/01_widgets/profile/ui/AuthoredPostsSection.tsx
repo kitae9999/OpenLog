@@ -182,7 +182,7 @@ function AuthoredPostList({
               <span className="font-medium text-zinc-900">{profileName}</span>
             </div>
 
-            <h2 className="mt-2 [font-family:Georgia,serif] text-[17px] font-bold leading-6 tracking-normal text-zinc-950">
+            <h2 className="mt-2 text-[17px] font-bold leading-6 tracking-normal text-zinc-950">
               {post.title}
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-500">

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { cn } from "@/shared/lib/cn";
 import { FetchingIndicator } from "@/shared/ui/sync";
+import { logoMarkClassName } from "@/widgets/chrome/ui/brand";
 import type {
   PreviewAgentLine,
   PreviewReplaySnapshot,
@@ -458,7 +459,8 @@ function OpenLogFavicon({ className }: { className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        "grid place-items-center rounded-[3px] bg-black text-[8px] font-bold leading-none text-white [font-family:Georgia,serif]",
+        "grid place-items-center rounded-[3px] bg-black text-[8px] text-white",
+        logoMarkClassName,
         className,
       )}
     >

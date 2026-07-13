@@ -11,10 +11,13 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-app: var(--app-canvas);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, system-ui, "Segoe UI", "Apple SD Gothic Neo",
+    "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji",
+    sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace,
+    SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,9 +30,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji",
-    "Segoe UI Emoji";
+  font-family: var(--font-sans);
 }
 
 html,
@@ -217,8 +218,6 @@ body {
 }
 
 .sync-fetching-label {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
   font-weight: 500;
   letter-spacing: 0.01em;
 }
@@ -240,8 +239,6 @@ body {
   background: #f4f4f5;
   color: #52525b;
   padding: 0.1rem 0.4rem;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.04em;

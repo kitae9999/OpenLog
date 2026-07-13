@@ -306,7 +306,7 @@ export function EditableProfileHeader({
         <div className="min-w-0 flex-1">
           <div className="min-w-0">
             <div className="flex min-w-0 items-center justify-between gap-4">
-              <h1 className="min-w-0 break-words font-[Georgia,serif] text-[40px] font-bold leading-none tracking-[-0.04em] text-zinc-950 sm:text-[48px]">
+              <h1 className="min-w-0 break-words text-[40px] font-bold leading-none tracking-[-0.04em] text-zinc-950 sm:text-[48px]">
                 {profileName}
               </h1>
 

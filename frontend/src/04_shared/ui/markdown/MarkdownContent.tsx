@@ -45,8 +45,8 @@ const headingFontClassNamesByVariant: Record<
   "default" | "compact" | "dense",
   string
 > = {
-  default: "[font-family:Georgia,serif] font-bold leading-tight text-zinc-950",
-  compact: "[font-family:Georgia,serif] font-bold leading-tight text-zinc-950",
+  default: "font-bold leading-tight text-zinc-950",
+  compact: "font-bold leading-tight text-zinc-950",
   dense:
     "font-semibold uppercase tracking-[0.08em] leading-tight text-zinc-500",
 };

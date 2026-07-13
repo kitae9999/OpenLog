@@ -158,7 +158,7 @@ export function WorkspaceCreateView({ isLoggedIn }: { isLoggedIn: boolean }) {
 
       <article className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
         <header className="border-b border-zinc-100 px-6 pb-5 pt-[22px]">
-          <h1 className="font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950">
+          <h1 className="text-[20px] font-bold tracking-[-0.01em] text-zinc-950">
             New workspace
           </h1>
           <p className="mt-2 max-w-[54ch] text-[13.5px] leading-6 text-zinc-500">

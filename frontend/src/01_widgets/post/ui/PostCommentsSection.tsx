@@ -138,7 +138,7 @@ export function PostCommentsSection({
             <IconMessageSquare className="size-3.5" />
             Comments
           </div>
-          <h2 className="mt-3 font-serif text-[28px] font-semibold tracking-tight text-zinc-950">
+          <h2 className="mt-3 text-[28px] font-semibold tracking-tight text-zinc-950">
             Join the thread
           </h2>
           <p className="mt-2 max-w-[58ch] text-sm leading-6 text-zinc-600">

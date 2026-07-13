@@ -252,7 +252,7 @@ export function TaskDetailView({
         className="mt-6 border-b border-zinc-200/80 pb-6"
       >
         <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-          <h1 className="max-w-[28ch] font-[family-name:var(--font-georgia,Georgia,serif)] text-[28px] font-bold leading-[1.2] tracking-[-0.02em] text-zinc-950 sm:max-w-[40ch] sm:text-[30px]">
+          <h1 className="max-w-[28ch] text-[28px] font-bold leading-[1.2] tracking-[-0.02em] text-zinc-950 sm:max-w-[40ch] sm:text-[30px]">
             {task.title}
           </h1>
           <span className="font-mono text-[18px] tracking-tight text-zinc-400 sm:text-[20px]">

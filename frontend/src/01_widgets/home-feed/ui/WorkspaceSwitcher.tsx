@@ -154,7 +154,7 @@ export function WorkspaceSwitcher({
                     isActive ? "bg-zinc-50" : "hover:bg-zinc-50",
                   )}
                 >
-                  <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-zinc-100 text-[13px] font-bold text-zinc-600 [font-family:Georgia,serif]">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-zinc-100 text-[13px] font-bold text-zinc-600">
                     {workspaceInitial(workspace.name)}
                   </span>
                   <span className="min-w-0 flex-1">
@@ -231,7 +231,7 @@ function WorkspaceSwitcherTrigger({
         disabled ? "cursor-default" : "hover:bg-zinc-50",
       )}
     >
-      <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-zinc-100 text-[13px] font-bold text-zinc-600 [font-family:Georgia,serif]">
+      <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-zinc-100 text-[13px] font-bold text-zinc-600">
         {initial}
       </span>
       <span className="min-w-0 flex-1">

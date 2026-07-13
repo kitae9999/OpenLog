@@ -162,7 +162,7 @@ function GuestWorkspaceEmpty() {
       aria-label="Workspace sign-in"
       className="mx-auto flex max-w-lg flex-col items-center px-4 py-16 text-center sm:py-24"
     >
-      <h2 className="text-[32px] leading-[1.15] font-bold tracking-tight text-zinc-950 [font-family:Georgia,'Times_New_Roman',serif] sm:text-[36px]">
+      <h2 className="text-[32px] leading-[1.15] font-bold tracking-tight text-zinc-950 sm:text-[36px]">
         Work first.
         <br />
         Writing follows.

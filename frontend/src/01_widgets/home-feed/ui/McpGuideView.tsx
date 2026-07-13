@@ -52,7 +52,7 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
         <header className="border-b border-zinc-100 px-6 pb-5 pt-[22px]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <h1 className="font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950">
+              <h1 className="text-[20px] font-bold tracking-[-0.01em] text-zinc-950">
                 {copy.title}
               </h1>
               <p className="mt-2 max-w-[62ch] text-[13.5px] leading-6 text-zinc-500">

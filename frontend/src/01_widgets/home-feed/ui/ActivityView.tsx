@@ -31,7 +31,7 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">Workspace rhythm</p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-[family-name:var(--font-georgia,Georgia,serif)] text-3xl font-bold tracking-[-0.025em]">Activity</h1>
+            <h1 className="text-[20px] font-bold tracking-[-0.01em]">Activity</h1>
             <p className="mt-2 text-[13.5px] text-zinc-500">Log activity across the last 365 days, in Asia/Seoul time.</p>
           </div>
           <p className="font-mono text-[12px] text-zinc-500"><span className="text-lg font-semibold text-zinc-950">{activity?.totalLogCount ?? 0}</span> logs</p>

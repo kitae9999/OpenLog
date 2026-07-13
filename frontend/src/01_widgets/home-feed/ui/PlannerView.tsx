@@ -128,7 +128,7 @@ export function PlannerView({
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
             Plan the work
           </p>
-          <h1 className="mt-2 font-[family-name:var(--font-georgia,Georgia,serif)] text-3xl font-bold tracking-[-0.025em] text-zinc-950">
+          <h1 className="mt-2 text-[20px] font-bold tracking-[-0.01em] text-zinc-950">
             {formatMonth(month)}
           </h1>
           <p className="mt-2 text-[13.5px] text-zinc-500">

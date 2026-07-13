@@ -59,7 +59,7 @@ export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiD
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-zinc-200/80 pb-5">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">Project knowledge</p>
-          <h1 className="mt-2 font-[family-name:var(--font-georgia,Georgia,serif)] text-3xl font-bold tracking-[-0.025em]">Memory</h1>
+          <h1 className="mt-2 text-[20px] font-bold tracking-[-0.01em]">Memory</h1>
           <p className="mt-2 max-w-2xl text-[13.5px] leading-6 text-zinc-500">
             Durable decisions, conventions, and implementation context for this workspace.
           </p>
@@ -142,7 +142,7 @@ export function MemoryDetailView({ memory, workspaceData }: { memory: WorkspaceM
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">Project memory</p>
-              <h1 className="mt-2 font-[family-name:var(--font-georgia,Georgia,serif)] text-3xl font-bold tracking-[-0.025em] text-zinc-950">{memory.title}</h1>
+              <h1 className="mt-2 text-[20px] font-bold tracking-[-0.01em] text-zinc-950">{memory.title}</h1>
               <MemoryMeta memory={memory} linked />
             </div>
             <div className="flex items-center gap-2">
@@ -206,7 +206,7 @@ export function MemoryEditorView({ workspaceData, memory }: { workspaceData: Wor
         <div className="min-w-0">
           <header className="px-1 pb-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">{memory ? "Edit memory" : "New memory"}</p>
-            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What should the project remember?" className="mt-3 w-full border-0 bg-transparent p-0 font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold text-zinc-950 outline-none placeholder:text-zinc-300" />
+            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What should the project remember?" className="mt-3 w-full border-0 bg-transparent p-0 text-[20px] font-bold text-zinc-950 outline-none placeholder:text-zinc-300" />
           </header>
           <section className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white">
             <div className="flex items-center gap-4 border-b border-zinc-100 bg-zinc-50/80 px-4">

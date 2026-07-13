@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { JetBrains_Mono, Source_Sans_3 } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
 import { GuestActions } from "@/features/auth/ui";
 import { handleOAuth } from "@/features/auth/api/handleOAuth";
@@ -25,16 +25,8 @@ import {
 } from "./useLandingScroll";
 import "./landing.css";
 
-const landingSans = Source_Sans_3({
+const landingMono = Geist_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-landing-sans",
-  display: "swap",
-});
-
-const landingMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
   variable: "--font-landing-mono",
   display: "swap",
 });
@@ -100,7 +92,7 @@ export function LandingPage() {
       {({ openLogin, openSignup, isModalOpen }) => (
         <div
           ref={rootRef}
-          className={`${landingSans.variable} ${landingMono.variable} landing-root landing-body relative flex min-h-screen flex-col antialiased`}
+          className={`${landingMono.variable} landing-root landing-body relative flex min-h-screen flex-col antialiased`}
         >
           <div
             className="landing-progress"

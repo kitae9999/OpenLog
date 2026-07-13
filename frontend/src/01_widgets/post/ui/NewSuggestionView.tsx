@@ -217,7 +217,7 @@ export function NewSuggestionView({
             <p className="text-[11px] font-semibold uppercase tracking-normal text-zinc-400">
               {eyebrow}
             </p>
-            <h1 className="mt-3 font-serif text-[32px] font-bold leading-[1.15] tracking-tight text-zinc-950">
+            <h1 className="mt-3 text-[32px] font-bold leading-[1.15] tracking-tight text-zinc-950">
               {resolvedHeading}
             </h1>
           </header>

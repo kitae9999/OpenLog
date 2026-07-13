@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getUser } from "@/features/auth/api/getUser";
 import { API_CONFIG } from "@/shared/api";
+import { logoMarkClassName } from "@/widgets/chrome/ui/brand";
+import { cn } from "@/shared/lib/cn";
 import { CliLoginApprovalForm } from "./CliLoginApprovalForm";
 
 export const metadata: Metadata = {
@@ -31,7 +33,12 @@ export default async function CliLoginPage({
                 Authorize terminal access
               </h1>
             </div>
-            <div className="grid size-12 shrink-0 place-items-center bg-zinc-950 text-xl font-bold text-white [font-family:Georgia,serif]">
+            <div
+              className={cn(
+                "grid size-12 shrink-0 place-items-center bg-zinc-950 text-xl text-white",
+                logoMarkClassName,
+              )}
+            >
               O
             </div>
           </div>

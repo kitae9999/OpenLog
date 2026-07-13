@@ -837,7 +837,7 @@ export function WriteView({
                     }
                     placeholder="add title"
                     className={cn(
-                      "w-full bg-transparent text-[36px] font-bold leading-tight tracking-normal text-zinc-950 caret-transparent outline-none placeholder:text-zinc-400 sm:text-[44px] [font-family:Georgia,serif]",
+                      "w-full bg-transparent text-[36px] font-bold leading-tight tracking-normal text-zinc-950 caret-transparent outline-none placeholder:text-zinc-400 sm:text-[44px]",
                       submitErrors.title ? "placeholder:text-rose-300" : "",
                     )}
                   />
@@ -1156,7 +1156,7 @@ function MarkdownPreview({
         <p className="text-[11px] font-semibold uppercase tracking-normal text-zinc-400">
           Live Preview
         </p>
-        <h2 className="mt-4 font-[Georgia,serif] text-[34px] font-bold leading-tight tracking-normal text-zinc-950">
+        <h2 className="mt-4 text-[34px] font-bold leading-tight tracking-normal text-zinc-950">
           {title.trim() || "Untitled story"}
         </h2>
         {description.trim() ? (

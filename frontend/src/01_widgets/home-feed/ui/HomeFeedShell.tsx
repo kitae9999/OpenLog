@@ -1037,7 +1037,7 @@ function ArticleCard({ post }: { post: FeedPost }) {
             <span className="font-medium text-zinc-800">{post.nickname}</span>
           </div>
 
-          <h2 className="mt-4 max-w-[680px] text-[24px] font-bold leading-[1.16] tracking-tight text-zinc-950 transition-colors group-hover:text-zinc-700 sm:text-[30px] [font-family:Georgia,serif]">
+          <h2 className="mt-4 max-w-[680px] text-[24px] font-bold leading-[1.16] tracking-tight text-zinc-950 transition-colors group-hover:text-zinc-700 sm:text-[30px]">
             {post.title}
           </h2>
 

@@ -113,7 +113,7 @@ export function TasksListView({
         <header className="border-b border-zinc-100 px-6 pb-2.5 pt-[22px]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950">
+              <h1 className="text-[20px] font-bold tracking-[-0.01em] text-zinc-950">
                 Tasks
               </h1>
               <p className="mt-1.5 text-[13px] text-zinc-500">

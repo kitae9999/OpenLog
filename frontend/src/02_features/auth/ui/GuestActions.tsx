@@ -12,6 +12,8 @@ import { createPortal } from "react-dom";
 import { AuthMode } from "@/features/auth/model/auth.type";
 import { handleOAuth } from "@/features/auth/api/handleOAuth";
 import { GitHubIcon } from "@/shared/ui/icons";
+import { logoMarkClassName } from "@/widgets/chrome/ui/brand";
+import { cn } from "@/shared/lib/cn";
 
 type AuthContent = {
   title: string;
@@ -184,13 +186,18 @@ function AuthDialog({
         <div className="flex flex-col items-center gap-8 pt-3">
           {/* 로고 + description */}
           <div className="flex w-full max-w-[382px] flex-col items-center">
-            <div className="grid size-12 place-items-center rounded-[14px] bg-black text-[24px] font-bold leading-none text-white [font-family:Georgia,serif]">
+            <div
+              className={cn(
+                "grid size-12 place-items-center rounded-[14px] bg-black text-[24px] text-white",
+                logoMarkClassName,
+              )}
+            >
               O
             </div>
 
             <h2
               id={titleId}
-              className="mt-4 text-center text-[24px] leading-8 text-[#101828] [font-family:Georgia,serif]"
+              className="mt-4 text-center text-[24px] leading-8 text-[#101828]"
             >
               {content.title}
             </h2>

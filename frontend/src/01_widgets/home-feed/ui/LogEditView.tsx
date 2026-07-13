@@ -138,7 +138,7 @@ export function LogEditView({
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Log title"
-              className="w-full border-0 bg-transparent p-0 font-[family-name:var(--font-georgia,Georgia,serif)] text-2xl font-bold tracking-[-0.01em] text-zinc-950 outline-none placeholder:text-zinc-300"
+              className="w-full border-0 bg-transparent p-0 text-[20px] font-bold tracking-[-0.01em] text-zinc-950 outline-none placeholder:text-zinc-300"
             />
           </label>
         </header>
