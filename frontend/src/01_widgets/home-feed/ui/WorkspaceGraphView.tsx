@@ -37,6 +37,7 @@ import {
   type WorkspaceGraphNode,
 } from "./workspaceGraphModel";
 import type { WorkspaceUiData } from "./workspaceTypes";
+import { WorkspaceLinkManager } from "./WorkspaceLinkManager";
 
 type GraphTransform = {
   x: number;
@@ -207,6 +208,10 @@ export function WorkspaceGraphView({
 
         <WorkspaceGraphCanvas key={graphKey} graph={graph} />
       </section>
+
+      {workspaceData ? (
+        <WorkspaceLinkManager workspaceData={workspaceData} />
+      ) : null}
 
       <GraphResultList graph={graph} logs={logs} />
     </div>

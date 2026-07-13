@@ -210,6 +210,80 @@ export async function deleteWorkspaceLog(input: {
   });
 }
 
+export async function createWorkspaceTaskLink(input: {
+  workspaceId: string;
+  fromTaskId: string;
+  toTaskId: string;
+  relation: "PRECEDES" | "BLOCKS" | "RELATES_TO";
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(`/workspaces/${input.workspaceId}/task-links`, cookie, {
+      method: "POST",
+      body: JSON.stringify({
+        fromTaskId: Number(input.fromTaskId),
+        toTaskId: Number(input.toTaskId),
+        relation: input.relation,
+      }),
+    });
+
+    revalidatePath("/graph");
+    return { ok: true };
+  });
+}
+
+export async function deleteWorkspaceTaskLink(input: {
+  workspaceId: string;
+  taskLinkId: string;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(
+      `/workspaces/${input.workspaceId}/task-links/${input.taskLinkId}`,
+      cookie,
+      { method: "DELETE" },
+    );
+
+    revalidatePath("/graph");
+    return { ok: true };
+  });
+}
+
+export async function createWorkspaceLogLink(input: {
+  workspaceId: string;
+  fromLogId: string;
+  toLogId: string;
+  relation: "FIXES" | "RELATES_TO" | "SUPERSEDES";
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(`/workspaces/${input.workspaceId}/log-links`, cookie, {
+      method: "POST",
+      body: JSON.stringify({
+        fromLogId: Number(input.fromLogId),
+        toLogId: Number(input.toLogId),
+        relation: input.relation,
+      }),
+    });
+
+    revalidatePath("/graph");
+    return { ok: true };
+  });
+}
+
+export async function deleteWorkspaceLogLink(input: {
+  workspaceId: string;
+  logLinkId: string;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(
+      `/workspaces/${input.workspaceId}/log-links/${input.logLinkId}`,
+      cookie,
+      { method: "DELETE" },
+    );
+
+    revalidatePath("/graph");
+    return { ok: true };
+  });
+}
+
 export async function createWorkspaceMemory(input: {
   workspaceId: string;
   title: string;
@@ -519,7 +593,8 @@ async function requestJson<T = unknown>(
     return undefined as T;
   }
 
-  return (await response.json()) as T;
+  const responseText = await response.text();
+  return responseText ? (JSON.parse(responseText) as T) : (undefined as T);
 }
 
 async function getWorkspaceErrorMessage(response: Response) {
