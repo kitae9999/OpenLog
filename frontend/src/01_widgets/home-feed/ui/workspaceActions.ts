@@ -95,6 +95,22 @@ export async function updateWorkspaceTask(input: {
   });
 }
 
+export async function deleteWorkspaceTask(input: {
+  workspaceId: string;
+  taskId: string;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(
+      `/workspaces/${input.workspaceId}/tasks/${input.taskId}`,
+      cookie,
+      { method: "DELETE" },
+    );
+
+    revalidateWorkspaceCollectionPaths();
+    return { ok: true, href: "/tasks" };
+  });
+}
+
 export async function createWorkspaceLog(input: {
   workspaceId: string;
   kind: LogKind;
@@ -155,6 +171,22 @@ export async function updateWorkspaceLog(input: {
     revalidatePath("/logs");
     revalidatePath("/");
     return { ok: true };
+  });
+}
+
+export async function deleteWorkspaceLog(input: {
+  workspaceId: string;
+  logId: string;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(
+      `/workspaces/${input.workspaceId}/logs/${input.logId}`,
+      cookie,
+      { method: "DELETE" },
+    );
+
+    revalidateWorkspaceCollectionPaths();
+    return { ok: true, href: "/logs" };
   });
 }
 
@@ -489,4 +521,14 @@ function revalidateWorkspacePaths(taskId: string) {
   revalidatePath(`/tasks/${taskId}/edit`);
   revalidatePath("/tasks");
   revalidatePath("/");
+}
+
+function revalidateWorkspaceCollectionPaths() {
+  revalidatePath("/");
+  revalidatePath("/tasks");
+  revalidatePath("/logs");
+  revalidatePath("/outputs");
+  revalidatePath("/memory");
+  revalidatePath("/graph");
+  revalidatePath("/activity");
 }

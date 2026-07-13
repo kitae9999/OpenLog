@@ -32,7 +32,10 @@ import {
   type WorkspaceWorkStatus,
 } from "./data";
 import { saveTaskOverride } from "./taskOverrides";
-import { updateWorkspaceTask } from "./workspaceActions";
+import {
+  deleteWorkspaceTask,
+  updateWorkspaceTask,
+} from "./workspaceActions";
 import type { WorkspaceUiData } from "./workspaceTypes";
 
 export function TaskDetailView({
@@ -56,6 +59,8 @@ export function TaskDetailView({
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const status = localStatus ?? task.status;
@@ -204,6 +209,32 @@ export function TaskDetailView({
     });
     setLocalStatus("done");
     setIsUpdatingStatus(false);
+  }
+
+  async function deleteTask() {
+    if (!workspaceData || isDeleting) {
+      return;
+    }
+
+    if (!window.confirm("Delete this task? Linked records will be kept.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    const result = await deleteWorkspaceTask({
+      workspaceId: workspaceData.workspaceId,
+      taskId: task.id,
+    });
+
+    if (!result.ok) {
+      setDeleteError(result.message ?? "Failed to delete task.");
+      setIsDeleting(false);
+      return;
+    }
+
+    router.push(result.href ?? getTasksHref());
+    router.refresh();
   }
 
   return (
@@ -438,6 +469,21 @@ export function TaskDetailView({
           </section>
 
           <div className="flex flex-wrap justify-end gap-2.5 pt-1">
+            {deleteError ? (
+              <p className="w-full text-right text-[12px] text-red-600">
+                {deleteError}
+              </p>
+            ) : null}
+            {workspaceData ? (
+              <button
+                type="button"
+                onClick={deleteTask}
+                disabled={isDeleting}
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-red-200 bg-white px-4 text-[13px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeleting ? "Deleting..." : "Delete task"}
+              </button>
+            ) : null}
             {canMarkDone ? (
               <button
                 type="button"

@@ -29,7 +29,11 @@ import {
   type WorkspaceWorkItem,
 } from "./data";
 import { saveLogOverride } from "./logOverrides";
-import { createWorkspaceMemoryFromLog, updateWorkspaceLog } from "./workspaceActions";
+import {
+  createWorkspaceMemoryFromLog,
+  deleteWorkspaceLog,
+  updateWorkspaceLog,
+} from "./workspaceActions";
 import type { WorkspaceUiData } from "./workspaceTypes";
 
 export function LogDetailView({
@@ -55,6 +59,8 @@ export function LogDetailView({
   const [editError, setEditError] = useState<string | null>(null);
   const [isSendingToMemory, setIsSendingToMemory] = useState(false);
   const [memoryError, setMemoryError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
   const recipe = getLogRecipe(log.id);
@@ -229,6 +235,32 @@ export function LogDetailView({
     });
     setAssignedTaskId(nextTaskId);
     setIsAssigning(false);
+  }
+
+  async function deleteLog() {
+    if (!workspaceData || isDeleting) {
+      return;
+    }
+
+    if (!window.confirm("Delete this log? Its memory will be kept.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    const result = await deleteWorkspaceLog({
+      workspaceId: workspaceData.workspaceId,
+      logId: log.id,
+    });
+
+    if (!result.ok) {
+      setDeleteError(result.message ?? "Failed to delete log.");
+      setIsDeleting(false);
+      return;
+    }
+
+    router.push(result.href ?? getLogsHref());
+    router.refresh();
   }
 
   return (
@@ -458,6 +490,17 @@ export function LogDetailView({
 
           <div className="flex flex-wrap justify-end gap-2.5 pt-1">
             {memoryError ? <p className="w-full text-right text-[12px] text-red-600">{memoryError}</p> : null}
+            {deleteError ? <p className="w-full text-right text-[12px] text-red-600">{deleteError}</p> : null}
+            {workspaceData ? (
+              <button
+                type="button"
+                onClick={deleteLog}
+                disabled={isDeleting}
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-red-200 bg-white px-4 text-[13px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeleting ? "Deleting..." : "Delete log"}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={sendToMemory}
