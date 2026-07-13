@@ -119,6 +119,8 @@ type OutputResponse = {
   title: string;
   taskCount: number;
   logCount: number;
+  taskIds: number[];
+  logIds: number[];
   updatedAt: string;
   publishedAt: string | null;
 };
@@ -145,7 +147,7 @@ type WorkspaceApiSnapshot = {
   workspace: WorkspaceResponse;
   tasks: WorkspaceTaskResponse[];
   logs: WorkspaceLogResponse[];
-  outputs: Array<OutputDetailResponse | OutputResponse>;
+  outputs: OutputResponse[];
   todos: TodoResponse[];
   taskLinks: TaskLinkResponse[];
   logLinks: LogLinkResponse[];
@@ -264,6 +266,24 @@ export const getWorkspaceLog = cache(
   },
 );
 
+export const getWorkspaceOutput = cache(
+  async (
+    workspaceId: string,
+    outputId: string,
+  ): Promise<WorkspaceTaskOutput | null> => {
+    try {
+      const headerStore = await headers();
+      const output = await fetchJson<OutputDetailResponse>(
+        `/workspaces/${workspaceId}/outputs/${outputId}`,
+        headerStore.get("cookie") ?? "",
+      );
+      return mapOutput(output);
+    } catch {
+      return null;
+    }
+  },
+);
+
 async function fetchWorkspaceUiData(
   workspaces: WorkspaceResponse[],
   cookie: string,
@@ -327,20 +347,11 @@ async function fetchWorkspaceUiData(
       ).catch(() => null),
     ]);
 
-  const outputDetails = await Promise.all(
-    outputSummaries.map((output) =>
-      fetchJson<OutputDetailResponse>(
-        `/workspaces/${selectedId}/outputs/${output.id}`,
-        cookie,
-      ).catch(() => output),
-    ),
-  );
-
   return mapWorkspaceSnapshot({
     workspace: selected,
     tasks,
     logs,
-    outputs: outputDetails,
+    outputs: outputSummaries,
     todos,
     taskLinks,
     logLinks,
@@ -478,16 +489,10 @@ async function fetchAllTasks(workspaceId: number, cookie: string) {
 }
 
 async function fetchOutputs(workspaceId: number, cookie: string) {
-  const groups = await Promise.all(
-    (["DRAFT", "EXPORTED", "PUBLISHED"] as const).map((status) =>
-      fetchJson<OutputResponse[]>(
-        `/workspaces/${workspaceId}/outputs?status=${status}`,
-        cookie,
-      ),
-    ),
+  return fetchJson<OutputResponse[]>(
+    `/workspaces/${workspaceId}/outputs`,
+    cookie,
   );
-
-  return groups.flat();
 }
 
 async function fetchAllMemories(workspaceId: number, cookie: string) {
@@ -647,10 +652,18 @@ function mapLog(
   };
 }
 
-function mapOutput(output: OutputDetailResponse | OutputResponse): WorkspaceTaskOutput {
+function mapOutput(
+  output: OutputDetailResponse | OutputResponse,
+): WorkspaceTaskOutput {
   const isDetail = "content" in output;
-  const taskIds = isDetail ? output.tasks.map((task) => String(task.id)) : [];
-  const logIds = isDetail ? output.logs.map((log) => String(log.id)) : [];
+  const taskIds = isDetail
+    ? output.tasks.map((task) => String(task.id))
+    : output.taskIds.map(String);
+  const logIds = isDetail
+    ? output.logs.map((log) => String(log.id))
+    : output.logIds.map(String);
+  const taskCount = isDetail ? taskIds.length : output.taskCount;
+  const logCount = isDetail ? logIds.length : output.logCount;
   const status = mapOutputStatus(output.status);
 
   return {
@@ -658,11 +671,13 @@ function mapOutput(output: OutputDetailResponse | OutputResponse): WorkspaceTask
     taskId: taskIds[0] ?? "",
     taskIds,
     logIds,
+    taskCount,
+    logCount,
     status,
     title: output.title,
     description: [
-      `${isDetail ? taskIds.length : output.taskCount} task${(isDetail ? taskIds.length : output.taskCount) === 1 ? "" : "s"}`,
-      `${isDetail ? logIds.length : output.logCount} log${(isDetail ? logIds.length : output.logCount) === 1 ? "" : "s"}`,
+      `${taskCount} task${taskCount === 1 ? "" : "s"}`,
+      `${logCount} log${logCount === 1 ? "" : "s"}`,
     ].join(" · "),
     content: isDetail ? output.content : "",
     updatedLabel: formatDateLabel(output.updatedAt),
@@ -746,7 +761,9 @@ function excerpt(content: string, maxLength = 120) {
     .trim();
 
   if (!plain) return "";
-  return plain.length <= maxLength ? plain : `${plain.slice(0, maxLength).trim()}...`;
+  return plain.length <= maxLength
+    ? plain
+    : `${plain.slice(0, maxLength).trim()}...`;
 }
 
 function formatDateLabel(value: string) {

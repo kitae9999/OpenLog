@@ -214,8 +214,8 @@ function OutputRow({
   onToggle: () => void;
 }) {
   const sourceLabel = [
-    `${output.taskIds.length} task${output.taskIds.length === 1 ? "" : "s"}`,
-    `${output.logIds.length} log${output.logIds.length === 1 ? "" : "s"}`,
+    `${output.taskCount ?? output.taskIds.length} task${(output.taskCount ?? output.taskIds.length) === 1 ? "" : "s"}`,
+    `${output.logCount ?? output.logIds.length} log${(output.logCount ?? output.logIds.length) === 1 ? "" : "s"}`,
   ].join(" · ");
 
   return (
