@@ -44,6 +44,8 @@ import type { ManagedWorkspace, WorkspaceUiData } from "./workspaceTypes";
 type ExploreTabKey = "trending" | "recent" | "following" | "liked";
 type ExploreSubTab = Exclude<ExploreTabKey, "trending">;
 
+const SHOW_EXPLORE_INSIGHTS = false;
+
 const exploreTabs: Array<{
   key: ExploreTabKey;
   label: string;
@@ -895,7 +897,13 @@ function ExploreView({
   loadMore?: ReactNode;
 }) {
   return (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,1fr)]">
+    <div
+      className={cn(
+        "grid items-start gap-4",
+        SHOW_EXPLORE_INSIGHTS &&
+          "xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,1fr)]",
+      )}
+    >
       <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
         <div className="flex gap-6 border-b border-zinc-200/70 px-5">
           {exploreTabs
@@ -940,7 +948,7 @@ function ExploreView({
         </div>
       </section>
 
-      <aside className="space-y-4">
+      {SHOW_EXPLORE_INSIGHTS ? <aside className="space-y-4">
         <section className="rounded-2xl border border-zinc-200/70 bg-white">
           <div className="flex items-center justify-between px-5 pt-4">
             <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
@@ -998,7 +1006,7 @@ function ExploreView({
             ))}
           </div>
         </section>
-      </aside>
+      </aside> : null}
     </div>
   );
 }
