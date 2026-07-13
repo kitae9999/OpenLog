@@ -1,3 +1,5 @@
+import org.springframework.boot.gradle.tasks.run.BootRun
+
 plugins {
     kotlin("jvm") version "2.2.21"
     kotlin("plugin.spring") version "2.2.21"
@@ -67,6 +69,14 @@ allOpen {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.register<BootRun>("bootRunLocal") {
+    group = "application"
+    description = "Runs the backend with the local Spring profile."
+    mainClass.set("io.github.kitae9999.openlog.OpenlogApplicationKt")
+    classpath = sourceSets.main.get().runtimeClasspath
+    args("--spring.profiles.active=local")
 }
 
 // IntelliJ/Gradle sync can request this task for Kotlin DSL model preparation.

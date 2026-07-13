@@ -14,7 +14,7 @@ export function MarkdownCodeBlock({
   code: string;
   highlightedHtml: string;
   languageLabel: string;
-  variant: "default" | "compact";
+  variant: "default" | "compact" | "dense";
 }) {
   const [copyState, setCopyState] = useState<CopyState>("idle");
 
@@ -47,34 +47,39 @@ export function MarkdownCodeBlock({
   }
 
   const isCopied = copyState === "copied";
+  const shortLabel = shortenLanguageLabel(languageLabel);
 
   return (
-    <div className="markdown-code overflow-hidden rounded-xl border border-zinc-200 bg-[linear-gradient(180deg,#fdfdfc_0%,#fafaf8_100%)] text-zinc-900 shadow-[0_20px_50px_rgba(113,113,122,0.14)]">
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-200/90 bg-[rgba(244,244,245,0.75)] px-4 py-1.5 backdrop-blur-sm">
-        <span className="truncate text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-          {languageLabel}
+    <div className="markdown-code group relative overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-900">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 px-3 pt-2.5">
+        <span className="truncate font-mono text-[10px] font-medium lowercase leading-none tracking-normal text-zinc-400">
+          {shortLabel}
         </span>
         <button
           type="button"
           onClick={handleCopy}
           className={cn(
-            "inline-flex size-7 shrink-0 items-center justify-center rounded-md border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40",
+            "pointer-events-auto inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
             isCopied
-              ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+              ? "text-zinc-700"
               : copyState === "error"
-                ? "border-rose-300 bg-rose-50 text-rose-700 hover:border-rose-400 hover:bg-rose-100"
-                : "border-zinc-200 bg-white/90 text-zinc-500 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700",
+                ? "text-rose-600"
+                : "text-zinc-400 opacity-70 hover:text-zinc-700 hover:opacity-100 group-hover:opacity-100",
           )}
-          aria-label={getCopyAriaLabel(copyState, languageLabel)}
+          aria-label={getCopyAriaLabel(copyState, shortLabel)}
           title={getCopyTooltip(copyState)}
         >
           <CopyIcon copied={isCopied} />
+          <span aria-live="polite">{getCopyLabel(copyState)}</span>
         </button>
       </div>
+
       <pre
         className={cn(
-          "overflow-x-auto p-4 font-mono",
-          variant === "default" ? "text-[13px] leading-6" : "text-xs leading-5",
+          "overflow-x-auto px-4 pb-3.5 pt-10 font-mono",
+          variant === "default"
+            ? "text-[12.5px] leading-[1.65]"
+            : "text-xs leading-5",
         )}
       >
         <code
@@ -84,6 +89,14 @@ export function MarkdownCodeBlock({
       </pre>
     </div>
   );
+}
+
+function shortenLanguageLabel(label: string) {
+  const normalized = label.trim().toLowerCase();
+  if (!normalized || normalized === "text" || normalized === "plain") {
+    return "text";
+  }
+  return normalized;
 }
 
 function getCopyLabel(copyState: CopyState) {

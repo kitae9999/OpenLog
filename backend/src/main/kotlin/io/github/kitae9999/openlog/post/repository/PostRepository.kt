@@ -14,6 +14,7 @@ interface PostRepository: JpaRepository<Post, Long> {
     fun existsByAuthorIdAndSlug(authorId: Long, slug: String): Boolean
     fun existsByAuthorIdAndSlugAndIdNot(authorId: Long, slug: String, id: Long): Boolean
     fun findByAuthorIdAndSlug(authorId: Long, slug: String): Post?
+    fun findByOutputId(outputId: Long): Post?
     fun findAllByAuthorIdAndTitle(authorId: Long, title: String): List<Post>
     fun findAllByAuthorIdOrderByCreatedAtDesc(authorId: Long): List<Post>
 

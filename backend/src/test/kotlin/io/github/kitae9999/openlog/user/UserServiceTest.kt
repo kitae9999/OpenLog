@@ -4,6 +4,7 @@ import io.github.kitae9999.openlog.comment.repository.CommentCount
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.follow.FollowRepository
+import io.github.kitae9999.openlog.post.PostMapper
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
@@ -56,6 +57,8 @@ class UserServiceTest {
             postLikeRepository = postLikeRepository,
             commentRepository = commentRepository,
             followRepository = followRepository,
+            userMapper = UserMapper(),
+            postMapper = PostMapper(),
         )
     }
 

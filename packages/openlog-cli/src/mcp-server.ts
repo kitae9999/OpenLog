@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { OpenLogApiClient } from "./api-client.js";
 import { readAuthFile } from "./auth-store.js";
+import { createAuthenticatedApiClient } from "./authenticated-client.js";
 import { getApiBaseUrl, getWebBaseUrl } from "./config.js";
 import { uploadPostImage } from "./post-image-upload.js";
 
@@ -38,7 +39,7 @@ export async function runMcpServer(): Promise<void> {
         }
         apiBaseUrl = authFile.apiBaseUrl;
 
-        const me = await createAuthenticatedClient().then((client) =>
+        const me = await createAuthenticatedApiClient().then((client) =>
           client.get("/auth/me"),
         );
 
@@ -230,6 +231,35 @@ export async function runMcpServer(): Promise<void> {
   );
 
   server.registerTool(
+    "push_working_brief",
+    {
+      title: "Push OpenLog Working Brief",
+      description:
+        "Overwrite the workspace Now Working brief with a short status update: what was done, what is still open, and optional task/branch context. Latest write wins.",
+      annotations: {
+        ...WRITE_TOOL_ANNOTATIONS,
+        idempotentHint: true,
+      },
+      inputSchema: {
+        workspaceId: z.number().int().positive(),
+        title: z.string().min(1).max(255),
+        prose: z.string().min(1),
+        taskId: z.number().int().positive().optional(),
+        branch: z.string().max(255).optional(),
+      },
+    },
+    async ({ workspaceId, title, prose, taskId, branch }) =>
+      withAuthenticatedClient((client) =>
+        client.put(`/workspaces/${workspaceId}/working-brief`, {
+          title,
+          prose,
+          taskId: taskId ?? null,
+          branch: branch ?? null,
+        }),
+      ),
+  );
+
+  server.registerTool(
     "get_post_detail",
     {
       title: "Get OpenLog Post Detail",
@@ -332,24 +362,11 @@ function buildPublicPostPath(username: string, slug: string): string {
   return `/@${encodeURIComponent(username)}/posts/${encodeURIComponent(slug)}`;
 }
 
-async function createAuthenticatedClient(): Promise<OpenLogApiClient> {
-  const authFile = await readAuthFile();
-
-  if (!authFile) {
-    throw new Error("Run `openlog login` before using OpenLog MCP tools.");
-  }
-
-  return new OpenLogApiClient({
-    accessToken: authFile.accessToken,
-    apiBaseUrl: authFile.apiBaseUrl,
-  });
-}
-
 async function withAuthenticatedClient(
   callback: (client: OpenLogApiClient) => Promise<unknown>,
 ) {
   try {
-    const client = await createAuthenticatedClient();
+    const client = await createAuthenticatedApiClient();
     const result = await callback(client);
     return textResult(result);
   } catch (error) {

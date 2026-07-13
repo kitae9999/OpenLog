@@ -1,5 +1,7 @@
 import { notFound, redirect } from "next/navigation";
-import { Footer, Header } from "@/widgets/chrome/ui";
+import { Footer } from "@/widgets/chrome/ui";
+import { AppChromeShell } from "@/widgets/home-feed/ui/AppChromeShell";
+import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
 import { NewSuggestionView } from "@/widgets/post/ui";
 import { getPostSuggestionDetail } from "@/entities/post/api/getPostSuggestionDetail";
 import { getPostSuggestions } from "@/entities/post/api/getPostSuggestions";
@@ -47,6 +49,8 @@ export default async function EditSuggestionPage({
     redirect("/");
   }
 
+  const chrome = await loadAppChromeWorkspace(true);
+
   if (!detail) {
     notFound();
   }
@@ -80,14 +84,16 @@ export default async function EditSuggestionPage({
   );
 
   return (
-    <div className="min-h-dvh bg-zinc-50 text-zinc-950">
-      <Header
-        isLoggedIn={true}
-        profileImageUrl={viewer.profileImageUrl}
-        profileHref={buildViewerProfileHref(viewer.username)}
-      />
-
-      <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
+    <AppChromeShell
+      isLoggedIn={true}
+      profileImageUrl={viewer.profileImageUrl}
+      profileHref={buildViewerProfileHref(viewer.username)}
+      activeTab="home"
+      workspaces={chrome.workspaces}
+      workspaceData={chrome.workspaceData}
+      footer={<Footer />}
+    >
+      <div className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <NewSuggestionView
           mode="edit"
           initialValues={{
@@ -106,10 +112,8 @@ export default async function EditSuggestionPage({
           pendingSubmitLabel="Saving..."
           cancelLabel="Cancel"
         />
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AppChromeShell>
   );
 }
 

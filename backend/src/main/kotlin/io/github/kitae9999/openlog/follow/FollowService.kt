@@ -13,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class FollowService(
     private val followRepository: FollowRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val followMapper: FollowMapper,
 ) {
     @Transactional
     fun followUser(
@@ -57,7 +58,7 @@ class FollowService(
         val userId = requireNotNull(user.id)
 
         return followRepository.findAllByFollowedUser_IdOrderByCreatedAtDesc(userId)
-            .map { it.followingUser.toFollowUserResponse() }
+            .map { followMapper.toUserResponse(it.followingUser) }
     }
 
     @Transactional
@@ -68,7 +69,7 @@ class FollowService(
         val userId = requireNotNull(user.id)
 
         return followRepository.findAllByFollowingUser_IdOrderByCreatedAtDesc(userId)
-            .map { it.followedUser.toFollowUserResponse() }
+            .map { followMapper.toUserResponse(it.followedUser) }
     }
 
     private fun resolveTargetUserAndFollowId(
@@ -94,11 +95,4 @@ class FollowService(
         return userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
     }
 
-    private fun User.toFollowUserResponse(): FollowUserResponse {
-        return FollowUserResponse(
-            username = requireNotNull(username),
-            nickname = nickname,
-            profileImageUrl = profileImageUrl,
-        )
-    }
 }

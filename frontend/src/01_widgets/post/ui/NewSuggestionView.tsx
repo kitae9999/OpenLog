@@ -217,7 +217,7 @@ export function NewSuggestionView({
             <p className="text-[11px] font-semibold uppercase tracking-normal text-zinc-400">
               {eyebrow}
             </p>
-            <h1 className="mt-3 font-serif text-[32px] font-bold leading-[1.15] tracking-tight text-zinc-950">
+            <h1 className="mt-3 text-[32px] font-semibold leading-[1.15] tracking-tight text-zinc-950">
               {resolvedHeading}
             </h1>
           </header>
@@ -226,7 +226,7 @@ export function NewSuggestionView({
             <section className="space-y-3">
               <label
                 htmlFor="suggestion-title"
-                className="text-sm font-bold text-zinc-950"
+                className="text-[13.5px] font-semibold tracking-tight text-zinc-600"
               >
                 Suggestion title
               </label>
@@ -236,10 +236,10 @@ export function NewSuggestionView({
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="add title"
-                className="h-12 w-full rounded-lg border border-zinc-200 bg-white px-4 text-[16px] font-medium text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-2 focus:ring-zinc-900/10"
+                className="h-11 w-full border-0 border-b border-zinc-200 bg-transparent px-0 text-[16px] font-medium text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-900"
               />
               {actionState.errors.title ? (
-                <p className="text-sm text-rose-700">
+                <p className="text-[12.5px] font-medium text-rose-600">
                   {actionState.errors.title}
                 </p>
               ) : null}
@@ -249,128 +249,130 @@ export function NewSuggestionView({
               <div>
                 <label
                   htmlFor="suggestion-description"
-                  className="text-sm font-bold text-zinc-950"
+                  className="text-[13.5px] font-semibold tracking-tight text-zinc-600"
                 >
                   Description
                 </label>
               </div>
 
-              <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-2">
+              <div>
+                <div
+                  role="tablist"
+                  aria-label="Description editor"
+                  className="flex items-end gap-1 border-b border-zinc-200"
+                >
+                  <TabButton
+                    active={descriptionMode === "edit"}
+                    onClick={() => handleDescriptionModeChange("edit")}
+                  >
+                    Write
+                  </TabButton>
+                  <TabButton
+                    active={descriptionMode === "preview"}
+                    onClick={() => handleDescriptionModeChange("preview")}
+                  >
+                    Preview
+                  </TabButton>
+                </div>
+
+                <div className="mt-3">
                   <MarkdownToolbar
                     disabled={descriptionMode === "preview"}
                     onAction={insertDescriptionFormatting}
                   />
-                  <div className="rounded-lg bg-zinc-100 p-1">
-                    <div className="flex items-center gap-1">
-                      <ModeButton
-                        active={descriptionMode === "edit"}
-                        icon={<IconEdit className="size-4" />}
-                        label="Edit"
-                        onClick={() => handleDescriptionModeChange("edit")}
-                      />
-                      <ModeButton
-                        active={descriptionMode === "preview"}
-                        icon={<IconEye className="size-4" />}
-                        label="Preview"
-                        onClick={() => handleDescriptionModeChange("preview")}
-                      />
-                    </div>
-                  </div>
                 </div>
 
-                <div className="min-h-[220px] bg-white">
-                  {descriptionMode === "edit" ? (
-                    <textarea
-                      ref={descriptionRef}
-                      id="suggestion-description"
-                      name="description"
-                      value={description}
-                      onChange={(event) => {
-                        setDescription(event.target.value);
-                        fitTextareaToContent(event.currentTarget);
-                      }}
-                      className="min-h-[220px] w-full resize-none overflow-hidden px-4 py-4 font-mono text-[14px] leading-7 text-zinc-900 outline-none transition placeholder:text-zinc-400"
-                    />
-                  ) : (
-                    <article className="min-h-[220px] px-4 py-4">
-                      <MarkdownContent
-                        markdown={description}
-                        emptyFallback={
-                          <p className="text-zinc-400">
-                            Description preview will render here.
-                          </p>
-                        }
-                      />
-                    </article>
-                  )}
-                </div>
-              </div>
-              {actionState.errors.description ? (
-                <p className="text-sm text-rose-700">
-                  {actionState.errors.description}
-                </p>
-              ) : null}
-            </section>
-
-            <section className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-2">
-                <MarkdownToolbar
-                  disabled={composerMode === "preview"}
-                  onAction={insertFormatting}
-                />
-                <div className="rounded-lg bg-zinc-100 p-1">
-                  <div className="flex items-center gap-1">
-                    <ModeButton
-                      active={composerMode === "edit"}
-                      icon={<IconEdit className="size-4" />}
-                      label="Edit"
-                      onClick={() => handleModeChange("edit")}
-                    />
-                    <ModeButton
-                      active={composerMode === "preview"}
-                      icon={<IconEye className="size-4" />}
-                      label="Preview"
-                      onClick={() => handleModeChange("preview")}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="min-h-[520px] bg-white">
-                {composerMode === "edit" ? (
+                {descriptionMode === "edit" ? (
                   <textarea
-                    ref={editorRef}
-                    name="content"
-                    value={body}
-                    onChange={(event) => setBody(event.target.value)}
-                    className="min-h-[520px] w-full resize-y px-6 py-6 text-[16px] leading-8 tracking-normal text-zinc-900 outline-none placeholder:text-zinc-400"
+                    ref={descriptionRef}
+                    id="suggestion-description"
+                    name="description"
+                    value={description}
+                    onChange={(event) => {
+                      setDescription(event.target.value);
+                      fitTextareaToContent(event.currentTarget);
+                    }}
+                    className="openlog-scroll mt-3 min-h-[220px] w-full resize-none overflow-hidden border-0 bg-transparent py-2 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none transition placeholder:text-zinc-400"
                   />
                 ) : (
-                  <article className="min-h-[520px] px-6 py-8">
+                  <article className="mt-3 min-h-[220px] py-2 text-[15px] leading-7 text-zinc-800">
                     <MarkdownContent
-                      markdown={body}
+                      markdown={description}
                       emptyFallback={
                         <p className="text-zinc-400">
-                          Edited article content will render here.
+                          Description preview will render here.
                         </p>
                       }
                     />
                   </article>
                 )}
               </div>
+              {actionState.errors.description ? (
+                <p className="text-[12.5px] font-medium text-rose-600">
+                  {actionState.errors.description}
+                </p>
+              ) : null}
+            </section>
+
+            <section>
+              <div
+                role="tablist"
+                aria-label="Content editor"
+                className="flex items-end gap-1 border-b border-zinc-200"
+              >
+                <TabButton
+                  active={composerMode === "edit"}
+                  onClick={() => handleModeChange("edit")}
+                >
+                  Write
+                </TabButton>
+                <TabButton
+                  active={composerMode === "preview"}
+                  onClick={() => handleModeChange("preview")}
+                >
+                  Preview
+                </TabButton>
+              </div>
+
+              <div className="mt-3">
+                <MarkdownToolbar
+                  disabled={composerMode === "preview"}
+                  onAction={insertFormatting}
+                />
+              </div>
+
+              {composerMode === "edit" ? (
+                <textarea
+                  ref={editorRef}
+                  name="content"
+                  value={body}
+                  onChange={(event) => setBody(event.target.value)}
+                  className="openlog-scroll mt-3 min-h-[520px] w-full resize-none overflow-y-auto border-0 bg-transparent py-2 text-[16px] leading-8 tracking-normal text-zinc-900 outline-none placeholder:text-zinc-400"
+                />
+              ) : (
+                <article className="mt-3 min-h-[520px] py-2 text-[15px] leading-8 text-zinc-800">
+                  <MarkdownContent
+                    markdown={body}
+                    emptyFallback={
+                      <p className="text-zinc-400">
+                        Edited article content will render here.
+                      </p>
+                    }
+                  />
+                </article>
+              )}
             </section>
 
             <FilesChanged rows={diffRows} hasChanges={hasChanges} />
 
             {actionState.errors.content ? (
-              <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              <p className="text-[12.5px] font-medium text-rose-600">
                 {actionState.errors.content}
               </p>
             ) : null}
 
             {actionState.errors.form ? (
-              <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              <p className="text-[12.5px] font-medium text-rose-600">
                 {actionState.errors.form}
               </p>
             ) : null}
@@ -378,7 +380,7 @@ export function NewSuggestionView({
             <div className="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
               <Link
                 href={articleHref}
-                className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-300 px-5 text-sm font-semibold text-zinc-700 transition hover:border-zinc-950 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 {cancelLabel}
               </Link>
@@ -425,31 +427,30 @@ function fitTextareaToContent(textarea: HTMLTextAreaElement) {
     textarea.scrollHeight > DESCRIPTION_MAX_HEIGHT ? "auto" : "hidden";
 }
 
-function ModeButton({
+function TabButton({
   active,
-  icon,
-  label,
   onClick,
+  children,
 }: {
   active: boolean;
-  icon: ReactNode;
-  label: string;
   onClick: () => void;
+  children: ReactNode;
 }) {
   return (
     <button
       type="button"
-      aria-pressed={active}
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        active
-          ? "bg-white text-zinc-950 shadow-sm"
-          : "text-zinc-500 hover:text-zinc-950",
+        "relative h-9 cursor-pointer px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-800",
       )}
     >
-      {icon}
-      {label}
+      {children}
+      {active ? (
+        <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
+      ) : null}
     </button>
   );
 }
@@ -469,7 +470,12 @@ function SubmitSuggestionButton({
     <button
       type="submit"
       disabled={!canSubmit || pending}
-      className="inline-flex h-10 items-center justify-center rounded-lg bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 disabled:cursor-not-allowed disabled:bg-zinc-400"
+      className={cn(
+        "cursor-pointer text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        !canSubmit || pending
+          ? "cursor-not-allowed text-zinc-400"
+          : "text-zinc-950 hover:text-zinc-700",
+      )}
     >
       {pending ? pendingSubmitLabel : submitLabel}
     </button>
@@ -484,14 +490,12 @@ function FilesChanged({
   hasChanges: boolean;
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-        <div>
-          <h2 className="inline-flex items-center gap-2 text-sm font-bold text-zinc-950">
-            <IconFileDiff className="size-4" />
-            Files changed
-          </h2>
-        </div>
+    <section>
+      <div className="border-b border-zinc-200 pb-3">
+        <h2 className="inline-flex items-center gap-2 text-sm font-bold text-zinc-950">
+          <IconFileDiff className="size-4" />
+          Files changed
+        </h2>
       </div>
 
       {hasChanges ? (
@@ -506,7 +510,7 @@ function FilesChanged({
           </div>
         </div>
       ) : (
-        <div className="px-4 py-10 text-center text-sm font-medium text-zinc-500">
+        <div className="py-10 text-center text-sm font-medium text-zinc-500">
           No changes yet.
         </div>
       )}
@@ -591,51 +595,6 @@ function IconArrowLeft({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function IconEdit({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M12 20h9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M16.5 3.5a2.12 2.12 0 113 3L7 19l-4 1 1-4L16.5 3.5z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconEye({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
     </svg>
   );
 }

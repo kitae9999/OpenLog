@@ -20,14 +20,4 @@ fun extractFirstMarkdownImageSrc(content: String): String? {
     }
 }
 
-fun resolveAuthorName(post: Post): String {
-    val author = post.author
-    return when {
-        !author.nickname.isNullOrBlank() -> author.nickname.orEmpty()
-        !author.username.isNullOrBlank() -> author.username.orEmpty()
-        !author.email.isNullOrBlank() -> author.email.orEmpty()
-        else -> "OpenLog member"
-    }
-}
-
 private val MARKDOWN_IMAGE_PATTERN = Regex("""!\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)""")

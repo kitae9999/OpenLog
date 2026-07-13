@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   useEffect,
@@ -13,9 +12,13 @@ import {
 } from "react";
 import type { PublicUserPostSummary } from "@/entities/user/api/getPublicUserPosts";
 import type { PublicUserPostGraph } from "@/entities/user/api/getPublicUserPostGraph";
-import { assets } from "@/shared/config/assets";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import { cn } from "@/shared/lib/cn";
+import {
+  GraphCanvasBackdrop,
+  graphCanvasSurfaceClassName,
+} from "@/shared/ui/GraphCanvasBackdrop";
+import { GraphZoomControls } from "@/shared/ui/GraphZoomControls";
 
 type AuthoredPostsView = "list" | "graph";
 type GraphTransform = {
@@ -56,49 +59,38 @@ const DAMPING = 0.94;
 
 export function AuthoredPostsSection({
   username,
-  profileName,
-  profileImageUrl,
   posts,
   graph,
 }: {
   username: string;
-  profileName: string;
-  profileImageUrl?: string | null;
   posts: PublicUserPostSummary[];
   graph: PublicUserPostGraph;
 }) {
   const [view, setView] = useState<AuthoredPostsView>("list");
 
   return (
-    <div className="mt-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-zinc-500">
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
+        <div className="flex items-center gap-1">
+          <AuthoredPostsModeButton
+            active={view === "list"}
+            label="List"
+            onClick={() => setView("list")}
+          />
+          <AuthoredPostsModeButton
+            active={view === "graph"}
+            label="Graph"
+            onClick={() => setView("graph")}
+          />
+        </div>
+        <span className="text-sm text-zinc-400">
           {posts.length} {posts.length === 1 ? "post" : "posts"}
-        </div>
-        <div className="rounded-xl bg-zinc-100 p-1">
-          <div className="flex items-center gap-1">
-            <AuthoredPostsModeButton
-              active={view === "list"}
-              label="List"
-              onClick={() => setView("list")}
-            />
-            <AuthoredPostsModeButton
-              active={view === "graph"}
-              label="Graph"
-              onClick={() => setView("graph")}
-            />
-          </div>
-        </div>
+        </span>
       </div>
 
-      <div className="mt-4 min-h-[520px]">
+      <div className="mt-2 min-h-[320px]">
         {view === "list" ? (
-          <AuthoredPostList
-            username={username}
-            profileName={profileName}
-            profileImageUrl={profileImageUrl}
-            posts={posts}
-          />
+          <AuthoredPostList username={username} posts={posts} />
         ) : (
           <SecondBrainGraph username={username} graph={graph} />
         )}
@@ -122,35 +114,27 @@ function AuthoredPostsModeButton({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 items-center rounded-[8px] px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        active
-          ? "bg-white text-zinc-950 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]"
-          : "text-zinc-500 hover:text-zinc-950",
+        "relative inline-flex h-8 items-center px-1 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active ? "text-zinc-950" : "text-zinc-400 hover:text-zinc-950",
       )}
     >
       {label}
+      {active ? (
+        <span className="absolute inset-x-0 -bottom-3 h-px bg-zinc-950" />
+      ) : null}
     </button>
   );
 }
 
 function AuthoredPostList({
   username,
-  profileName,
-  profileImageUrl,
   posts,
 }: {
   username: string;
-  profileName: string;
-  profileImageUrl?: string | null;
   posts: PublicUserPostSummary[];
 }) {
   if (posts.length === 0) {
-    return (
-      <EmptyGraphState
-        title="No posts yet"
-        description="This profile has not published any posts."
-      />
-    );
+    return <p className="text-sm leading-6 text-zinc-500">No posts yet.</p>;
   }
 
   return (
@@ -160,43 +144,32 @@ function AuthoredPostList({
           key={post.slug}
           href={buildPublicPostPath(username, post.slug)}
           className={cn(
-            "group grid items-start gap-4 rounded-xl border-b border-zinc-200/80 px-2 py-4 transition hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10",
+            "group grid items-start gap-4 border-b border-zinc-100 py-5 transition first:pt-0 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10",
             post.thumbnailSrc ? "grid-cols-[minmax(0,1fr)_64px]" : "",
           )}
         >
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <Image
-                src={profileImageUrl ?? assets.defaultAvatar}
-                alt=""
-                width={20}
-                height={20}
-                aria-hidden="true"
-                className="size-5 rounded-full object-cover"
-              />
-              <span className="font-medium text-zinc-900">{profileName}</span>
-            </div>
-
-            <h2 className="mt-2 [font-family:Georgia,serif] text-[17px] font-bold leading-6 tracking-normal text-zinc-950">
+            <h3 className="text-[17px] font-semibold leading-6 tracking-tight text-zinc-950 transition group-hover:text-zinc-600">
               {post.title}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-500">
-              {post.description}
+            </h3>
+            {post.description ? (
+              <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-zinc-500">
+                {post.description}
+              </p>
+            ) : null}
+            <p className="mt-2 text-[12.5px] text-zinc-400">
+              {post.publishedAtLabel}
             </p>
-
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
-              <span>{post.publishedAtLabel}</span>
-            </div>
           </div>
 
           {post.thumbnailSrc ? (
-            <div className="relative size-16 overflow-hidden rounded-[4px] bg-zinc-200">
+            <div className="relative size-16 overflow-hidden rounded bg-zinc-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={post.thumbnailSrc}
                 alt={`${post.title} thumbnail`}
                 loading="lazy"
-                className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                className="size-full object-cover"
               />
             </div>
           ) : null}
@@ -240,6 +213,48 @@ function SecondBrainGraph({
   );
   const showLabels = transform.scale >= LABEL_VISIBILITY_ZOOM;
 
+  function getSvgPoint(clientX: number, clientY: number) {
+    const svg = svgRef.current;
+    if (!svg) {
+      return null;
+    }
+
+    const point = svg.createSVGPoint();
+    point.x = clientX;
+    point.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) {
+      return null;
+    }
+
+    const local = point.matrixTransform(ctm.inverse());
+    return { x: local.x, y: local.y };
+  }
+
+  function zoomBy(factor: number) {
+    setTransform((current) => {
+      const nextScale = clamp(
+        current.scale * factor,
+        MIN_GRAPH_ZOOM,
+        MAX_GRAPH_ZOOM,
+      );
+      if (nextScale === current.scale) {
+        return current;
+      }
+
+      const centerX = GRAPH_WIDTH / 2;
+      const centerY = GRAPH_HEIGHT / 2;
+      const worldX = (centerX - current.x) / current.scale;
+      const worldY = (centerY - current.y) / current.scale;
+
+      return {
+        scale: nextScale,
+        x: centerX - worldX * nextScale,
+        y: centerY - worldY * nextScale,
+      };
+    });
+  }
+
   useEffect(() => {
     let animationFrame = 0;
 
@@ -265,15 +280,10 @@ function SecondBrainGraph({
       event.preventDefault();
       event.stopPropagation();
 
-      const rect = svgRef.current?.getBoundingClientRect();
-      if (!rect) {
+      const point = getSvgPoint(event.clientX, event.clientY);
+      if (!point) {
         return;
       }
-
-      const point = {
-        x: ((event.clientX - rect.left) / rect.width) * GRAPH_WIDTH,
-        y: ((event.clientY - rect.top) / rect.height) * GRAPH_HEIGHT,
-      };
 
       setTransform((current) => {
         const nextScale = clamp(
@@ -452,18 +462,6 @@ function SecondBrainGraph({
     window.location.assign(href);
   }
 
-  function getSvgPoint(clientX: number, clientY: number) {
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return null;
-    }
-
-    return {
-      x: ((clientX - rect.left) / rect.width) * GRAPH_WIDTH,
-      y: ((clientY - rect.top) / rect.height) * GRAPH_HEIGHT,
-    };
-  }
-
   function getWorldPoint(clientX: number, clientY: number) {
     const point = getSvgPoint(clientX, clientY);
     if (!point) {
@@ -500,19 +498,33 @@ function SecondBrainGraph({
   }
 
   return (
-    <div className="overflow-hidden rounded-[8px] border border-zinc-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]">
+    <div className="overflow-hidden border border-zinc-200">
       {graph.edges.length === 0 ? (
         <div className="border-b border-zinc-100 px-4 py-3 text-sm text-zinc-500">
           Add [[post title]] references between posts to connect these nodes.
         </div>
       ) : null}
-      <div ref={graphViewportRef} className="overscroll-contain">
+      <div
+        ref={graphViewportRef}
+        className={cn(
+          "relative overscroll-contain",
+          graphCanvasSurfaceClassName,
+        )}
+      >
+        <GraphZoomControls
+          onZoomIn={() => zoomBy(1.18)}
+          onZoomOut={() => zoomBy(1 / 1.18)}
+          canZoomIn={transform.scale < MAX_GRAPH_ZOOM - 0.001}
+          canZoomOut={transform.scale > MIN_GRAPH_ZOOM + 0.001}
+          scale={transform.scale}
+        />
         <svg
           ref={svgRef}
           viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`}
+          preserveAspectRatio="xMidYMid slice"
           role="img"
           aria-label="Second brain post graph"
-          className="h-[520px] w-full cursor-grab select-none bg-[radial-gradient(circle_at_50%_45%,#f4f4f5_0,#fff_56%)] active:cursor-grabbing"
+          className="h-[520px] w-full cursor-grab select-none bg-transparent active:cursor-grabbing"
           style={{ touchAction: "none" }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -522,6 +534,39 @@ function SecondBrainGraph({
           <g
             transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}
           >
+            <GraphCanvasBackdrop width={GRAPH_WIDTH} height={GRAPH_HEIGHT} />
+            <defs>
+              <filter
+                id="post-node-shadow"
+                x="-60%"
+                y="-60%"
+                width="220%"
+                height="220%"
+              >
+                <feDropShadow
+                  dx="0"
+                  dy="1.2"
+                  stdDeviation="1.4"
+                  floodColor="#18181b"
+                  floodOpacity="0.14"
+                />
+              </filter>
+              <filter
+                id="post-node-glow"
+                x="-80%"
+                y="-80%"
+                width="260%"
+                height="260%"
+              >
+                <feDropShadow
+                  dx="0"
+                  dy="0"
+                  stdDeviation="2.4"
+                  floodColor="#18181b"
+                  floodOpacity="0.16"
+                />
+              </filter>
+            </defs>
             {graph.edges.map((edge, index) => {
               const source = nodeStatesBySlug.get(edge.sourceSlug);
               const target = nodeStatesBySlug.get(edge.targetSlug);
@@ -542,10 +587,10 @@ function SecondBrainGraph({
                   x2={target.x}
                   y2={target.y}
                   className="transition"
-                  stroke={active ? "#52525b" : "#d4d4d8"}
-                  strokeWidth={active ? 0.85 : 0.5}
+                  stroke={active ? "#71717a" : "#d4d4d8"}
+                  strokeWidth={active ? 1.1 : 0.7}
                   strokeLinecap="round"
-                  opacity={active ? 0.48 : 0.34}
+                  opacity={active ? 0.55 : 0.28}
                 />
               );
             })}
@@ -555,6 +600,9 @@ function SecondBrainGraph({
                 !activeSlug ||
                 activeSlug === node.slug ||
                 connectedSlugs?.has(node.slug);
+              const focused = activeSlug === node.slug;
+              const radius = focused ? 7 : 5.5;
+              const fill = focused ? "#27272a" : "#a1a1aa";
               const href = buildPublicPostPath(username, node.slug);
 
               return (
@@ -577,24 +625,55 @@ function SecondBrainGraph({
                   onBlur={() => setActiveSlug(null)}
                   className="cursor-pointer outline-none"
                 >
-                  <g className="transition">
-                    <circle cx={node.x} cy={node.y} r={18} fill="transparent" />
+                  <g className="transition" opacity={active ? 1 : 0.42}>
                     <circle
                       cx={node.x}
                       cy={node.y}
-                      r={activeSlug === node.slug ? 7.5 : 5.6}
-                      fill={activeSlug === node.slug ? "#18181b" : "#a1a1aa"}
-                      opacity={active ? 0.96 : 0.56}
+                      r={radius + 14}
+                      fill="transparent"
+                    />
+                    {focused ? (
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r={radius + 5}
+                        fill="none"
+                        stroke={fill}
+                        strokeWidth="1"
+                        opacity="0.22"
+                      />
+                    ) : null}
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={radius}
+                      fill={fill}
+                      stroke="#ffffff"
+                      strokeWidth={focused ? 1.5 : 1.15}
+                      filter={
+                        focused
+                          ? "url(#post-node-glow)"
+                          : "url(#post-node-shadow)"
+                      }
                       className="transition"
+                    />
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={Math.max(radius - 2.4, 1.8)}
+                      fill="none"
+                      stroke={focused ? "#18181b" : "#71717a"}
+                      strokeWidth="0.7"
+                      opacity={focused ? 0.35 : 0.18}
                     />
                     {showLabels ? (
                       <text
                         x={node.x}
-                        y={node.y + 20}
+                        y={node.y + radius + 13}
                         textAnchor="middle"
                         className={cn(
-                          "pointer-events-none text-[10px] font-medium transition",
-                          active ? "fill-zinc-800" : "fill-zinc-500",
+                          "pointer-events-none text-[9.5px] font-medium tracking-[-0.01em] transition",
+                          active ? "fill-zinc-700" : "fill-zinc-400",
                         )}
                       >
                         {truncateNodeTitle(node.title)}
@@ -619,9 +698,9 @@ function EmptyGraphState({
   description: string;
 }) {
   return (
-    <div className="rounded-[8px] border border-dashed border-zinc-300 bg-white px-5 py-6 text-sm text-zinc-500">
-      <p className="font-semibold text-zinc-800">{title}</p>
-      <p className="mt-2 leading-6">{description}</p>
+    <div className="text-sm text-zinc-500">
+      <p className="font-medium text-zinc-800">{title}</p>
+      <p className="mt-1.5 leading-6">{description}</p>
     </div>
   );
 }
@@ -642,6 +721,8 @@ function buildInitialGraphNodes(graph: PublicUserPostGraph): GraphNodeState[] {
   );
 
   return sortedNodes.map((node, index) => {
+    const nodeDegree = degree.get(node.slug) ?? 0;
+
     if (sortedNodes.length === 1) {
       return {
         slug: node.slug,
@@ -654,7 +735,6 @@ function buildInitialGraphNodes(graph: PublicUserPostGraph): GraphNodeState[] {
     }
 
     const angle = -Math.PI / 2 + (index / sortedNodes.length) * Math.PI * 2;
-    const nodeDegree = degree.get(node.slug) ?? 0;
     const pullToCenter = Math.min(nodeDegree * 0.09, 0.36);
 
     return {

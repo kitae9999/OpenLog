@@ -64,7 +64,7 @@ export function PostLikeButton({
         disabled={isDisabled}
         onClick={handleClick}
         className={[
-          "inline-flex items-center gap-2 text-[16px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:opacity-60",
+          "inline-flex cursor-pointer items-center gap-2 text-[16px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:opacity-60",
           likeState.liked
             ? "text-rose-600"
             : "text-zinc-500 hover:text-zinc-950",
@@ -85,10 +85,10 @@ export function PostLikeButton({
       disabled={isDisabled}
       onClick={handleClick}
       className={[
-        "group flex w-full flex-col items-center gap-1 rounded-xl px-1 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:opacity-60",
+        "group flex w-full cursor-pointer flex-col items-center gap-1 rounded-xl px-1 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:opacity-60",
         likeState.liked
-          ? "text-rose-600 hover:bg-rose-50"
-          : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950",
+          ? "text-rose-600"
+          : "text-zinc-500 hover:text-zinc-950",
       ].join(" ")}
     >
       <IconHeart

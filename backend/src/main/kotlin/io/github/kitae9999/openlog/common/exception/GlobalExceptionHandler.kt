@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.common.exception
 
 import io.github.kitae9999.openlog.auth.exception.InvalidOAuthStateException
+import io.github.kitae9999.openlog.auth.exception.InvalidRefreshTokenException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.auth.exception.UnauthorizedException
 import io.github.kitae9999.openlog.media.exception.MediaStorageException
@@ -64,6 +65,16 @@ class GlobalExceptionHandler {
             ErrorResponse(
                 code = "OAUTH_AUTHENTICATION_FAILED",
                 message = e.message ?: "OAuth 인증에 실패했습니다."
+            )
+        )
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException::class)
+    fun handleInvalidRefreshTokenException(e: InvalidRefreshTokenException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+            ErrorResponse(
+                code = "INVALID_REFRESH_TOKEN",
+                message = e.message ?: "Refresh token이 유효하지 않거나 만료되었습니다.",
             )
         )
     }

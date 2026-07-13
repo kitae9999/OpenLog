@@ -9,6 +9,7 @@ import {
   parsePublicPostSlugParam,
   parsePublicUsernameParam,
 } from "@/shared/lib/publicRoutes";
+import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
 import { WriteView } from "@/widgets/write/ui";
 
 export default async function EditPostPage({
@@ -49,7 +50,10 @@ export default async function EditPostPage({
     redirect(articleHref);
   }
 
-  const authoredPosts = await getPublicUserPosts(viewer.username);
+  const [authoredPosts, chrome] = await Promise.all([
+    getPublicUserPosts(viewer.username),
+    loadAppChromeWorkspace(true),
+  ]);
 
   return (
     <WriteView
@@ -71,6 +75,8 @@ export default async function EditPostPage({
       backLabel="Back to story"
       submitLabel="Save Changes"
       pendingSubmitLabel="Saving..."
+      workspaces={chrome.workspaces}
+      workspaceData={chrome.workspaceData}
     />
   );
 }

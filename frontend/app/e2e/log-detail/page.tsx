@@ -1,0 +1,42 @@
+"use client";
+
+import { LogDetailView } from "@/widgets/home-feed/ui/LogDetailView";
+import {
+  getLogById,
+  workspaceLogs,
+  workspaceWorkItems,
+} from "@/widgets/home-feed/ui/data";
+import type { WorkspaceUiData } from "@/widgets/home-feed/ui/workspaceTypes";
+
+const log =
+  getLogById("turbopack-pnpm") ??
+  workspaceLogs.find((item) => item.id === "turbopack-pnpm") ??
+  workspaceLogs[0];
+
+const workspaceData: WorkspaceUiData = {
+  workspaceId: "e2e-workspace",
+  workspaceName: "E2E Workspace",
+  repositoryFullName: null,
+  tasks: workspaceWorkItems,
+  logs: workspaceLogs,
+  outputs: [],
+  todos: [],
+  taskLinks: [],
+  logLinks: [],
+  memories: [],
+};
+
+export default function LogDetailE2EPage() {
+  return (
+    <main className="mx-auto w-full max-w-[1180px] bg-zinc-50 px-4 py-6 sm:px-6">
+      <div data-testid="log-detail">
+        <LogDetailView
+          log={log}
+          workspaceData={workspaceData}
+          assignTaskOverride={async () => ({ ok: true })}
+          isLoggedIn
+        />
+      </div>
+    </main>
+  );
+}

@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { logOut } from "@/features/auth/api/logOutActions";
+
+const ACCESS_TOKEN_REFRESH_INTERVAL_MS = 45 * 60 * 1000;
 
 export function ProfileMenu({
   profileHref,
@@ -15,6 +16,8 @@ export function ProfileMenu({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useAccessTokenRefresh();
 
   useEffect(() => {
     if (!isOpen) {
@@ -76,13 +79,64 @@ export function ProfileMenu({
             Profile
           </Link>
 
-          <form action={logOut}>
+          <form action="/auth/logout" method="post">
             <LogoutMenuItem />
           </form>
         </div>
       ) : null}
     </div>
   );
+}
+
+function useAccessTokenRefresh() {
+  const lastRefreshAtRef = useRef(Date.now());
+  const isRefreshingRef = useRef(false);
+
+  useEffect(() => {
+    async function refreshAccessToken() {
+      if (isRefreshingRef.current) {
+        return;
+      }
+
+      isRefreshingRef.current = true;
+
+      try {
+        const response = await fetch("/auth/refresh", {
+          method: "POST",
+          cache: "no-store",
+        });
+
+        if (response.ok) {
+          lastRefreshAtRef.current = Date.now();
+        }
+      } catch {
+        return;
+      } finally {
+        isRefreshingRef.current = false;
+      }
+    }
+
+    function refreshWhenVisible() {
+      if (
+        document.visibilityState === "visible" &&
+        Date.now() - lastRefreshAtRef.current >=
+          ACCESS_TOKEN_REFRESH_INTERVAL_MS
+      ) {
+        void refreshAccessToken();
+      }
+    }
+
+    const intervalId = window.setInterval(
+      refreshWhenVisible,
+      ACCESS_TOKEN_REFRESH_INTERVAL_MS,
+    );
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, []);
 }
 
 function LogoutMenuItem() {

@@ -45,6 +45,9 @@ class SecurityConfig(
                         "/auth/logout",
                         "/auth/device/start",
                         "/auth/device/token",
+                        "/auth/device/refresh",
+                        "/auth/device/revoke",
+                        "/auth/web/refresh",
                     ).permitAll()
                     // auth — 내 정보/온보딩/디바이스 승인 인증 필요
                     .requestMatchers(
@@ -88,6 +91,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.PATCH, "/media/assets/*/completion").authenticated()
 
                     // workspace — logs/tasks 전부 인증 필요 (owner 검사는 WorkspaceAccessResolver)
+                    .requestMatchers("/workspaces", "/workspaces/**").authenticated()
                     .requestMatchers("/*/logs", "/*/logs/**").authenticated()
                     .requestMatchers("/*/tasks", "/*/tasks/**").authenticated()
 

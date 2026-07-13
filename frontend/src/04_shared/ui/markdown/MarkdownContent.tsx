@@ -15,7 +15,7 @@ type HeadingLevel = 1 | 2 | 3 | 4 | 5;
 type HeadingTag = `h${HeadingLevel}`;
 
 const headingClassNamesByVariant: Record<
-  "default" | "compact",
+  "default" | "compact" | "dense",
   Record<HeadingLevel, string>
 > = {
   default: {
@@ -32,7 +32,31 @@ const headingClassNamesByVariant: Record<
     4: "text-[18px]",
     5: "text-[16px]",
   },
+  dense: {
+    1: "text-[16px]",
+    2: "text-[13px]",
+    3: "text-[12.5px]",
+    4: "text-[12px]",
+    5: "text-[12px]",
+  },
 };
+
+const headingFontClassNamesByVariant: Record<
+  "default" | "compact" | "dense",
+  string
+> = {
+  default: "font-bold leading-tight text-zinc-950",
+  compact: "font-bold leading-tight text-zinc-950",
+  dense:
+    "font-semibold uppercase tracking-[0.08em] leading-tight text-zinc-500",
+};
+
+const bodyClassNamesByVariant: Record<"default" | "compact" | "dense", string> =
+  {
+    default: "space-y-6 text-[16px] leading-8 text-zinc-700",
+    compact: "space-y-4 text-sm leading-6 text-zinc-800",
+    dense: "space-y-3.5 text-[14px] leading-6 text-zinc-700",
+  };
 
 export function MarkdownContent({
   markdown,
@@ -42,7 +66,7 @@ export function MarkdownContent({
 }: {
   markdown: string;
   wikiLinks?: MarkdownWikiLink[];
-  variant?: "default" | "compact";
+  variant?: "default" | "compact" | "dense";
   emptyFallback?: ReactNode;
 }) {
   const blocks = parseMarkdown(markdown);
@@ -55,13 +79,7 @@ export function MarkdownContent({
   }
 
   return (
-    <div
-      className={cn(
-        variant === "default"
-          ? "space-y-6 text-[16px] leading-8 text-zinc-700"
-          : "space-y-4 text-sm leading-6 text-zinc-800",
-      )}
-    >
+    <div className={bodyClassNamesByVariant[variant]}>
       {blocks.map((block, index) => {
         const key = `${block.type}-${index}`;
 
@@ -73,7 +91,7 @@ export function MarkdownContent({
               <HeadingTag
                 key={key}
                 className={cn(
-                  "[font-family:Georgia,serif] font-bold leading-tight text-zinc-950",
+                  headingFontClassNamesByVariant[variant],
                   headingClassNamesByVariant[variant][block.level],
                 )}
               >

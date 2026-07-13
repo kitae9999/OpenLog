@@ -83,6 +83,7 @@ class PostServiceTest {
             commentRepository = commentRepository,
             mediaService = mediaService,
             outboxEventWriter = outboxEventWriter,
+            postMapper = PostMapper(),
         )
         lenient().`when`(postLinkRepository.findAllBySourcePostId(anyLong())).thenReturn(emptyList())
     }

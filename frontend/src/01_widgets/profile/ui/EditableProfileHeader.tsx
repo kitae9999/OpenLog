@@ -31,15 +31,22 @@ export function EditableProfileHeader({
   isViewer,
   canFollow,
   joinedLabel,
+  onEditingChange,
 }: {
   profile: PublicUserProfile;
   isViewer: boolean;
   canFollow: boolean;
   joinedLabel: string;
+  onEditingChange?: (editing: boolean) => void;
 }) {
   const router = useRouter();
   const [currentProfile, setCurrentProfile] = useState(profile);
   const [isEditing, setIsEditing] = useState(false);
+
+  function setEditing(next: boolean) {
+    setIsEditing(next);
+    onEditingChange?.(next);
+  }
   const initialState: UpdateProfileActionState = {
     values: toUpdateProfileValues(currentProfile),
     errors: {},
@@ -125,7 +132,7 @@ export function EditableProfileHeader({
     setValues(toUpdateProfileValues(currentProfile));
     setClientErrors({});
     setServerErrors({});
-    setIsEditing(false);
+    setEditing(false);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -163,7 +170,7 @@ export function EditableProfileHeader({
         setValues(toUpdateProfileValues(result.profile));
         setClientErrors({});
         setServerErrors({});
-        setIsEditing(false);
+        setEditing(false);
         router.refresh();
         return;
       }
@@ -213,163 +220,157 @@ export function EditableProfileHeader({
 
   if (isEditing) {
     return (
-      <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-8 lg:flex-row lg:items-start"
-        >
+      <section>
+        <form onSubmit={handleSubmit}>
           <input type="hidden" name="username" value={currentProfile.username} />
-          <ProfileAvatar
-            profile={currentProfile}
-            profileName={profileName}
-            onOpenFollowList={handleOpenFollowList}
-          />
 
-          <div className="min-w-0 flex-1">
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm font-semibold text-zinc-500">
-                Edit profile details
-              </p>
-              {isViewer ? (
-                <EditActions onCancel={handleCancel} pending={isPending} />
-              ) : null}
-            </div>
-
-            <div className="grid min-w-0 gap-4">
-              <Field
-                name="nickname"
-                label="Nickname"
-                value={values.nickname}
-                placeholder="프로필에 표시될 이름입니다."
-                error={clientErrors.nickname ?? serverErrors.nickname}
-                maxLength={40}
-                onChange={handleFieldChange}
-                onBlur={handleFieldBlur}
-              />
-
-              <Field
-                name="bio"
-                label="Bio"
-                value={values.bio}
-                placeholder="No bio added yet."
-                error={clientErrors.bio ?? serverErrors.bio}
-                maxLength={160}
-                multiline
-                onChange={handleFieldChange}
-                onBlur={handleFieldBlur}
-              />
-
-              <Field
-                name="location"
-                label="Location"
-                value={values.location}
-                placeholder="No location added yet."
-                error={clientErrors.location ?? serverErrors.location}
-                maxLength={100}
-                iconSrc="/MapPin.svg"
-                onChange={handleFieldChange}
-                onBlur={handleFieldBlur}
-              />
-              <Field
-                name="websiteUrl"
-                label="Website"
-                value={values.websiteUrl}
-                placeholder="No website added yet."
-                error={clientErrors.websiteUrl ?? serverErrors.websiteUrl}
-                maxLength={2048}
-                iconSrc="/LinkIcon.svg"
-                onChange={handleFieldChange}
-                onBlur={handleFieldBlur}
-              />
-            </div>
-
-            {serverErrors.form ? (
-              <p className="mt-4 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-                {serverErrors.form}
-              </p>
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <p className="text-sm text-zinc-500">Edit profile</p>
+            {isViewer ? (
+              <EditActions onCancel={handleCancel} pending={isPending} />
             ) : null}
           </div>
+
+          <div className="mb-8">
+            <ProfileAvatar
+              profile={currentProfile}
+              profileName={profileName}
+              onOpenFollowList={handleOpenFollowList}
+            />
+          </div>
+
+          <div className="grid min-w-0 gap-5">
+            <Field
+              name="nickname"
+              label="Nickname"
+              value={values.nickname}
+              placeholder="Display name"
+              error={clientErrors.nickname ?? serverErrors.nickname}
+              maxLength={40}
+              onChange={handleFieldChange}
+              onBlur={handleFieldBlur}
+            />
+
+            <Field
+              name="bio"
+              label="Bio"
+              value={values.bio}
+              placeholder="A short bio"
+              error={clientErrors.bio ?? serverErrors.bio}
+              maxLength={160}
+              multiline
+              onChange={handleFieldChange}
+              onBlur={handleFieldBlur}
+            />
+
+            <Field
+              name="location"
+              label="Location"
+              value={values.location}
+              placeholder="Optional"
+              error={clientErrors.location ?? serverErrors.location}
+              maxLength={100}
+              onChange={handleFieldChange}
+              onBlur={handleFieldBlur}
+            />
+            <Field
+              name="websiteUrl"
+              label="Website"
+              value={values.websiteUrl}
+              placeholder="Optional"
+              error={clientErrors.websiteUrl ?? serverErrors.websiteUrl}
+              maxLength={2048}
+              onChange={handleFieldChange}
+              onBlur={handleFieldBlur}
+            />
+          </div>
+
+          {serverErrors.form ? (
+            <p className="mt-4 text-sm font-medium text-rose-700">
+              {serverErrors.form}
+            </p>
+          ) : null}
         </form>
+        {followListType ? (
+          <FollowListModal
+            type={followListType}
+            users={followListUsers}
+            loading={isFollowListLoading}
+            error={followListError}
+            onClose={() => setFollowListType(null)}
+          />
+        ) : null}
       </section>
     );
   }
 
+  const metaItems = [
+    joinedLabel,
+    currentProfile.location,
+    currentProfile.websiteUrl,
+  ].filter((item): item is string => Boolean(item));
+
   return (
-    <section className="rounded-[28px] border border-zinc-200/80 bg-white px-6 py-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-8 sm:py-8">
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+    <aside className="lg:sticky lg:top-24">
+      <div className="flex flex-col items-start">
         <ProfileAvatar
           profile={currentProfile}
           profileName={profileName}
           onOpenFollowList={handleOpenFollowList}
         />
 
-        <div className="min-w-0 flex-1">
-          <div className="min-w-0">
-            <div className="flex min-w-0 items-center justify-between gap-4">
-              <h1 className="min-w-0 break-words font-[Georgia,serif] text-[40px] font-bold leading-none tracking-[-0.04em] text-zinc-950 sm:text-[48px]">
-                {profileName}
-              </h1>
+        <div className="mt-5 w-full min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="min-w-0 text-[26px] font-bold leading-[1.15] tracking-tight text-zinc-950">
+              {profileName}
+            </h1>
+            {isViewer ? (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="mt-1 inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-sm font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                <IconPencil className="size-3.5" />
+                Edit
+              </button>
+            ) : null}
+          </div>
+          <p className="mt-1 text-sm text-zinc-400">
+            @{currentProfile.username}
+          </p>
 
-              {isViewer ? (
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-semibold text-zinc-600 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                >
-                  <IconPencil className="size-4" />
-                  Edit
-                </button>
-              ) : canFollow ? (
-                <button
-                  type="button"
-                  onClick={handleFollowToggle}
-                  disabled={isFollowPending}
-                  className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-sm font-semibold text-zinc-950 transition hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                >
-                  {following ? (
-                    <Image
-                      src="/Users.svg"
-                      alt=""
-                      width={16}
-                      height={16}
+          {canFollow ? (
+            <button
+              type="button"
+              onClick={handleFollowToggle}
+              disabled={isFollowPending}
+              className="mt-4 inline-flex h-8 w-full cursor-pointer items-center justify-center rounded-lg border border-zinc-200 text-sm font-medium text-zinc-950 transition hover:border-zinc-300 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+            >
+              {following ? "Following" : "Follow"}
+            </button>
+          ) : null}
+
+          {currentProfile.bio ? (
+            <p className="mt-4 text-[14.5px] leading-6 text-zinc-600">
+              {currentProfile.bio}
+            </p>
+          ) : null}
+
+          {metaItems.length > 0 ? (
+            <ul className="mt-4 space-y-0 text-sm text-zinc-400">
+              {metaItems.map((item, index) => (
+                <li key={item}>
+                  {index > 0 ? (
+                    <div
+                      className="my-2.5 h-px w-8 bg-zinc-200"
                       aria-hidden="true"
-                      className="size-4"
                     />
-                  ) : (
-                    <span
-                      aria-hidden="true"
-                      className="relative inline-block size-3 shrink-0"
-                    >
-                      <span className="absolute left-1/2 top-1/2 h-[1.5px] w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-current" />
-                      <span className="absolute left-1/2 top-1/2 h-2.5 w-[1.5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-current" />
-                    </span>
-                  )}
-                  {following ? "Following" : "Follow"}
-                </button>
-              ) : null}
-            </div>
-
-            <p className="mt-3 text-sm font-medium text-zinc-500">
-              @{currentProfile.username}
-            </p>
-            <p className="mt-4 max-w-3xl text-[18px] leading-8 text-zinc-600">
-              {currentProfile.bio ?? "No bio added yet."}
-            </p>
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm text-zinc-500">
-            <ProfileMeta iconSrc="/Calendar.svg" label={joinedLabel} />
-            <ProfileMeta
-              iconSrc="/MapPin.svg"
-              label={currentProfile.location ?? "No location added yet."}
-              muted={!currentProfile.location}
-            />
-            <ProfileMeta
-              iconSrc="/LinkIcon.svg"
-              label={currentProfile.websiteUrl ?? "No website added yet."}
-              muted={!currentProfile.websiteUrl}
-            />
-          </div>
+                  ) : null}
+                  <p className="break-words">{item}</p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       </div>
       {followListType ? (
@@ -381,7 +382,7 @@ export function EditableProfileHeader({
           onClose={() => setFollowListType(null)}
         />
       ) : null}
-    </section>
+    </aside>
   );
 }
 
@@ -395,37 +396,35 @@ function ProfileAvatar({
   onOpenFollowList: (type: FollowListType) => void;
 }) {
   return (
-    <div className="mx-auto flex shrink-0 flex-col items-center gap-4 lg:mx-0">
-      <div className="rounded-full border-4 border-zinc-50 bg-white p-1">
-        <Image
-          src={profile.profileImageUrl ?? assets.defaultAvatar}
-          alt={`${profileName} avatar`}
-          width={128}
-          height={128}
-          className="size-28 rounded-full object-cover sm:size-32"
-          priority
-        />
-      </div>
-      <div className="flex items-center gap-4 text-sm text-zinc-500">
+    <div className="flex w-full flex-col items-start gap-3">
+      <Image
+        src={profile.profileImageUrl ?? assets.defaultAvatar}
+        alt={`${profileName} avatar`}
+        width={112}
+        height={112}
+        className="size-24 rounded-full object-cover sm:size-28"
+        priority
+      />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-400">
         <button
           type="button"
           onClick={() => onOpenFollowList("followers")}
           className="inline-flex cursor-pointer items-baseline gap-1 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
-          <span className="font-semibold text-zinc-950">
+          <span className="font-semibold tabular-nums text-zinc-950">
             {profile.followersCount}
           </span>
-          <span>Followers</span>
+          <span>followers</span>
         </button>
         <button
           type="button"
           onClick={() => onOpenFollowList("following")}
           className="inline-flex cursor-pointer items-baseline gap-1 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
-          <span className="font-semibold text-zinc-950">
+          <span className="font-semibold tabular-nums text-zinc-950">
             {profile.followingCount}
           </span>
-          <span>Following</span>
+          <span>following</span>
         </button>
       </div>
     </div>
@@ -503,7 +502,7 @@ function FollowListContent({
 }) {
   if (loading) {
     return (
-      <div className="mt-6 rounded-xl border border-dashed border-zinc-200 px-4 py-8 text-center text-sm text-zinc-500">
+      <div className="mt-6 px-1 py-8 text-center text-sm text-zinc-500">
         Loading {title.toLowerCase()}...
       </div>
     );
@@ -511,15 +510,13 @@ function FollowListContent({
 
   if (error) {
     return (
-      <div className="mt-6 rounded-xl border border-rose-100 bg-rose-50 px-4 py-4 text-sm font-medium text-rose-700">
-        {error}
-      </div>
+      <div className="mt-6 text-sm font-medium text-rose-700">{error}</div>
     );
   }
 
   if (users.length === 0) {
     return (
-      <div className="mt-6 rounded-xl border border-dashed border-zinc-200 px-4 py-8 text-center text-sm text-zinc-500">
+      <div className="mt-6 px-1 py-8 text-center text-sm text-zinc-500">
         No {title.toLowerCase()} yet.
       </div>
     );
@@ -567,7 +564,6 @@ function Field({
   placeholder,
   error,
   maxLength,
-  iconSrc,
   multiline = false,
   onChange,
   onBlur,
@@ -578,24 +574,17 @@ function Field({
   placeholder: string;
   error?: string;
   maxLength: number;
-  iconSrc?: string;
   multiline?: boolean;
   onChange: (name: FieldName, value: string) => void;
   onBlur: (name: FieldName) => void;
 }) {
-  const inputClassName = error
-    ? "border-rose-300 bg-rose-50/40 focus:border-rose-400 focus:ring-rose-100"
-    : "border-zinc-200 bg-white focus:border-zinc-400 focus:ring-zinc-200/70";
-  const className = `mt-2 w-full rounded-xl border px-4 py-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:ring-4 ${inputClassName}`;
+  const className = error
+    ? "mt-1.5 w-full border-b border-rose-300 bg-transparent px-0 py-2 text-sm text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-rose-400"
+    : "mt-1.5 w-full border-b border-zinc-200 bg-transparent px-0 py-2 text-sm text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-zinc-400";
 
   return (
     <label className="block">
-      <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
-        {iconSrc ? (
-          <Image src={iconSrc} alt="" width={16} height={16} aria-hidden="true" />
-        ) : null}
-        {label}
-      </span>
+      <span className="text-xs font-medium text-zinc-400">{label}</span>
       {multiline ? (
         <textarea
           name={name}
@@ -603,7 +592,7 @@ function Field({
           placeholder={placeholder}
           rows={3}
           maxLength={maxLength}
-          className={`${className} min-h-[88px] resize-none leading-6`}
+          className={`${className} min-h-[72px] resize-none leading-6`}
           onChange={(event) => onChange(name, event.target.value)}
           onBlur={() => onBlur(name)}
         />
@@ -618,7 +607,7 @@ function Field({
           onBlur={() => onBlur(name)}
         />
       )}
-      {error ? <p className="mt-2 text-sm text-rose-600">{error}</p> : null}
+      {error ? <p className="mt-1.5 text-sm text-rose-600">{error}</p> : null}
     </label>
   );
 }
@@ -631,39 +620,22 @@ function EditActions({
   pending: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2 self-start">
+    <div className="flex items-center gap-3 self-start">
       <button
         type="button"
         onClick={onCancel}
         disabled={pending}
-        className="inline-flex h-11 items-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10 disabled:cursor-not-allowed disabled:text-zinc-300"
+        className="text-sm font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
       >
         Cancel
       </button>
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex h-11 items-center rounded-xl bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:bg-zinc-400"
+        className="text-sm font-semibold text-zinc-950 transition hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
       >
         {pending ? "Saving..." : "Save"}
       </button>
-    </div>
-  );
-}
-
-function ProfileMeta({
-  iconSrc,
-  label,
-  muted = false,
-}: {
-  iconSrc: string;
-  label: string;
-  muted?: boolean;
-}) {
-  return (
-    <div className="inline-flex items-center gap-2.5">
-      <Image src={iconSrc} alt="" width={16} height={16} aria-hidden="true" />
-      <span className={muted ? "text-zinc-400" : undefined}>{label}</span>
     </div>
   );
 }

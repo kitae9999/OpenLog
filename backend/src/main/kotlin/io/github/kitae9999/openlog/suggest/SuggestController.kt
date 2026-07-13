@@ -1,13 +1,13 @@
 package io.github.kitae9999.openlog.suggest
 
-import io.github.kitae9999.openlog.auth.CurrentUserResolver
-import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
-import io.github.kitae9999.openlog.suggest.dto.WriteSuggestionRequest
 import io.github.kitae9999.openlog.suggest.dto.ManageSuggestionRequest
 import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
 import io.github.kitae9999.openlog.suggest.dto.SuggestionSummaryResponse
-import jakarta.servlet.http.HttpServletRequest
+import io.github.kitae9999.openlog.suggest.dto.WriteSuggestionRequest
+import io.github.kitae9999.openlog.user.entity.User
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -17,57 +17,54 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping()
+@RequestMapping
 class SuggestController(
     private val suggestService: SuggestService,
-    private val currentUserResolver: CurrentUserResolver,
 ) {
     @GetMapping("/posts/{postId}/suggestions")
     fun getPostSuggestion(
-        @PathVariable postId: Long
+        @PathVariable postId: Long,
     ): List<SuggestionSummaryResponse> {
         return suggestService.getPostSuggestions(postId)
     }
 
     @PostMapping("/posts/{postId}/suggestions")
     fun createPostSuggestion(
+        @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
         @RequestBody createSuggestionRequest: WriteSuggestionRequest,
-        request: HttpServletRequest
-    ){
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
+    ): ResponseEntity<Void> {
         val (title, description, content) = createSuggestionRequest
-        suggestService.createPostSuggestion(currentUser, postId, title, description, content)
+        suggestService.createPostSuggestion(user, postId, title, description, content)
+
+        return ResponseEntity.status(HttpStatus.CREATED).build()
     }
 
     @GetMapping("/posts/{postId}/suggestions/{suggestionId}")
     fun getSuggestionDetail(
+        @AuthenticationPrincipal user: User?,
         @PathVariable postId: Long,
         @PathVariable suggestionId: Long,
-        request: HttpServletRequest,
     ): SuggestionDetailResponse {
         return suggestService.getSuggestionDetail(
             postId = postId,
             suggestionId = suggestionId,
-            currentUserId = resolveCurrentUserIdOrNull(request),
+            currentUserId = user?.id,
         )
     }
 
     @PostMapping("/posts/{postId}/suggestions/{suggestionId}/resolutions")
     fun manageSuggestion(
+        @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
         @PathVariable suggestionId: Long,
-        request: HttpServletRequest,
         @RequestBody manageSuggestionRequest: ManageSuggestionRequest,
     ): ResponseEntity<Void> {
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
-        val action = manageSuggestionRequest.action
-
         suggestService.manageSuggestion(
-            userId = requireNotNull(currentUser.id),
+            userId = requireNotNull(user.id),
             postId = postId,
             suggestionId = suggestionId,
-            action = action
+            action = manageSuggestionRequest.action,
         )
 
         return ResponseEntity.noContent().build()
@@ -75,29 +72,20 @@ class SuggestController(
 
     @PatchMapping("/posts/{postId}/suggestions/{suggestionId}")
     fun updateSuggestion(
+        @AuthenticationPrincipal user: User,
         @PathVariable postId: Long,
         @PathVariable suggestionId: Long,
-        request: HttpServletRequest,
-        @RequestBody updateSuggestionRequest: WriteSuggestionRequest
-    ): ResponseEntity<Void>{
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
+        @RequestBody updateSuggestionRequest: WriteSuggestionRequest,
+    ): ResponseEntity<Void> {
         suggestService.updateSuggestion(
-            userId = requireNotNull(currentUser.id),
+            userId = requireNotNull(user.id),
             postId = postId,
             suggestionId = suggestionId,
             title = updateSuggestionRequest.title,
             description = updateSuggestionRequest.description,
-            content = updateSuggestionRequest.content
+            content = updateSuggestionRequest.content,
         )
 
         return ResponseEntity.noContent().build()
-    }
-
-    private fun resolveCurrentUserIdOrNull(request: HttpServletRequest): Long? {
-        return try {
-            currentUserResolver.resolveCurrentUser(request).id
-        } catch (e: OAuthAuthenticationException) {
-            null
-        }
     }
 }

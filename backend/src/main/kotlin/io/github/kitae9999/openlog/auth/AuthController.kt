@@ -6,16 +6,20 @@ import io.github.kitae9999.openlog.auth.dto.DeviceStartResponse
 import io.github.kitae9999.openlog.auth.dto.DeviceTokenRequest
 import io.github.kitae9999.openlog.auth.dto.DeviceTokenResponse
 import io.github.kitae9999.openlog.auth.dto.MeResponse
+import io.github.kitae9999.openlog.auth.dto.RefreshTokenRequest
+import io.github.kitae9999.openlog.auth.dto.RefreshTokenResponse
+import io.github.kitae9999.openlog.auth.exception.InvalidRefreshTokenException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.user.entity.User
+import jakarta.servlet.http.HttpSession
 import jakarta.validation.Valid
-import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseCookie
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.CookieValue
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -28,86 +32,124 @@ import java.net.URI
 import java.time.Duration
 
 @RestController
-@RequestMapping("auth")
+@RequestMapping("/auth")
 class AuthController(
     private val authService: AuthService,
     private val deviceAuthService: DeviceAuthService,
-    private val currentUserResolver: CurrentUserResolver,
-    private val jwtTokenService: JwtTokenService,
+    private val webTokenService: WebTokenService,
     private val accessTokenCookieFactory: AccessTokenCookieFactory,
+    private val webRefreshTokenCookieFactory: WebRefreshTokenCookieFactory,
     @Value("\${auth.jwt.cookie-secure:false}")
     private val accessTokenCookieSecure: Boolean,
     @Value("\${app.frontend-home-url:http://localhost:3030}")
     private val frontendHomeUrl: String,
 ) {
 
-    @PostMapping("logout")
+    @PostMapping("/logout")
     fun logOut(
-        response: HttpServletResponse
-    ): ResponseEntity<Void>{
-        val cookie = accessTokenCookieFactory.expire()
+        @CookieValue(
+            name = "\${auth.web.refresh-cookie-name:openlog_refresh_token}",
+            required = false,
+        )
+        refreshToken: String?,
+        response: HttpServletResponse,
+    ): ResponseEntity<Void> {
+        refreshToken?.let(webTokenService::revoke)
+        expireWebAuthCookies(response)
 
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/web/refresh")
+    fun refreshWebToken(
+        @CookieValue(
+            name = "\${auth.web.refresh-cookie-name:openlog_refresh_token}",
+            required = false,
+        )
+        refreshToken: String?,
+        response: HttpServletResponse,
+    ): ResponseEntity<Void> {
+        val accessToken = try {
+            webTokenService.refresh(
+                refreshToken?.takeIf { it.isNotBlank() }
+                    ?: throw InvalidRefreshTokenException(),
+            )
+        } catch (exception: InvalidRefreshTokenException) {
+            expireWebAuthCookies(response)
+            throw exception
+        }
         response.addHeader(
             HttpHeaders.SET_COOKIE,
-            cookie.toString()
+            accessTokenCookieFactory.create(accessToken).toString(),
         )
 
         return ResponseEntity.noContent().build()
     }
 
-    @GetMapping("me")
+    @GetMapping("/me")
     fun getMe(
-        request: HttpServletRequest
+        @AuthenticationPrincipal user: User,
     ): MeResponse {
-        val meUser = currentUserResolver.resolveCurrentUser(request)
-
-        return meUser.toMeResponse() // 코틀린 확장 함수 (메서드 아님)
+        return user.toMeResponse() // 코틀린 확장 함수 (메서드 아님)
     }
 
-    @PostMapping("onboarding")
+    @PostMapping("/onboarding")
     fun completeOnboarding(
-        request: HttpServletRequest,
+        @AuthenticationPrincipal user: User,
         @Valid @RequestBody onboardingRequest: CompleteOnboardingRequest,
-    ): MeResponse {
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
+    ): ResponseEntity<MeResponse> {
         val onboardedUser = authService.completeOnboarding(
-            userId = requireNotNull(currentUser.id),
+            userId = requireNotNull(user.id),
             request = onboardingRequest,
         )
 
-        return onboardedUser.toMeResponse()
+        return ResponseEntity.status(HttpStatus.CREATED).body(onboardedUser.toMeResponse())
     }
 
-    @PostMapping("device/start")
-    fun startDeviceLogin(): DeviceStartResponse {
-        return deviceAuthService.start()
+    @PostMapping("/device/start")
+    fun startDeviceLogin(): ResponseEntity<DeviceStartResponse> {
+        return ResponseEntity.status(HttpStatus.CREATED).body(deviceAuthService.start())
     }
 
-    @PostMapping("device/approve")
+    @PostMapping("/device/approve")
     fun approveDeviceLogin(
-        request: HttpServletRequest,
+        @AuthenticationPrincipal user: User,
         @RequestBody deviceApproveRequest: DeviceApproveRequest,
     ): ResponseEntity<Void> {
-        val currentUser = currentUserResolver.resolveCurrentUser(request)
-        deviceAuthService.approve(deviceApproveRequest.userCode, currentUser)
+        deviceAuthService.approve(deviceApproveRequest.userCode, user)
 
         return ResponseEntity.noContent().build()
     }
 
-    @PostMapping("device/token")
+    @PostMapping("/device/token")
     fun getDeviceToken(
         @RequestBody deviceTokenRequest: DeviceTokenRequest,
     ): DeviceTokenResponse {
         return deviceAuthService.token(deviceTokenRequest.deviceCode)
     }
 
-    @GetMapping("google")
+    @PostMapping("/device/refresh")
+    fun refreshDeviceToken(
+        @Valid @RequestBody refreshTokenRequest: RefreshTokenRequest,
+    ): RefreshTokenResponse {
+        return deviceAuthService.refresh(refreshTokenRequest.refreshToken)
+    }
+
+    @PostMapping("/device/revoke")
+    fun revokeDeviceToken(
+        @Valid @RequestBody refreshTokenRequest: RefreshTokenRequest,
+    ): ResponseEntity<Void> {
+        deviceAuthService.revoke(refreshTokenRequest.refreshToken)
+        return ResponseEntity.noContent().build()
+    }
+
+    @GetMapping("/google")
     fun redirectToGoogleOAuth(
         @RequestParam(required = false) returnTo: String?,
-    ): ResponseEntity<Void>{
+    ): ResponseEntity<Void> {
         val authRequest = authService.createGoogleAuthRequest(returnTo)
 
-        val flowCookie = ResponseCookie.from("oauth_flow_id",authRequest.flowId)
+        val flowCookie = ResponseCookie.from("oauth_flow_id", authRequest.flowId)
             .httpOnly(true)
             .secure(accessTokenCookieSecure)
             .sameSite("Lax")
@@ -121,13 +163,13 @@ class AuthController(
             .build()
     }
 
-    @GetMapping("github")
+    @GetMapping("/github")
     fun redirectToGithubOAuth(
-        request: HttpServletRequest,
+        session: HttpSession,
         @RequestParam(required = false) returnTo: String?,
     ): ResponseEntity<Void> {
         normalizeFrontendReturnTo(returnTo)?.let {
-            request.session.setAttribute(GITHUB_RETURN_TO_SESSION_ATTRIBUTE, it)
+            session.setAttribute(GITHUB_RETURN_TO_SESSION_ATTRIBUTE, it)
         }
 
         return ResponseEntity.status(HttpStatus.FOUND)
@@ -136,17 +178,17 @@ class AuthController(
                     ServletUriComponentsBuilder.fromCurrentContextPath()
                         .path("/oauth2/authorization/github")
                         .build()
-                        .toUriString()
-                )
+                        .toUriString(),
+                ),
             )
             .build()
     }
 
-    @GetMapping("google/callback")
+    @GetMapping("/google/callback")
     fun hangleGoogleCallback(
         @RequestParam code: String,
         @RequestParam state: String,
-        @CookieValue("oauth_flow_id") flowId: String
+        @CookieValue("oauth_flow_id") flowId: String,
     ): ResponseEntity<Void> {
         val oauthState = authService.consumeGoogleState(flowId, state)
 
@@ -173,11 +215,19 @@ class AuthController(
             picture = picture,
             email = email,
         )
-        val issuedJwt = jwtTokenService.createAccessToken(currentUser)
-        val authCookie = accessTokenCookieFactory.create(issuedJwt)
+        val tokenPair = webTokenService.issue(currentUser)
+        val authCookie = accessTokenCookieFactory.create(tokenPair.accessToken)
+        val refreshCookie = webRefreshTokenCookieFactory.create(tokenPair.refreshToken)
+        val refreshMarkerCookie = webRefreshTokenCookieFactory.createMarker()
 
         return ResponseEntity.status(HttpStatus.FOUND)
-            .header(HttpHeaders.SET_COOKIE, deleteCookie.toString(), authCookie.toString())
+            .header(
+                HttpHeaders.SET_COOKIE,
+                deleteCookie.toString(),
+                authCookie.toString(),
+                refreshCookie.toString(),
+                refreshMarkerCookie.toString(),
+            )
             .location(URI.create(resolvePostLoginRedirect(currentUser, oauthState.returnTo)))
             .build()
     }
@@ -192,6 +242,16 @@ class AuthController(
             bio = bio,
             isOnboardingComplete = isOnboardingComplete(),
         )
+    }
+
+    private fun expireWebAuthCookies(response: HttpServletResponse) {
+        listOf(
+            accessTokenCookieFactory.expire(),
+            webRefreshTokenCookieFactory.expire(),
+            webRefreshTokenCookieFactory.expireMarker(),
+        ).forEach { cookie ->
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString())
+        }
     }
 
     private fun resolvePostLoginRedirect(user: User, returnTo: String?): String {

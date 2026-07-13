@@ -1,5 +1,6 @@
 HELP.md
 .gradle
+/.pnpm-store/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -35,6 +36,19 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Cursor / Claude ###
+.claude/
+.cursor/
+.playwright-mcp/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/e2e/todos-layout.spec.ts-snapshots/
+frontend/e2e/screenshots/
+frontend/e2e/artifacts/
+frontend/.next-e2e/
+frontend/.next-e2e-demo/
 
 ### Kotlin ###
 .kotlin

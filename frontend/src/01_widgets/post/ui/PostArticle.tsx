@@ -6,6 +6,11 @@ import type { Contributor, Post } from "@/entities/post/model";
 import { PostCommentsSection } from "./PostCommentsSection";
 import { PostLikeButton } from "./PostLikeButton";
 import { PostOwnerActions } from "./PostOwnerActions";
+import { PostShareButton } from "./PostShareButton";
+import {
+  PostSourceTeaser,
+  type PostSourceTeaserData,
+} from "./PostSourceTeaser";
 import { PostTabs } from "./PostTabs";
 
 const COMMENTS_SECTION_ID = "post-comments";
@@ -30,6 +35,7 @@ export function PostArticle({
   commentItems,
   postId,
   ownerActions,
+  sourceTeaser,
 }: {
   post: Post;
   contributors?: Contributor[];
@@ -44,6 +50,7 @@ export function PostArticle({
   commentItems?: Comment[];
   postId?: number;
   ownerActions?: OwnerActions;
+  sourceTeaser?: PostSourceTeaserData;
 }) {
   const list = contributors ?? [];
 
@@ -126,7 +133,7 @@ export function PostArticle({
                     {post.versionLabel ? (
                       <>
                         <span className="text-zinc-300">·</span>
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-700">
+                        <span className="font-mono text-[12.5px] text-zinc-400">
                           {post.versionLabel}
                         </span>
                       </>
@@ -136,25 +143,16 @@ export function PostArticle({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-start justify-end gap-3">
-                {ownerActions ? (
-                  <PostOwnerActions
-                    postId={ownerActions.postId}
-                    editHref={ownerActions.editHref}
-                    profileHref={ownerActions.profileHref}
-                  />
-                ) : null}
-                <button
-                  type="button"
-                  aria-label="Share"
-                  className="grid size-9 place-items-center rounded-full text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                >
-                  <IconShare className="size-5" />
-                </button>
-              </div>
+              {ownerActions ? (
+                <PostOwnerActions
+                  postId={ownerActions.postId}
+                  editHref={ownerActions.editHref}
+                  profileHref={ownerActions.profileHref}
+                />
+              ) : null}
             </div>
 
-            <h1 className="font-serif text-[42px] font-semibold leading-[1.1] tracking-tight text-zinc-950">
+            <h1 className="text-[42px] font-bold leading-[1.1] tracking-tight text-zinc-950">
               {post.title}
             </h1>
 
@@ -165,20 +163,27 @@ export function PostArticle({
             ) : null}
 
             {post.tags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                 {post.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-zinc-600"
+                    className="text-[12.5px] font-medium tracking-[-0.01em] text-zinc-400"
                   >
-                    {tag}
+                    #{tag}
                   </span>
                 ))}
               </div>
             ) : null}
           </header>
 
+          <div
+            className="mx-auto mt-12 mb-12 h-px w-56 bg-zinc-200 sm:mt-14 sm:mb-14 sm:w-72"
+            aria-hidden="true"
+          />
+
           {children}
+
+          {sourceTeaser ? <PostSourceTeaser /> : null}
 
           <div className="mt-10 flex justify-center lg:hidden">
             <MobileActionBar
@@ -262,11 +267,15 @@ function PostActionRail({
       <a
         href={`#${COMMENTS_SECTION_ID}`}
         aria-label={`Jump to comments (${comments})`}
-        className="group flex w-full flex-col items-center gap-1 rounded-xl px-1 py-2 text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        className="group flex w-full cursor-pointer flex-col items-center gap-1 rounded-xl px-1 py-2 text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >
         <IconMessageSquare className="size-5 transition-transform group-hover:scale-[1.03]" />
         <span className="text-[12px] font-medium leading-none">{comments}</span>
       </a>
+
+      <div className="h-px w-7 bg-zinc-200" aria-hidden="true" />
+
+      <PostShareButton variant="rail" />
     </nav>
   );
 }
@@ -283,7 +292,7 @@ function MobileActionBar({
   comments: number;
 }) {
   return (
-    <div className="flex h-[62px] w-full max-w-[260px] items-center justify-center gap-6 rounded-2xl border border-zinc-200 bg-white/80 px-6 shadow-[0_20px_25px_rgba(0,0,0,0.1),0_8px_10px_rgba(0,0,0,0.1)] backdrop-blur">
+    <div className="flex h-[62px] w-full max-w-[320px] -translate-x-[10px] items-center justify-center gap-5 rounded-2xl border border-zinc-200 bg-white/80 px-5 shadow-[0_8px_16px_rgba(0,0,0,0.06),0_2px_6px_rgba(0,0,0,0.04)] backdrop-blur">
       <PostLikeButton
         postId={postId}
         initialLikes={likes}
@@ -300,6 +309,10 @@ function MobileActionBar({
         <IconMessageSquare className="size-6" />
         <span>{comments}</span>
       </a>
+
+      <span className="h-6 w-px bg-zinc-300" aria-hidden="true" />
+
+      <PostShareButton variant="mobile" />
     </div>
   );
 }
@@ -352,43 +365,6 @@ function IconArrowLeft({ className }: { className?: string }) {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconShare({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M18 8a3 3 0 10-2.83-4H15a3 3 0 103 4z"
-        fill="currentColor"
-        opacity="0"
-      />
-      <path
-        d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M16 6l-4-4-4 4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12 2v13"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
       />
     </svg>
   );

@@ -133,15 +133,15 @@ export function SuggestionDiscussionSection({
     <section>
       <div className="flex items-center gap-4">
         <div className="h-px flex-1 bg-zinc-200" />
-        <div className="inline-flex items-center gap-2 text-sm text-zinc-500">
-          <IconComment className="size-4" />
+        <div className="inline-flex items-center gap-1.5 text-[13px] font-medium text-zinc-400">
+          <IconComment className="size-3.5" />
           Discussion
         </div>
         <div className="h-px flex-1 bg-zinc-200" />
       </div>
 
       {discussionItems.length > 0 ? (
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-8">
           {discussionItems.map((comment) => (
             <DiscussionCard
               key={comment.id}
@@ -162,9 +162,7 @@ export function SuggestionDiscussionSection({
       ) : null}
 
       {actionError ? (
-        <p className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-          {actionError}
-        </p>
+        <p className="mt-4 text-sm font-medium text-rose-600">{actionError}</p>
       ) : null}
 
       <div className="mt-6 flex items-start gap-4">
@@ -217,24 +215,26 @@ function DiscussionCard({
         alt={`${comment.authorName} avatar`}
         width={40}
         height={40}
-        className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
+        className="mt-0.5 size-10 rounded-full border border-zinc-200 object-cover"
       />
-      <section className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-500">
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
             <span className="font-semibold text-zinc-950">
               {comment.authorName}
             </span>
-            <span>commented on {comment.commentedAtLabel}</span>
+            <span className="text-zinc-400">
+              commented on {comment.commentedAtLabel}
+            </span>
           </div>
           {canManage ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={onEdit}
                 disabled={isEditing || isDeleting}
                 aria-label="Edit your discussion"
-                className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+                className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
               >
                 Edit
               </button>
@@ -243,7 +243,7 @@ function DiscussionCard({
                 onClick={onDelete}
                 disabled={isDeleting}
                 aria-label="Delete your discussion"
-                className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:text-rose-300"
+                className="cursor-pointer text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isDeleting ? "Deleting..." : "Delete"}
               </button>
@@ -251,7 +251,7 @@ function DiscussionCard({
           ) : null}
         </div>
         {isEditing ? (
-          <div className="p-4">
+          <div className="mt-3">
             <DiscussionComposer
               key={comment.id}
               initialValue={comment.message}
@@ -263,11 +263,11 @@ function DiscussionCard({
             />
           </div>
         ) : (
-          <div className="px-4 py-5">
+          <div className="mt-2">
             <MarkdownContent markdown={comment.message} variant="compact" />
           </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }

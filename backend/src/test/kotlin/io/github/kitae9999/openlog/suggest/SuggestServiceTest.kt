@@ -2,7 +2,7 @@ package io.github.kitae9999.openlog.suggest
 
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
-import io.github.kitae9999.openlog.discussion.DiscussionService
+import io.github.kitae9999.openlog.discussion.DiscussionMapper
 import io.github.kitae9999.openlog.discussion.repository.DiscussionRepository
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.repository.PostRepository
@@ -33,9 +33,6 @@ class SuggestServiceTest {
     @Mock
     private lateinit var discussionRepository: DiscussionRepository
 
-    @Mock
-    private lateinit var discussionService: DiscussionService
-
     private lateinit var suggestService: SuggestService
 
     @BeforeEach
@@ -44,7 +41,7 @@ class SuggestServiceTest {
             postRepository = postRepository,
             suggestionRepository = suggestionRepository,
             discussionRepository = discussionRepository,
-            discussionService = discussionService,
+            suggestionMapper = SuggestionMapper(DiscussionMapper()),
         )
     }
 

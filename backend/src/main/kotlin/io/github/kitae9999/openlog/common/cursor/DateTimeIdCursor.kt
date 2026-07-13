@@ -10,6 +10,9 @@ data class DateTimeIdCursor(
 )
 
 object DateTimeIdCursorCodec {
+    /**
+     * cursor 인스턴스의 createdAt과 id를 문자열로 합쳐서 인코딩
+     */
     fun encode(createdAt: LocalDateTime, id: Long): String {
         val rawCursor = "$createdAt|$id"
         return Base64.getUrlEncoder().withoutPadding().encodeToString(rawCursor.toByteArray())

@@ -3,7 +3,6 @@ package io.github.kitae9999.openlog.suggest
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.discussion.DiscussionService
 import io.github.kitae9999.openlog.discussion.repository.DiscussionRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
@@ -22,23 +21,15 @@ class SuggestService(
     val postRepository: PostRepository,
     val suggestionRepository: SuggestionRepository,
     private val discussionRepository: DiscussionRepository,
-    private val discussionService: DiscussionService,
+    private val suggestionMapper: SuggestionMapper,
 ) {
     @Transactional
     fun getPostSuggestions(postId: Long): List<SuggestionSummaryResponse> {
         val suggestions = suggestionRepository.findAllWithUserByPostId(postId)
 
         return suggestions.map { suggestion ->
-            SuggestionSummaryResponse(
-                id = requireNotNull(suggestion.id),
-                title = suggestion.title,
-                status = suggestion.status,
-                authorName = suggestion.user.nickname
-                    ?: suggestion.user.username
-                    ?: "Unknown",
-                authorProfileImageUrl = suggestion.user.profileImageUrl,
-                createdAt = suggestion.createdAt,
-                updatedAt = suggestion.updatedAt,
+            suggestionMapper.toSummaryResponse(
+                suggestion = suggestion,
                 commentCount = discussionRepository.countBySuggestionId(requireNotNull(suggestion.id)).toInt(),
             )
         }
@@ -76,23 +67,10 @@ class SuggestService(
             ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
         val discussions = discussionRepository.findAllWithUserBySuggestionId(suggestionId)
 
-        return SuggestionDetailResponse(
-            id = requireNotNull(suggestion.id),
-            title = suggestion.title,
-            content = suggestion.content,
-            baseContent = suggestion.baseContent,
-            description = suggestion.description,
-            status = suggestion.status,
-            authorId = requireNotNull(suggestion.user.id),
-            authorName = suggestion.user.nickname
-                ?: suggestion.user.username
-                ?: "Unknown",
-            authorProfileImageUrl = suggestion.user.profileImageUrl,
-            createdAt = suggestion.createdAt,
-            postBaseVersion = suggestion.postBaseVersion,
-            discussions = discussions.map { discussion ->
-                discussionService.toDiscussionResponse(discussion, currentUserId)
-            },
+        return suggestionMapper.toDetailResponse(
+            suggestion = suggestion,
+            discussions = discussions,
+            currentUserId = currentUserId,
         )
     }
 

@@ -128,31 +128,20 @@ export function PostCommentsSection({
   }
 
   return (
-    <section
-      id={COMMENTS_SECTION_ID}
-      className="mt-14 scroll-mt-24 rounded-[28px] border border-zinc-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbfa_100%)] p-6 shadow-[0_22px_50px_rgba(24,24,27,0.06)] sm:p-7"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-5">
-        <div>
-          <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.10em] text-zinc-400">
-            <IconMessageSquare className="size-3.5" />
-            Comments
-          </div>
-          <h2 className="mt-3 font-serif text-[28px] font-semibold tracking-tight text-zinc-950">
-            Join the thread
-          </h2>
-          <p className="mt-2 max-w-[58ch] text-sm leading-6 text-zinc-600">
-            Leave feedback, ask for clarification, or keep a focused discussion
-            attached to this article.
-          </p>
-        </div>
-        <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-500 shadow-sm">
-          {displayCommentCount} comments
-        </span>
+    <section id={COMMENTS_SECTION_ID} className="mt-20 scroll-mt-24 sm:mt-28">
+      <div
+        className="mx-auto mb-12 h-px w-56 bg-zinc-200 sm:mb-14 sm:w-72"
+        aria-hidden="true"
+      />
+      <div className="flex items-baseline gap-2">
+        <h2 className="text-[20px] font-semibold tracking-tight text-zinc-950">
+          Comments
+        </h2>
+        <span className="text-sm text-zinc-400">{displayCommentCount}</span>
       </div>
 
       {commentItems.length > 0 ? (
-        <div className="mt-5 space-y-4">
+        <div className="mt-8 space-y-8">
           {commentItems.map((comment) => (
             <CommentCard
               key={comment.id}
@@ -171,23 +160,16 @@ export function PostCommentsSection({
           ))}
         </div>
       ) : !hasFetchedComments && comments > 0 ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-4 text-sm leading-6 text-zinc-500">
-          Existing comment entries are not wired into this detail view yet. The
-          section is ready for comment-thread data and new replies.
-        </div>
-      ) : (
-        <div className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-4 text-sm leading-6 text-zinc-500">
-          No comments yet. Start the first thread for this article.
-        </div>
-      )}
-
-      {actionError ? (
-        <p className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-          {actionError}
+        <p className="mt-6 text-sm leading-6 text-zinc-500">
+          Existing comment entries are not wired into this detail view yet.
         </p>
       ) : null}
 
-      <div className="mt-6 flex items-start gap-4">
+      {actionError ? (
+        <p className="mt-4 text-sm font-medium text-rose-700">{actionError}</p>
+      ) : null}
+
+      <div className="mt-8 flex items-start gap-4">
         <Image
           src={resolvedAvatarSrc}
           alt="Current user avatar"
@@ -239,24 +221,26 @@ function CommentCard({
         alt={`${comment.authorName} avatar`}
         width={40}
         height={40}
-        className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
+        className="mt-0.5 size-10 rounded-full border border-zinc-200 object-cover"
       />
-      <section className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-500">
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
             <span className="font-semibold text-zinc-950">
               {comment.authorName}
             </span>
-            <span>commented on {formatCommentedAtLabel(comment.createdAt)}</span>
+            <span className="text-zinc-400">
+              {formatCommentedAtLabel(comment.createdAt)}
+            </span>
           </div>
           {canManage ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={onEdit}
                 disabled={isEditing || isDeleting}
                 aria-label="Edit your comment"
-                className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+                className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
               >
                 Edit
               </button>
@@ -265,7 +249,7 @@ function CommentCard({
                 onClick={onDelete}
                 disabled={isDeleting}
                 aria-label="Delete your comment"
-                className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:text-rose-300"
+                className="cursor-pointer text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:text-rose-300"
               >
                 {isDeleting ? "Deleting..." : "Delete"}
               </button>
@@ -273,7 +257,7 @@ function CommentCard({
           ) : null}
         </div>
         {isEditing ? (
-          <div className="p-4">
+          <div className="mt-3">
             <DiscussionComposer
               key={comment.id}
               initialValue={comment.content}
@@ -285,11 +269,11 @@ function CommentCard({
             />
           </div>
         ) : (
-          <div className="px-4 py-5">
+          <div className="mt-2">
             <MarkdownContent markdown={comment.content} variant="compact" />
           </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }
@@ -301,23 +285,4 @@ function formatCommentedAtLabel(createdAt: string) {
   }
 
   return COMMENT_DATE_FORMATTER.format(parsed);
-}
-
-function IconMessageSquare({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4v8z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }

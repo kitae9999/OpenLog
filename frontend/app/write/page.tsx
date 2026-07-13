@@ -3,6 +3,7 @@ import { getPublicUserPosts } from "@/entities/user/api/getPublicUserPosts";
 import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 import { WriteView } from "@/widgets/write/ui";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
+import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
 
 export const metadata: Metadata = {
   title: "Write | OpenLog",
@@ -11,9 +12,10 @@ export const metadata: Metadata = {
 
 export default async function WritePage() {
   const data = await getUserOrRedirectToOnboarding();
-  const authoredPosts = data?.username
-    ? await getPublicUserPosts(data.username)
-    : [];
+  const [authoredPosts, chrome] = await Promise.all([
+    data?.username ? getPublicUserPosts(data.username) : Promise.resolve([]),
+    loadAppChromeWorkspace(!!data),
+  ]);
 
   return (
     <WriteView
@@ -21,6 +23,8 @@ export default async function WritePage() {
       profileImageUrl={data?.profileImageUrl}
       profileHref={data ? buildViewerProfileHref(data.username) : undefined}
       authoredPosts={authoredPosts ?? []}
+      workspaces={chrome.workspaces}
+      workspaceData={chrome.workspaceData}
     />
   );
 }

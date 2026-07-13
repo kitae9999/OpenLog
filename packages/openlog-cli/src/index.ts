@@ -5,6 +5,7 @@ import { login } from "./login.js";
 import { runMcpServer } from "./mcp-server.js";
 import { installMcp, printMcpInstallHelp } from "./mcp-install.js";
 import { ApiError, OpenLogApiClient } from "./api-client.js";
+import { createAuthenticatedApiClient } from "./authenticated-client.js";
 
 const command = process.argv[2] ?? "help";
 const subcommand = process.argv[3];
@@ -13,8 +14,7 @@ try {
   if (command === "login") {
     await login();
   } else if (command === "logout") {
-    await deleteAuthFile();
-    console.log("Logged out.");
+    await logout();
   } else if (command === "whoami") {
     await whoami();
   } else if (command === "mcp") {
@@ -60,19 +60,30 @@ async function installMcpCommand(): Promise<void> {
 }
 
 async function whoami(): Promise<void> {
-  const authFile = await readAuthFile();
-
-  if (!authFile) {
-    throw new Error("Not logged in. Run `openlog login` first.");
-  }
-
-  const apiClient = new OpenLogApiClient({
-    accessToken: authFile.accessToken,
-    apiBaseUrl: authFile.apiBaseUrl,
-  });
+  const apiClient = await createAuthenticatedApiClient();
   const me = await apiClient.get("/auth/me");
 
   console.log(JSON.stringify(me, null, 2));
+}
+
+async function logout(): Promise<void> {
+  const authFile = await readAuthFile();
+
+  if (authFile?.refreshToken) {
+    try {
+      const apiClient = new OpenLogApiClient({
+        apiBaseUrl: authFile.apiBaseUrl,
+      });
+      await apiClient.postNoContent("/auth/device/revoke", {
+        refreshToken: authFile.refreshToken,
+      });
+    } catch (error) {
+      console.error(`Warning: remote session revoke failed: ${formatCliError(error)}`);
+    }
+  }
+
+  await deleteAuthFile();
+  console.log("Logged out.");
 }
 
 function printMcpStartupHint(): void {
@@ -103,6 +114,7 @@ Available tools:
   list_my_liked_posts
   upload_post_image
   publish_post
+  push_working_brief
   get_post_detail
 `);
 }

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional
 class DiscussionService (
     private val discussionRepository: DiscussionRepository,
     private val suggestionRepository: SuggestionRepository,
+    private val discussionMapper: DiscussionMapper,
 ){
     @Transactional
     fun createDiscussion(
@@ -33,7 +34,7 @@ class DiscussionService (
             )
         )
 
-        return toDiscussionResponse(discussion, requireNotNull(currentUser.id))
+        return discussionMapper.toResponse(discussion, requireNotNull(currentUser.id))
     }
     @Transactional
     fun deleteDiscussion(
@@ -57,30 +58,7 @@ class DiscussionService (
         val discussion = getManageableDiscussion(userId, postId, suggestionId, discussionId)
         discussion.updateContent(content)
 
-        return toDiscussionResponse(discussion, userId)
-    }
-
-    fun toDiscussionResponse(discussion: Discussion, currentUserId: Long?): DiscussionResponse {
-        val author = discussion.user
-        val authorId = requireNotNull(author.id)
-
-        return DiscussionResponse(
-            id = requireNotNull(discussion.id),
-            authorName = resolveAuthorName(author),
-            authorProfileImageUrl = author.profileImageUrl,
-            content = discussion.content,
-            createdAt = discussion.createdAt.toString(),
-            canManage = currentUserId == authorId,
-        )
-    }
-
-    private fun resolveAuthorName(user: User): String {
-        return when {
-            !user.nickname.isNullOrBlank() -> user.nickname.orEmpty()
-            !user.username.isNullOrBlank() -> user.username.orEmpty()
-            !user.email.isNullOrBlank() -> user.email.orEmpty()
-            else -> "OpenLog member"
-        }
+        return discussionMapper.toResponse(discussion, userId)
     }
 
     private fun getManageableDiscussion(

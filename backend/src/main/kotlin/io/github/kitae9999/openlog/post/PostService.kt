@@ -9,9 +9,9 @@ import io.github.kitae9999.openlog.common.event.payload.PostPublishedEventPayloa
 import io.github.kitae9999.openlog.common.event.payload.PostPublishedPostPayload
 import io.github.kitae9999.openlog.common.outbox.OutboxEventWriter
 import io.github.kitae9999.openlog.media.MediaService
+import io.github.kitae9999.openlog.output.entity.WorkspaceOutput
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
-import io.github.kitae9999.openlog.post.dto.RecentPostResponse
 import io.github.kitae9999.openlog.post.entity.PostLink
 import io.github.kitae9999.openlog.post.dto.PostWriteResponse
 import io.github.kitae9999.openlog.post.entity.Post
@@ -41,6 +41,7 @@ class PostService(
     private val commentRepository: CommentRepository,
     private val mediaService: MediaService,
     private val outboxEventWriter: OutboxEventWriter,
+    private val postMapper: PostMapper,
 ) {
     @Transactional(readOnly = true)
     fun getRecentPosts(cursor: String?, size: Int): RecentPostCursorResponse {
@@ -64,18 +65,10 @@ class PostService(
         return RecentPostCursorResponse(
             posts = posts.map { post ->
                 val postId = requireNotNull(post.id)
-                RecentPostResponse(
-                    id = postId,
-                    slug = post.slug,
-                    title = post.title,
-                    description = post.description,
-                    publishedAtLabel = formatPublishedAtLabel(post),
-                    authorUsername = requireNotNull(post.author.username),
-                    authorName = resolveAuthorName(post),
-                    authorAvatarSrc = post.author.profileImageUrl,
-                    thumbnailSrc = extractFirstMarkdownImageSrc(post.content),
-                    likes = likeCounts[postId]?.toInt() ?: 0,
-                    comments = commentCounts[postId]?.toInt() ?: 0,
+                postMapper.toRecentPostResponse(
+                    post = post,
+                    likeCount = likeCounts[postId] ?: 0,
+                    commentCount = commentCounts[postId] ?: 0,
                 )
             },
             size = safeSize,
@@ -89,6 +82,33 @@ class PostService(
 
     @Transactional
     fun createPost(user: User, postWriteCommand: PostWriteCommand): PostWriteResponse {
+        return createPublishedPost(user, postWriteCommand)
+    }
+
+    @Transactional
+    fun createPostFromOutput(
+        user: User,
+        output: WorkspaceOutput,
+        description: String,
+        topics: List<String>,
+    ): PostWriteResponse {
+        return createPublishedPost(
+            user = user,
+            postWriteCommand = PostWriteCommand(
+                title = output.title,
+                description = description,
+                content = output.content,
+                topics = topics,
+            ),
+            output = output,
+        )
+    }
+
+    private fun createPublishedPost(
+        user: User,
+        postWriteCommand: PostWriteCommand,
+        output: WorkspaceOutput? = null,
+    ): PostWriteResponse {
         val userId = requireNotNull(user.id)
         val authorUsername = user.username?.trim().orEmpty()
         if (authorUsername.isBlank()) {
@@ -104,6 +124,7 @@ class PostService(
                 title = title,
                 description = description,
                 content = content,
+                output = output,
             )
         )
 
@@ -153,10 +174,7 @@ class PostService(
             occurredAt = eventCreatedAt,
         )
 
-        return PostWriteResponse(
-            authorUsername = authorUsername,
-            slug = savedPost.slug,
-        )
+        return postMapper.toWriteResponse(savedPost, authorUsername)
     }
 
     @Transactional
@@ -199,10 +217,7 @@ class PostService(
             suggestionRepository.markOpenSuggestionsOutdated(postId)
         }
 
-        return PostWriteResponse(
-            authorUsername = authorUsername,
-            slug = post.slug,
-        )
+        return postMapper.toWriteResponse(post, authorUsername)
     }
 
     private fun syncPostLinks(post: Post, postWriteCommand: PostWriteCommand): Boolean {

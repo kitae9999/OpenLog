@@ -3,15 +3,22 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Dashboard canvas — zinc-50. */
+  /* Product renewal aligns the canvas with the paper-white GNB / sidebar. */
+  --app-canvas: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  --color-app: var(--app-canvas);
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, system-ui, "Segoe UI", "Apple SD Gothic Neo",
+    "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji",
+    sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace,
+    SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,9 +31,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji",
-    "Segoe UI Emoji";
+  font-family: var(--font-sans);
 }
 
 html,
@@ -38,6 +43,43 @@ body {
   html {
     scrollbar-gutter: stable;
   }
+}
+
+/* Quiet scrollbars — zinc chrome aligned with DESIGN.md neutrals. */
+.openlog-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(228 228 231) transparent; /* zinc-200 */
+}
+
+.openlog-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.openlog-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.openlog-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 4px;
+}
+
+.openlog-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(228 228 231); /* zinc-200 */
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.openlog-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(161 161 170); /* zinc-400 */
+}
+
+.openlog-scroll::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 @keyframes openlog-caret-blink {
@@ -118,4 +160,280 @@ body {
 
 .markdown-code .hljs-strong {
   font-weight: 700;
+}
+
+@keyframes preview-replay-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes preview-replay-pulse {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(24, 24, 27, 0);
+    background-color: transparent;
+  }
+
+  35% {
+    box-shadow: inset 0 0 0 1px rgba(24, 24, 27, 0.14);
+    background-color: rgba(250, 250, 250, 0.95);
+  }
+
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(24, 24, 27, 0);
+    background-color: transparent;
+  }
+}
+
+@keyframes preview-replay-cta-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.preview-replay-enter {
+  animation: preview-replay-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.preview-replay-highlight {
+  animation: preview-replay-pulse 1.15s ease-out 1;
+  border-radius: 12px;
+}
+
+.preview-replay-cta {
+  animation: preview-replay-cta-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.preview-replay-card-glow {
+  box-shadow: 0 0 0 1px rgba(24, 24, 27, 0.12),
+    0 12px 40px -24px rgba(24, 24, 27, 0.35);
+  transition: box-shadow 320ms ease;
+}
+
+/* Sync fill — quiet corner status (demo + product). */
+.sync-fetching-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.5rem;
+  border: 1px solid rgba(24, 24, 27, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #52525b;
+  font-size: 11px;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04),
+    0 8px 20px -12px rgba(24, 24, 27, 0.18);
+  pointer-events: none;
+  animation: sync-fetching-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sync-fetching-toast.is-exiting {
+  animation: sync-fetching-out 0.28s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.sync-fetching-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.25px solid rgba(24, 24, 27, 0.12);
+  border-top-color: #3f3f46;
+  border-radius: 999px;
+  animation: sync-spin 0.75s linear infinite;
+}
+
+.sync-fetching-label {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.sync-item-enter {
+  animation: preview-replay-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sync-zone-fetching {
+  box-shadow: inset 0 0 0 1px rgba(24, 24, 27, 0.08);
+  transition: box-shadow 240ms ease;
+}
+
+.sync-new-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(24, 24, 27, 0.1);
+  background: #f4f4f5;
+  color: #52525b;
+  padding: 0.1rem 0.4rem;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  animation: sync-new-badge-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sync-fetching-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sync-fetching-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+@keyframes sync-new-badge-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px) scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes preview-ghost-click {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+
+  70% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+.preview-ghost-cursor {
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.preview-ghost-click {
+  animation: preview-ghost-click 700ms ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-replay-enter,
+  .preview-replay-highlight,
+  .preview-replay-cta,
+  .preview-agent-thinking,
+  .preview-agent-sparkle,
+  .preview-agent-cursor,
+  .preview-ghost-cursor,
+  .preview-ghost-click,
+  .sync-fetching-toast,
+  .sync-item-enter,
+  .sync-new-badge {
+    animation: none;
+    transition: none;
+  }
+
+  .sync-fetching-toast.is-exiting {
+    opacity: 0;
+  }
+
+  .sync-fetching-spinner {
+    animation: none;
+  }
+}
+
+@keyframes preview-agent-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes preview-agent-thinking {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* Claude Code's working sparkle: the orange ✻ slowly spins and pulses. */
+@keyframes preview-agent-sparkle {
+  0% {
+    transform: rotate(0deg) scale(0.92);
+    opacity: 0.65;
+  }
+
+  50% {
+    transform: rotate(180deg) scale(1.12);
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(360deg) scale(0.92);
+    opacity: 0.65;
+  }
+}
+
+.preview-agent-sparkle {
+  display: inline-block;
+  animation: preview-agent-sparkle 1.6s ease-in-out infinite;
+}
+
+.preview-agent-cursor {
+  animation: preview-agent-blink 1s step-end infinite;
+}
+
+.preview-agent-thinking {
+  animation: preview-agent-thinking 1s ease-in-out infinite;
+}
+
+.preview-agent-line-latest {
+  outline: none;
 }
