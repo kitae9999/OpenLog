@@ -24,7 +24,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "pnpm dev:e2e",
-    url: baseURL,
+    url: `${baseURL}/e2e/guest-preview`,
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "1",
     timeout: 120_000,
   },
