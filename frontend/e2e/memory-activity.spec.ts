@@ -44,6 +44,6 @@ test.describe("Memory and activity UI", () => {
     const gap = await page.locator("[data-activity-months]").evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).columnGap),
     );
-    expect(gap).toBe(6);
+    expect(gap).toBe(0);
   });
 });

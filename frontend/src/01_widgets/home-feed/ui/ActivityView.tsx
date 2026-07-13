@@ -30,7 +30,7 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
           <div className="overflow-x-auto px-16 pb-5 pt-11">
             <div
               data-activity-months
-              className="inline-flex min-w-full justify-center gap-[6px]"
+              className="inline-flex min-w-full justify-center gap-0"
             >
               {months.map((month) => (
                 <div
