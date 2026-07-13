@@ -1,0 +1,162 @@
+---
+- name: Provision OpenLog production VM
+  hosts: openlog-production
+  become: true
+  serial: 1
+  force_handlers: true
+
+  pre_tasks:
+    - name: Verify supported operating system
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("22.04", ">=")
+        fail_msg: "OpenLog production provisioning supports Ubuntu 22.04 or newer."
+
+  tasks:
+    - name: Install base packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - jq
+          - python3-apt
+          - rsync
+          - ufw
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create APT keyring directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Docker APT signing key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Configure Docker APT repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch={{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
+          signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/ubuntu
+          {{ ansible_distribution_release }} stable
+        filename: docker
+        state: present
+        update_cache: true
+
+    - name: Install Docker Engine and Compose
+      ansible.builtin.apt:
+        name:
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-ce
+          - docker-ce-cli
+          - docker-compose-plugin
+        state: present
+
+    - name: Configure Docker log rotation
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/docker-daemon.json.j2"
+        dest: /etc/docker/daemon.json
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Docker
+
+    - name: Enable Docker service
+      ansible.builtin.systemd_service:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Add deployment user to Docker group
+      ansible.builtin.user:
+        name: "{{ openlog_deploy_user }}"
+        groups:
+          - docker
+        append: true
+
+    - name: Create deployment user SSH directory
+      ansible.builtin.file:
+        path: "/home/{{ openlog_deploy_user }}/.ssh"
+        state: directory
+        owner: "{{ openlog_deploy_user }}"
+        group: "{{ openlog_deploy_group }}"
+        mode: "0700"
+
+    - name: Authorize OpenLog administration and deployment keys
+      ansible.builtin.lineinfile:
+        path: "/home/{{ openlog_deploy_user }}/.ssh/authorized_keys"
+        line: "{{ lookup('ansible.builtin.file', item) }}"
+        create: true
+        owner: "{{ openlog_deploy_user }}"
+        group: "{{ openlog_deploy_group }}"
+        mode: "0600"
+      loop: "{{ openlog_authorized_key_files }}"
+
+    - name: Create OpenLog deployment directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ openlog_deploy_user }}"
+        group: "{{ openlog_deploy_group }}"
+        mode: "0755"
+      loop:
+        - "{{ openlog_deploy_path }}"
+        - "{{ openlog_deploy_path }}/backups"
+        - "{{ openlog_deploy_path }}/nginx"
+        - "{{ openlog_deploy_path }}/nginx/certs"
+
+    - name: Deny unsolicited incoming traffic
+      community.general.ufw:
+        direction: incoming
+        policy: deny
+
+    - name: Allow outgoing traffic
+      community.general.ufw:
+        direction: outgoing
+        policy: allow
+
+    - name: Allow SSH before enabling UFW
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+
+    - name: Allow public OpenLog ports
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ openlog_public_tcp_ports }}"
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+
+    - name: Verify Docker Compose
+      ansible.builtin.command:
+        cmd: docker compose version
+      register: docker_compose_version
+      changed_when: false
+
+    - name: Show Docker Compose version
+      ansible.builtin.debug:
+        var: docker_compose_version.stdout
+
+  handlers:
+    - name: Restart Docker
+      ansible.builtin.systemd_service:
+        name: docker
+        state: restarted

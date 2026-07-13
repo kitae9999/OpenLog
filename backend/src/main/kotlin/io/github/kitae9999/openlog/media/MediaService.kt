@@ -1,37 +1,30 @@
 package io.github.kitae9999.openlog.media
 
-import com.google.cloud.storage.BlobInfo
-import com.google.cloud.storage.BlobId
-import com.google.cloud.storage.HttpMethod
-import com.google.cloud.storage.Storage
-import com.google.cloud.storage.Storage.SignUrlOption
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
-import io.github.kitae9999.openlog.media.config.StorageSignedUrlSigner
 import io.github.kitae9999.openlog.media.command.CreateMediaUploadUrlCommand
 import io.github.kitae9999.openlog.media.entity.MediaAsset
 import io.github.kitae9999.openlog.media.entity.MediaPurpose
 import io.github.kitae9999.openlog.media.entity.MediaStatus
-import io.github.kitae9999.openlog.media.exception.MediaStorageException
 import io.github.kitae9999.openlog.media.repository.MediaAssetRepository
 import io.github.kitae9999.openlog.media.result.MediaUploadUrlResult
+import io.github.kitae9999.openlog.media.storage.MediaStorage
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.user.entity.User
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
 import java.time.LocalDateTime
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 @Service
 class MediaService(
     private val mediaAssetRepository: MediaAssetRepository,
-    private val storage: Storage,
-    private val storageSignedUrlSigner: StorageSignedUrlSigner,
-    @Value("\${media.gcs.bucket-name:\${GCS_BUCKET_NAME:}}")
+    private val mediaStorage: MediaStorage,
+    @Value("\${media.bucket-name:\${MEDIA_BUCKET_NAME:\${GCS_BUCKET_NAME:}}}")
     private val bucketName: String,
     @Value("\${media.signed-url.upload-expiration-minutes:15}")
     private val uploadExpirationMinutes: Long,
@@ -60,32 +53,17 @@ class MediaService(
         )
         val assetId = mediaAsset.publicId
 
-        val blobInfo = BlobInfo.newBuilder(bucket, objectKey)
-            .setContentType(command.contentType)
-            .build()
-        val uploadUrl = try {
-            storage.signUrl(
-                blobInfo,
-                uploadExpirationMinutes,
-                TimeUnit.MINUTES,
-                SignUrlOption.httpMethod(HttpMethod.PUT),
-                SignUrlOption.withContentType(),
-                SignUrlOption.withV4Signature(),
-                storageSignedUrlSigner.signWithOption(),
-            )
-        } catch (e: MediaStorageException) {
-            throw e
-        } catch (e: RuntimeException) {
-            throw MediaStorageException(
-                "이미지 업로드 URL을 생성할 수 없습니다. GCS credentials와 signed URL signer 설정을 확인해주세요.",
-                e,
-            )
-        }
+        val upload = mediaStorage.createUpload(
+            bucket = bucket,
+            objectKey = objectKey,
+            contentType = command.contentType,
+            expiration = Duration.ofMinutes(uploadExpirationMinutes),
+        )
 
         return MediaUploadUrlResult(
             assetId = assetId,
-            uploadUrl = uploadUrl.toString(),
-            headers = mapOf("Content-Type" to command.contentType),
+            uploadUrl = upload.url,
+            headers = upload.headers,
         )
     }
 
@@ -101,24 +79,11 @@ class MediaService(
             throw ForbiddenException("이미지에 접근할 권한이 없습니다.")
         }
 
-        val blobInfo = BlobInfo.newBuilder(mediaAsset.bucket, mediaAsset.objectKey).build()
-        return try {
-            storage.signUrl(
-                blobInfo,
-                readExpirationMinutes,
-                TimeUnit.MINUTES,
-                SignUrlOption.httpMethod(HttpMethod.GET),
-                SignUrlOption.withV4Signature(),
-                storageSignedUrlSigner.signWithOption(),
-            ).toString()
-        } catch (e: MediaStorageException) {
-            throw e
-        } catch (e: RuntimeException) {
-            throw MediaStorageException(
-                "이미지 읽기 URL을 생성할 수 없습니다. GCS credentials와 signed URL signer 설정을 확인해주세요.",
-                e,
-            )
-        }
+        return mediaStorage.createReadUrl(
+            bucket = mediaAsset.bucket,
+            objectKey = mediaAsset.objectKey,
+            expiration = Duration.ofMinutes(readExpirationMinutes),
+        )
     }
 
     @Transactional
@@ -129,7 +94,7 @@ class MediaService(
             throw ForbiddenException("이미지를 수정할 권한이 없습니다.")
         }
 
-        val exists = storage.get(BlobId.of(mediaAsset.bucket, mediaAsset.objectKey))?.exists() == true
+        val exists = mediaStorage.exists(mediaAsset.bucket, mediaAsset.objectKey)
         if (!exists) {
             throw BadRequestException("업로드된 이미지 객체를 찾을 수 없습니다.")
         }
@@ -166,13 +131,7 @@ class MediaService(
 
             val nextObjectKey = buildAttachedObjectKey(mediaAsset, postId)
             if (mediaAsset.objectKey != nextObjectKey) {
-                storage.copy(
-                    Storage.CopyRequest.newBuilder()
-                        .setSource(BlobId.of(mediaAsset.bucket, mediaAsset.objectKey))
-                        .setTarget(BlobId.of(mediaAsset.bucket, nextObjectKey))
-                        .build()
-                )
-                storage.delete(BlobId.of(mediaAsset.bucket, mediaAsset.objectKey))
+                mediaStorage.move(mediaAsset.bucket, mediaAsset.objectKey, nextObjectKey)
             }
 
             if (mediaAsset.post?.id != postId || mediaAsset.status != MediaStatus.ATTACHED || mediaAsset.objectKey != nextObjectKey) {
@@ -194,7 +153,7 @@ class MediaService(
         )
 
         for (mediaAsset in targets) {
-            storage.delete(BlobId.of(mediaAsset.bucket, mediaAsset.objectKey))
+            mediaStorage.delete(mediaAsset.bucket, mediaAsset.objectKey)
             mediaAsset.markDeleted()
         }
 
@@ -204,7 +163,7 @@ class MediaService(
     private fun configuredBucketName(): String {
         val bucket = bucketName.trim()
         if (bucket.isBlank()) {
-            throw BadRequestException("GCS bucket name is not configured.")
+            throw BadRequestException("Media bucket name is not configured.")
         }
 
         return bucket
