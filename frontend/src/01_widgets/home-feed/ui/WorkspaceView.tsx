@@ -331,18 +331,24 @@ function NowWorkingCard({
   const taskIncoming =
     isPreview && task != null && isIncomingId(syncFill, task.id);
   const tasksFetching = isZoneFetching(syncFill, "tasks");
+  const taskLogs = task
+    ? logs.filter((log) => log.taskId === task.id)
+    : [];
+  const contextLogs = taskLogs.length > 0 ? taskLogs : logs;
+  const latestContext = contextLogs[0];
 
-  if (!task) {
+  if (!task && !latestContext) {
     return (
       <DashboardCard
         title="NOW WORKING"
-        action={<IconBranch className="size-[15px] text-zinc-400" />}
+        action={<WorkingContextLive />}
+        testId="now-working"
         className={cn(tasksFetching && "sync-zone-fetching")}
         previewAnchor={isPreview ? "task" : undefined}
       >
         <EmptyPanel
-          title="No task yet"
-          body="Start a task from your session, or create one to track what you're working on."
+          title="No working context yet"
+          body="Agent updates will appear here as OpenLog receives the conversation context."
           fetching={tasksFetching}
           action={
             <LinkButton
@@ -359,17 +365,35 @@ function NowWorkingCard({
     );
   }
 
-  const latestLog = logs.find((log) => log.taskId === task.id);
-  const summary =
-    task.description?.trim() ||
-    getTaskExcerpt(task.body, 160) ||
-    latestLog?.description ||
-    "No active task summary yet.";
+  const currentContext =
+    latestContext?.description ||
+    task?.description?.trim() ||
+    (task ? getTaskExcerpt(task.body, 180) : "") ||
+    "The agent has not sent a working-context sentence yet.";
+  const branch =
+    latestContext?.branch ?? contextLogs.find((log) => log.branch)?.branch;
+  const lastWork =
+    contextLogs.find(
+      (log) =>
+        log.id !== latestContext?.id
+        && log.kind !== "ISSUE"
+        && log.status !== "OPEN",
+    ) ?? latestContext;
+  const activeConcern = contextLogs.find(
+    (log) => log.kind === "ISSUE" && log.status === "OPEN",
+  );
+  const contextTrail = contextLogs
+    .filter(
+      (log) => log.id !== latestContext?.id && log.id !== activeConcern?.id,
+    )
+    .slice(0, 2);
+  const updatedLabel = latestContext?.meta.split(" · ")[0] ?? "Task context";
 
   return (
     <DashboardCard
       title="NOW WORKING"
-      action={<IconBranch className="size-[15px] text-zinc-400" />}
+      action={<WorkingContextLive />}
+      testId="now-working"
       previewAnchor={isPreview ? "task" : undefined}
     >
       <div
@@ -379,64 +403,127 @@ function NowWorkingCard({
           isHighlighted && "preview-replay-highlight",
         )}
       >
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-zinc-950">
-            {task.title}
-          </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.11em] text-zinc-400">
+              Current context
+            </span>
+            <span className="font-mono text-[10.5px] text-zinc-400">
+              {updatedLabel}
+            </span>
+          </div>
           {taskIncoming ? <NewUpdateBadge /> : null}
-          {latestLog?.branch ? <BranchBadge>{latestLog.branch}</BranchBadge> : null}
+          {branch ? <BranchBadge>{branch}</BranchBadge> : null}
         </div>
 
-        <p className="mt-2 max-w-[62ch] text-[13px] leading-[1.6] text-zinc-500">
-          {summary}
+        <p className="mt-3 max-w-[68ch] text-[14px] font-medium leading-[1.65] text-zinc-800">
+          {currentContext}
         </p>
 
-        <dl className="mt-3 flex flex-wrap gap-x-[18px] gap-y-2 text-[12.5px] tabular-nums text-zinc-500">
-          <div>
-            Linked logs&nbsp;
-            <dd className="inline font-semibold text-zinc-950">
-              {logs.filter((log) => log.taskId === task.id).length}
-            </dd>
-          </div>
-          {latestLog ? (
-            <div>
-              Latest&nbsp;
-              <dd className="inline font-semibold text-zinc-950">
-                {latestLog.meta.split(" · ")[0]}
-              </dd>
+        <div className="mt-4 grid overflow-hidden rounded-xl border border-zinc-200/80 sm:grid-cols-2">
+          {task ? (
+            <PreviewableLink
+              href={getTaskHref(task.id)}
+              isPreview={isPreview}
+              className="group flex min-w-0 items-center justify-between gap-3 px-3.5 py-3 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20"
+              previewClassName="flex min-w-0 cursor-default items-center justify-between gap-3 px-3.5 py-3"
+            >
+              <span className="min-w-0">
+                <span className="block font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                  Active task
+                </span>
+                <span className="mt-1 block truncate text-[12.5px] font-semibold text-zinc-800">
+                  {task.title}
+                </span>
+              </span>
+              <IconArrowRight className="size-3.5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-zinc-600" />
+            </PreviewableLink>
+          ) : (
+            <div className="px-3.5 py-3">
+              <span className="block font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                Active task
+              </span>
+              <span className="mt-1 block text-[12.5px] font-medium text-zinc-400">
+                No task linked
+              </span>
             </div>
-          ) : null}
-        </dl>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <LinkButton
-            href={getNewLogHref(task.id)}
-            tone="solid"
-            size="sm"
-            isPreview={isPreview}
-          >
-            <IconPencil className="size-3.5" />
-            Log now
-          </LinkButton>
-          <LinkButton
-            href={getNewOutputHref(task.id)}
-            tone="outline"
-            size="sm"
-            isPreview={isPreview}
-          >
-            Create output
-          </LinkButton>
-          <LinkButton
-            href="/write"
-            tone="ghost"
-            size="sm"
-            isPreview={isPreview}
-          >
-            View diff
-          </LinkButton>
+          )}
+          {lastWork ? (
+            <PreviewableLink
+              href={getLogHref(lastWork.id)}
+              isPreview={isPreview}
+              className="group flex min-w-0 items-center justify-between gap-3 border-t border-zinc-200/80 px-3.5 py-3 transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20 sm:border-l sm:border-t-0"
+              previewClassName="flex min-w-0 cursor-default items-center justify-between gap-3 border-t border-zinc-200/80 px-3.5 py-3 sm:border-l sm:border-t-0"
+            >
+              <span className="min-w-0">
+                <span className="block font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                  Last work
+                </span>
+                <span className="mt-1 flex min-w-0 items-center gap-2">
+                  <span className="truncate text-[12.5px] font-semibold text-zinc-800">
+                    {lastWork.title}
+                  </span>
+                  {lastWork.commit ? <CodePill>{lastWork.commit}</CodePill> : null}
+                </span>
+              </span>
+              <IconArrowRight className="size-3.5 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-zinc-600" />
+            </PreviewableLink>
+          ) : (
+            <div className="border-t border-zinc-200/80 px-3.5 py-3 sm:border-l sm:border-t-0">
+              <span className="block font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                Last work
+              </span>
+              <span className="mt-1 block text-[12.5px] font-medium text-zinc-400">
+                Nothing captured yet
+              </span>
+            </div>
+          )}
         </div>
+
+        {activeConcern ? (
+          <div className="mt-4 flex items-start gap-2.5 border-l-2 border-amber-300 pl-3">
+            <div>
+              <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-amber-700">
+                Considering
+              </p>
+              <p className="mt-1 text-[12.5px] leading-5 text-zinc-600">
+                {activeConcern.description}
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {contextTrail.length > 0 ? (
+          <div className="mt-4 border-t border-zinc-100 pt-3">
+            <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+              Context trail
+            </p>
+            <ol className="mt-2 space-y-2.5">
+              {contextTrail.map((context) => (
+                <li key={context.id} className="grid grid-cols-[5px_minmax(0,1fr)_auto] items-start gap-2.5">
+                  <span className="mt-[7px] size-[5px] rounded-full bg-zinc-300" />
+                  <p className="text-[12px] leading-5 text-zinc-500">
+                    {context.description}
+                  </p>
+                  <span className="pt-0.5 font-mono text-[9.5px] text-zinc-400">
+                    {context.meta.split(" · ")[0]}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
       </div>
     </DashboardCard>
+  );
+}
+
+function WorkingContextLive() {
+  return (
+    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-medium text-zinc-400">
+      <span className="size-1.5 rounded-full bg-emerald-500" />
+      Context live
+    </span>
   );
 }
 
@@ -1876,31 +1963,6 @@ function IconArrowRight({ className }: { className?: string }) {
     >
       <path
         d="M5 12h14M13 6l6 6-6 6"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-}
-
-function IconPencil({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M12 20h9"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="2"
-      />
-      <path
-        d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
