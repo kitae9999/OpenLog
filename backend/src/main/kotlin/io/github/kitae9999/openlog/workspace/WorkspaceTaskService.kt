@@ -115,10 +115,17 @@ class WorkspaceTaskService(
 
     @Transactional
     fun deleteTask(userId: Long, workspaceId: Long, taskId: Long) {
-        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
-        val task = workspaceAccessResolver.requireOwnedTask(workspace, taskId)
+        deleteTasks(userId, workspaceId, listOf(taskId))
+    }
 
-        workspaceTaskRepository.delete(task)
+    @Transactional
+    fun deleteTasks(userId: Long, workspaceId: Long, taskIds: List<Long>) {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val tasks = taskIds.distinct().map { taskId ->
+            workspaceAccessResolver.requireOwnedTask(workspace, taskId)
+        }
+
+        workspaceTaskRepository.deleteAll(tasks)
     }
 
     private fun findTasksByCursor(

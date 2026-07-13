@@ -5,6 +5,7 @@ import io.github.kitae9999.openlog.memory.dto.MemoryCursorResponse
 import io.github.kitae9999.openlog.memory.dto.MemoryResponse
 import io.github.kitae9999.openlog.memory.dto.UpdateMemoryRequest
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.workspace.dto.BulkDeleteRequest
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -71,6 +72,16 @@ class MemoryController(
         @PathVariable memoryId: Long,
     ): ResponseEntity<Void> {
         memoryService.deleteMemory(requireNotNull(user.id), workspaceId, memoryId)
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/memories/bulk-delete")
+    fun deleteMemories(
+        @AuthenticationPrincipal user: User,
+        @PathVariable workspaceId: Long,
+        @Valid @RequestBody request: BulkDeleteRequest,
+    ): ResponseEntity<Void> {
+        memoryService.deleteMemories(requireNotNull(user.id), workspaceId, request.ids)
         return ResponseEntity.noContent().build()
     }
 }

@@ -65,4 +65,17 @@ class MemoryServiceTest {
         assertThat(result.memory.id).isEqualTo(40L)
         verify(repository, never()).save(any(WorkspaceMemory::class.java))
     }
+
+    @Test
+    fun `deleteMemories validates and deletes all selected memories`() {
+        val first = WorkspaceMemory(id = 40L, workspace = workspace, author = user, title = "First", content = "Body")
+        val second = WorkspaceMemory(id = 50L, workspace = workspace, author = user, title = "Second", content = "Body")
+        given(accessResolver.requireOwnedWorkspace(1L, 10L)).willReturn(workspace)
+        given(accessResolver.requireOwnedMemory(workspace, 40L)).willReturn(first)
+        given(accessResolver.requireOwnedMemory(workspace, 50L)).willReturn(second)
+
+        service.deleteMemories(1L, 10L, listOf(40L, 50L))
+
+        verify(repository).deleteAll(listOf(first, second))
+    }
 }

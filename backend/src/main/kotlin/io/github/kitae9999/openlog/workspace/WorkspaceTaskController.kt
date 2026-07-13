@@ -3,6 +3,7 @@ package io.github.kitae9999.openlog.workspace
 import io.github.kitae9999.openlog.workspace.entity.TaskStatus
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.dto.CreateTaskRequest
+import io.github.kitae9999.openlog.workspace.dto.BulkDeleteRequest
 import io.github.kitae9999.openlog.workspace.dto.TaskDetailResponse
 import io.github.kitae9999.openlog.workspace.dto.UpdateTaskRequest
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
@@ -91,6 +92,21 @@ class WorkspaceTaskController(
             requireNotNull(user.id),
             workspaceId,
             taskId,
+        )
+
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/{workspaceId}/tasks/bulk-delete")
+    fun deleteTasks(
+        @AuthenticationPrincipal user: User,
+        @PathVariable workspaceId: Long,
+        @Valid @RequestBody request: BulkDeleteRequest,
+    ): ResponseEntity<Void> {
+        workspaceTaskService.deleteTasks(
+            requireNotNull(user.id),
+            workspaceId,
+            request.ids,
         )
 
         return ResponseEntity.noContent().build()

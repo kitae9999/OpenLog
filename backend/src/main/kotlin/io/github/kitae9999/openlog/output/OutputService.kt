@@ -129,6 +129,20 @@ class OutputService(
         return toDetailResponse(output)
     }
 
+    @Transactional
+    fun deleteOutput(userId: Long, workspaceId: Long, outputId: Long) {
+        deleteOutputs(userId, workspaceId, listOf(outputId))
+    }
+
+    @Transactional
+    fun deleteOutputs(userId: Long, workspaceId: Long, outputIds: List<Long>) {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val outputs = outputIds.distinct().map { outputId ->
+            requireOwnedOutput(workspace, outputId)
+        }
+        workspaceOutputRepository.deleteAll(outputs)
+    }
+
     /**
      * output과 연결되어있는 소스 제거후 새걸로 재할당
      */
@@ -162,6 +176,10 @@ class OutputService(
 
     private fun requireOwnedOutput(userId: Long, workspaceId: Long, outputId: Long): WorkspaceOutput {
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        return requireOwnedOutput(workspace, outputId)
+    }
+
+    private fun requireOwnedOutput(workspace: Workspace, outputId: Long): WorkspaceOutput {
         val output = workspaceOutputRepository.findById(outputId).getOrNull()
             ?: throw NotFoundException("output을 찾을 수 없습니다.")
 

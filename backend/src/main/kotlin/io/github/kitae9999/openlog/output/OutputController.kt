@@ -7,7 +7,9 @@ import io.github.kitae9999.openlog.output.dto.PublishOutputRequest
 import io.github.kitae9999.openlog.output.dto.UpdateOutputRequest
 import io.github.kitae9999.openlog.output.entity.OutputStatus
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.workspace.dto.BulkDeleteRequest
 import jakarta.validation.Valid
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
@@ -92,5 +94,25 @@ class OutputController(
             description = request.description,
             topics = request.topics,
         )
+    }
+
+    @DeleteMapping("/{workspaceId}/outputs/{outputId}")
+    fun deleteOutput(
+        @AuthenticationPrincipal user: User,
+        @PathVariable workspaceId: Long,
+        @PathVariable outputId: Long,
+    ): ResponseEntity<Void> {
+        outputService.deleteOutput(requireNotNull(user.id), workspaceId, outputId)
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/{workspaceId}/outputs/bulk-delete")
+    fun deleteOutputs(
+        @AuthenticationPrincipal user: User,
+        @PathVariable workspaceId: Long,
+        @Valid @RequestBody request: BulkDeleteRequest,
+    ): ResponseEntity<Void> {
+        outputService.deleteOutputs(requireNotNull(user.id), workspaceId, request.ids)
+        return ResponseEntity.noContent().build()
     }
 }

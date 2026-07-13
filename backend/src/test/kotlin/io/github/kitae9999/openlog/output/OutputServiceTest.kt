@@ -287,4 +287,29 @@ class OutputServiceTest {
         verify(outputTaskRepository, never()).findAllByOutputId(40L)
         verify(outputLogRepository, never()).findAllByOutputId(40L)
     }
+
+    @Test
+    fun `deleteOutputs validates and deletes all selected outputs`() {
+        val first = WorkspaceOutput(
+            id = 40L,
+            workspace = workspace,
+            author = user,
+            title = "First",
+            content = "Body",
+        )
+        val second = WorkspaceOutput(
+            id = 50L,
+            workspace = workspace,
+            author = user,
+            title = "Second",
+            content = "Body",
+        )
+        given(workspaceAccessResolver.requireOwnedWorkspace(1L, 100L)).willReturn(workspace)
+        given(workspaceOutputRepository.findById(40L)).willReturn(Optional.of(first))
+        given(workspaceOutputRepository.findById(50L)).willReturn(Optional.of(second))
+
+        outputService.deleteOutputs(1L, 100L, listOf(40L, 50L))
+
+        verify(workspaceOutputRepository).deleteAll(listOf(first, second))
+    }
 }

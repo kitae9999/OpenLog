@@ -115,8 +115,16 @@ class MemoryService(
 
     @Transactional
     fun deleteMemory(userId: Long, workspaceId: Long, memoryId: Long) {
+        deleteMemories(userId, workspaceId, listOf(memoryId))
+    }
+
+    @Transactional
+    fun deleteMemories(userId: Long, workspaceId: Long, memoryIds: List<Long>) {
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
-        memoryRepository.delete(workspaceAccessResolver.requireOwnedMemory(workspace, memoryId))
+        val memories = memoryIds.distinct().map { memoryId ->
+            workspaceAccessResolver.requireOwnedMemory(workspace, memoryId)
+        }
+        memoryRepository.deleteAll(memories)
     }
 
     private companion object {

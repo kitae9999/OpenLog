@@ -134,10 +134,17 @@ class WorkspaceLogService(
 
     @Transactional
     fun deleteLog(userId: Long, workspaceId: Long, logId: Long) {
-        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
-        val log = workspaceAccessResolver.requireOwnedLog(workspace, logId)
+        deleteLogs(userId, workspaceId, listOf(logId))
+    }
 
-        workspaceLogRepository.delete(log)
+    @Transactional
+    fun deleteLogs(userId: Long, workspaceId: Long, logIds: List<Long>) {
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val logs = logIds.distinct().map { logId ->
+            workspaceAccessResolver.requireOwnedLog(workspace, logId)
+        }
+
+        workspaceLogRepository.deleteAll(logs)
     }
 
     private fun findLogsByCursor(

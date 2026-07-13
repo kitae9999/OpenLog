@@ -2,6 +2,7 @@ package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.dto.CreateWorkspaceLogRequest
+import io.github.kitae9999.openlog.workspace.dto.BulkDeleteRequest
 import io.github.kitae9999.openlog.workspace.dto.UpdateWorkspaceLogRequest
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogCursorResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogDetailResponse
@@ -90,6 +91,21 @@ class WorkspaceLogController(
             requireNotNull(user.id),
             workspaceId,
             logId,
+        )
+
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/{workspaceId}/logs/bulk-delete")
+    fun deleteLogs(
+        @AuthenticationPrincipal user: User,
+        @PathVariable workspaceId: Long,
+        @Valid @RequestBody request: BulkDeleteRequest,
+    ): ResponseEntity<Void> {
+        workspaceLogService.deleteLogs(
+            requireNotNull(user.id),
+            workspaceId,
+            request.ids,
         )
 
         return ResponseEntity.noContent().build()
