@@ -129,6 +129,7 @@ export function WorkspaceGraphView({
         outputs,
         taskLinks: workspaceData?.taskLinks ?? [],
         logLinks: workspaceData?.logLinks ?? [],
+        crossLinks: workspaceData?.crossLinks ?? [],
         memories: workspaceData?.memories ?? [],
       }),
     [logs, outputs, tasks, workspaceData],

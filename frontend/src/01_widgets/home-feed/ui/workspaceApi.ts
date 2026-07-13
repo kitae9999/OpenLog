@@ -17,6 +17,7 @@ import {
 import type {
   ManagedWorkspace,
   WorkspaceActivity,
+  WorkspaceCrossLinkItem,
   WorkspaceLogLinkItem,
   WorkspaceMemoryItem,
   WorkspaceTaskLinkItem,
@@ -95,6 +96,15 @@ type LogLinkResponse = {
   relation: WorkspaceLogLinkItem["relation"];
 };
 
+type CrossLinkResponse = {
+  id: number;
+  fromType: Uppercase<WorkspaceCrossLinkItem["fromType"]>;
+  fromNodeId: number;
+  toType: Uppercase<WorkspaceCrossLinkItem["toType"]>;
+  toNodeId: number;
+  relation: WorkspaceCrossLinkItem["relation"];
+};
+
 type TodoResponse = {
   id: number;
   title: string;
@@ -139,6 +149,7 @@ type WorkspaceApiSnapshot = {
   todos: TodoResponse[];
   taskLinks: TaskLinkResponse[];
   logLinks: LogLinkResponse[];
+  crossLinks: CrossLinkResponse[];
   memories: MemoryResponse[];
   workingBrief: WorkingBriefResponse | null;
 };
@@ -264,6 +275,7 @@ async function fetchWorkspaceUiData(
     logs,
     taskLinks,
     logLinks,
+    crossLinks,
     todos,
     outputSummaries,
     memories,
@@ -279,6 +291,10 @@ async function fetchWorkspaceUiData(
         `/workspaces/${selectedId}/log-links`,
         cookie,
       ),
+      fetchJson<CrossLinkResponse[]>(
+        `/workspaces/${selectedId}/cross-links`,
+        cookie,
+      ).catch(() => []),
       fetchJson<TodoResponse[]>(
         `/workspaces/${selectedId}/todos?plannedFor=${todayIso()}`,
         cookie,
@@ -310,6 +326,7 @@ async function fetchWorkspaceUiData(
     todos,
     taskLinks,
     logLinks,
+    crossLinks,
     memories,
     workingBrief,
   });
@@ -548,6 +565,14 @@ function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
       id: String(link.id),
       fromLogId: String(link.fromLog.id),
       toLogId: String(link.toLog.id),
+      relation: link.relation,
+    })),
+    crossLinks: snapshot.crossLinks.map((link) => ({
+      id: String(link.id),
+      fromType: link.fromType.toLowerCase() as WorkspaceCrossLinkItem["fromType"],
+      fromNodeId: String(link.fromNodeId),
+      toType: link.toType.toLowerCase() as WorkspaceCrossLinkItem["toType"],
+      toNodeId: String(link.toNodeId),
       relation: link.relation,
     })),
     memories: snapshot.memories.map(mapMemory),

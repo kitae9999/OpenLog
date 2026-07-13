@@ -46,6 +46,7 @@ export function buildWorkspaceGraph({
   outputs,
   taskLinks,
   logLinks,
+  crossLinks,
   memories,
   includeMemories = true,
 }: {
@@ -54,6 +55,7 @@ export function buildWorkspaceGraph({
   outputs: WorkspaceTaskOutput[];
   taskLinks: WorkspaceUiData["taskLinks"];
   logLinks: WorkspaceUiData["logLinks"];
+  crossLinks: WorkspaceUiData["crossLinks"];
   memories: WorkspaceMemoryItem[];
   includeMemories?: boolean;
 }): WorkspaceGraph {
@@ -140,6 +142,14 @@ export function buildWorkspaceGraph({
     });
   }
 
+  for (const link of crossLinks ?? []) {
+    edges.push({
+      sourceId: getNodeId(link.fromType, link.fromNodeId),
+      targetId: getNodeId(link.toType, link.toNodeId),
+      label: link.relation.toLowerCase().replaceAll("_", " "),
+    });
+  }
+
   if (includeMemories) {
     memories.forEach((memory) => {
       if (memory.originLog) {
@@ -182,6 +192,13 @@ export function getOutputNodeId(outputId: string) {
 
 export function getMemoryNodeId(memoryId: string) {
   return `memory:${memoryId}`;
+}
+
+export function getNodeId(kind: WorkspaceGraphNodeKind, nodeId: string) {
+  if (kind === "task") return getTaskNodeId(nodeId);
+  if (kind === "log") return getLogNodeId(nodeId);
+  if (kind === "output") return getOutputNodeId(nodeId);
+  return getMemoryNodeId(nodeId);
 }
 
 export function getNodeFill(kind: WorkspaceGraphNodeKind, focused = false) {

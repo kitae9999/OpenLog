@@ -19,6 +19,23 @@ export type WorkspaceLogLinkItem = {
   relation: "FIXES" | "RELATES_TO" | "SUPERSEDES";
 };
 
+export type WorkspaceNodeKind = "task" | "log" | "output" | "memory";
+
+export type WorkspaceCrossLinkRelation =
+  | "RELATES_TO"
+  | "REFERENCES"
+  | "SUPPORTS"
+  | "DERIVED_FROM";
+
+export type WorkspaceCrossLinkItem = {
+  id: string;
+  fromType: WorkspaceNodeKind;
+  fromNodeId: string;
+  toType: WorkspaceNodeKind;
+  toNodeId: string;
+  relation: WorkspaceCrossLinkRelation;
+};
+
 /** Agent-pushed “where we are” brief — not a log. Latest one wins. */
 export type WorkspaceWorkingBrief = {
   title: string;
@@ -40,6 +57,7 @@ export type WorkspaceUiData = {
   todos: WorkspaceTodoItem[];
   taskLinks: WorkspaceTaskLinkItem[];
   logLinks: WorkspaceLogLinkItem[];
+  crossLinks?: WorkspaceCrossLinkItem[];
   memories: WorkspaceMemoryItem[];
   /** Optional until a dedicated API exists; UI may also derive from task + logs. */
   workingBrief?: WorkspaceWorkingBrief | null;

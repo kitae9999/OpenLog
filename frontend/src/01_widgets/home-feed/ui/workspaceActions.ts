@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { API_CONFIG } from "@/shared/api";
+import type {
+  WorkspaceCrossLinkRelation,
+  WorkspaceNodeKind,
+} from "./workspaceTypes";
 
 type TaskStatus = "TODO" | "DOING" | "DONE";
 type LogStatus = "NONE" | "OPEN" | "CLOSED";
@@ -295,6 +299,47 @@ export async function deleteWorkspaceLogLink(input: {
   return mutateWorkspace(async (cookie) => {
     await requestJson(
       `/workspaces/${input.workspaceId}/log-links/${input.logLinkId}`,
+      cookie,
+      { method: "DELETE" },
+    );
+
+    revalidatePath("/graph");
+    return { ok: true };
+  });
+}
+
+export async function createWorkspaceCrossLink(input: {
+  workspaceId: string;
+  fromType: WorkspaceNodeKind;
+  fromNodeId: string;
+  toType: WorkspaceNodeKind;
+  toNodeId: string;
+  relation: WorkspaceCrossLinkRelation;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(`/workspaces/${input.workspaceId}/cross-links`, cookie, {
+      method: "POST",
+      body: JSON.stringify({
+        fromType: input.fromType.toUpperCase(),
+        fromNodeId: Number(input.fromNodeId),
+        toType: input.toType.toUpperCase(),
+        toNodeId: Number(input.toNodeId),
+        relation: input.relation,
+      }),
+    });
+
+    revalidatePath("/graph");
+    return { ok: true };
+  });
+}
+
+export async function deleteWorkspaceCrossLink(input: {
+  workspaceId: string;
+  crossLinkId: string;
+}): Promise<WorkspaceActionResult> {
+  return mutateWorkspace(async (cookie) => {
+    await requestJson(
+      `/workspaces/${input.workspaceId}/cross-links/${input.crossLinkId}`,
       cookie,
       { method: "DELETE" },
     );
