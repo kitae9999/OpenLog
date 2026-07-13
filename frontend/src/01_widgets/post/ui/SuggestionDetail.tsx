@@ -16,6 +16,7 @@ export function SuggestionDetail({
   suggestionId,
   articleHref,
   suggestsHref,
+  canDiscuss,
   currentUserAvatarSrc,
   editHref,
   closeAction,
@@ -28,6 +29,7 @@ export function SuggestionDetail({
   suggestionId: number;
   articleHref: string;
   suggestsHref: string;
+  canDiscuss: boolean;
   currentUserAvatarSrc?: string | null;
   editHref?: string;
   closeAction?: SuggestionManageAction;
@@ -144,6 +146,7 @@ export function SuggestionDetail({
             postId={postId}
             suggestionId={suggestionId}
             initialComments={suggestion.discussionComments}
+            canComment={canDiscuss}
             currentUserAvatarSrc={currentUserAvatarSrc}
           />
         </div>

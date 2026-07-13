@@ -23,11 +23,13 @@ const COMMENT_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
 export function PostCommentsSection({
   comments,
   initialComments,
+  canComment,
   currentUserAvatarSrc,
   postId,
 }: {
   comments: number;
   initialComments?: Comment[];
+  canComment: boolean;
   currentUserAvatarSrc?: string | null;
   postId?: number;
 }) {
@@ -146,7 +148,7 @@ export function PostCommentsSection({
             <CommentCard
               key={comment.id}
               comment={comment}
-              canManage={comment.canManage}
+              canManage={canComment && comment.canManage}
               isEditing={editingCommentId === comment.id}
               isDeleting={deletingCommentId === comment.id}
               onEdit={() => {
@@ -169,18 +171,20 @@ export function PostCommentsSection({
         <p className="mt-4 text-sm font-medium text-rose-700">{actionError}</p>
       ) : null}
 
-      <div className="mt-8 flex items-start gap-4">
-        <Image
-          src={resolvedAvatarSrc}
-          alt="Current user avatar"
-          width={40}
-          height={40}
-          className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
-        />
-        <div className="min-w-0 flex-1">
-          <DiscussionComposer onSubmit={postId ? submitComment : undefined} />
+      {canComment ? (
+        <div className="mt-8 flex items-start gap-4">
+          <Image
+            src={resolvedAvatarSrc}
+            alt="Current user avatar"
+            width={40}
+            height={40}
+            className="mt-1 size-10 rounded-full border border-zinc-200 object-cover"
+          />
+          <div className="min-w-0 flex-1">
+            <DiscussionComposer onSubmit={postId ? submitComment : undefined} />
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

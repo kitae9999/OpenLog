@@ -112,6 +112,7 @@ export default async function PublicPostSuggestsPage({
             suggestEditHref={suggestEditHref}
             suggestCount={suggestions.length}
             activeStatus={activeStatus}
+            canCreateSuggestion={!!viewer}
           />
         </div>
       </AppChromeShell>
@@ -145,6 +146,7 @@ export default async function PublicPostSuggestsPage({
           suggestEditHref={suggestEditHref}
           suggestCount={entry.suggestCount}
           activeStatus={activeStatus}
+          canCreateSuggestion={!!viewer}
         />
       </div>
     </AppChromeShell>

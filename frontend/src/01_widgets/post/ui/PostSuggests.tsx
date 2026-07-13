@@ -26,6 +26,7 @@ export function PostSuggests({
   suggestEditHref = "/contribute",
   suggestCount = 0,
   activeStatus = "open",
+  canCreateSuggestion,
 }: {
   post: Post;
   suggestions: SuggestionListItem[];
@@ -35,6 +36,7 @@ export function PostSuggests({
   suggestEditHref?: string;
   suggestCount?: number;
   activeStatus?: SuggestionStatusFilter;
+  canCreateSuggestion: boolean;
 }) {
   const openCount = suggestions.filter((item) => item.status === "open").length;
   const closedCount = suggestions.length - openCount;
@@ -76,12 +78,14 @@ export function PostSuggests({
                 Review community contributions to this article.
               </p>
             </div>
-            <Link
-              href={suggestEditHref}
-              className="inline-flex cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            >
-              + New suggest
-            </Link>
+            {canCreateSuggestion ? (
+              <Link
+                href={suggestEditHref}
+                className="inline-flex cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                + New suggest
+              </Link>
+            ) : null}
           </header>
 
           <div

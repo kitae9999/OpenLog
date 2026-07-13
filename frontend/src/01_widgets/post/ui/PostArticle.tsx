@@ -36,6 +36,7 @@ export function PostArticle({
   postId,
   ownerActions,
   sourceTeaser,
+  isAuthenticated,
 }: {
   post: Post;
   contributors?: Contributor[];
@@ -51,6 +52,7 @@ export function PostArticle({
   postId?: number;
   ownerActions?: OwnerActions;
   sourceTeaser?: PostSourceTeaserData;
+  isAuthenticated: boolean;
 }) {
   const list = contributors ?? [];
 
@@ -66,6 +68,7 @@ export function PostArticle({
             likes={post.likes}
             liked={post.liked}
             comments={post.comments}
+            canLike={isAuthenticated}
           />
         </aside>
 
@@ -191,6 +194,7 @@ export function PostArticle({
               likes={post.likes}
               liked={post.liked}
               comments={post.comments}
+              canLike={isAuthenticated}
             />
           </div>
 
@@ -233,6 +237,7 @@ export function PostArticle({
           <PostCommentsSection
             comments={post.comments}
             initialComments={commentItems}
+            canComment={isAuthenticated}
             currentUserAvatarSrc={currentUserAvatarSrc}
             postId={postId}
           />
@@ -247,11 +252,13 @@ function PostActionRail({
   likes,
   liked,
   comments,
+  canLike,
 }: {
   postId?: number;
   likes: number;
   liked?: boolean;
   comments: number;
+  canLike: boolean;
 }) {
   return (
     <nav className="flex flex-col items-center gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-2 py-3 shadow-sm backdrop-blur">
@@ -260,6 +267,7 @@ function PostActionRail({
         initialLikes={likes}
         initialLiked={liked}
         variant="rail"
+        canLike={canLike}
       />
 
       <div className="h-px w-7 bg-zinc-200" aria-hidden="true" />
@@ -285,11 +293,13 @@ function MobileActionBar({
   likes,
   liked,
   comments,
+  canLike,
 }: {
   postId?: number;
   likes: number;
   liked?: boolean;
   comments: number;
+  canLike: boolean;
 }) {
   return (
     <div className="flex h-[62px] w-full max-w-[320px] -translate-x-[10px] items-center justify-center gap-5 rounded-2xl border border-zinc-200 bg-white/80 px-5 shadow-[0_8px_16px_rgba(0,0,0,0.06),0_2px_6px_rgba(0,0,0,0.04)] backdrop-blur">
@@ -298,6 +308,7 @@ function MobileActionBar({
         initialLikes={likes}
         initialLiked={liked}
         variant="mobile"
+        canLike={canLike}
       />
 
       <span className="h-6 w-px bg-zinc-300" aria-hidden="true" />

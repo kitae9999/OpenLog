@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Children, isValidElement, type ReactNode } from "react";
 import { Footer } from "@/widgets/chrome/ui";
 import { AppChromeShell } from "@/widgets/home-feed/ui/AppChromeShell";
@@ -6,7 +6,7 @@ import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWork
 import { NewSuggestionView } from "@/widgets/post/ui";
 import { getPostDetail } from "@/entities/post/api/getPostDetail";
 import { getPostEntry } from "@/entities/post/model";
-import { getUser } from "@/features/auth/api/getUser";
+import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 import { createPostSuggestionAction } from "@/features/suggest/api/suggestionActions";
 import {
   buildPublicPostPath,
@@ -36,13 +36,18 @@ export default async function NewSuggestionPage({
   }
 
   const [viewer, detail] = await Promise.all([
-    getUser(),
+    getUserOrRedirectToOnboarding(),
     getPostDetail(authorUsername, canonicalPostSlug),
   ]);
-  const chrome = await loadAppChromeWorkspace(!!viewer);
 
   const articleHref = buildPublicPostPath(authorUsername, canonicalPostSlug);
   const suggestsHref = buildPublicSuggestsPath(authorUsername, canonicalPostSlug);
+
+  if (!viewer) {
+    redirect(suggestsHref);
+  }
+
+  const chrome = await loadAppChromeWorkspace(true);
 
   if (detail) {
     const action = createPostSuggestionAction.bind(
@@ -53,9 +58,9 @@ export default async function NewSuggestionPage({
 
     return (
       <AppChromeShell
-        isLoggedIn={!!viewer}
-        profileImageUrl={viewer?.profileImageUrl}
-        profileHref={viewer ? buildViewerProfileHref(viewer.username) : undefined}
+        isLoggedIn={true}
+        profileImageUrl={viewer.profileImageUrl}
+        profileHref={buildViewerProfileHref(viewer.username)}
         activeTab="home"
         workspaces={chrome.workspaces}
         workspaceData={chrome.workspaceData}
@@ -83,9 +88,9 @@ export default async function NewSuggestionPage({
 
   return (
     <AppChromeShell
-      isLoggedIn={!!viewer}
-      profileImageUrl={viewer?.profileImageUrl}
-      profileHref={viewer ? buildViewerProfileHref(viewer.username) : undefined}
+      isLoggedIn={true}
+      profileImageUrl={viewer.profileImageUrl}
+      profileHref={buildViewerProfileHref(viewer.username)}
       activeTab="home"
       workspaces={chrome.workspaces}
       workspaceData={chrome.workspaceData}

@@ -10,11 +10,13 @@ export function PostLikeButton({
   initialLikes,
   initialLiked = false,
   variant,
+  canLike,
 }: {
   postId?: number;
   initialLikes: number;
   initialLiked?: boolean;
   variant: PostLikeButtonVariant;
+  canLike: boolean;
 }) {
   const [likeState, setLikeState] = useState({
     likes: initialLikes,
@@ -23,6 +25,12 @@ export function PostLikeButton({
   const [actionError, setActionError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const isDisabled = !postId || isPending;
+
+  if (!canLike) {
+    return (
+      <StaticLikeCount likes={likeState.likes} variant={variant} />
+    );
+  }
 
   function handleClick() {
     if (!postId || isPending) {
@@ -100,6 +108,36 @@ export function PostLikeButton({
       </span>
       {actionError ? <span className="sr-only">{actionError}</span> : null}
     </button>
+  );
+}
+
+function StaticLikeCount({
+  likes,
+  variant,
+}: {
+  likes: number;
+  variant: PostLikeButtonVariant;
+}) {
+  if (variant === "mobile") {
+    return (
+      <span
+        aria-label={`Likes (${likes})`}
+        className="inline-flex items-center gap-2 text-[16px] font-medium text-zinc-500"
+      >
+        <IconHeart className="size-6" filled={false} />
+        <span>{likes}</span>
+      </span>
+    );
+  }
+
+  return (
+    <span
+      aria-label={`Likes (${likes})`}
+      className="flex w-full flex-col items-center gap-1 rounded-xl px-1 py-2 text-zinc-500"
+    >
+      <IconHeart className="size-5" filled={false} />
+      <span className="text-[12px] font-medium leading-none">{likes}</span>
+    </span>
   );
 }
 

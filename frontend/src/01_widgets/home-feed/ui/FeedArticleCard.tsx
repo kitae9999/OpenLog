@@ -33,7 +33,7 @@ export function FeedArticleCard({ post }: { post: FeedPost }) {
             )}
           >
             <div className="min-w-0">
-              <h2 className="max-w-[680px] text-[18px] font-semibold leading-snug tracking-tight text-zinc-950 transition-colors group-hover:text-zinc-700 [font-family:Georgia,serif] sm:text-[20px]">
+              <h2 className="max-w-[680px] text-[18px] font-semibold leading-snug tracking-tight text-zinc-950 transition-colors group-hover:text-zinc-700 sm:text-[20px]">
                 {post.title}
               </h2>
               <p className="mt-1.5 line-clamp-2 max-w-[650px] text-[13.5px] leading-6 text-zinc-500">
