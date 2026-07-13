@@ -46,7 +46,9 @@ frontend/playwright-report/
 frontend/blob-report/
 frontend/e2e/todos-layout.spec.ts-snapshots/
 frontend/e2e/screenshots/
+frontend/e2e/artifacts/
 frontend/.next-e2e/
+frontend/.next-e2e-demo/
 
 ### Kotlin ###
 .kotlin

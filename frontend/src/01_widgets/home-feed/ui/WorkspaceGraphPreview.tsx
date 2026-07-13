@@ -10,9 +10,11 @@ import type { WorkspaceUiData } from "./workspaceTypes";
 export function WorkspaceGraphPreview({
   workspaceData,
   heightClassName = "h-[180px]",
+  initialScale = 1,
 }: {
   workspaceData?: WorkspaceUiData | null;
   heightClassName?: string;
+  initialScale?: number;
 }) {
   const tasks = workspaceData?.tasks ?? [];
   const logs = workspaceData?.logs ?? [];
@@ -46,7 +48,7 @@ export function WorkspaceGraphPreview({
         graph={graph}
         heightClassName={heightClassName}
         // Zoom into the seeded center so the settling cluster stays in frame.
-        initialScale={1.85}
+        initialScale={initialScale}
         emptyTitle="No graph data yet"
         emptyDescription="Create a task or log to start the workspace graph."
       />

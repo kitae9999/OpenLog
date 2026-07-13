@@ -7,7 +7,16 @@ import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboar
 import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { HomeFeedShell } from "./HomeFeedShell";
-import { loadWorkspacePageData } from "./workspaceApi";
+import { loadWorkspacePageData, getWorkspaceActivity } from "./workspaceApi";
+
+function getSeoulIsoDate(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
 
 export async function HomeFeed({
   activeTab,
@@ -25,6 +34,22 @@ export async function HomeFeed({
   const workspaces = pageData.workspaces;
   const workspaceData =
     resolvedTab === "workspace" ? pageData.workspaceData : null;
+
+  let workspaceActivity = null;
+  if (workspaceData) {
+    const today = getSeoulIsoDate(new Date());
+    const from = getSeoulIsoDate(
+      new Date(
+        new Date(`${today}T00:00:00Z`).getTime() - 364 * 24 * 60 * 60 * 1000,
+      ),
+    );
+    workspaceActivity = await getWorkspaceActivity(
+      workspaceData.workspaceId,
+      from,
+      today,
+    );
+  }
+
   const recentPosts =
     resolvedTab === "home" || resolvedTab === "explore"
       ? await getRecentPosts(null, 10)
@@ -55,6 +80,7 @@ export async function HomeFeed({
       profileHref={data ? buildViewerProfileHref(data.username) : undefined}
       workspaces={workspaces}
       workspaceData={workspaceData}
+      workspaceActivity={workspaceActivity}
       footer={<Footer />}
     />
   );

@@ -31,14 +31,14 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
   }
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-[920px]">
       <nav
         aria-label="Breadcrumb"
-        className="mb-4 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
+        className="mb-6 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
       >
         <Link
           href={getTabHref("workspace", isLoggedIn)}
-          className="font-semibold text-zinc-700 transition hover:text-zinc-950"
+          className="font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
           openlog
         </Link>
@@ -48,22 +48,19 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
         <span className="font-semibold text-zinc-950">{copy.breadcrumbCurrent}</span>
       </nav>
 
-      <article className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <header className="border-b border-zinc-100 px-6 pb-5 pt-[22px]">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-[20px] font-bold tracking-[-0.01em] text-zinc-950">
-                {copy.title}
-              </h1>
-              <p className="mt-2 max-w-[62ch] text-[13.5px] leading-6 text-zinc-500">
-                {copy.subtitle}
-              </p>
-            </div>
-            <LocaleToggle locale={locale} onChange={setLocale} />
-          </div>
-        </header>
+      <header className="flex flex-wrap items-end justify-between gap-3 pb-8">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-[22px] font-semibold tracking-tight text-zinc-950">
+            {copy.title}
+          </h1>
+          <p className="mt-1.5 max-w-[62ch] text-[13px] leading-6 text-zinc-500">
+            {copy.subtitle}
+          </p>
+        </div>
+        <LocaleToggle locale={locale} onChange={setLocale} />
+      </header>
 
-        <div className="space-y-0 divide-y divide-zinc-100 px-6 py-2">
+      <div className="space-y-0 divide-y divide-zinc-200/80">
           <GuideSection title={copy.sections.login.title}>
             <p>{copy.sections.login.body}</p>
             <CodeBlock locale={locale}>{mcpGuideCommands.login}</CodeBlock>
@@ -72,24 +69,7 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
               <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px]">
                 openlog whoami
               </code>
-              .{" "}
-              {locale === "en" ? (
-                <>
-                  The sidebar footer shows{" "}
-                  <strong className="font-semibold text-zinc-700">
-                    {copy.sections.login.mcpConnected}
-                  </strong>{" "}
-                  when a client is linked.
-                </>
-              ) : (
-                <>
-                  client가 연결되면 사이드바 하단에{" "}
-                  <strong className="font-semibold text-zinc-700">
-                    {copy.sections.login.mcpConnected}
-                  </strong>
-                  가 표시됩니다.
-                </>
-              )}
+              {copy.sections.login.footnoteAfter}
             </p>
           </GuideSection>
 
@@ -107,14 +87,14 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
           </GuideSection>
 
           <GuideSection title={copy.sections.tools.title}>
-            <div className="overflow-x-auto rounded-xl border border-zinc-200/70">
+            <div className="openlog-scroll overflow-x-auto">
               <table className="w-full min-w-[480px] border-collapse text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-zinc-100 bg-zinc-50/80">
-                    <th className="px-4 py-2.5 font-semibold text-zinc-700">
+                  <tr className="border-b border-zinc-200">
+                    <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
                       {copy.sections.tools.colTool}
                     </th>
-                    <th className="px-4 py-2.5 font-semibold text-zinc-700">
+                    <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
                       {copy.sections.tools.colDescription}
                     </th>
                   </tr>
@@ -123,14 +103,14 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
                   {mcpGuideTools.map((tool) => (
                     <tr
                       key={tool.name}
-                      className="border-b border-zinc-100 last:border-b-0"
+                      className="border-b border-zinc-200/80 last:border-b-0"
                     >
-                      <td className="px-4 py-2.5 align-top">
+                      <td className="px-2.5 py-2.5 align-top">
                         <code className="font-mono text-[12px] text-zinc-950">
                           {tool.name}
                         </code>
                       </td>
-                      <td className="px-4 py-2.5 text-zinc-600">
+                      <td className="px-2.5 py-2.5 text-zinc-600">
                         {tool.description[locale]}
                       </td>
                     </tr>
@@ -188,22 +168,21 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
               ))}
             </ul>
           </GuideSection>
-        </div>
+      </div>
 
-        <footer className="border-t border-zinc-100 px-6 py-4">
-          <p className="text-[12.5px] text-zinc-500">
-            {copy.footerPackage}{" "}
-            <a
-              href="https://www.npmjs.com/package/@kitae9999/openlog-cli"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-zinc-700 underline-offset-2 hover:text-zinc-950 hover:underline"
-            >
-              @kitae9999/openlog-cli
-            </a>
-          </p>
-        </footer>
-      </article>
+      <footer className="mt-8 border-t border-zinc-200 pt-4">
+        <p className="text-[12.5px] text-zinc-500">
+          {copy.footerPackage}{" "}
+          <a
+            href="https://www.npmjs.com/package/@kitae9999/openlog-cli"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-zinc-700 underline-offset-2 transition hover:text-zinc-950 hover:underline"
+          >
+            @kitae9999/openlog-cli
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
@@ -219,7 +198,7 @@ function LocaleToggle({
     <div
       role="group"
       aria-label="Guide language"
-      className="inline-flex shrink-0 items-center gap-2 text-[11.5px] font-bold tracking-[0.06em]"
+      className="inline-flex shrink-0 items-center gap-2 text-[12.5px] font-medium"
     >
       {MCP_GUIDE_LOCALES.map((item, index) => (
         <span key={item.key} className="inline-flex items-center gap-2">
@@ -274,8 +253,8 @@ function GuideSection({
   children: ReactNode;
 }) {
   return (
-    <section className="py-5">
-      <h2 className="text-[15px] font-bold tracking-[-0.01em] text-zinc-950">
+    <section className="py-8 first:pt-0">
+      <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
         {title}
       </h2>
       <div className="mt-3 space-y-3 text-[13.5px] leading-6 text-zinc-600">
@@ -334,10 +313,10 @@ function CodeBlock({
         : labels.copy;
 
   return (
-    <div className="flex overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+    <div className="flex overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
       <pre
         className={cn(
-          "min-w-0 flex-1 overflow-x-auto px-4 py-3",
+          "min-w-0 flex-1 overflow-x-auto px-3.5 py-3",
           "font-mono text-[12px] leading-[1.55] text-zinc-800",
         )}
       >
