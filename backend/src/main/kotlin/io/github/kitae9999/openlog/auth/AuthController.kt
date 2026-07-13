@@ -8,6 +8,7 @@ import io.github.kitae9999.openlog.auth.dto.DeviceTokenResponse
 import io.github.kitae9999.openlog.auth.dto.MeResponse
 import io.github.kitae9999.openlog.auth.dto.RefreshTokenRequest
 import io.github.kitae9999.openlog.auth.dto.RefreshTokenResponse
+import io.github.kitae9999.openlog.auth.exception.InvalidRefreshTokenException
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.user.entity.User
 import jakarta.servlet.http.HttpSession
@@ -35,8 +36,9 @@ import java.time.Duration
 class AuthController(
     private val authService: AuthService,
     private val deviceAuthService: DeviceAuthService,
-    private val jwtTokenService: JwtTokenService,
+    private val webTokenService: WebTokenService,
     private val accessTokenCookieFactory: AccessTokenCookieFactory,
+    private val webRefreshTokenCookieFactory: WebRefreshTokenCookieFactory,
     @Value("\${auth.jwt.cookie-secure:false}")
     private val accessTokenCookieSecure: Boolean,
     @Value("\${app.frontend-home-url:http://localhost:3030}")
@@ -45,13 +47,40 @@ class AuthController(
 
     @PostMapping("/logout")
     fun logOut(
+        @CookieValue(
+            name = "\${auth.web.refresh-cookie-name:openlog_refresh_token}",
+            required = false,
+        )
+        refreshToken: String?,
         response: HttpServletResponse,
     ): ResponseEntity<Void> {
-        val cookie = accessTokenCookieFactory.expire()
+        refreshToken?.let(webTokenService::revoke)
+        expireWebAuthCookies(response)
 
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/web/refresh")
+    fun refreshWebToken(
+        @CookieValue(
+            name = "\${auth.web.refresh-cookie-name:openlog_refresh_token}",
+            required = false,
+        )
+        refreshToken: String?,
+        response: HttpServletResponse,
+    ): ResponseEntity<Void> {
+        val accessToken = try {
+            webTokenService.refresh(
+                refreshToken?.takeIf { it.isNotBlank() }
+                    ?: throw InvalidRefreshTokenException(),
+            )
+        } catch (exception: InvalidRefreshTokenException) {
+            expireWebAuthCookies(response)
+            throw exception
+        }
         response.addHeader(
             HttpHeaders.SET_COOKIE,
-            cookie.toString(),
+            accessTokenCookieFactory.create(accessToken).toString(),
         )
 
         return ResponseEntity.noContent().build()
@@ -186,11 +215,19 @@ class AuthController(
             picture = picture,
             email = email,
         )
-        val issuedJwt = jwtTokenService.createAccessToken(currentUser)
-        val authCookie = accessTokenCookieFactory.create(issuedJwt)
+        val tokenPair = webTokenService.issue(currentUser)
+        val authCookie = accessTokenCookieFactory.create(tokenPair.accessToken)
+        val refreshCookie = webRefreshTokenCookieFactory.create(tokenPair.refreshToken)
+        val refreshMarkerCookie = webRefreshTokenCookieFactory.createMarker()
 
         return ResponseEntity.status(HttpStatus.FOUND)
-            .header(HttpHeaders.SET_COOKIE, deleteCookie.toString(), authCookie.toString())
+            .header(
+                HttpHeaders.SET_COOKIE,
+                deleteCookie.toString(),
+                authCookie.toString(),
+                refreshCookie.toString(),
+                refreshMarkerCookie.toString(),
+            )
             .location(URI.create(resolvePostLoginRedirect(currentUser, oauthState.returnTo)))
             .build()
     }
@@ -205,6 +242,16 @@ class AuthController(
             bio = bio,
             isOnboardingComplete = isOnboardingComplete(),
         )
+    }
+
+    private fun expireWebAuthCookies(response: HttpServletResponse) {
+        listOf(
+            accessTokenCookieFactory.expire(),
+            webRefreshTokenCookieFactory.expire(),
+            webRefreshTokenCookieFactory.expireMarker(),
+        ).forEach { cookie ->
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString())
+        }
     }
 
     private fun resolvePostLoginRedirect(user: User, returnTo: String?): String {

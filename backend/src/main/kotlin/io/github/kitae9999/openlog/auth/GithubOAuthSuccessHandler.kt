@@ -14,8 +14,9 @@ import java.net.URI
 @Component
 class GithubOAuthSuccessHandler(
     private val authService: AuthService,
-    private val jwtTokenService: JwtTokenService,
+    private val webTokenService: WebTokenService,
     private val accessTokenCookieFactory: AccessTokenCookieFactory,
+    private val webRefreshTokenCookieFactory: WebRefreshTokenCookieFactory,
     @Value("\${app.frontend-home-url:http://localhost:3030}")
     private val frontendHomeUrl: String,
 ): AuthenticationSuccessHandler {
@@ -43,12 +44,16 @@ class GithubOAuthSuccessHandler(
             picture = avatarUrl,
             email = email,
         )
-        val issuedJwt = jwtTokenService.createAccessToken(currentUser)
-        val authCookie = accessTokenCookieFactory.create(issuedJwt)
+        val tokenPair = webTokenService.issue(currentUser)
+        val authCookie = accessTokenCookieFactory.create(tokenPair.accessToken)
+        val refreshCookie = webRefreshTokenCookieFactory.create(tokenPair.refreshToken)
+        val refreshMarkerCookie = webRefreshTokenCookieFactory.createMarker()
         val returnTo = request.session.getAttribute(GITHUB_RETURN_TO_SESSION_ATTRIBUTE) as? String
         request.session.removeAttribute(GITHUB_RETURN_TO_SESSION_ATTRIBUTE)
 
         response.addHeader(HttpHeaders.SET_COOKIE, authCookie.toString())
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshMarkerCookie.toString())
         response.sendRedirect(resolvePostLoginRedirect(currentUser, returnTo))
     }
 

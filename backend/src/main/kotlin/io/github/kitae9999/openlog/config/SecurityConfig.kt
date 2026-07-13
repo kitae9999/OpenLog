@@ -47,6 +47,7 @@ class SecurityConfig(
                         "/auth/device/token",
                         "/auth/device/refresh",
                         "/auth/device/revoke",
+                        "/auth/web/refresh",
                     ).permitAll()
                     // auth — 내 정보/온보딩/디바이스 승인 인증 필요
                     .requestMatchers(
