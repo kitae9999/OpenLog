@@ -27,10 +27,11 @@ export async function HomeFeed({
 }) {
   const data =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
-  const isLoggedIn = !!data;
+  const isLoggedIn = !!data; // data 있으면 true, 없으면 false
   const resolvedTab = activeTab ?? getDefaultTab(isLoggedIn);
-  const pageData =
-    isLoggedIn ? await loadWorkspacePageData() : { workspaces: [], workspaceData: null };
+  const pageData = isLoggedIn
+    ? await loadWorkspacePageData()
+    : { workspaces: [], workspaceData: null };
   const workspaces = pageData.workspaces;
   const workspaceData =
     resolvedTab === "workspace" ? pageData.workspaceData : null;

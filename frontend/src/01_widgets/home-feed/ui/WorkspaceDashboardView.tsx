@@ -50,8 +50,9 @@ import type {
   WorkspaceWorkingBrief,
 } from "./workspaceTypes";
 
-const PreviewReplayHighlightContext =
-  createContext<PreviewReplayHighlight>({ kind: "none" });
+const PreviewReplayHighlightContext = createContext<PreviewReplayHighlight>({
+  kind: "none",
+});
 
 const PreviewSyncFillContext = createContext<SyncFillState>({
   status: "idle",
@@ -156,13 +157,12 @@ export function WorkspaceDashboardView({
       replaySnapshot.highlight.kind === "graph" ||
       replaySnapshot.cursorTarget === "graph"
     ) {
-      setExploreWidget("graph");
+      const frame = window.requestAnimationFrame(() => {
+        setExploreWidget("graph");
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
-  }, [
-    isPreview,
-    replaySnapshot?.cursorTarget,
-    replaySnapshot?.highlight.kind,
-  ]);
+  }, [isPreview, replaySnapshot]);
 
   const dashboard = (
     <div className="mx-auto w-full max-w-[920px]">
@@ -282,13 +282,11 @@ export function WorkspaceDashboardView({
               <p className="text-sm text-zinc-500">No tasks yet.</p>
             </div>
           ) : (
-            <ul className={cn(SIDE_LIST_VIEWPORT, "divide-y divide-zinc-200/80")}>
+            <ul
+              className={cn(SIDE_LIST_VIEWPORT, "divide-y divide-zinc-200/80")}
+            >
               {visibleTasks.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  isPreview={isPreview}
-                />
+                <TaskRow key={task.id} task={task} isPreview={isPreview} />
               ))}
             </ul>
           )}
@@ -303,6 +301,7 @@ export function WorkspaceDashboardView({
         </section>
 
         <section
+          data-testid="todos-section"
           data-preview-anchor={isPreview ? "todos" : undefined}
           className="lg:border-l lg:border-zinc-200 lg:pl-10"
         >
@@ -532,15 +531,10 @@ function GraphPanel({
   isPreview?: boolean;
   highlight: PreviewReplayHighlight;
 }) {
-  const isHighlighted =
-    isPreview && isPreviewHighlight(highlight, "graph");
+  const isHighlighted = isPreview && isPreviewHighlight(highlight, "graph");
 
   return (
-    <div
-      className={cn(
-        isHighlighted && "preview-replay-highlight",
-      )}
-    >
+    <div className={cn(isHighlighted && "preview-replay-highlight")}>
       <WorkspaceGraphPreview
         workspaceData={workspaceData}
         heightClassName="h-[240px]"
@@ -570,9 +564,7 @@ function PreviewOutputSection({
   return (
     <section
       data-preview-anchor="output"
-      className={cn(
-        outputFetching && !output && "sync-zone-fetching",
-      )}
+      className={cn(outputFetching && !output && "sync-zone-fetching")}
     >
       <SectionLabel>Output</SectionLabel>
       {output ? (
@@ -915,21 +907,26 @@ function TodosSection({
             return (
               <li key={todo.id}>
                 <div
+                  data-testid="todo-row"
+                  data-multiline="false"
                   className={cn(
-                    "group flex items-start gap-2.5 rounded-lg px-2.5 py-2 text-[14.5px] text-zinc-800",
+                    "group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14.5px] text-zinc-800",
                     isIncoming && "sync-item-enter",
                   )}
                 >
                   <button
+                    data-testid="todo-checkbox"
                     type="button"
                     aria-label={
-                      done ? `Mark ${todo.title} open` : `Mark ${todo.title} done`
+                      done
+                        ? `Mark ${todo.title} open`
+                        : `Mark ${todo.title} done`
                     }
                     aria-pressed={done}
                     disabled={!canMutate || isPending}
                     onClick={() => toggleTodo(todo.id)}
                     className={cn(
-                      "mt-1 flex size-[15px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:opacity-50",
+                      "flex size-[15px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:opacity-50",
                       done
                         ? "border-zinc-950 bg-zinc-950 text-white"
                         : "border-zinc-300 bg-white hover:border-zinc-400",
@@ -938,8 +935,9 @@ function TodosSection({
                     {done ? <IconCheck className="size-[9px]" /> : null}
                   </button>
                   <span
+                    data-testid="todo-title"
                     className={cn(
-                      "min-w-0 flex-1 leading-6",
+                      "min-w-0 flex-1 truncate leading-6",
                       done && "text-zinc-400 line-through",
                     )}
                   >
@@ -952,7 +950,7 @@ function TodosSection({
                       onClick={() => removeTodo(todo.id)}
                       disabled={isPending}
                       aria-label={`Remove ${todo.title}`}
-                      className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded text-zinc-300 opacity-0 transition group-hover:opacity-100 hover:text-zinc-700 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed"
+                      className="inline-flex size-5 shrink-0 items-center justify-center rounded text-zinc-300 opacity-0 transition group-hover:opacity-100 hover:text-zinc-700 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed"
                     >
                       <IconClose className="size-3.5" />
                     </button>
@@ -964,6 +962,7 @@ function TodosSection({
         </ul>
       )}
       <input
+        data-testid="todo-add-input"
         type="text"
         value={draftTitle}
         disabled={!canMutate || isPending}

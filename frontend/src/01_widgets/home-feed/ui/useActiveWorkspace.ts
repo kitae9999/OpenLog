@@ -17,10 +17,11 @@ export function useActiveWorkspaceId() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    const frame = window.requestAnimationFrame(refresh);
     window.addEventListener(WORKSPACE_CHANGE_EVENT, refresh);
 
     return () => {
+      window.cancelAnimationFrame(frame);
       window.removeEventListener(WORKSPACE_CHANGE_EVENT, refresh);
     };
   }, [refresh]);

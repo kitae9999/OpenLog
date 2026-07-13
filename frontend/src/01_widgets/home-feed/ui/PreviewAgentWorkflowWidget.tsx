@@ -43,10 +43,7 @@ export function PreviewAgentWorkflowWidget({
           isComplete={replay.isComplete}
           reducedMotion={replay.reducedMotion}
         />
-        <BrowserWindow
-          snapshot={snapshot}
-          reducedMotion={replay.reducedMotion}
-        >
+        <BrowserWindow snapshot={snapshot} reducedMotion={replay.reducedMotion}>
           {workspace}
         </BrowserWindow>
       </div>
@@ -227,32 +224,41 @@ function BrowserWindow({
   const wasFetchingRef = useRef(false);
 
   useEffect(() => {
+    let frame = 0;
+
     if (reducedMotion) {
-      setToastMounted(false);
-      setToastExiting(false);
       wasFetchingRef.current = false;
-      return;
+      frame = window.requestAnimationFrame(() => {
+        setToastMounted(false);
+        setToastExiting(false);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     if (isFetching) {
       wasFetchingRef.current = true;
-      setToastMounted(true);
-      setToastExiting(false);
-      return;
+      frame = window.requestAnimationFrame(() => {
+        setToastMounted(true);
+        setToastExiting(false);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     if (!wasFetchingRef.current || !toastMounted) {
       return;
     }
 
-    setToastExiting(true);
+    frame = window.requestAnimationFrame(() => setToastExiting(true));
     const timer = window.setTimeout(() => {
       setToastMounted(false);
       setToastExiting(false);
       wasFetchingRef.current = false;
     }, FETCH_TOAST_EXIT_MS);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
   }, [isFetching, toastMounted, reducedMotion]);
 
   // Measure scale from the non-scrolling shell so scrollbar appearance
@@ -629,4 +635,3 @@ function AgentTranscriptLine({
     </div>
   );
 }
-

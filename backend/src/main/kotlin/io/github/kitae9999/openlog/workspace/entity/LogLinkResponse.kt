@@ -8,4 +8,3 @@ data class LogLinkResponse(
     val toLog: WorkspaceLogResponse,
     val relation: LogLinkRelation,
 )
-

@@ -18,27 +18,31 @@ test.describe("Task detail layout", () => {
     await expect(page.getByTestId("task-logs-block")).toBeVisible();
 
     await expect(page.getByRole("link", { name: "Tasks" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Mark done" })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Mark done" })).toHaveCount(
+      1,
+    );
     await expect(page.getByText("Status", { exact: true })).toBeVisible();
     await expect(page.getByText("Branches", { exact: true })).toBeVisible();
     await expect(page.getByText("Todos", { exact: true })).toBeVisible();
   });
 
-  test("edits description inline without leaving the page", async ({ page }) => {
+  test("edits description inline without leaving the page", async ({
+    page,
+  }) => {
     const description = page.getByTestId("task-description-block");
 
     await expect(
       description.getByRole("button", { name: "Edit" }),
     ).toBeVisible();
-    await expect(
-      description.getByRole("link", { name: "Edit" }),
-    ).toHaveCount(0);
+    await expect(description.getByRole("link", { name: "Edit" })).toHaveCount(
+      0,
+    );
 
     await description.getByRole("button", { name: "Edit" }).click();
 
-    await expect(description.getByRole("button", { name: "Write" })).toBeVisible();
+    await expect(description.getByRole("tab", { name: "Write" })).toBeVisible();
     await expect(
-      description.getByRole("button", { name: "Preview" }),
+      description.getByRole("tab", { name: "Preview" }),
     ).toBeVisible();
     await expect(description.locator("textarea")).toBeVisible();
     await expect(page).toHaveURL(/\/e2e\/task-detail/);
@@ -54,7 +58,9 @@ test.describe("Task detail layout", () => {
     ).toBeVisible();
   });
 
-  test("captures task detail screenshot for visual review", async ({ page }) => {
+  test("captures task detail screenshot for visual review", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1280, height: 1800 });
     await page.getByTestId("task-detail").screenshot({
       path: path.join(screenshotDir, "task-detail-suggest-layout.png"),

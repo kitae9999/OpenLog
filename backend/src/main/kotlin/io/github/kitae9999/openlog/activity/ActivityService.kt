@@ -22,13 +22,13 @@ class ActivityService(
     fun getActivity(userId: Long, workspaceId: Long, from: LocalDate, to: LocalDate): WorkspaceActivityResponse {
         validateRange(from, to)
         workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
-        
+
         val counts = workspaceLogRepository.findCreatedAtByWorkspaceIdAndRange(
             workspaceId = workspaceId,
             from = from.atStartOfDay(),
             toExclusive = to.plusDays(1).atStartOfDay(),
         ).groupingBy { it.toLocalDate() }.eachCount() // toLocalDate로 날짜만 남기고 카운트
-        
+
         val days = generateSequence(from) { current ->
             current.plusDays(1).takeIf { !it.isAfter(to) }
         }.map { date -> ActivityDayResponse(date.toString(), counts[date] ?: 0) }.toList() // 이 map은 컬렉션의 map이 아닌 Sequence.map, 최종연산 호출해야 실행된다.

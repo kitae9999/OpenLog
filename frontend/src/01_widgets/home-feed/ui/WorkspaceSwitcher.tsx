@@ -50,14 +50,18 @@ export function WorkspaceSwitcher({
 
   useEffect(() => {
     const storedId = getActiveWorkspaceId();
-    if (storedId && workspaces.some((workspace) => workspace.id === storedId)) {
-      setActiveId(storedId);
+    const nextActiveId =
+      storedId && workspaces.some((workspace) => workspace.id === storedId)
+        ? storedId
+        : activeWorkspaceId;
+    if (!nextActiveId) {
       return;
     }
 
-    if (activeWorkspaceId) {
-      setActiveId(activeWorkspaceId);
-    }
+    const frame = window.requestAnimationFrame(() => {
+      setActiveId(nextActiveId);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [activeWorkspaceId, workspaces]);
 
   useEffect(() => {

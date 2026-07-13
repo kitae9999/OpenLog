@@ -6,19 +6,32 @@ test.describe("Memory and activity UI", () => {
   });
 
   test("renders persisted memory metadata and navigation", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Memory", exact: true })).toBeVisible();
-    const memory = page.getByRole("link", { name: /Keep project context durable/ });
+    await expect(
+      page.getByRole("heading", { name: "Memory", exact: true }),
+    ).toBeVisible();
+    const memory = page.getByRole("link", {
+      name: /Keep project context durable/,
+    });
     await expect(memory).toBeVisible();
     await expect(memory).toHaveAttribute("href", "/memory/memory-1");
-    await expect(memory).toContainText("from log");
+    await expect(page.getByText("from log", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Memory decision" }),
+    ).toHaveAttribute("href", "/logs/log-1");
   });
 
   test("renders activity intensity and selected day logs", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Activity", exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Activity", exact: true }),
+    ).toBeVisible();
     const selected = page.getByRole("link", { name: "Jul 10, 2026, 3 logs" });
     await expect(selected).toHaveAttribute("aria-current", "date");
-    await expect(page.getByRole("heading", { name: "Friday, July 10, 2026" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Memory decision/ })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Friday, July 10, 2026" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Memory decision/ }),
+    ).toBeVisible();
 
     const today = page.getByRole("link", { name: "Jul 13, 2026, 0 logs" });
     await expect(today).toHaveClass(/ring-\[#a85638\]/);
@@ -51,8 +64,8 @@ test.describe("Memory and activity UI", () => {
     await expect(weekdayLabels.getByText("Fri", { exact: true })).toBeVisible();
     await expect(june.getByText("Jun", { exact: true })).toBeVisible();
     await expect(july.getByText("Jul", { exact: true })).toBeVisible();
-    const labelsAreOutsideScroll = await weekdayLabels.evaluate((element) =>
-      element.closest("[data-activity-scroll]") === null,
+    const labelsAreOutsideScroll = await weekdayLabels.evaluate(
+      (element) => element.closest("[data-activity-scroll]") === null,
     );
     expect(labelsAreOutsideScroll).toBe(true);
     const cellSize = await july
@@ -67,7 +80,10 @@ test.describe("Memory and activity UI", () => {
         "[data-activity-months]",
       );
       if (!labels || !months) return Number.NaN;
-      return months.getBoundingClientRect().left - labels.getBoundingClientRect().right;
+      return (
+        months.getBoundingClientRect().left -
+        labels.getBoundingClientRect().right
+      );
     });
     expect(labelToGrassGap).toBe(4);
     const scrollFitsContent = await page
@@ -83,20 +99,24 @@ test.describe("Memory and activity UI", () => {
     const contourGap = await page.evaluate(() => {
       const getRightmostByRow = (selector: string) => {
         const rows = new Map<number, DOMRect>();
-        document.querySelectorAll<HTMLElement>(`${selector} a`).forEach((cell) => {
-          const box = cell.getBoundingClientRect();
-          const current = rows.get(box.y);
-          if (!current || box.right > current.right) rows.set(box.y, box);
-        });
+        document
+          .querySelectorAll<HTMLElement>(`${selector} a`)
+          .forEach((cell) => {
+            const box = cell.getBoundingClientRect();
+            const current = rows.get(box.y);
+            if (!current || box.right > current.right) rows.set(box.y, box);
+          });
         return rows;
       };
       const getLeftmostByRow = (selector: string) => {
         const rows = new Map<number, DOMRect>();
-        document.querySelectorAll<HTMLElement>(`${selector} a`).forEach((cell) => {
-          const box = cell.getBoundingClientRect();
-          const current = rows.get(box.y);
-          if (!current || box.left < current.left) rows.set(box.y, box);
-        });
+        document
+          .querySelectorAll<HTMLElement>(`${selector} a`)
+          .forEach((cell) => {
+            const box = cell.getBoundingClientRect();
+            const current = rows.get(box.y);
+            if (!current || box.left < current.left) rows.set(box.y, box);
+          });
         return rows;
       };
       const juneRows = getRightmostByRow('[data-activity-month="2026-06"]');
@@ -105,7 +125,9 @@ test.describe("Memory and activity UI", () => {
       return Math.min(
         ...Array.from(juneRows, ([row, juneCell]) => {
           const julyCell = julyRows.get(row);
-          return julyCell ? julyCell.left - juneCell.right : Number.POSITIVE_INFINITY;
+          return julyCell
+            ? julyCell.left - juneCell.right
+            : Number.POSITIVE_INFINITY;
         }),
       );
     });

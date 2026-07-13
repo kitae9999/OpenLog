@@ -83,8 +83,7 @@ function stageForVisibleCount(count: number): LandingTerminalStage {
 
 function delayAfterCount(visibleCount: number): number {
   // Hold on the block that was just revealed (visibleCount - 1), not the next one.
-  const justRevealed =
-    visibleCount > 0 ? blocks[visibleCount - 1] : undefined;
+  const justRevealed = visibleCount > 0 ? blocks[visibleCount - 1] : undefined;
 
   if (visibleCount === 0) {
     return 500;
@@ -129,13 +128,17 @@ export function LandingTerminalDemo({
   );
   const [started, setStarted] = useState(reducedMotion);
 
-  onStageRef.current = onStage;
+  useEffect(() => {
+    onStageRef.current = onStage;
+  }, [onStage]);
 
   useEffect(() => {
     if (reducedMotion) {
-      setVisibleCount(blocks.length);
-      setStarted(true);
-      return;
+      const frame = window.requestAnimationFrame(() => {
+        setVisibleCount(blocks.length);
+        setStarted(true);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
     const root = rootRef.current;

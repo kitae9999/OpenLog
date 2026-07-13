@@ -7,42 +7,33 @@ import {
 
 const fixturePath = "/e2e/todos-layout";
 
-test.describe("Todos card layout", () => {
+test.describe("Todos section layout", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(fixturePath);
-    await expect(page.getByTestId("todos-card")).toBeVisible();
+    await expect(page.getByTestId("todos-section")).toBeVisible();
   });
 
   test("keeps single-line rows aligned and equal height", async ({ page }) => {
     await assertSingleLineTodoAlignment(page, { minRows: 3 });
   });
 
-  test("keeps add input row aligned with existing rows", async ({ page }) => {
+  test("keeps the always-visible composer below existing rows", async ({
+    page,
+  }) => {
     await assertSingleLineTodoAlignment(page, { minRows: 3 });
 
-    await page.getByTestId("todo-add-button").click();
-    await expect(page.getByTestId("todo-add-input")).toBeVisible();
-
-    const addRow = page.getByTestId("todo-add-row");
-    const referenceRow = page
-      .locator('[data-testid="todo-row"][data-multiline="false"]')
-      .first();
-
-    const addRowBox = await readBox(addRow);
-    const referenceBox = await readBox(referenceRow);
-
-    expect(Math.round(addRowBox.height)).toBe(Math.round(referenceBox.height));
+    const input = page.getByTestId("todo-add-input");
+    await expect(input).toBeVisible();
+    const inputBox = await readBox(input);
+    const lastRowBox = await readBox(singleLineTodoRows(page).last());
+    expect(inputBox.y).toBeGreaterThanOrEqual(lastRowBox.y + lastRowBox.height);
   });
 
-  test("cancels empty add row with trailing x button", async ({ page }) => {
-    await page.getByTestId("todo-add-button").click();
-    await expect(page.getByTestId("todo-add-input")).toBeVisible();
-    await expect(page.getByTestId("todo-add-cancel")).toBeVisible();
-
-    await page.getByTestId("todo-add-cancel").click();
-
-    await expect(page.getByTestId("todo-add-input")).toHaveCount(0);
-    await expect(page.getByTestId("todo-add-button")).toBeVisible();
+  test("clears a todo draft with Escape", async ({ page }) => {
+    const input = page.getByTestId("todo-add-input");
+    await input.fill("temporary todo");
+    await input.press("Escape");
+    await expect(input).toHaveValue("");
   });
 
   test("keeps newly added todo row the same height as existing rows", async ({
@@ -50,7 +41,6 @@ test.describe("Todos card layout", () => {
   }) => {
     await assertSingleLineTodoAlignment(page, { minRows: 3 });
 
-    await page.getByTestId("todo-add-button").click();
     await page.getByTestId("todo-add-input").fill("new todo item");
     await page.getByTestId("todo-add-input").press("Enter");
 
@@ -75,8 +65,8 @@ test.describe("Todos card layout", () => {
     );
 
     await assertSingleLineTodoAlignment(page, { minRows: 3 });
-    await expect(page.getByTestId("todos-card")).toHaveScreenshot(
-      "todos-card-aligned.png",
+    await expect(page.getByTestId("todos-section")).toHaveScreenshot(
+      "todos-section-aligned.png",
       {
         maxDiffPixelRatio: 0.01,
       },
