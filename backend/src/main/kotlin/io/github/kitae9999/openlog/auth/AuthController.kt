@@ -6,6 +6,8 @@ import io.github.kitae9999.openlog.auth.dto.DeviceStartResponse
 import io.github.kitae9999.openlog.auth.dto.DeviceTokenRequest
 import io.github.kitae9999.openlog.auth.dto.DeviceTokenResponse
 import io.github.kitae9999.openlog.auth.dto.MeResponse
+import io.github.kitae9999.openlog.auth.dto.RefreshTokenRequest
+import io.github.kitae9999.openlog.auth.dto.RefreshTokenResponse
 import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.user.entity.User
 import jakarta.servlet.http.HttpSession
@@ -95,6 +97,21 @@ class AuthController(
         @RequestBody deviceTokenRequest: DeviceTokenRequest,
     ): DeviceTokenResponse {
         return deviceAuthService.token(deviceTokenRequest.deviceCode)
+    }
+
+    @PostMapping("/device/refresh")
+    fun refreshDeviceToken(
+        @Valid @RequestBody refreshTokenRequest: RefreshTokenRequest,
+    ): RefreshTokenResponse {
+        return deviceAuthService.refresh(refreshTokenRequest.refreshToken)
+    }
+
+    @PostMapping("/device/revoke")
+    fun revokeDeviceToken(
+        @Valid @RequestBody refreshTokenRequest: RefreshTokenRequest,
+    ): ResponseEntity<Void> {
+        deviceAuthService.revoke(refreshTokenRequest.refreshToken)
+        return ResponseEntity.noContent().build()
     }
 
     @GetMapping("/google")

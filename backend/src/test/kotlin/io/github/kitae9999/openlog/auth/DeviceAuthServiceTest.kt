@@ -3,6 +3,7 @@ package io.github.kitae9999.openlog.auth
 import io.github.kitae9999.openlog.auth.dto.DeviceTokenStatus
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.user.repository.UserRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.redis.core.ValueOperations
 import java.time.Duration
+import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
 class DeviceAuthServiceTest {
@@ -25,13 +27,13 @@ class DeviceAuthServiceTest {
     @Mock
     private lateinit var valueOperations: ValueOperations<String, String>
 
-    private lateinit var deviceAuthService: DeviceAuthService
+    @Mock
+    private lateinit var userRepository: UserRepository
 
-    private val jwtTokenService = JwtTokenService(
-        secret = "openlog-local-jwt-secret-openlog-local-jwt-secret",
-        issuer = "openlog",
-        accessTokenExpirationSeconds = 3600,
-    )
+    @Mock
+    private lateinit var cliTokenService: CliTokenService
+
+    private lateinit var deviceAuthService: DeviceAuthService
 
     @BeforeEach
     fun setUp() {
@@ -39,7 +41,8 @@ class DeviceAuthServiceTest {
 
         deviceAuthService = DeviceAuthService(
             redisTemplate = redisTemplate,
-            jwtTokenService = jwtTokenService,
+            userRepository = userRepository,
+            cliTokenService = cliTokenService,
             frontendHomeUrl = "https://openlog.kr",
         )
     }
@@ -58,7 +61,7 @@ class DeviceAuthServiceTest {
     }
 
     @Test
-    fun `approve stores an issued access token for the device code`() {
+    fun `approve stores the approved user for the device code`() {
         val user = User(id = 7L, username = "kitae9999", nickname = "ASH")
 
         given(valueOperations.get("auth:device:user:ABCD-2345")).willReturn("device-code")
@@ -71,8 +74,7 @@ class DeviceAuthServiceTest {
             it.method.name == "set" && it.arguments[0] == "auth:device:code:device-code"
         }
         val storedValue = invocation.arguments[1] as String
-        assertThat(storedValue).startsWith("APPROVED:")
-        assertThat(storedValue.removePrefix("APPROVED:")).isNotBlank()
+        assertThat(storedValue).isEqualTo("APPROVED:7")
         assertThat(invocation.arguments[2]).isEqualTo(Duration.ofSeconds(120))
         verify(redisTemplate).delete("auth:device:user:ABCD-2345")
     }
@@ -89,14 +91,26 @@ class DeviceAuthServiceTest {
     }
 
     @Test
-    fun `token consumes an approved access token`() {
-        given(valueOperations.get("auth:device:code:device-code")).willReturn("APPROVED:issued-token")
+    fun `token consumes an approval and returns an access and refresh token`() {
+        val user = User(id = 7L, username = "kitae9999", nickname = "ASH")
+        given(valueOperations.get("auth:device:code:device-code")).willReturn("APPROVED:7")
+        given(userRepository.findById(7L)).willReturn(Optional.of(user))
+        given(cliTokenService.issue(user)).willReturn(
+            CliTokenPair(
+                accessToken = "issued-access-token",
+                accessExpiresIn = 3600,
+                refreshToken = "issued-refresh-token",
+                refreshExpiresIn = 2592000,
+            ),
+        )
 
         val response = deviceAuthService.token("device-code")
 
         assertThat(response.status).isEqualTo(DeviceTokenStatus.APPROVED)
-        assertThat(response.accessToken).isEqualTo("issued-token")
+        assertThat(response.accessToken).isEqualTo("issued-access-token")
         assertThat(response.expiresIn).isEqualTo(3600)
+        assertThat(response.refreshToken).isEqualTo("issued-refresh-token")
+        assertThat(response.refreshExpiresIn).isEqualTo(2592000)
         verify(redisTemplate).delete("auth:device:code:device-code")
     }
 

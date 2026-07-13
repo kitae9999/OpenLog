@@ -3,8 +3,10 @@ package io.github.kitae9999.openlog.auth
 import io.github.kitae9999.openlog.auth.dto.DeviceStartResponse
 import io.github.kitae9999.openlog.auth.dto.DeviceTokenResponse
 import io.github.kitae9999.openlog.auth.dto.DeviceTokenStatus
+import io.github.kitae9999.openlog.auth.dto.RefreshTokenResponse
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.user.repository.UserRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
@@ -17,7 +19,8 @@ import java.util.UUID
 @Service
 class DeviceAuthService(
     private val redisTemplate: StringRedisTemplate,
-    private val jwtTokenService: JwtTokenService,
+    private val userRepository: UserRepository,
+    private val cliTokenService: CliTokenService,
     @Value("\${app.frontend-home-url:http://localhost:3030}")
     private val frontendHomeUrl: String,
 ) {
@@ -75,7 +78,7 @@ class DeviceAuthService(
 
         redisTemplate.opsForValue().set(
             key,
-            "$APPROVED_VALUE:${jwtTokenService.createAccessToken(currentUser)}",
+            "$APPROVED_VALUE:${requireNotNull(currentUser.id)}",
             Duration.ofSeconds(remainingSeconds),
         )
         redisTemplate.delete(userKey(normalizedUserCode))
@@ -97,13 +100,36 @@ class DeviceAuthService(
             throw BadRequestException("잘못된 device code 상태입니다.")
         }
 
+        val userId = currentValue.removePrefix("$APPROVED_VALUE:").toLongOrNull()
+            ?: throw BadRequestException("잘못된 device code 상태입니다.")
+        val user = userRepository.findById(userId).orElseThrow {
+            BadRequestException("CLI 로그인 사용자를 찾을 수 없습니다.")
+        }
+        val tokenPair = cliTokenService.issue(user)
+
         redisTemplate.delete(key)
 
         return DeviceTokenResponse(
             status = DeviceTokenStatus.APPROVED,
-            accessToken = currentValue.removePrefix("$APPROVED_VALUE:"),
-            expiresIn = jwtTokenService.accessTokenTtl().toSeconds().toInt(),
+            accessToken = tokenPair.accessToken,
+            expiresIn = tokenPair.accessExpiresIn,
+            refreshToken = tokenPair.refreshToken,
+            refreshExpiresIn = tokenPair.refreshExpiresIn,
         )
+    }
+
+    fun refresh(refreshToken: String): RefreshTokenResponse {
+        val tokenPair = cliTokenService.refresh(refreshToken)
+        return RefreshTokenResponse(
+            accessToken = tokenPair.accessToken,
+            expiresIn = tokenPair.accessExpiresIn,
+            refreshToken = tokenPair.refreshToken,
+            refreshExpiresIn = tokenPair.refreshExpiresIn,
+        )
+    }
+
+    fun revoke(refreshToken: String) {
+        cliTokenService.revoke(refreshToken)
     }
 
     private fun generateUserCode(): String {
@@ -135,4 +161,3 @@ class DeviceAuthService(
         private val random = SecureRandom()
     }
 }
-
