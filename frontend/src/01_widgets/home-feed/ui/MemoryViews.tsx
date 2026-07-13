@@ -93,7 +93,7 @@ export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiD
             onDelete={deleteSelectedMemories}
           />
           {memories.map((memory) => (
-            <article key={memory.id} className={cn("flex items-start gap-3 border-t border-zinc-100 px-5 py-4", selection.selectedIds.has(memory.id) && "bg-[#fffaf7]")}>
+            <article key={memory.id} className="flex items-start gap-3 border-t border-zinc-100 px-5 py-4">
               <SelectionCheckbox
                 checked={selection.selectedIds.has(memory.id)}
                 label={`${selection.selectedIds.has(memory.id) ? "Deselect" : "Select"} ${memory.title}`}

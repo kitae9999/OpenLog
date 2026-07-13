@@ -65,9 +65,12 @@ test.describe("Workspace document bulk delete", () => {
 });
 
 async function assertSelection(fixture: Locator, title: string) {
-  await fixture.getByRole("checkbox", { name: `Select ${title}` }).click();
+  const checkbox = fixture.getByRole("checkbox", { name: `Select ${title}` });
+  const row = checkbox.locator("xpath=ancestor::article[1]");
+  await checkbox.click();
   await expect(fixture.getByText("1 selected")).toBeVisible();
   await expect(
     fixture.getByRole("checkbox", { name: `Deselect ${title}` }),
   ).toHaveAttribute("aria-checked", "true");
+  await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 }

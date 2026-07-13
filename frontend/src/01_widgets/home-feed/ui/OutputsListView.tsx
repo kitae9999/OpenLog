@@ -211,10 +211,7 @@ function OutputRow({
 
   return (
     <article
-      className={cn(
-        "flex items-start gap-3 border-t border-zinc-100 py-3.5 first:border-t-0",
-        selected && "bg-[#fffaf7]",
-      )}
+      className="flex items-start gap-3 border-t border-zinc-100 py-3.5 first:border-t-0"
     >
       <SelectionCheckbox
         checked={selected}
