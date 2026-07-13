@@ -51,6 +51,14 @@ test.describe("Memory and activity UI", () => {
     await expect(weekdayLabels.getByText("Fri", { exact: true })).toBeVisible();
     await expect(june.getByText("Jun", { exact: true })).toBeVisible();
     await expect(july.getByText("Jul", { exact: true })).toBeVisible();
+    const labelsAreOutsideScroll = await weekdayLabels.evaluate((element) =>
+      element.closest("[data-activity-scroll]") === null,
+    );
+    expect(labelsAreOutsideScroll).toBe(true);
+    const cellSize = await july
+      .getByRole("link", { name: "Jul 10, 2026, 3 logs" })
+      .evaluate((cell) => Number.parseFloat(getComputedStyle(cell).width));
+    expect(cellSize).toBe(11);
     await expect(june.getByRole("link", { name: /Jul/ })).toHaveCount(0);
     await expect(july.getByRole("link", { name: /Jun/ })).toHaveCount(0);
     await expect(

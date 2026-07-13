@@ -5,8 +5,8 @@ import type { WorkspaceActivity } from "./workspaceTypes";
 
 const LEVELS = ["bg-zinc-100", "bg-[#fce8e0]", "bg-[#f0c4b0]", "bg-[#da7756]", "bg-[#a85638]"] as const;
 const FUTURE_LEVEL = "border border-dashed border-orange-200/70 bg-orange-50/40";
-const CELL_SIZE_PX = 13;
-const CELL_GAP_PX = 4;
+const CELL_SIZE_PX = 11;
+const CELL_GAP_PX = 3;
 const MONTH_GAP_PX = 10;
 // 주 중간 시작 달을 한 칸 왼쪽으로 당겨, 이전 달 오목에 볼록이 테트리스처럼 맞물리게 한다.
 // 월 박스가 아니라 실제 셀 외곽선을 비교해 이 간격만 남긴다.
@@ -37,25 +37,31 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]" aria-label="365 day activity grid">
         {activity ? (
-          <div className="overflow-x-auto px-16 pb-5 pt-11">
-            <div className="flex w-max min-w-full items-start justify-center">
+          <div className="flex items-start px-5 pb-3">
+            <div
+              data-activity-weekday-labels
+              aria-hidden="true"
+              className="mr-2 mt-11 flex w-7 shrink-0 flex-col pr-1 text-right font-mono text-[9px] font-medium text-zinc-400"
+              style={{ gap: CELL_GAP_PX }}
+            >
+              {["Mon", "", "Wed", "", "Fri", "", ""].map((label, dayIndex) => (
+                <span
+                  key={dayIndex}
+                  className="block"
+                  style={{ height: CELL_SIZE_PX, lineHeight: `${CELL_SIZE_PX}px` }}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+            <div
+              data-activity-scroll
+              className="min-w-0 flex-1 overflow-x-auto pb-2 pt-11"
+            >
               <div
-                data-activity-weekday-labels
-                aria-hidden="true"
-                className="sticky left-0 z-10 mr-3 flex w-7 shrink-0 flex-col bg-white/95 pr-1 text-right font-mono text-[9.5px] font-medium text-zinc-400 backdrop-blur-sm"
-                style={{ gap: CELL_GAP_PX }}
+                data-activity-months
+                className="flex w-max min-w-full justify-center"
               >
-                {["Mon", "", "Wed", "", "Fri", "", ""].map((label, dayIndex) => (
-                  <span
-                    key={dayIndex}
-                    className="block"
-                    style={{ height: CELL_SIZE_PX, lineHeight: `${CELL_SIZE_PX}px` }}
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
-              <div data-activity-months className="inline-flex">
                 {months.map((month, monthIndex) => (
                   <div
                     key={month.key}
@@ -74,7 +80,7 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
                     <span
                       data-activity-month-label
                       aria-hidden="true"
-                      className="absolute -top-7 font-mono text-[10px] font-semibold text-zinc-500"
+                      className="absolute -top-7 font-mono text-[9.5px] font-semibold text-zinc-500"
                       style={{ left: month.labelOffsetPx }}
                     >
                       {formatShortMonth(month.key)}
