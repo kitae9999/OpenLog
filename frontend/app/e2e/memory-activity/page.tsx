@@ -25,13 +25,18 @@ const workspaceData: WorkspaceUiData = {
 };
 
 const activity: WorkspaceActivity = {
-  from: "2026-07-07",
+  from: "2026-06-22",
   to: "2026-07-13",
   totalLogCount: 5,
-  days: [0, 1, 0, 3, 0, 1, 0].map((logCount, index) => ({
-    date: `2026-07-${String(index + 7).padStart(2, "0")}`,
-    logCount,
-  })),
+  days: Array.from({ length: 22 }, (_, index) => {
+    const date = new Date(Date.UTC(2026, 5, 22 + index))
+      .toISOString()
+      .slice(0, 10);
+    return {
+      date,
+      logCount: date === "2026-07-10" ? 3 : date === "2026-06-24" || date === "2026-07-03" ? 1 : 0,
+    };
+  }),
 };
 
 export default function MemoryActivityFixturePage() {

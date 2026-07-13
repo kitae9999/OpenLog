@@ -20,4 +20,22 @@ test.describe("Memory and activity UI", () => {
     await expect(page.getByRole("heading", { name: "Friday, July 10, 2026" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Memory decision/ })).toBeVisible();
   });
+
+  test("shows date tooltip and a subtle gap at month boundaries", async ({
+    page,
+  }) => {
+    const selected = page.getByRole("link", { name: "Jul 10, 2026, 3 logs" });
+    await selected.hover();
+    const tooltip = selected.getByRole("tooltip");
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText("Jul 10, 2026");
+    await expect(tooltip).toContainText("3 logs");
+
+    const julyBoundary = page.locator('[data-month-break="2026-07"]');
+    await expect(julyBoundary).toHaveCount(1);
+    const gap = await julyBoundary.evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).marginLeft),
+    );
+    expect(gap).toBeGreaterThan(0);
+  });
 });

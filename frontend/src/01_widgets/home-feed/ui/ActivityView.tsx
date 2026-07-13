@@ -27,18 +27,22 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]" aria-label="365 day activity grid">
         {activity ? (
-          <div className="overflow-x-auto px-5 py-5">
+          <div className="overflow-x-auto px-16 pb-5 pt-11">
             <div className="inline-flex min-w-full justify-center gap-[4px]">
               {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex flex-col gap-[4px]">
-                  {week.map((day, dayIndex) => day ? (
-                    <Link
+                <div
+                  key={week.days.find((day) => day)?.date ?? weekIndex}
+                  data-month-break={week.monthBreak ?? undefined}
+                  className={cn(
+                    "flex flex-col gap-[4px]",
+                    week.monthBreak && "ml-[6px]",
+                  )}
+                >
+                  {week.days.map((day, dayIndex) => day ? (
+                    <ActivityDayCell
                       key={day.date}
-                      href={getActivityHref(day.date)}
-                      title={`${formatDate(day.date)} · ${day.logCount} log${day.logCount === 1 ? "" : "s"}`}
-                      aria-label={`${formatDate(day.date)}, ${day.logCount} log${day.logCount === 1 ? "" : "s"}`}
-                      aria-current={day.date === selectedDate ? "date" : undefined}
-                      className={cn("size-[13px] rounded-[3px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/40", LEVELS[getLevel(day.logCount)], day.date === selectedDate && "ring-2 ring-zinc-800 ring-offset-1")}
+                      day={day}
+                      selected={day.date === selectedDate}
                     />
                   ) : <span key={dayIndex} className="size-[13px]" aria-hidden="true" />)}
                 </div>
@@ -69,14 +73,58 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
   );
 }
 
+function ActivityDayCell({
+  day,
+  selected,
+}: {
+  day: WorkspaceActivity["days"][number];
+  selected: boolean;
+}) {
+  const dateLabel = formatDate(day.date);
+  const logLabel = `${day.logCount} log${day.logCount === 1 ? "" : "s"}`;
+
+  return (
+    <Link
+      href={getActivityHref(day.date)}
+      title={`${dateLabel} · ${logLabel}`}
+      aria-label={`${dateLabel}, ${logLabel}`}
+      aria-current={selected ? "date" : undefined}
+      className={cn(
+        "group relative size-[13px] rounded-[3px] transition-transform duration-150 hover:z-20 hover:scale-125 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/40",
+        LEVELS[getLevel(day.logCount)],
+        selected && "ring-2 ring-zinc-800 ring-offset-1",
+      )}
+    >
+      <span
+        role="tooltip"
+        className="pointer-events-none invisible absolute bottom-[calc(100%+7px)] left-1/2 z-30 w-max -translate-x-1/2 translate-y-1 rounded-lg bg-zinc-950 px-2.5 py-1.5 text-center text-[10.5px] font-medium leading-4 text-white opacity-0 shadow-[0_8px_24px_rgba(24,24,27,0.22)] transition duration-150 after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-zinc-950 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:visible group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+      >
+        <span className="block whitespace-nowrap">{dateLabel}</span>
+        <span className="block whitespace-nowrap text-zinc-300">{logLabel}</span>
+      </span>
+    </Link>
+  );
+}
+
 function buildActivityWeeks(activity: WorkspaceActivity) {
   const first = new Date(`${activity.from}T00:00:00Z`);
   const mondayOffset = (first.getUTCDay() + 6) % 7;
   const cells: Array<WorkspaceActivity["days"][number] | null> = Array.from({ length: mondayOffset }, () => null);
   cells.push(...activity.days);
   while (cells.length % 7 !== 0) cells.push(null);
-  const weeks: Array<typeof cells> = [];
-  for (let index = 0; index < cells.length; index += 7) weeks.push(cells.slice(index, index + 7));
+  const weeks: Array<{
+    days: typeof cells;
+    monthBreak: string | null;
+  }> = [];
+  for (let index = 0; index < cells.length; index += 7) {
+    const days = cells.slice(index, index + 7);
+    const monthStart = days.find((day) => day?.date.endsWith("-01"));
+    weeks.push({
+      days,
+      monthBreak:
+        index > 0 && monthStart ? monthStart.date.slice(0, 7) : null,
+    });
+  }
   return weeks;
 }
 
