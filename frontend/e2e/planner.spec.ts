@@ -41,4 +41,20 @@ test.describe("Planner UI", () => {
     expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.clientWidth);
     await expect(page.getByPlaceholder("What needs to happen?")).toBeVisible();
   });
+
+  test("separates today from the month navigation controls", async ({ page }) => {
+    const monthNavigation = page.getByRole("navigation", {
+      name: "Month navigation",
+    });
+    await expect(
+      monthNavigation.getByRole("link", { name: "Previous month, June 2026" }),
+    ).toHaveAttribute("href", "/planner?month=2026-06");
+    await expect(
+      monthNavigation.getByRole("link", { name: "Next month, August 2026" }),
+    ).toHaveAttribute("href", "/planner?month=2026-08");
+    await expect(monthNavigation.getByText("Today")).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: "Jump to current month" }),
+    ).toBeVisible();
+  });
 });

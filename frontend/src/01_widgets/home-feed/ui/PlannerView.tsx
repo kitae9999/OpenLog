@@ -135,27 +135,34 @@ export function PlannerView({
             Todos arranged by their planned date.
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-xl border border-zinc-200 bg-white p-1">
-          <Link
-            href={getPlannerHref(previousMonth)}
-            aria-label={`Previous month, ${formatMonth(previousMonth)}`}
-            className="grid size-8 place-items-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-          >
-            ←
-          </Link>
+        <div className="flex items-center gap-2.5">
           <Link
             href={getPlannerHref()}
-            className="rounded-lg px-3 py-1.5 text-[12px] font-semibold text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-950"
+            aria-label="Jump to current month"
+            className="inline-flex h-10 items-center rounded-xl border border-zinc-200 bg-white px-3.5 text-[12px] font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
           >
             Today
           </Link>
-          <Link
-            href={getPlannerHref(nextMonth)}
-            aria-label={`Next month, ${formatMonth(nextMonth)}`}
-            className="grid size-8 place-items-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          <nav
+            aria-label="Month navigation"
+            className="flex h-10 items-center overflow-hidden rounded-xl border border-zinc-200 bg-white"
           >
-            →
-          </Link>
+            <Link
+              href={getPlannerHref(previousMonth)}
+              aria-label={`Previous month, ${formatMonth(previousMonth)}`}
+              className="grid h-full w-10 place-items-center text-lg leading-none text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20"
+            >
+              ‹
+            </Link>
+            <span className="h-5 w-px bg-zinc-200" aria-hidden="true" />
+            <Link
+              href={getPlannerHref(nextMonth)}
+              aria-label={`Next month, ${formatMonth(nextMonth)}`}
+              className="grid h-full w-10 place-items-center text-lg leading-none text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20"
+            >
+              ›
+            </Link>
+          </nav>
         </div>
       </header>
 
