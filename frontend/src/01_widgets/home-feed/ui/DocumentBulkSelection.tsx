@@ -74,12 +74,8 @@ export function DocumentBulkBar({
 
   return (
     <div
-      className={cn(
-        "flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-[18px] py-2 transition-colors",
-        selectedCount > 0
-          ? "border-[#f3d7cc] bg-[#fff8f4]"
-          : "border-zinc-100 bg-zinc-50/45",
-      )}
+      data-testid="document-bulk-bar"
+      className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-zinc-100 bg-zinc-50/45 px-[18px] py-2 transition-colors"
     >
       <div className="flex items-center gap-2.5">
         <SelectionCheckbox
@@ -127,7 +123,7 @@ export function DocumentBulkBar({
             type="button"
             onClick={onDelete}
             disabled={isDeleting}
-            className="inline-flex h-7 items-center rounded-lg border border-red-200 bg-white px-2.5 text-[11.5px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-7 items-center rounded-lg border border-red-200 bg-white px-2.5 text-[11.5px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600/20 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isDeleting ? "Deleting..." : "Delete selected"}
           </button>
