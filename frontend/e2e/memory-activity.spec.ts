@@ -21,7 +21,7 @@ test.describe("Memory and activity UI", () => {
     await expect(page.getByRole("link", { name: /Memory decision/ })).toBeVisible();
   });
 
-  test("shows date tooltip and a subtle gap at month boundaries", async ({
+  test("shows date tooltip and keeps each month in its own group", async ({
     page,
   }) => {
     const selected = page.getByRole("link", { name: "Jul 10, 2026, 3 logs" });
@@ -31,11 +31,19 @@ test.describe("Memory and activity UI", () => {
     await expect(tooltip).toContainText("Jul 10, 2026");
     await expect(tooltip).toContainText("3 logs");
 
-    const julyBoundary = page.locator('[data-month-break="2026-07"]');
-    await expect(julyBoundary).toHaveCount(1);
-    const gap = await julyBoundary.evaluate((element) =>
-      Number.parseFloat(getComputedStyle(element).marginLeft),
+    const june = page.locator('[data-activity-month="2026-06"]');
+    const july = page.locator('[data-activity-month="2026-07"]');
+    await expect(june).toHaveCount(1);
+    await expect(july).toHaveCount(1);
+    await expect(june.getByRole("link", { name: /Jul/ })).toHaveCount(0);
+    await expect(july.getByRole("link", { name: /Jun/ })).toHaveCount(0);
+    await expect(
+      july.getByRole("link", { name: "Jul 10, 2026, 3 logs" }),
+    ).toHaveCount(1);
+
+    const gap = await page.locator("[data-activity-months]").evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).columnGap),
     );
-    expect(gap).toBeGreaterThan(0);
+    expect(gap).toBeGreaterThan(4);
   });
 });

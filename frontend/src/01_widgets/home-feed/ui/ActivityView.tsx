@@ -6,7 +6,7 @@ import type { WorkspaceActivity } from "./workspaceTypes";
 const LEVELS = ["bg-zinc-100", "bg-[#fce8e0]", "bg-[#f0c4b0]", "bg-[#da7756]", "bg-[#a85638]"] as const;
 
 export function ActivityView({ activity, selectedDate, selectedLogs }: { activity: WorkspaceActivity | null; selectedDate: string; selectedLogs: WorkspaceLogItem[] }) {
-  const weeks = activity ? buildActivityWeeks(activity) : [];
+  const months = activity ? buildActivityMonths(activity) : [];
 
   return (
     <div>
@@ -28,23 +28,29 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
       <section className="mt-5 overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04)]" aria-label="365 day activity grid">
         {activity ? (
           <div className="overflow-x-auto px-16 pb-5 pt-11">
-            <div className="inline-flex min-w-full justify-center gap-[4px]">
-              {weeks.map((week, weekIndex) => (
+            <div
+              data-activity-months
+              className="inline-flex min-w-full justify-center gap-[10px]"
+            >
+              {months.map((month) => (
                 <div
-                  key={week.days.find((day) => day)?.date ?? weekIndex}
-                  data-month-break={week.monthBreak ?? undefined}
-                  className={cn(
-                    "flex flex-col gap-[4px]",
-                    week.monthBreak && "ml-[6px]",
-                  )}
+                  key={month.key}
+                  role="group"
+                  aria-label={formatMonth(month.key)}
+                  data-activity-month={month.key}
+                  className="inline-flex gap-[4px]"
                 >
-                  {week.days.map((day, dayIndex) => day ? (
-                    <ActivityDayCell
-                      key={day.date}
-                      day={day}
-                      selected={day.date === selectedDate}
-                    />
-                  ) : <span key={dayIndex} className="size-[13px]" aria-hidden="true" />)}
+                  {month.weeks.map((week, weekIndex) => (
+                    <div key={weekIndex} className="flex flex-col gap-[4px]">
+                      {week.map((day, dayIndex) => day ? (
+                        <ActivityDayCell
+                          key={day.date}
+                          day={day}
+                          selected={day.date === selectedDate}
+                        />
+                      ) : <span key={dayIndex} className="size-[13px]" aria-hidden="true" />)}
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
@@ -106,24 +112,48 @@ function ActivityDayCell({
   );
 }
 
-function buildActivityWeeks(activity: WorkspaceActivity) {
-  const first = new Date(`${activity.from}T00:00:00Z`);
-  const mondayOffset = (first.getUTCDay() + 6) % 7;
-  const cells: Array<WorkspaceActivity["days"][number] | null> = Array.from({ length: mondayOffset }, () => null);
-  cells.push(...activity.days);
+function buildActivityMonths(activity: WorkspaceActivity) {
+  const daysByMonth = new Map<
+    string,
+    WorkspaceActivity["days"]
+  >();
+  for (const day of activity.days) {
+    const month = day.date.slice(0, 7);
+    const days = daysByMonth.get(month) ?? [];
+    days.push(day);
+    daysByMonth.set(month, days);
+  }
+
+  return Array.from(daysByMonth, ([key, days]) => ({
+    key,
+    weeks: buildMonthWeeks(key, days),
+  }));
+}
+
+function buildMonthWeeks(
+  month: string,
+  activityDays: WorkspaceActivity["days"],
+) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const firstDay = new Date(Date.UTC(year, monthNumber - 1, 1));
+  const mondayOffset = (firstDay.getUTCDay() + 6) % 7;
+  const dayCount = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+  const activityByDate = new Map(
+    activityDays.map((day) => [day.date, day] as const),
+  );
+  const cells: Array<WorkspaceActivity["days"][number] | null> = Array.from(
+    { length: mondayOffset },
+    () => null,
+  );
+  for (let day = 1; day <= dayCount; day += 1) {
+    const date = `${month}-${String(day).padStart(2, "0")}`;
+    cells.push(activityByDate.get(date) ?? null);
+  }
   while (cells.length % 7 !== 0) cells.push(null);
-  const weeks: Array<{
-    days: typeof cells;
-    monthBreak: string | null;
-  }> = [];
+
+  const weeks: Array<typeof cells> = [];
   for (let index = 0; index < cells.length; index += 7) {
-    const days = cells.slice(index, index + 7);
-    const monthStart = days.find((day) => day?.date.endsWith("-01"));
-    weeks.push({
-      days,
-      monthBreak:
-        index > 0 && monthStart ? monthStart.date.slice(0, 7) : null,
-    });
+    weeks.push(cells.slice(index, index + 7));
   }
   return weeks;
 }
@@ -138,6 +168,14 @@ function getLevel(count: number) {
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
+}
+
+function formatMonth(month: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${month}-01T00:00:00Z`));
 }
 
 function formatLongDate(date: string) {
