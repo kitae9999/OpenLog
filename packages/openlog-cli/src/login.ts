@@ -20,6 +20,8 @@ type DeviceTokenResponse =
       status: "APPROVED";
       accessToken: string;
       expiresIn: number;
+      refreshToken: string;
+      refreshExpiresIn: number;
     };
 
 export async function login(): Promise<void> {
@@ -41,16 +43,16 @@ export async function login(): Promise<void> {
   );
   console.log("Waiting for approval...");
 
-  const accessToken = await pollForAccessToken(apiClient, deviceLogin);
-  await writeAuthFile(accessToken);
+  const tokens = await pollForTokens(apiClient, deviceLogin);
+  await writeAuthFile(tokens);
 
   console.log("Login successful.");
 }
 
-async function pollForAccessToken(
+async function pollForTokens(
   apiClient: OpenLogApiClient,
   deviceLogin: DeviceStartResponse,
-): Promise<string> {
+): Promise<Extract<DeviceTokenResponse, { status: "APPROVED" }>> {
   const deadline = Date.now() + deviceLogin.expiresIn * 1000;
   let interval = deviceLogin.interval;
 
@@ -63,7 +65,7 @@ async function pollForAccessToken(
     );
 
     if (response.status === "APPROVED") {
-      return response.accessToken;
+      return response;
     }
 
     interval = response.interval ?? interval;
@@ -77,4 +79,3 @@ function sleep(milliseconds: number): Promise<void> {
     setTimeout(resolve, milliseconds);
   });
 }
-
