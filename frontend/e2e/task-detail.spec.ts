@@ -17,7 +17,7 @@ test.describe("Task detail layout", () => {
     await expect(page.getByTestId("task-description-block")).toBeVisible();
     await expect(page.getByTestId("task-logs-block")).toBeVisible();
 
-    await expect(page.getByRole("link", { name: "Back to Tasks" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Tasks" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Mark done" })).toHaveCount(1);
     await expect(page.getByText("Status", { exact: true })).toBeVisible();
     await expect(page.getByText("Branches", { exact: true })).toBeVisible();

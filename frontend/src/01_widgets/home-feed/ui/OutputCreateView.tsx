@@ -180,7 +180,7 @@ export function OutputCreateView({
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:items-start">
         <div className="min-w-0 space-y-4">
           <header className="px-1 pt-1">
-            <p className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+            <p className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
               New output
             </p>
             <label className="mt-3 block">
@@ -189,30 +189,32 @@ export function OutputCreateView({
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Output title"
-                className="w-full border-0 bg-transparent p-0 text-[20px] font-bold tracking-[-0.01em] text-zinc-950 outline-none placeholder:text-zinc-300"
+                className="w-full border-0 bg-transparent p-0 text-[22px] font-semibold tracking-tight text-zinc-950 outline-none placeholder:text-zinc-300"
               />
             </label>
           </header>
 
-          <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-            <div className="border-b border-zinc-100 bg-zinc-50/80 px-4">
-              <div className="flex items-center gap-4">
-                <TabButton
-                  active={mode === "write"}
-                  onClick={() => setMode("write")}
-                >
-                  Write
-                </TabButton>
-                <TabButton
-                  active={mode === "preview"}
-                  onClick={() => setMode("preview")}
-                >
-                  Preview
-                </TabButton>
-              </div>
+          <section>
+            <div
+              role="tablist"
+              aria-label="Output content editor"
+              className="flex items-end gap-1 border-b border-zinc-200"
+            >
+              <TabButton
+                active={mode === "write"}
+                onClick={() => setMode("write")}
+              >
+                Write
+              </TabButton>
+              <TabButton
+                active={mode === "preview"}
+                onClick={() => setMode("preview")}
+              >
+                Preview
+              </TabButton>
             </div>
 
-            <div className="border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
+            <div className="mt-3">
               <MarkdownToolbar
                 disabled={mode === "preview"}
                 onAction={insertFormatting}
@@ -220,18 +222,18 @@ export function OutputCreateView({
             </div>
 
             {mode === "write" ? (
-              <label className="block">
+              <label className="mt-3 block">
                 <span className="sr-only">Output content</span>
                 <textarea
                   ref={editorRef}
                   value={content}
                   onChange={(event) => setContent(event.target.value)}
                   placeholder="## Summary&#10;&#10;Write the refined document here."
-                  className="min-h-[420px] w-full resize-y border-0 bg-white px-6 py-5 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
+                  className="openlog-scroll min-h-[420px] w-full resize-none overflow-y-auto border-0 bg-transparent py-2 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
                 />
               </label>
             ) : (
-              <div className="min-h-[420px] px-6 py-5 text-[15px] leading-7 text-zinc-800">
+              <div className="mt-3 min-h-[420px] py-2 text-[15px] leading-7 text-zinc-800">
                 <MarkdownContent
                   markdown={content}
                   variant="compact"
@@ -244,14 +246,19 @@ export function OutputCreateView({
           </section>
 
           <div className="flex flex-wrap items-center justify-between gap-3 px-1 pt-1">
-            <span className="text-[12px] text-zinc-500">
+            <span
+              className={cn(
+                "text-[12.5px] text-zinc-500",
+                error && "font-medium text-rose-600",
+              )}
+            >
               {error ??
                 `${selectedLogIds.length} source log${selectedLogIds.length === 1 ? "" : "s"} selected`}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Link
                 href={getOutputsHref()}
-                className="inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 Cancel
               </Link>
@@ -260,10 +267,10 @@ export function OutputCreateView({
                 onClick={saveOutput}
                 disabled={!canSave || isSaving}
                 className={cn(
-                  "inline-flex h-9 items-center rounded-xl px-4 text-[13.5px] font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                  "cursor-pointer text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
                   canSave && !isSaving
-                    ? "bg-zinc-950 hover:bg-zinc-800"
-                    : "cursor-not-allowed bg-zinc-400",
+                    ? "text-zinc-950 hover:text-zinc-700"
+                    : "cursor-not-allowed text-zinc-400",
                 )}
               >
                 {isSaving ? "Saving..." : "Save output"}
@@ -282,10 +289,10 @@ export function OutputCreateView({
           </FieldSelect>
 
           <div>
-            <p className="text-[11px] font-medium tracking-wide text-zinc-400">
+            <p className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
               Source logs
             </p>
-            <div className="mt-2 space-y-1">
+            <div className="mt-3 space-y-1">
               {candidateLogs.length === 0 ? (
                 <p className="py-2 text-[12.5px] text-zinc-500">
                   No logs for this task.
@@ -296,10 +303,7 @@ export function OutputCreateView({
                   return (
                     <label
                       key={log.id}
-                      className={cn(
-                        "flex cursor-pointer items-start gap-2.5 rounded-lg px-1.5 py-2 transition hover:bg-zinc-100/70",
-                        checked && "bg-zinc-100/50",
-                      )}
+                      className="flex cursor-pointer items-start gap-2.5 py-2"
                     >
                       <input
                         type="checkbox"
@@ -342,7 +346,7 @@ function FieldSelect({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] font-medium tracking-wide text-zinc-400">
+      <span className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
         {label}
       </span>
       <div className="relative mt-1.5">
@@ -371,17 +375,17 @@ function TabButton({
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={cn(
-        "relative h-12 text-[15px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        active
-          ? "font-semibold text-zinc-950"
-          : "font-medium text-zinc-500 hover:text-zinc-950",
+        "relative h-9 cursor-pointer px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-800",
       )}
     >
       {children}
       {active ? (
-        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-zinc-950" />
+        <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
       ) : null}
     </button>
   );

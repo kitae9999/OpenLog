@@ -97,7 +97,7 @@ export function DocumentBulkBar({
     };
   }, [isConfirmOpen, isDeleting]);
 
-  if (visibleCount === 0) return null;
+  if (visibleCount === 0 || selectedCount === 0) return null;
 
   function closeConfirm() {
     if (!isDeleting) setIsConfirmOpen(false);
@@ -112,7 +112,7 @@ export function DocumentBulkBar({
     <>
       <div
         data-testid="document-bulk-bar"
-        className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-zinc-100 bg-zinc-50/45 px-[18px] py-2 transition-colors"
+        className="flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2"
       >
         <div className="flex items-center gap-2.5">
           <SelectionCheckbox
@@ -125,48 +125,38 @@ export function DocumentBulkBar({
             }
             onChange={onToggleAll}
           />
-          <span className="text-[12px] font-medium text-zinc-500">
-            {selectedCount > 0 ? (
-              <>
-                <strong className="font-semibold tabular-nums text-zinc-900">
-                  {selectedCount}
-                </strong>{" "}
-                selected
-              </>
-            ) : (
-              `Select ${documentLabel}`
-            )}
+          <span className="text-[12.5px] font-medium text-zinc-500">
+            <strong className="font-semibold tabular-nums text-zinc-950">
+              {selectedCount}
+            </strong>{" "}
+            selected
           </span>
-          {selectedCount > 0 ? (
-            <button
-              type="button"
-              onClick={onClear}
-              disabled={isDeleting}
-              className="text-[11.5px] font-semibold text-zinc-400 transition hover:text-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:opacity-50"
-            >
-              Clear
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={isDeleting}
+            className="text-[12.5px] font-medium text-zinc-400 transition hover:text-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:opacity-50"
+          >
+            Clear
+          </button>
         </div>
 
         <div className="flex items-center gap-3">
           {error && !isConfirmOpen ? (
-            <p role="alert" className="text-[11.5px] text-red-600">
+            <p role="alert" className="text-[12.5px] font-medium text-rose-600">
               {error}
             </p>
           ) : null}
-          {selectedCount > 0 ? (
-            <button
-              type="button"
-              onClick={() => setIsConfirmOpen(true)}
-              disabled={isDeleting}
-              aria-haspopup="dialog"
-              aria-expanded={isConfirmOpen}
-              className="inline-flex h-7 items-center rounded-lg border border-red-200 bg-white px-2.5 text-[11.5px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600/20 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Delete selected
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => setIsConfirmOpen(true)}
+            disabled={isDeleting}
+            aria-haspopup="dialog"
+            aria-expanded={isConfirmOpen}
+            className="text-[12.5px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Delete
+          </button>
         </div>
       </div>
 

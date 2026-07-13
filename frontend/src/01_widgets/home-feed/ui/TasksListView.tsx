@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   getNewTaskHref,
@@ -43,15 +43,12 @@ export function TasksListView({
   const logs = workspaceData?.logs ?? [];
   const outputs = workspaceData?.outputs ?? [];
   const [filter, setFilter] = useState<TaskListFilter>("all");
-  const tasks = useMemo(
-    () => {
-      const initialTasks = workspaceData?.tasks ?? [];
-      return workspaceData
-        ? initialTasks
-        : initialTasks.map((task) => mergeTaskWithOverrides(task));
-    },
-    [workspaceData],
-  );
+  const tasks = useMemo(() => {
+    const initialTasks = workspaceData?.tasks ?? [];
+    return workspaceData
+      ? initialTasks
+      : initialTasks.map((task) => mergeTaskWithOverrides(task));
+  }, [workspaceData]);
 
   const filteredTasks = useMemo(
     () =>
@@ -94,14 +91,14 @@ export function TasksListView({
   }
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-[920px]">
       <nav
         aria-label="Breadcrumb"
-        className="mb-4 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
+        className="mb-6 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
       >
         <Link
           href={getTabHref("workspace", isLoggedIn)}
-          className="font-semibold text-zinc-700 transition hover:text-zinc-950"
+          className="font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
           openlog
         </Link>
@@ -109,82 +106,108 @@ export function TasksListView({
         <span className="font-semibold text-zinc-950">Tasks</span>
       </nav>
 
-      <article className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-white">
-        <header className="border-b border-zinc-100 px-6 pb-2.5 pt-[22px]">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-[20px] font-bold tracking-[-0.01em] text-zinc-950">
-                Tasks
-              </h1>
-              <p className="mt-1.5 text-[13px] text-zinc-500">
-                {tasks.length} total
-                {doingCount > 0 ? ` · ${doingCount} in progress` : ""}
-              </p>
-            </div>
-            <LinkButton href={getNewTaskHref()} tone="solid" size="sm">
-              + New task
-            </LinkButton>
+      <header className="flex flex-wrap items-end justify-between gap-3 pb-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="text-[22px] font-semibold tracking-tight text-zinc-950">
+              Tasks
+            </h1>
+            <TaskStatusLegend />
           </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {filterItems.map((item) => {
-              const count =
-                item.key === "all"
-                  ? tasks.length
-                  : tasks.filter((task) => task.status === item.key).length;
-
-              return (
-                <FilterChip
-                  key={item.key}
-                  active={filter === item.key}
-                  onClick={() => changeFilter(item.key)}
-                >
-                  {item.label}
-                  <span className="tabular-nums text-zinc-400">{count}</span>
-                </FilterChip>
-              );
-            })}
-            <span className="ml-1 hidden sm:inline">
-              <TaskStatusLegend />
-            </span>
-          </div>
-        </header>
-
-        {workspaceData ? (
-          <DocumentBulkBar
-            visibleCount={filteredTasks.length}
-            selectedCount={selection.selectedIds.size}
-            allVisibleSelected={selection.allVisibleSelected}
-            someVisibleSelected={selection.someVisibleSelected}
-            documentLabel="tasks"
-            deleteImpact="Linked records will be kept."
-            isDeleting={isDeleting}
-            error={deleteError}
-            onToggleAll={selection.toggleAllVisible}
-            onClear={selection.clear}
-            onDelete={deleteSelectedTasks}
-          />
-        ) : null}
-
-        <div className="px-[18px] pb-2 pt-1">
-          {filteredTasks.length === 0 ? (
-            <p className="py-10 text-center text-[13px] text-zinc-500">
-              No tasks in this view.
-            </p>
-          ) : (
-            filteredTasks.map((task) => (
-              <TaskListRow
-                key={task.id}
-                task={task}
-                logs={logs}
-                outputs={outputs}
-                selected={selection.selectedIds.has(task.id)}
-                onToggle={() => selection.toggle(task.id)}
-              />
-            ))
-          )}
+          <p className="mt-1.5 text-[13px] text-zinc-500">
+            {tasks.length} total
+            {doingCount > 0 ? ` · ${doingCount} in progress` : ""}
+          </p>
         </div>
-      </article>
+        <Link
+          href={getNewTaskHref()}
+          className="inline-flex text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          + New task
+        </Link>
+      </header>
+
+      <div
+        role="tablist"
+        aria-label="Task filters"
+        className="flex flex-wrap items-end gap-1 border-b border-zinc-200"
+      >
+        {filterItems.map((item) => {
+          const active = filter === item.key;
+          const count =
+            item.key === "all"
+              ? tasks.length
+              : tasks.filter((task) => task.status === item.key).length;
+
+          return (
+            <button
+              key={item.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => changeFilter(item.key)}
+              className={cn(
+                "group relative h-9 cursor-pointer px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                active
+                  ? "text-zinc-950"
+                  : "text-zinc-500 hover:text-zinc-950",
+              )}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {item.label}
+                <span
+                  className={cn(
+                    "tabular-nums transition",
+                    active
+                      ? "text-zinc-500"
+                      : "text-zinc-400 group-hover:text-zinc-500",
+                  )}
+                >
+                  {count}
+                </span>
+              </span>
+              {active ? (
+                <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
+              ) : (
+                <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-300 opacity-0 transition group-hover:opacity-100" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {workspaceData ? (
+        <DocumentBulkBar
+          visibleCount={filteredTasks.length}
+          selectedCount={selection.selectedIds.size}
+          allVisibleSelected={selection.allVisibleSelected}
+          someVisibleSelected={selection.someVisibleSelected}
+          documentLabel="tasks"
+          deleteImpact="Linked records will be kept."
+          isDeleting={isDeleting}
+          error={deleteError}
+          onToggleAll={selection.toggleAllVisible}
+          onClear={selection.clear}
+          onDelete={deleteSelectedTasks}
+        />
+      ) : null}
+
+      {filteredTasks.length === 0 ? (
+        <p className="mt-10 pl-5 text-sm text-zinc-500">No tasks in this view.</p>
+      ) : (
+        <ul className="mt-2">
+          {filteredTasks.map((task) => (
+            <TaskListRow
+              key={task.id}
+              task={task}
+              logs={logs}
+              outputs={outputs}
+              selected={selection.selectedIds.has(task.id)}
+              onToggle={() => selection.toggle(task.id)}
+            />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -209,41 +232,35 @@ function TaskListRow({
   ).length;
   const meta = getTaskMeta(task.id);
   const excerpt = getTaskExcerpt(task.body);
-  const statusLabel =
-    task.status === "doing"
-      ? "doing"
-      : task.status === "done"
-        ? "done"
-        : "todo";
 
   return (
-    <article
-      className="flex items-start gap-3 border-t border-zinc-100 py-3.5 first:border-t-0"
-    >
-      <SelectionCheckbox
-        checked={selected}
-        label={`${selected ? "Deselect" : "Select"} ${task.title}`}
-        onChange={onToggle}
-        className="mt-0.5"
-      />
-      <TaskStatusDot status={task.status} className="mt-1" />
-      <div className="min-w-0 flex-1">
-        <h2 className="text-[15px] font-semibold leading-snug text-zinc-950">
+    <li className="border-t border-zinc-200/80 first:border-t-0">
+      <div
+        className={cn(
+          "group rounded-lg px-2.5 py-2.5 transition",
+          selected ? "bg-zinc-50" : "hover:bg-zinc-50",
+        )}
+      >
+        <div className="grid grid-cols-[17px_minmax(0,1fr)_7px] items-center gap-x-2.5">
+          <SelectionCheckbox
+            checked={selected}
+            label={`${selected ? "Deselect" : "Select"} ${task.title}`}
+            onChange={onToggle}
+          />
           <Link
             href={getTaskHref(task.id)}
-            className="transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            className="min-w-0 truncate text-[14.5px] font-medium leading-5 text-zinc-950 transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
           >
             {task.title}
           </Link>
-        </h2>
+          <TaskStatusDot status={task.status} title={task.status} />
+        </div>
         {excerpt ? (
-          <p className="mt-1 line-clamp-2 text-[12.5px] leading-5 text-zinc-500">
+          <p className="mt-1 pl-[calc(17px+0.625rem)] line-clamp-2 text-[12.5px] leading-5 text-zinc-500">
             {excerpt}
           </p>
         ) : null}
-        <p className="mt-1.5 text-[11.5px] text-zinc-400">
-          <span className="font-medium text-zinc-500">{statusLabel}</span>
-          {" · "}
+        <p className="mt-1.5 pl-[calc(17px+0.625rem)] text-[12px] text-zinc-400">
           {logCount} log{logCount === 1 ? "" : "s"}
           {outputCount > 0
             ? ` · ${outputCount} output${outputCount === 1 ? "" : "s"}`
@@ -252,39 +269,7 @@ function TaskListRow({
           Last {taskLogs[0]?.meta.split(" · ")[0] ?? meta.lastActivityLabel}
         </p>
       </div>
-      <Link
-        href={getTaskHref(task.id)}
-        aria-label={`Open ${task.title}`}
-        className="shrink-0 self-center text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-      >
-        <IconArrowRight className="size-4" />
-      </Link>
-    </article>
-  );
-}
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[12.5px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        active
-          ? "bg-zinc-950 text-white"
-          : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-950",
-      )}
-    >
-      {children}
-    </button>
+    </li>
   );
 }
 
@@ -296,10 +281,13 @@ function TaskStatusLegend() {
   ];
 
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium text-zinc-400">
+    <span
+      className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] font-medium text-zinc-400"
+      aria-label="Task status legend"
+    >
       {items.map((item) => (
         <span key={item.status} className="inline-flex items-center gap-1">
-          <TaskStatusDot status={item.status} size="sm" />
+          <TaskStatusDot status={item.status} />
           {item.label}
         </span>
       ))}
@@ -309,72 +297,25 @@ function TaskStatusLegend() {
 
 function TaskStatusDot({
   status,
-  size = "md",
   className,
+  title,
 }: {
   status: WorkspaceWorkStatus;
-  size?: "sm" | "md";
   className?: string;
+  title?: string;
 }) {
   return (
     <span
+      title={title}
       className={cn(
-        "shrink-0 rounded-full",
-        size === "sm" ? "size-[7px]" : "size-[9px]",
+        "size-[7px] shrink-0 rounded-full",
         status === "doing" && "border-2 border-blue-600",
         status === "done" && "bg-green-600",
         status === "todo" && "border-2 border-zinc-300",
         className,
       )}
+      aria-hidden={title ? undefined : true}
+      aria-label={title}
     />
-  );
-}
-
-function LinkButton({
-  href,
-  tone,
-  size = "md",
-  children,
-}: {
-  href: string;
-  tone: "solid" | "outline" | "ghost";
-  size?: "md" | "sm";
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex items-center justify-center gap-1.5 font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        size === "sm"
-          ? "h-[30px] rounded-[10px] px-[13px] text-[12.5px]"
-          : "h-9 rounded-xl px-4 text-[13.5px]",
-        tone === "solid" && "bg-zinc-950 text-white hover:bg-zinc-800",
-        tone === "outline" &&
-          "border border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-50",
-        tone === "ghost" && "text-zinc-500 hover:text-zinc-950",
-      )}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function IconArrowRight({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M5 12h14M13 6l6 6-6 6"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
   );
 }
