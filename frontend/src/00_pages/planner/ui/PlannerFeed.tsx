@@ -7,7 +7,7 @@ import { requireWorkspaceData } from "@/widgets/app-shell/lib/requireWorkspacePa
 import { WorkspaceSectionShell } from "@/widgets/app-shell/ui/WorkspaceSectionShell";
 import {
   getWorkspaceTodosInRange,
-  loadWorkspacePageData,
+  loadWorkspaceNavigationPageData,
 } from "@/entities/workspace/api/workspaceApi";
 
 export async function PlannerFeed({
@@ -20,7 +20,7 @@ export async function PlannerFeed({
   const user = await getUserOrRedirectToOnboarding();
   if (!user) redirect("/");
 
-  const pageData = await loadWorkspacePageData();
+  const pageData = await loadWorkspaceNavigationPageData();
   const workspaceData = requireWorkspaceData(pageData);
   const today = getSeoulIsoDate(new Date());
   const month = isValidMonth(requestedMonth)

@@ -204,33 +204,45 @@ export const listManagedWorkspaces = cache(
   },
 );
 
-export const loadWorkspacePageData = cache(
-  async (): Promise<WorkspacePageData> => {
-    try {
-      const headerStore = await headers();
-      const cookie = headerStore.get("cookie") ?? "";
-      const workspaceResponses = await fetchJson<WorkspaceResponse[]>(
-        "/workspaces",
-        cookie,
-      );
-      const workspaces = workspaceResponses.map(mapManagedWorkspace);
-
-      if (workspaces.length === 0) {
-        return { workspaces, workspaceData: null, status: "empty" };
-      }
-
-      const selectedId = resolveSelectedWorkspaceId(workspaces, cookie);
-      const workspaceData = await fetchWorkspaceUiData(
-        workspaceResponses,
-        cookie,
-        selectedId,
-      );
-      return { workspaces, workspaceData, status: "ready" };
-    } catch {
-      return { workspaces: [], workspaceData: null, status: "error" };
-    }
-  },
+export const loadWorkspacePageData = cache(() =>
+  loadWorkspacePageDataWith(fetchWorkspaceUiData),
 );
+
+export const loadWorkspaceNavigationPageData = cache(() =>
+  loadWorkspacePageDataWith(fetchWorkspaceNavigationData),
+);
+
+async function loadWorkspacePageDataWith(
+  loadWorkspaceData: (
+    workspaces: WorkspaceResponse[],
+    cookie: string,
+    workspaceId?: string | null,
+  ) => Promise<WorkspaceUiData | null>,
+): Promise<WorkspacePageData> {
+  try {
+    const headerStore = await headers();
+    const cookie = headerStore.get("cookie") ?? "";
+    const workspaceResponses = await fetchJson<WorkspaceResponse[]>(
+      "/workspaces",
+      cookie,
+    );
+    const workspaces = workspaceResponses.map(mapManagedWorkspace);
+
+    if (workspaces.length === 0) {
+      return { workspaces, workspaceData: null, status: "empty" };
+    }
+
+    const selectedId = resolveSelectedWorkspaceId(workspaces, cookie);
+    const workspaceData = await loadWorkspaceData(
+      workspaceResponses,
+      cookie,
+      selectedId,
+    );
+    return { workspaces, workspaceData, status: "ready" };
+  } catch {
+    return { workspaces: [], workspaceData: null, status: "error" };
+  }
+}
 
 export const getWorkspaceUiData = cache(
   async (workspaceId?: string | null): Promise<WorkspaceUiData | null> => {
@@ -289,19 +301,7 @@ async function fetchWorkspaceUiData(
   cookie: string,
   workspaceId?: string | null,
 ): Promise<WorkspaceUiData | null> {
-  if (workspaces.length === 0) {
-    return null;
-  }
-
-  const selected =
-    (workspaceId
-      ? workspaces.find((workspace) => String(workspace.id) === workspaceId)
-      : null) ??
-    workspaces.find(
-      (workspace) =>
-        String(workspace.id) === readActiveWorkspaceIdFromCookie(cookie),
-    ) ??
-    workspaces[0];
+  const selected = selectWorkspace(workspaces, cookie, workspaceId);
 
   if (!selected) {
     return null;
@@ -359,6 +359,54 @@ async function fetchWorkspaceUiData(
     memories,
     workingBrief,
   });
+}
+
+function selectWorkspace(
+  workspaces: WorkspaceResponse[],
+  cookie: string,
+  workspaceId?: string | null,
+) {
+  return (
+    (workspaceId
+      ? workspaces.find((workspace) => String(workspace.id) === workspaceId)
+      : null) ??
+    workspaces.find(
+      (workspace) =>
+        String(workspace.id) === readActiveWorkspaceIdFromCookie(cookie),
+    ) ??
+    workspaces[0]
+  );
+}
+
+async function fetchWorkspaceNavigationData(
+  workspaces: WorkspaceResponse[],
+  cookie: string,
+  workspaceId?: string | null,
+): Promise<WorkspaceUiData | null> {
+  const selected = selectWorkspace(workspaces, cookie, workspaceId);
+  if (!selected) {
+    return null;
+  }
+
+  const [tasks, logs] = await Promise.all([
+    fetchAllTasks(selected.id, cookie),
+    fetchAllLogs(selected.id, cookie),
+  ]);
+
+  return {
+    workspaceId: String(selected.id),
+    workspaceName: selected.name || selected.slug,
+    repositoryFullName: selected.repoFullName,
+    tasks: tasks.map(mapTask),
+    logs: logs.map(mapLog),
+    outputs: [],
+    todos: [],
+    taskLinks: [],
+    logLinks: [],
+    crossLinks: [],
+    memories: [],
+    workingBrief: null,
+  };
 }
 
 export const getWorkspaceMemory = cache(

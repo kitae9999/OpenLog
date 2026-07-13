@@ -7,7 +7,11 @@ import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboar
 import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { HomeFeedShell } from "@/widgets/app-shell/ui/HomeFeedShell";
-import { loadWorkspacePageData, getWorkspaceActivity } from "@/entities/workspace/api/workspaceApi";
+import {
+  getWorkspaceActivity,
+  loadWorkspaceNavigationPageData,
+  loadWorkspacePageData,
+} from "@/entities/workspace/api/workspaceApi";
 
 function getSeoulIsoDate(date: Date) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -30,7 +34,9 @@ export async function HomeFeed({
   const isLoggedIn = !!data; // data 있으면 true, 없으면 false
   const resolvedTab = activeTab ?? getDefaultTab(isLoggedIn);
   const pageData = isLoggedIn
-    ? await loadWorkspacePageData()
+    ? await (resolvedTab === "workspace"
+        ? loadWorkspacePageData()
+        : loadWorkspaceNavigationPageData())
     : { workspaces: [], workspaceData: null };
   const workspaces = pageData.workspaces;
   const workspaceData =

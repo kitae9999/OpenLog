@@ -7,7 +7,7 @@ import { OutputDetailShell } from "@/pages/outputs/ui/OutputDetailShell";
 import { requireWorkspaceData } from "@/widgets/app-shell/lib/requireWorkspacePageData";
 import {
   getWorkspaceOutput,
-  loadWorkspacePageData,
+  loadWorkspaceNavigationPageData,
 } from "@/entities/workspace/api/workspaceApi";
 
 export async function OutputDetailFeed({
@@ -20,7 +20,7 @@ export async function OutputDetailFeed({
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
   const pageData = user
-    ? await loadWorkspacePageData()
+    ? await loadWorkspaceNavigationPageData()
     : { workspaces: [], workspaceData: null, status: "empty" as const };
   const workspaces = pageData.workspaces;
   const workspaceData = user ? requireWorkspaceData(pageData) : null;

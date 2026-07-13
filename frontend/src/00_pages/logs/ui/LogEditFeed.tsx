@@ -8,7 +8,7 @@ import { LogEditShell } from "@/pages/logs/ui/LogEditShell";
 import { requireWorkspaceData } from "@/widgets/app-shell/lib/requireWorkspacePageData";
 import {
   getWorkspaceLog,
-  loadWorkspacePageData,
+  loadWorkspaceNavigationPageData,
 } from "@/entities/workspace/api/workspaceApi";
 
 export async function LogEditFeed({
@@ -21,7 +21,7 @@ export async function LogEditFeed({
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
   const pageData = user
-    ? await loadWorkspacePageData()
+    ? await loadWorkspaceNavigationPageData()
     : { workspaces: [], workspaceData: null, status: "empty" as const };
   const workspaces = pageData.workspaces;
   const workspaceData = user ? requireWorkspaceData(pageData) : null;
