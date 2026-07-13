@@ -41,9 +41,16 @@ test.describe("Memory and activity UI", () => {
       july.getByRole("link", { name: "Jul 10, 2026, 3 logs" }),
     ).toHaveCount(1);
 
-    const gap = await page.locator("[data-activity-months]").evaluate((element) =>
-      Number.parseFloat(getComputedStyle(element).columnGap),
-    );
-    expect(gap).toBe(0);
+    const juneLastWeek = await june.locator("[data-activity-week]").last().boundingBox();
+    const julyFirstWeek = await july.locator("[data-activity-week]").first().boundingBox();
+    expect(juneLastWeek).not.toBeNull();
+    expect(julyFirstWeek).not.toBeNull();
+    expect(Math.abs(juneLastWeek!.x - julyFirstWeek!.x)).toBeLessThan(0.5);
+
+    const juneBoundaryDay = june.getByRole("link", {
+      name: "Jun 30, 2026, 0 logs",
+    });
+    await juneBoundaryDay.hover();
+    await expect(juneBoundaryDay.getByRole("tooltip")).toBeVisible();
   });
 });

@@ -30,25 +30,32 @@ export function ActivityView({ activity, selectedDate, selectedLogs }: { activit
           <div className="overflow-x-auto px-16 pb-5 pt-11">
             <div
               data-activity-months
-              className="inline-flex min-w-full justify-center gap-0"
+              className="inline-flex min-w-full justify-center gap-[4px]"
             >
-              {months.map((month) => (
+              {months.map((month, monthIndex) => (
                 <div
                   key={month.key}
                   role="group"
                   aria-label={formatMonth(month.key)}
                   data-activity-month={month.key}
-                  className="inline-flex gap-[4px]"
+                  className={cn(
+                    "pointer-events-none inline-flex gap-[4px]",
+                    monthIndex > 0 && month.startsMidweek && "-ml-[17px]",
+                  )}
                 >
                   {month.weeks.map((week, weekIndex) => (
-                    <div key={weekIndex} className="flex flex-col gap-[4px]">
+                    <div
+                      key={weekIndex}
+                      data-activity-week
+                      className="flex flex-col gap-[4px]"
+                    >
                       {week.map((day, dayIndex) => day ? (
                         <ActivityDayCell
                           key={day.date}
                           day={day}
                           selected={day.date === selectedDate}
                         />
-                      ) : <span key={dayIndex} className="size-[13px]" aria-hidden="true" />)}
+                      ) : <span key={dayIndex} className="pointer-events-none size-[13px]" aria-hidden="true" />)}
                     </div>
                   ))}
                 </div>
@@ -96,7 +103,7 @@ function ActivityDayCell({
       aria-label={`${dateLabel}, ${logLabel}`}
       aria-current={selected ? "date" : undefined}
       className={cn(
-        "group relative size-[13px] rounded-[3px] transition-transform duration-150 hover:z-20 hover:scale-125 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/40",
+        "pointer-events-auto group relative size-[13px] rounded-[3px] transition-transform duration-150 hover:z-20 hover:scale-125 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/40",
         LEVELS[getLevel(day.logCount)],
         selected && "ring-2 ring-zinc-800 ring-offset-1",
       )}
@@ -126,11 +133,11 @@ function buildActivityMonths(activity: WorkspaceActivity) {
 
   return Array.from(daysByMonth, ([key, days]) => ({
     key,
-    weeks: buildMonthWeeks(key, days),
+    ...buildMonthGrid(key, days),
   }));
 }
 
-function buildMonthWeeks(
+function buildMonthGrid(
   month: string,
   activityDays: WorkspaceActivity["days"],
 ) {
@@ -155,7 +162,10 @@ function buildMonthWeeks(
   for (let index = 0; index < cells.length; index += 7) {
     weeks.push(cells.slice(index, index + 7));
   }
-  return weeks;
+  return {
+    startsMidweek: mondayOffset > 0,
+    weeks,
+  };
 }
 
 function getLevel(count: number) {
