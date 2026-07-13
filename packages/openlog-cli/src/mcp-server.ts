@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { OpenLogApiClient } from "./api-client.js";
 import { readAuthFile } from "./auth-store.js";
+import { createAuthenticatedApiClient } from "./authenticated-client.js";
 import { getApiBaseUrl, getWebBaseUrl } from "./config.js";
 import { uploadPostImage } from "./post-image-upload.js";
 
@@ -38,7 +39,7 @@ export async function runMcpServer(): Promise<void> {
         }
         apiBaseUrl = authFile.apiBaseUrl;
 
-        const me = await createAuthenticatedClient().then((client) =>
+        const me = await createAuthenticatedApiClient().then((client) =>
           client.get("/auth/me"),
         );
 
@@ -361,24 +362,11 @@ function buildPublicPostPath(username: string, slug: string): string {
   return `/@${encodeURIComponent(username)}/posts/${encodeURIComponent(slug)}`;
 }
 
-async function createAuthenticatedClient(): Promise<OpenLogApiClient> {
-  const authFile = await readAuthFile();
-
-  if (!authFile) {
-    throw new Error("Run `openlog login` before using OpenLog MCP tools.");
-  }
-
-  return new OpenLogApiClient({
-    accessToken: authFile.accessToken,
-    apiBaseUrl: authFile.apiBaseUrl,
-  });
-}
-
 async function withAuthenticatedClient(
   callback: (client: OpenLogApiClient) => Promise<unknown>,
 ) {
   try {
-    const client = await createAuthenticatedClient();
+    const client = await createAuthenticatedApiClient();
     const result = await callback(client);
     return textResult(result);
   } catch (error) {
