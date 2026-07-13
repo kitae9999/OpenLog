@@ -41,11 +41,36 @@ test.describe("Memory and activity UI", () => {
       july.getByRole("link", { name: "Jul 10, 2026, 3 logs" }),
     ).toHaveCount(1);
 
-    const juneLastWeek = await june.locator("[data-activity-week]").last().boundingBox();
-    const julyFirstWeek = await july.locator("[data-activity-week]").first().boundingBox();
-    expect(juneLastWeek).not.toBeNull();
-    expect(julyFirstWeek).not.toBeNull();
-    expect(Math.abs(juneLastWeek!.x - julyFirstWeek!.x)).toBeLessThan(0.5);
+    const contourGap = await page.evaluate(() => {
+      const getRightmostByRow = (selector: string) => {
+        const rows = new Map<number, DOMRect>();
+        document.querySelectorAll<HTMLElement>(`${selector} a`).forEach((cell) => {
+          const box = cell.getBoundingClientRect();
+          const current = rows.get(box.y);
+          if (!current || box.right > current.right) rows.set(box.y, box);
+        });
+        return rows;
+      };
+      const getLeftmostByRow = (selector: string) => {
+        const rows = new Map<number, DOMRect>();
+        document.querySelectorAll<HTMLElement>(`${selector} a`).forEach((cell) => {
+          const box = cell.getBoundingClientRect();
+          const current = rows.get(box.y);
+          if (!current || box.left < current.left) rows.set(box.y, box);
+        });
+        return rows;
+      };
+      const juneRows = getRightmostByRow('[data-activity-month="2026-06"]');
+      const julyRows = getLeftmostByRow('[data-activity-month="2026-07"]');
+
+      return Math.min(
+        ...Array.from(juneRows, ([row, juneCell]) => {
+          const julyCell = julyRows.get(row);
+          return julyCell ? julyCell.left - juneCell.right : Number.POSITIVE_INFINITY;
+        }),
+      );
+    });
+    expect(contourGap).toBe(10);
 
     const juneBoundaryDay = june.getByRole("link", {
       name: "Jun 30, 2026, 0 logs",
