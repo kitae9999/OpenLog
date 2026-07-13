@@ -126,7 +126,11 @@ jobs:
 
       - name: Sync production deploy assets
         run: |
-          rsync -avz --delete --exclude 'nginx/certs/' deploy/production/ \
+          rsync -avz --delete \
+            --exclude 'backups/' \
+            --exclude 'migration/' \
+            --exclude 'nginx/certs/' \
+            deploy/production/ \
             "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}:${{ secrets.PRODUCTION_DEPLOY_PATH }}/"
 
       - name: Update remote production env
