@@ -24,3 +24,10 @@ export function getAuthFilePath(): string {
     path.join(os.homedir(), ".openlog", "auth.json")
   );
 }
+
+export function getMcpConfigFilePath(): string {
+  return (
+    process.env.OPENLOG_MCP_CONFIG_FILE ??
+    path.join(os.homedir(), ".openlog", "mcp-config.json")
+  );
+}

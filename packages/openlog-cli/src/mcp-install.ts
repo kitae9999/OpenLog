@@ -51,7 +51,8 @@ Aliases:
   claude      Same as claude-code
 
 Notes:
-  If OPENLOG_API_BASE_URL or OPENLOG_WEB_BASE_URL is set, it is added to the client config.
+  If OPENLOG_API_BASE_URL, OPENLOG_WEB_BASE_URL, or OPENLOG_MCP_CONFIG_FILE is set,
+  it is added to the client config.
 `);
 }
 
@@ -64,6 +65,9 @@ function buildServerConfig(): ServerConfig {
   }
   if (webBaseUrl !== DEFAULT_WEB_BASE_URL) {
     env.OPENLOG_WEB_BASE_URL = webBaseUrl;
+  }
+  if (process.env.OPENLOG_MCP_CONFIG_FILE) {
+    env.OPENLOG_MCP_CONFIG_FILE = process.env.OPENLOG_MCP_CONFIG_FILE;
   }
 
   return {

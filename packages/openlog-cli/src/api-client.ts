@@ -59,6 +59,14 @@ export class OpenLogApiClient {
     });
   }
 
+  async patch<T>(path: string, body?: unknown): Promise<T> {
+    return this.request<T>(path, {
+      method: "PATCH",
+      headers: body ? { "content-type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
   async postNoContent(path: string, body?: unknown): Promise<void> {
     await this.request<void>(path, {
       method: "POST",
@@ -73,6 +81,10 @@ export class OpenLogApiClient {
       headers: body ? { "content-type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
     });
+  }
+
+  async deleteNoContent(path: string): Promise<void> {
+    await this.request<void>(path, { method: "DELETE" });
   }
 
   private async request<T>(
@@ -104,7 +116,12 @@ export class OpenLogApiClient {
       return undefined as T;
     }
 
-    return (await response.json()) as T;
+    const responseBody = await response.text();
+    if (!responseBody) {
+      return undefined as T;
+    }
+
+    return JSON.parse(responseBody) as T;
   }
 
   private async refreshAccessToken(): Promise<void> {

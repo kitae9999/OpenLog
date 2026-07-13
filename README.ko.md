@@ -105,21 +105,40 @@ openlog mcp install codex
 openlog mcp install claude-code
 ```
 
+### 로컬 MCP 권한
+
+OpenLog는 로컬 권한 프로필에 따라 MCP tool을 등록합니다.
+
+```bash
+openlog mcp permissions
+openlog mcp permissions set read-only
+openlog mcp permissions set safe-write
+openlog mcp permissions set full
+openlog mcp permissions reset
+```
+
+| 프로필 | 허용 기능 |
+| --- | --- |
+| `read-only` | 인증 상태와 조회 tool |
+| `safe-write` | 조회, 생성, 수정, 연결, 이미지 업로드, 확인 후 발행 tool |
+| `full` | `safe-write` 기능과 개별 즉시 삭제, working brief 초기화 tool |
+
+기본값은 `safe-write`입니다. 프로필을 바꾼 뒤 MCP server를 재시작하거나 다시 로드해야 합니다. 이 설정은 로컬 에이전트 안전 정책이며, API는 로그인 사용자의 서버 권한을 별도로 계속 검사합니다.
+
 ### MCP tools
 
-| Tool | 역할 |
+| 영역 | Tool |
 | --- | --- |
-| `get_auth_status` | 로컬 CLI 로그인 상태 확인 |
-| `get_me` | 현재 로그인 사용자 조회 |
-| `list_my_notifications` | 내 알림 목록 조회 |
-| `list_my_posts` | 내가 작성한 글 목록 조회 |
-| `list_my_liked_posts` | 내가 좋아요한 글 목록 조회 |
-| `get_post_detail` | 공개 게시글 상세 조회 |
-| `upload_post_image` | 로컬 이미지를 WebP로 변환해 업로드 |
-| `publish_post` | 명시적으로 확인한 뒤 게시글 미리보기 및 발행 |
-| `push_working_brief` | 워크스페이스의 Now Working 맥락 갱신 |
+| 권한과 계정 | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts` |
+| 공개 게시글 | `get_post_detail`, `upload_post_image`, `publish_post` |
+| 워크스페이스와 활동 | `list_workspaces`, `get_workspace`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
+| Task와 Log | workspace task와 log의 list/get/create/update tool |
+| Todo와 Memory | todo 조회·생성·완료 tool, memory 조회·생성·log 변환·수정 tool |
+| Output | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `publish_workspace_output` |
+| Graph link | `list_workspace_links`와 task/log/cross-link 생성 tool |
+| Full 삭제 | working brief 초기화와 task/log/todo/memory/output/link 개별 삭제 tool |
 
-`publish_post`는 기본적으로 미리보기만 반환합니다. 실제 발행에는 `confirm: true`가 필요하며, 사용자가 추가 확인 없이 발행하라고 명시한 경우에만 `skipConfirmation: true`를 사용할 수 있습니다.
+`publish_post`와 `publish_workspace_output`은 기본적으로 미리보기만 반환합니다. 실제 발행에는 `confirm: true`가 필요하며, 사용자가 추가 확인 없이 발행하라고 명시한 경우에만 `skipConfirmation: true`를 사용할 수 있습니다.
 
 ### 로컬 서버 연결
 
@@ -132,6 +151,7 @@ npx -y @kitae9999/openlog-cli mcp
 - `OPENLOG_API_BASE_URL`: CLI와 MCP server가 호출할 API base URL
 - `OPENLOG_WEB_BASE_URL`: 게시글 발행 응답에 사용할 웹 base URL
 - `OPENLOG_AUTH_FILE`: 기본 `~/.openlog/auth.json`을 대신할 인증 파일 경로
+- `OPENLOG_MCP_CONFIG_FILE`: 기본 `~/.openlog/mcp-config.json`을 대신할 권한 설정 파일 경로
 
 ## 로컬 개발
 
