@@ -34,7 +34,12 @@ import {
   type ToolbarActionPayload,
 } from "@/shared/lib/markdown";
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
-import { Footer, Header } from "@/widgets/chrome/ui";
+import { Footer } from "@/widgets/chrome/ui";
+import { AppChromeShell } from "@/widgets/home-feed/ui/AppChromeShell";
+import type {
+  ManagedWorkspace,
+  WorkspaceUiData,
+} from "@/widgets/home-feed/ui/workspaceTypes";
 
 type ComposerMode = "edit" | "preview";
 type WriteViewMode = "create" | "edit";
@@ -96,6 +101,8 @@ export function WriteView({
   backLabel = "Back to feed",
   submitLabel = "Publish",
   pendingSubmitLabel = "Publishing...",
+  workspaces = [],
+  workspaceData = null,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
@@ -110,6 +117,8 @@ export function WriteView({
   backLabel?: string;
   submitLabel?: string;
   pendingSubmitLabel?: string;
+  workspaces?: ManagedWorkspace[];
+  workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
   const [composerMode, setComposerMode] = useState<ComposerMode>("edit");
@@ -775,16 +784,18 @@ export function WriteView({
   }
 
   return (
-    <div className="min-h-dvh bg-app text-zinc-950">
-      <Header
-        isLoggedIn={isLoggedIn}
-        profileImageUrl={profileImageUrl}
-        profileHref={profileHref}
-        showWriteAction={false}
-      />
-
-      <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
-        <form action={formAction} className="flex flex-col gap-6">
+    <AppChromeShell
+      isLoggedIn={isLoggedIn}
+      profileImageUrl={profileImageUrl}
+      profileHref={profileHref}
+      showWriteAction={false}
+      activeTab="home"
+      workspaces={workspaces}
+      workspaceData={workspaceData}
+      footer={<Footer />}
+    >
+      <div className="mx-auto w-full max-w-[920px] px-4 pb-16 pt-6 sm:px-8">
+        <form action={formAction} className="flex flex-col gap-8">
           {topics.map((topic) => (
             <input key={topic} type="hidden" name="topics" value={topic} />
           ))}
@@ -797,17 +808,17 @@ export function WriteView({
             value={JSON.stringify(activeWikiLinks)}
           />
 
-          <div className="flex flex-col gap-6 border-b border-zinc-200/80 pb-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-6 border-b border-zinc-200/70 pb-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 flex-1">
               <Link
                 href={backHref}
-                className="inline-flex items-center gap-2 rounded-full px-1 py-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                className="inline-flex items-center gap-2 text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 <IconArrowLeft className="size-4" />
                 {backLabel}
               </Link>
 
-              <div className="mt-3 space-y-1">
+              <div className="mt-4 space-y-2">
                 <label className="relative block">
                   <span className="sr-only">Title</span>
                   <input
@@ -835,21 +846,21 @@ export function WriteView({
                     onSelect={(event) =>
                       scheduleTitleCaretSync(event.currentTarget)
                     }
-                    placeholder="add title"
+                    placeholder="Add title"
                     className={cn(
-                      "w-full bg-transparent text-[36px] font-bold leading-tight tracking-normal text-zinc-950 caret-transparent outline-none placeholder:text-zinc-400 sm:text-[44px]",
+                      "w-full bg-transparent text-[34px] font-bold leading-tight tracking-tight text-zinc-950 caret-transparent outline-none placeholder:text-zinc-400 sm:text-[42px]",
                       submitErrors.title ? "placeholder:text-rose-300" : "",
                     )}
                   />
                   {isTitleFocused && isTitleCaretVisible ? (
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute left-0 top-0 h-[1.18em] w-px bg-zinc-950 text-[36px] sm:text-[44px] [animation:openlog-caret-blink_1s_steps(1,end)_infinite]"
+                      className="pointer-events-none absolute left-0 top-0 h-[1.18em] w-px bg-zinc-950 text-[34px] sm:text-[42px] [animation:openlog-caret-blink_1s_steps(1,end)_infinite]"
                       style={{ transform: `translateX(${titleCaretLeft}px)` }}
                     />
                   ) : null}
                   {submitErrors.title ? (
-                    <p className="mt-2 text-sm text-rose-600">
+                    <p className="mt-2 text-[13px] text-rose-600">
                       {submitErrors.title}
                     </p>
                   ) : null}
@@ -863,17 +874,17 @@ export function WriteView({
                     onChange={(event) =>
                       handleDescriptionChange(event.target.value)
                     }
-                    placeholder="add summary"
+                    placeholder="Add summary"
                     maxLength={DESCRIPTION_MAX_LENGTH}
                     className={cn(
-                      "h-7 w-full bg-transparent text-[16px] leading-7 tracking-normal text-zinc-700 outline-none placeholder:text-zinc-400",
+                      "h-7 w-full bg-transparent text-[15px] leading-7 text-zinc-600 outline-none placeholder:text-zinc-400",
                       submitErrors.description
                         ? "placeholder:text-rose-300"
                         : "",
                     )}
                   />
                   {submitErrors.description ? (
-                    <p className="mt-1 text-sm text-rose-600">
+                    <p className="mt-1 text-[13px] text-rose-600">
                       {submitErrors.description}
                     </p>
                   ) : null}
@@ -881,41 +892,43 @@ export function WriteView({
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 self-stretch sm:self-auto">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="rounded-xl bg-zinc-100 p-1">
-                  <div className="flex items-center gap-1">
-                    <ModeButton
-                      active={composerMode === "edit"}
-                      icon={<IconEdit className="size-4" />}
-                      label="Edit"
-                      onClick={() => handleModeChange("edit")}
-                    />
-                    <ModeButton
-                      active={composerMode === "preview"}
-                      icon={
-                        <Image
-                          src="/Eye.svg"
-                          alt=""
-                          width={16}
-                          height={16}
-                          aria-hidden="true"
-                          className="size-4"
-                        />
-                      }
-                      label="Preview"
-                      onClick={() => handleModeChange("preview")}
-                    />
-                  </div>
+            <div className="flex flex-col gap-2.5 self-stretch sm:self-auto lg:items-end">
+              <div className="flex flex-wrap items-center gap-x-1 gap-y-2 sm:justify-end">
+                <div
+                  role="tablist"
+                  aria-label="Composer mode"
+                  className="mr-2 flex items-center gap-0.5"
+                >
+                  <ModeButton
+                    active={composerMode === "edit"}
+                    icon={<IconEdit className="size-3.5" />}
+                    label="Edit"
+                    onClick={() => handleModeChange("edit")}
+                  />
+                  <ModeButton
+                    active={composerMode === "preview"}
+                    icon={
+                      <Image
+                        src="/Eye.svg"
+                        alt=""
+                        width={14}
+                        height={14}
+                        aria-hidden="true"
+                        className="size-3.5"
+                      />
+                    }
+                    label="Preview"
+                    onClick={() => handleModeChange("preview")}
+                  />
                 </div>
 
                 <button
                   type="button"
                   onClick={handleSaveDraft}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#00a63e] px-5 text-sm font-semibold text-white shadow-[0_1px_3px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.08)] transition hover:bg-[#009338] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00a63e]/30"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 px-2.5 text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                 >
-                  <IconSave className="size-4" />
-                  Save Draft
+                  <IconSave className="size-3.5" />
+                  Save draft
                 </button>
 
                 <PublishButton
@@ -926,11 +939,11 @@ export function WriteView({
 
               <p
                 className={cn(
-                  "text-xs font-medium sm:text-right",
+                  "text-[12px] font-medium sm:text-right",
                   imageUploadStatus?.kind === "error"
                     ? "text-rose-600"
                     : imageUploadStatus?.kind === "success"
-                      ? "text-emerald-700"
+                      ? "text-green-700"
                       : "text-zinc-400",
                 )}
                 aria-live="polite"
@@ -939,113 +952,111 @@ export function WriteView({
               </p>
 
               {submitErrors.form ? (
-                <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                <p className="border border-rose-200 bg-rose-50 px-3 py-2.5 text-[13px] text-rose-700">
                   {submitErrors.form}
                 </p>
               ) : null}
             </div>
           </div>
 
-          <div>
-            <section className="overflow-hidden rounded-[8px] border border-zinc-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]">
-              <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2">
+          <section>
+            {composerMode === "edit" ? (
+              <div className="border-b border-zinc-200/70 pb-2">
                 <MarkdownToolbar
-                  disabled={composerMode === "preview"}
+                  disabled={false}
                   onAction={insertFormatting}
                 />
               </div>
+            ) : null}
 
-              <div className="min-h-[520px] bg-white">
-                {composerMode === "edit" ? (
-                  <div className="relative min-h-[520px]">
-                    <textarea
-                      ref={editorRef}
-                      name="content"
-                      value={body}
-                      onChange={(event) =>
-                        handleBodyChange(
-                          event.target.value,
-                          event.currentTarget,
-                        )
-                      }
-                      onClick={(event) => syncWikiMenu(event.currentTarget)}
-                      onDragEnter={handleEditorDragEnter}
-                      onDragLeave={() => setIsDraggingImage(false)}
-                      onDragOver={handleEditorDragOver}
-                      onDrop={handleEditorDrop}
-                      onKeyDown={handleEditorKeyDown}
-                      onKeyUp={handleEditorKeyUp}
-                      onPaste={handleEditorPaste}
-                      onScroll={(event) => syncWikiMenu(event.currentTarget)}
-                      onSelect={(event) => syncWikiMenu(event.currentTarget)}
-                      placeholder="Share your ideas, code, and insights…"
-                      className="min-h-[520px] w-full resize-none px-6 py-6 text-[16px] leading-8 tracking-normal text-zinc-900 outline-none placeholder:text-zinc-400"
-                    />
-                    {isDraggingImage ? (
-                      <div className="pointer-events-none absolute inset-3 grid place-items-center rounded-lg border-2 border-dashed border-emerald-400 bg-emerald-50/85 text-sm font-semibold text-emerald-800">
-                        Drop image to upload
-                      </div>
-                    ) : null}
-                    {wikiMenu ? (
-                      <WikiLinkMenu
-                        candidates={wikiCandidates}
-                        activeIndex={activeWikiCandidateIndex}
-                        query={wikiMenu.query}
-                        placement={wikiMenu.placement}
-                        top={wikiMenu.top}
-                        left={wikiMenu.left}
-                        onSelect={insertWikiLink}
-                        onHover={updateActiveWikiIndex}
-                      />
-                    ) : null}
-                  </div>
-                ) : (
-                  <MarkdownPreview
-                    title={deferredTitle}
-                    description={deferredDescription}
-                    topics={deferredTopics}
-                    body={deferredBody}
-                    wikiLinks={activeWikiLinks}
+            <div className="min-h-[520px]">
+              {composerMode === "edit" ? (
+                <div className="relative min-h-[520px]">
+                  <textarea
+                    ref={editorRef}
+                    name="content"
+                    value={body}
+                    onChange={(event) =>
+                      handleBodyChange(
+                        event.target.value,
+                        event.currentTarget,
+                      )
+                    }
+                    onClick={(event) => syncWikiMenu(event.currentTarget)}
+                    onDragEnter={handleEditorDragEnter}
+                    onDragLeave={() => setIsDraggingImage(false)}
+                    onDragOver={handleEditorDragOver}
+                    onDrop={handleEditorDrop}
+                    onKeyDown={handleEditorKeyDown}
+                    onKeyUp={handleEditorKeyUp}
+                    onPaste={handleEditorPaste}
+                    onScroll={(event) => syncWikiMenu(event.currentTarget)}
+                    onSelect={(event) => syncWikiMenu(event.currentTarget)}
+                    placeholder="Share your ideas, code, and insights…"
+                    className="min-h-[520px] w-full resize-none bg-transparent py-6 text-[16px] leading-8 text-zinc-900 outline-none placeholder:text-zinc-400"
                   />
-                )}
-              </div>
-
-              <div className="border-t border-zinc-200 px-6 py-3">
-                <div className="flex min-h-8 flex-wrap items-center gap-2">
-                  {topics.map((topic) => (
-                    <TopicChip
-                      key={topic}
-                      topic={topic}
-                      onRemove={() => removeTopic(topic)}
+                  {isDraggingImage ? (
+                    <div className="pointer-events-none absolute inset-0 grid place-items-center border border-dashed border-zinc-300 bg-white/90 text-[13px] font-medium text-zinc-600">
+                      Drop image to upload
+                    </div>
+                  ) : null}
+                  {wikiMenu ? (
+                    <WikiLinkMenu
+                      candidates={wikiCandidates}
+                      activeIndex={activeWikiCandidateIndex}
+                      query={wikiMenu.query}
+                      placement={wikiMenu.placement}
+                      top={wikiMenu.top}
+                      left={wikiMenu.left}
+                      onSelect={insertWikiLink}
+                      onHover={updateActiveWikiIndex}
                     />
-                  ))}
-                  <label className="min-w-[140px] flex-1">
-                    <span className="sr-only">Topics</span>
-                    <input
-                      value={topicInput}
-                      onChange={(event) =>
-                        handleTopicInputChange(event.target.value)
-                      }
-                      onKeyDown={handleTopicKeyDown}
-                      placeholder="add tags"
-                      className="h-7 w-full bg-transparent text-[14px] tracking-normal text-zinc-700 outline-none placeholder:text-zinc-400"
-                    />
-                  </label>
+                  ) : null}
                 </div>
-              </div>
+              ) : (
+                <MarkdownPreview
+                  title={deferredTitle}
+                  description={deferredDescription}
+                  topics={deferredTopics}
+                  body={deferredBody}
+                  wikiLinks={activeWikiLinks}
+                />
+              )}
+            </div>
 
-              {submitErrors.content ? (
-                <div className="border-t border-rose-200 bg-rose-50 px-6 py-3 text-sm text-rose-700">
-                  {submitErrors.content}
-                </div>
-              ) : null}
-            </section>
-          </div>
+            <div className="border-t border-zinc-200/70 pt-3">
+              <div className="flex min-h-8 flex-wrap items-center gap-2">
+                {topics.map((topic) => (
+                  <TopicChip
+                    key={topic}
+                    topic={topic}
+                    onRemove={() => removeTopic(topic)}
+                  />
+                ))}
+                <label className="min-w-[140px] flex-1">
+                  <span className="sr-only">Topics</span>
+                  <input
+                    value={topicInput}
+                    onChange={(event) =>
+                      handleTopicInputChange(event.target.value)
+                    }
+                    onKeyDown={handleTopicKeyDown}
+                    placeholder="Add tags"
+                    className="h-7 w-full bg-transparent text-[13px] text-zinc-700 outline-none placeholder:text-zinc-400"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {submitErrors.content ? (
+              <div className="mt-3 border border-rose-200 bg-rose-50 px-3 py-2.5 text-[13px] text-rose-700">
+                {submitErrors.content}
+              </div>
+            ) : null}
+          </section>
         </form>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AppChromeShell>
   );
 }
 
@@ -1063,13 +1074,14 @@ function ModeButton({
   return (
     <button
       type="button"
-      aria-pressed={active}
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 items-center gap-2 rounded-[8px] px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        "inline-flex h-9 items-center gap-1.5 border-b-2 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
         active
-          ? "bg-white text-zinc-950 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]"
-          : "text-zinc-500 hover:text-zinc-950",
+          ? "border-zinc-950 text-zinc-950"
+          : "border-transparent text-zinc-500 hover:text-zinc-950",
       )}
     >
       {icon}
@@ -1091,7 +1103,7 @@ function PublishButton({
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-900 bg-zinc-950 px-5 text-sm font-semibold text-white shadow-[0_1px_3px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.1)] transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 disabled:cursor-not-allowed disabled:bg-zinc-400"
+      className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 disabled:cursor-not-allowed disabled:bg-zinc-400"
     >
       {pending ? pendingLabel : label}
     </button>
@@ -1106,13 +1118,13 @@ function TopicChip({
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-zinc-100 px-2 text-[12px] font-medium tracking-normal text-zinc-600">
-      <span>{topic}</span>
+    <span className="inline-flex h-7 items-center gap-1.5 border border-zinc-200/70 bg-zinc-50 px-2 text-[12px] font-medium text-zinc-600">
+      <span>#{topic}</span>
       <button
         type="button"
         onClick={onRemove}
         aria-label={`Remove ${topic}`}
-        className="grid size-4 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-200 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        className="grid size-4 place-items-center text-zinc-400 transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >
         <IconClose className="size-3" />
       </button>
@@ -1138,12 +1150,14 @@ function MarkdownPreview({
 
   if (!hasContent) {
     return (
-      <div className="flex min-h-130 items-center justify-center px-6 py-10">
-        <div className="max-w-90 text-center">
-          <p className="text-sm font-medium text-zinc-500">Preview is empty</p>
-          <p className="mt-2 text-sm leading-6 text-zinc-400">
-            Add a title, description, topics, or markdown content to see the
-            article preview here.
+      <div className="flex min-h-[520px] items-center justify-center py-10">
+        <div className="max-w-[28rem] text-center">
+          <p className="text-[13px] font-medium text-zinc-500">
+            Preview is empty
+          </p>
+          <p className="mt-2 text-[13px] leading-6 text-zinc-400">
+            Add a title, summary, tags, or markdown content to see the article
+            preview here.
           </p>
         </div>
       </div>
@@ -1151,27 +1165,27 @@ function MarkdownPreview({
   }
 
   return (
-    <article className="min-h-130 px-6 py-8">
-      <header className="border-b border-zinc-200 pb-8">
-        <p className="text-[11px] font-semibold uppercase tracking-normal text-zinc-400">
+    <article className="min-h-[520px] py-8">
+      <header className="border-b border-zinc-200/70 pb-8">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
           Live Preview
         </p>
-        <h2 className="mt-4 text-[34px] font-bold leading-tight tracking-normal text-zinc-950">
+        <h2 className="mt-4 text-[34px] font-bold leading-tight tracking-tight text-zinc-950">
           {title.trim() || "Untitled story"}
         </h2>
         {description.trim() ? (
-          <p className="mt-4 max-w-[60ch] text-[17px] leading-8 text-zinc-600">
+          <p className="mt-4 max-w-[60ch] text-[16px] leading-8 text-zinc-600">
             {description}
           </p>
         ) : null}
         {topics.length > 0 ? (
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
             {topics.map((topic) => (
               <span
                 key={topic}
-                className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-medium uppercase tracking-normal text-zinc-600"
+                className="text-[12.5px] font-medium text-zinc-400"
               >
-                {topic}
+                #{topic}
               </span>
             ))}
           </div>
@@ -1214,17 +1228,17 @@ function WikiLinkMenu({
 }) {
   return (
     <div
-      className="absolute z-20 w-80 overflow-hidden rounded-[8px] border border-zinc-200 bg-white shadow-[0_18px_45px_rgba(24,24,27,0.16)]"
+      className="absolute z-20 w-80 overflow-hidden rounded-lg border border-zinc-200/70 bg-white shadow-[0_4px_18px_rgba(24,24,27,0.08)]"
       style={{ top, left }}
       role="listbox"
       aria-label="Post suggestions"
       data-placement={placement}
     >
-      <div className="border-b border-zinc-100 px-3 py-2 text-[11px] font-semibold uppercase tracking-normal text-zinc-400">
+      <div className="border-b border-zinc-100 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-zinc-400">
         Link a post
       </div>
       {candidates.length > 0 ? (
-        <div className="max-h-48 overflow-y-auto p-1">
+        <div className="openlog-scroll max-h-48 overflow-y-auto">
           {candidates.map((post, index) => (
             <button
               key={post.slug}
@@ -1237,22 +1251,17 @@ function WikiLinkMenu({
                 onSelect(post);
               }}
               className={cn(
-                "block w-full rounded-[6px] px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                "block w-full px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20",
                 index === activeIndex
-                  ? "bg-zinc-950 text-white"
-                  : "text-zinc-800 hover:bg-zinc-100",
+                  ? "bg-zinc-50 text-zinc-950"
+                  : "text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950",
               )}
             >
-              <span className="block truncate text-sm font-semibold">
+              <span className="block truncate text-[13px] font-medium">
                 {post.title}
               </span>
               {post.description ? (
-                <span
-                  className={cn(
-                    "mt-0.5 block truncate text-xs",
-                    index === activeIndex ? "text-zinc-300" : "text-zinc-500",
-                  )}
-                >
+                <span className="mt-0.5 block truncate text-[12px] text-zinc-400">
                   {post.description}
                 </span>
               ) : null}
@@ -1260,7 +1269,7 @@ function WikiLinkMenu({
           ))}
         </div>
       ) : (
-        <div className="px-3 py-4 text-sm text-zinc-500">
+        <div className="px-3 py-4 text-[13px] text-zinc-500">
           No posts match {query ? `"${query}"` : "this link"}.
         </div>
       )}

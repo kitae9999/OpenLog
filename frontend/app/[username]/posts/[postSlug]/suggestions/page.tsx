@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { Footer, Header } from "@/widgets/chrome/ui";
+import { Footer } from "@/widgets/chrome/ui";
+import { AppChromeShell } from "@/widgets/home-feed/ui/AppChromeShell";
+import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
 import {
   PostSuggests,
   type SuggestionListItem,
@@ -54,6 +56,7 @@ export default async function PublicPostSuggestsPage({
     getUser(),
     getPostDetail(authorUsername, canonicalPostSlug),
   ]);
+  const chrome = await loadAppChromeWorkspace(!!viewer);
 
   const articleHref = buildPublicPostPath(authorUsername, canonicalPostSlug);
   const suggestsHref = buildPublicSuggestsPath(
@@ -69,16 +72,18 @@ export default async function PublicPostSuggestsPage({
     const suggestions = await getPostSuggestions(detail.id);
 
     return (
-      <div className="min-h-dvh bg-white text-zinc-950">
-        <Header
-          isLoggedIn={!!viewer}
-          profileImageUrl={viewer?.profileImageUrl}
-          profileHref={
-            viewer ? buildViewerProfileHref(viewer.username) : undefined
-          }
-        />
-
-        <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
+      <AppChromeShell
+        isLoggedIn={!!viewer}
+        profileImageUrl={viewer?.profileImageUrl}
+        profileHref={
+          viewer ? buildViewerProfileHref(viewer.username) : undefined
+        }
+        activeTab="home"
+        workspaces={chrome.workspaces}
+        workspaceData={chrome.workspaceData}
+        footer={<Footer />}
+      >
+        <div className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
           <PostSuggests
             post={{
               title: detail.title,
@@ -108,10 +113,8 @@ export default async function PublicPostSuggestsPage({
             suggestCount={suggestions.length}
             activeStatus={activeStatus}
           />
-        </main>
-
-        <Footer />
-      </div>
+        </div>
+      </AppChromeShell>
     );
   }
 
@@ -121,16 +124,18 @@ export default async function PublicPostSuggestsPage({
   }
 
   return (
-    <div className="min-h-dvh bg-white text-zinc-950">
-      <Header
-        isLoggedIn={!!viewer}
-        profileImageUrl={viewer?.profileImageUrl}
-        profileHref={
-          viewer ? buildViewerProfileHref(viewer.username) : undefined
-        }
-      />
-
-      <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
+    <AppChromeShell
+      isLoggedIn={!!viewer}
+      profileImageUrl={viewer?.profileImageUrl}
+      profileHref={
+        viewer ? buildViewerProfileHref(viewer.username) : undefined
+      }
+      activeTab="home"
+      workspaces={chrome.workspaces}
+      workspaceData={chrome.workspaceData}
+      footer={<Footer />}
+    >
+      <div className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <PostSuggests
           post={entry.post}
           suggestions={entry.suggestions}
@@ -141,10 +146,8 @@ export default async function PublicPostSuggestsPage({
           suggestCount={entry.suggestCount}
           activeStatus={activeStatus}
         />
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AppChromeShell>
   );
 }
 

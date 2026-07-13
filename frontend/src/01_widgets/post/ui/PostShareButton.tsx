@@ -59,7 +59,7 @@ export function PostShareButton({
         aria-label={label}
         onClick={handleCopy}
         className={cn(
-          "inline-flex items-center gap-2 text-[16px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+          "inline-flex cursor-pointer items-center gap-2 text-[16px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
           isCopied
             ? "text-emerald-600"
             : "text-zinc-500 hover:text-zinc-950",
@@ -92,10 +92,10 @@ export function PostShareButton({
       aria-label={label}
       onClick={handleCopy}
       className={cn(
-        "group relative flex w-full flex-col items-center gap-1 rounded-xl px-1 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        "group relative flex w-full cursor-pointer flex-col items-center gap-1 rounded-xl px-1 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
         isCopied
           ? "text-emerald-600"
-          : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950",
+          : "text-zinc-500 hover:text-zinc-950",
       )}
     >
       <span

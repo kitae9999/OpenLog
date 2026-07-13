@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { Children, isValidElement, type ReactNode } from "react";
-import { Footer, Header } from "@/widgets/chrome/ui";
+import { Footer } from "@/widgets/chrome/ui";
+import { AppChromeShell } from "@/widgets/home-feed/ui/AppChromeShell";
+import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
 import { NewSuggestionView } from "@/widgets/post/ui";
 import { getPostDetail } from "@/entities/post/api/getPostDetail";
 import { getPostEntry } from "@/entities/post/model";
@@ -37,6 +39,7 @@ export default async function NewSuggestionPage({
     getUser(),
     getPostDetail(authorUsername, canonicalPostSlug),
   ]);
+  const chrome = await loadAppChromeWorkspace(!!viewer);
 
   const articleHref = buildPublicPostPath(authorUsername, canonicalPostSlug);
   const suggestsHref = buildPublicSuggestsPath(authorUsername, canonicalPostSlug);
@@ -49,14 +52,16 @@ export default async function NewSuggestionPage({
     );
 
     return (
-      <div className="min-h-dvh bg-zinc-50 text-zinc-950">
-        <Header
-          isLoggedIn={!!viewer}
-          profileImageUrl={viewer?.profileImageUrl}
-          profileHref={viewer ? buildViewerProfileHref(viewer.username) : undefined}
-        />
-
-        <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
+      <AppChromeShell
+        isLoggedIn={!!viewer}
+        profileImageUrl={viewer?.profileImageUrl}
+        profileHref={viewer ? buildViewerProfileHref(viewer.username) : undefined}
+        activeTab="home"
+        workspaces={chrome.workspaces}
+        workspaceData={chrome.workspaceData}
+        footer={<Footer />}
+      >
+        <div className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
           <NewSuggestionView
             initialValues={{
               postTitle: detail.title,
@@ -66,10 +71,8 @@ export default async function NewSuggestionPage({
             articleHref={articleHref}
             action={action}
           />
-        </main>
-
-        <Footer />
-      </div>
+        </div>
+      </AppChromeShell>
     );
   }
 
@@ -79,14 +82,16 @@ export default async function NewSuggestionPage({
   }
 
   return (
-    <div className="min-h-dvh bg-zinc-50 text-zinc-950">
-      <Header
-        isLoggedIn={!!viewer}
-        profileImageUrl={viewer?.profileImageUrl}
-        profileHref={viewer ? buildViewerProfileHref(viewer.username) : undefined}
-      />
-
-      <main className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
+    <AppChromeShell
+      isLoggedIn={!!viewer}
+      profileImageUrl={viewer?.profileImageUrl}
+      profileHref={viewer ? buildViewerProfileHref(viewer.username) : undefined}
+      activeTab="home"
+      workspaces={chrome.workspaces}
+      workspaceData={chrome.workspaceData}
+      footer={<Footer />}
+    >
+      <div className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <NewSuggestionView
           initialValues={{
             postTitle: entry.post.title,
@@ -95,10 +100,8 @@ export default async function NewSuggestionPage({
           backHref={suggestsHref}
           articleHref={articleHref}
         />
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AppChromeShell>
   );
 }
 

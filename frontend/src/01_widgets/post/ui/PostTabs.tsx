@@ -24,14 +24,19 @@ export function PostTabs({
           href={articleHref}
           aria-current={activeTab === "article" ? "page" : undefined}
           className={cn(
-            "relative -mb-px inline-flex h-[34px] items-center gap-2 border-b-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+            "group relative -mb-px inline-flex h-9 cursor-pointer items-center gap-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
             activeTab === "article"
-              ? "border-zinc-950 text-zinc-950"
-              : "border-transparent text-zinc-500 hover:text-zinc-950",
+              ? "text-zinc-950"
+              : "text-zinc-500 hover:text-zinc-950",
           )}
         >
           <IconArticle className="size-4" />
           <span>Article</span>
+          {activeTab === "article" ? (
+            <span className="absolute inset-x-0 -bottom-px h-0.5 bg-zinc-950" />
+          ) : (
+            <span className="absolute inset-x-0 -bottom-px h-0.5 bg-zinc-300 opacity-0 transition group-hover:opacity-100" />
+          )}
         </Link>
 
         {showSuggestsTab ? (
@@ -39,19 +44,31 @@ export function PostTabs({
             href={suggestsHref}
             aria-current={activeTab === "suggests" ? "page" : undefined}
             className={cn(
-              "relative -mb-px inline-flex h-[34px] items-center gap-2 border-b-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+              "group relative -mb-px inline-flex h-9 cursor-pointer items-center gap-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
               activeTab === "suggests"
-                ? "border-zinc-950 text-zinc-950"
-                : "border-transparent text-zinc-500 hover:text-zinc-950",
+                ? "text-zinc-950"
+                : "text-zinc-500 hover:text-zinc-950",
             )}
           >
             <GitPullRequestIcon className="size-4" />
             <span>Suggests</span>
             {suggestCount > 0 ? (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-100 px-1.5 text-[11px] font-bold leading-none text-zinc-950">
+              <span
+                className={cn(
+                  "tabular-nums transition",
+                  activeTab === "suggests"
+                    ? "text-zinc-500"
+                    : "text-zinc-400 group-hover:text-zinc-500",
+                )}
+              >
                 {suggestCount}
               </span>
             ) : null}
+            {activeTab === "suggests" ? (
+              <span className="absolute inset-x-0 -bottom-px h-0.5 bg-zinc-950" />
+            ) : (
+              <span className="absolute inset-x-0 -bottom-px h-0.5 bg-zinc-300 opacity-0 transition group-hover:opacity-100" />
+            )}
           </Link>
         ) : null}
       </div>

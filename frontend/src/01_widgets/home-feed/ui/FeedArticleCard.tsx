@@ -7,64 +7,65 @@ export function FeedArticleCard({ post }: { post: FeedPost }) {
   const thumbnailSrc = post.thumbnailSrc;
 
   return (
-    <article className="px-5 py-[22px]">
-      <Link
-        href={post.href}
-        className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-      >
-        <div className="flex items-center gap-2 text-[13px] text-zinc-600">
-          <Image
-            src={post.profileImageSrc}
-            alt=""
-            width={24}
-            height={24}
-            className="size-6 rounded-full border border-zinc-200 object-cover"
-          />
-          <span className="font-medium text-zinc-700">{post.nickname}</span>
-        </div>
-
-        <div
-          className={cn(
-            "grid gap-5",
-            thumbnailSrc
-              ? "sm:grid-cols-[minmax(0,1fr)_156px] sm:items-center"
-              : "",
-          )}
+    <article className="border-t border-zinc-200/80 first:border-t-0">
+      <div className="rounded-lg px-2.5 py-4 transition hover:bg-zinc-50">
+        <Link
+          href={post.href}
+          className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
-          <div className="min-w-0">
-            <h2 className="mt-[13px] max-w-[680px] text-[21px] font-bold leading-[1.2] tracking-[-0.015em] text-zinc-950 transition-colors group-hover:text-zinc-700">
-              {post.title}
-            </h2>
-
-            <p className="mt-[9px] max-w-[650px] text-[14px] leading-[1.65] text-zinc-600">
-              {post.description}
-            </p>
+          <div className="flex items-center gap-2 text-[12.5px] text-zinc-500">
+            <Image
+              src={post.profileImageSrc}
+              alt=""
+              width={22}
+              height={22}
+              className="size-[22px] rounded-full border border-zinc-200 object-cover"
+            />
+            <span className="font-medium text-zinc-700">{post.nickname}</span>
           </div>
 
-          {thumbnailSrc ? (
-            <div className="relative hidden h-[96px] w-full overflow-hidden rounded-md border border-zinc-200 bg-zinc-100 sm:block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={thumbnailSrc}
-                alt=""
-                loading="lazy"
-                className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
-              />
+          <div
+            className={cn(
+              "mt-2.5 grid gap-4",
+              thumbnailSrc
+                ? "sm:grid-cols-[minmax(0,1fr)_140px] sm:items-start"
+                : "",
+            )}
+          >
+            <div className="min-w-0">
+              <h2 className="max-w-[680px] text-[18px] font-semibold leading-snug tracking-tight text-zinc-950 transition-colors group-hover:text-zinc-700 [font-family:Georgia,serif] sm:text-[20px]">
+                {post.title}
+              </h2>
+              <p className="mt-1.5 line-clamp-2 max-w-[650px] text-[13.5px] leading-6 text-zinc-500">
+                {post.description}
+              </p>
             </div>
-          ) : null}
-        </div>
-      </Link>
 
-      <div className="mt-4 flex flex-wrap items-center gap-[13px] text-[13px] tabular-nums text-zinc-500">
-        <span>{post.dateLabel}</span>
-        <span className="inline-flex items-center gap-1.5">
-          <IconComment className="size-[15px]" />
-          {post.commentCount}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <IconHeart className="size-[15px]" />
-          {post.likeCount}
-        </span>
+            {thumbnailSrc ? (
+              <div className="relative hidden h-[84px] w-full overflow-hidden rounded-md border border-zinc-200 bg-zinc-100 sm:block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={thumbnailSrc}
+                  alt=""
+                  loading="lazy"
+                  className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                />
+              </div>
+            ) : null}
+          </div>
+        </Link>
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] tabular-nums text-zinc-400">
+          <span>{post.dateLabel}</span>
+          <span className="inline-flex items-center gap-1">
+            <IconComment className="size-3.5" />
+            {post.commentCount}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <IconHeart className="size-3.5" />
+            {post.likeCount}
+          </span>
+        </div>
       </div>
     </article>
   );

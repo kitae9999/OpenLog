@@ -133,7 +133,7 @@ export function PostArticle({
                     {post.versionLabel ? (
                       <>
                         <span className="text-zinc-300">·</span>
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-700">
+                        <span className="font-mono text-[12.5px] text-zinc-400">
                           {post.versionLabel}
                         </span>
                       </>
@@ -163,13 +163,13 @@ export function PostArticle({
             ) : null}
 
             {post.tags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                 {post.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-zinc-600"
+                    className="text-[12.5px] font-medium tracking-[-0.01em] text-zinc-400"
                   >
-                    {tag}
+                    #{tag}
                   </span>
                 ))}
               </div>
@@ -177,7 +177,7 @@ export function PostArticle({
           </header>
 
           <div
-            className="mx-auto mt-8 mb-2 h-px w-56 bg-zinc-200 sm:w-72"
+            className="mx-auto mt-12 mb-12 h-px w-56 bg-zinc-200 sm:mt-14 sm:mb-14 sm:w-72"
             aria-hidden="true"
           />
 
@@ -267,7 +267,7 @@ function PostActionRail({
       <a
         href={`#${COMMENTS_SECTION_ID}`}
         aria-label={`Jump to comments (${comments})`}
-        className="group flex w-full flex-col items-center gap-1 rounded-xl px-1 py-2 text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        className="group flex w-full cursor-pointer flex-col items-center gap-1 rounded-xl px-1 py-2 text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
       >
         <IconMessageSquare className="size-5 transition-transform group-hover:scale-[1.03]" />
         <span className="text-[12px] font-medium leading-none">{comments}</span>
@@ -292,7 +292,7 @@ function MobileActionBar({
   comments: number;
 }) {
   return (
-    <div className="flex h-[62px] w-full max-w-[320px] items-center justify-center gap-5 rounded-2xl border border-zinc-200 bg-white/80 px-5 shadow-[0_20px_25px_rgba(0,0,0,0.1),0_8px_10px_rgba(0,0,0,0.1)] backdrop-blur">
+    <div className="flex h-[62px] w-full max-w-[320px] -translate-x-[10px] items-center justify-center gap-5 rounded-2xl border border-zinc-200 bg-white/80 px-5 shadow-[0_8px_16px_rgba(0,0,0,0.06),0_2px_6px_rgba(0,0,0,0.04)] backdrop-blur">
       <PostLikeButton
         postId={postId}
         initialLikes={likes}
