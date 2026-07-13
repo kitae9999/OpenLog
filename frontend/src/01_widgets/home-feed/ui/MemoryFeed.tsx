@@ -14,7 +14,9 @@ export async function MemoryFeed({ mode, memoryId }: { mode: "list" | "new" | "d
   const memory = memoryId ? workspaceData?.memories.find((item) => item.id === memoryId) : undefined;
 
   if ((mode === "detail" || mode === "edit") && (!workspaceData || !memory)) notFound();
-  if ((mode === "new" || mode === "edit") && !workspaceData) redirect("/workspaces/new");
+  if ((mode === "new" || mode === "edit") && !workspaceData && pageData.status === "empty") {
+    redirect("/workspaces/new");
+  }
 
   return (
     <WorkspaceSectionShell

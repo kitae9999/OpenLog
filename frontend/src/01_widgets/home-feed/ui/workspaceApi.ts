@@ -35,6 +35,7 @@ type WorkspaceResponse = {
 export type WorkspacePageData = {
   workspaces: ManagedWorkspace[];
   workspaceData: WorkspaceUiData | null;
+  status: "ready" | "empty" | "error";
 };
 
 type TaskStatus = "TODO" | "DOING" | "DONE";
@@ -184,19 +185,25 @@ export const loadWorkspacePageData = cache(
     try {
       const headerStore = await headers();
       const cookie = headerStore.get("cookie") ?? "";
-      const workspaces = (
-        await fetchJson<WorkspaceResponse[]>("/workspaces", cookie)
-      ).map(mapManagedWorkspace);
+      const workspaceResponses = await fetchJson<WorkspaceResponse[]>(
+        "/workspaces",
+        cookie,
+      );
+      const workspaces = workspaceResponses.map(mapManagedWorkspace);
 
       if (workspaces.length === 0) {
-        return { workspaces, workspaceData: null };
+        return { workspaces, workspaceData: null, status: "empty" };
       }
 
       const selectedId = resolveSelectedWorkspaceId(workspaces, cookie);
-      const workspaceData = await getWorkspaceUiData(selectedId);
-      return { workspaces, workspaceData };
+      const workspaceData = await fetchWorkspaceUiData(
+        workspaceResponses,
+        cookie,
+        selectedId,
+      );
+      return { workspaces, workspaceData, status: "ready" };
     } catch {
-      return { workspaces: [], workspaceData: null };
+      return { workspaces: [], workspaceData: null, status: "error" };
     }
   },
 );
@@ -210,72 +217,79 @@ export const getWorkspaceUiData = cache(
         "/workspaces",
         cookie,
       );
-
-      if (workspaces.length === 0) {
-        return null;
-      }
-
-      const selected =
-        (workspaceId
-          ? workspaces.find((workspace) => String(workspace.id) === workspaceId)
-          : null) ??
-        workspaces.find(
-          (workspace) =>
-            String(workspace.id) === readActiveWorkspaceIdFromCookie(cookie),
-        ) ??
-        workspaces[0];
-
-      if (!selected) {
-        return null;
-      }
-
-      const selectedId = selected.id;
-      const [tasks, logs, taskLinks, logLinks, todos, outputSummaries, memories] =
-        await Promise.all([
-          fetchAllTasks(selectedId, cookie),
-          fetchAllLogs(selectedId, cookie),
-          fetchJson<TaskLinkResponse[]>(
-            `/workspaces/${selectedId}/task-links`,
-            cookie,
-          ),
-          fetchJson<LogLinkResponse[]>(
-            `/workspaces/${selectedId}/log-links`,
-            cookie,
-          ),
-          fetchJson<TodoResponse[]>(
-            `/workspaces/${selectedId}/todos?plannedFor=${todayIso()}`,
-            cookie,
-          ),
-          fetchOutputs(selectedId, cookie),
-          // A newly deployed optional feature must not make the existing
-          // workspace snapshot disappear while its backend rolls out.
-          fetchAllMemories(selectedId, cookie).catch(() => []),
-        ]);
-
-      const outputDetails = await Promise.all(
-        outputSummaries.map((output) =>
-          fetchJson<OutputDetailResponse>(
-            `/workspaces/${selectedId}/outputs/${output.id}`,
-            cookie,
-          ).catch(() => output),
-        ),
-      );
-
-      return mapWorkspaceSnapshot({
-        workspace: selected,
-        tasks,
-        logs,
-        outputs: outputDetails,
-        todos,
-        taskLinks,
-        logLinks,
-        memories,
-      });
+      return await fetchWorkspaceUiData(workspaces, cookie, workspaceId);
     } catch {
       return null;
     }
   },
 );
+
+async function fetchWorkspaceUiData(
+  workspaces: WorkspaceResponse[],
+  cookie: string,
+  workspaceId?: string | null,
+): Promise<WorkspaceUiData | null> {
+  if (workspaces.length === 0) {
+    return null;
+  }
+
+  const selected =
+    (workspaceId
+      ? workspaces.find((workspace) => String(workspace.id) === workspaceId)
+      : null) ??
+    workspaces.find(
+      (workspace) =>
+        String(workspace.id) === readActiveWorkspaceIdFromCookie(cookie),
+    ) ??
+    workspaces[0];
+
+  if (!selected) {
+    return null;
+  }
+
+  const selectedId = selected.id;
+  const [tasks, logs, taskLinks, logLinks, todos, outputSummaries, memories] =
+    await Promise.all([
+      fetchAllTasks(selectedId, cookie),
+      fetchAllLogs(selectedId, cookie),
+      fetchJson<TaskLinkResponse[]>(
+        `/workspaces/${selectedId}/task-links`,
+        cookie,
+      ),
+      fetchJson<LogLinkResponse[]>(
+        `/workspaces/${selectedId}/log-links`,
+        cookie,
+      ),
+      fetchJson<TodoResponse[]>(
+        `/workspaces/${selectedId}/todos?plannedFor=${todayIso()}`,
+        cookie,
+      ),
+      fetchOutputs(selectedId, cookie),
+      // A newly deployed optional feature must not make the existing
+      // workspace snapshot disappear while its backend rolls out.
+      fetchAllMemories(selectedId, cookie).catch(() => []),
+    ]);
+
+  const outputDetails = await Promise.all(
+    outputSummaries.map((output) =>
+      fetchJson<OutputDetailResponse>(
+        `/workspaces/${selectedId}/outputs/${output.id}`,
+        cookie,
+      ).catch(() => output),
+    ),
+  );
+
+  return mapWorkspaceSnapshot({
+    workspace: selected,
+    tasks,
+    logs,
+    outputs: outputDetails,
+    todos,
+    taskLinks,
+    logLinks,
+    memories,
+  });
+}
 
 export const getWorkspaceMemory = cache(
   async (workspaceId: string, memoryId: string): Promise<WorkspaceMemoryItem | null> => {

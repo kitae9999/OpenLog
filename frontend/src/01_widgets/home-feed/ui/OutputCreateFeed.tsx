@@ -3,6 +3,7 @@ import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboar
 import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { OutputCreateShell } from "./OutputCreateShell";
+import { requireWorkspaceData } from "./requireWorkspacePageData";
 import { loadWorkspacePageData } from "./workspaceApi";
 
 export async function OutputCreateFeed({
@@ -14,9 +15,11 @@ export async function OutputCreateFeed({
 }) {
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
-  const pageData = user ? await loadWorkspacePageData() : { workspaces: [], workspaceData: null };
+  const pageData = user
+    ? await loadWorkspacePageData()
+    : { workspaces: [], workspaceData: null, status: "empty" as const };
   const workspaces = pageData.workspaces;
-  const workspaceData = pageData.workspaceData;
+  const workspaceData = user ? requireWorkspaceData(pageData) : null;
 
   return (
     <OutputCreateShell

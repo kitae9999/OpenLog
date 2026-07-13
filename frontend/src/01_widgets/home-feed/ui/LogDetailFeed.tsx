@@ -5,6 +5,7 @@ import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { getLogById } from "./data";
 import { LogDetailShell } from "./LogDetailShell";
+import { requireWorkspaceData } from "./requireWorkspacePageData";
 import { loadWorkspacePageData } from "./workspaceApi";
 
 export async function LogDetailFeed({
@@ -16,10 +17,14 @@ export async function LogDetailFeed({
 }) {
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
-  const pageData = user ? await loadWorkspacePageData() : { workspaces: [], workspaceData: null };
+  const pageData = user
+    ? await loadWorkspacePageData()
+    : { workspaces: [], workspaceData: null, status: "empty" as const };
   const workspaces = pageData.workspaces;
-  const workspaceData = pageData.workspaceData;
-  const log = workspaceData?.logs.find((item) => item.id === logId) ?? getLogById(logId);
+  const workspaceData = user ? requireWorkspaceData(pageData) : null;
+  const log =
+    workspaceData?.logs.find((item) => item.id === logId) ??
+    (user ? undefined : getLogById(logId));
 
   if (!log) {
     notFound();

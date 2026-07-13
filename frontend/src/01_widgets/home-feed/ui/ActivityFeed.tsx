@@ -16,7 +16,7 @@ export async function ActivityFeed({ requestedDate }: { requestedDate?: string }
   const selectedDate = requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) && requestedDate >= from && requestedDate <= today ? requestedDate : today;
 
   if (!workspaceData) {
-    if (pageData.workspaces.length === 0) redirect("/workspaces/new");
+    if (pageData.status === "empty") redirect("/workspaces/new");
 
     return (
       <WorkspaceSectionShell label="Activity" workspaceNav="activity" isLoggedIn profileImageUrl={user.profileImageUrl} profileHref={buildViewerProfileHref(user.username)} workspaces={pageData.workspaces} workspaceData={null} footer={<Footer />}>
