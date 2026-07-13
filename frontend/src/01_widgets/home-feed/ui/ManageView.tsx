@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { getManageHref, getNewWorkspaceHref, getTabHref } from "./data";
-import { deleteWorkspace } from "./workspaceActions";
+import { deleteWorkspace, updateWorkspace } from "./workspaceActions";
 import { clearActiveWorkspaceId } from "./workspaceSelection";
 import { notifyWorkspaceChange } from "./useActiveWorkspace";
 import type { ManagedWorkspace } from "./workspaceTypes";
@@ -84,6 +84,12 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
   const descriptionId = useId();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [name, setName] = useState(workspace.name);
+  const [repoFullName, setRepoFullName] = useState(
+    workspace.repoFullName ?? "",
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -109,7 +115,7 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
   }, [isConfirmOpen, isPending]);
 
   function openConfirm() {
-    if (isPending) {
+    if (isPending || isSaving) {
       return;
     }
 
@@ -153,15 +159,80 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
     });
   }
 
+  function cancelEdit() {
+    if (isSaving) {
+      return;
+    }
+
+    setName(workspace.name);
+    setRepoFullName(workspace.repoFullName ?? "");
+    setErrorMessage(null);
+    setIsEditing(false);
+  }
+
+  async function saveWorkspace() {
+    const trimmedName = name.trim();
+    if (!trimmedName || isSaving) {
+      if (!trimmedName) {
+        setErrorMessage("Workspace name is required.");
+      }
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage(null);
+    const result = await updateWorkspace({
+      workspaceId: workspace.id,
+      name: trimmedName,
+      repoFullName,
+    });
+    setIsSaving(false);
+
+    if (!result.ok) {
+      setErrorMessage(result.message ?? "Failed to update workspace.");
+      return;
+    }
+
+    setIsEditing(false);
+    notifyWorkspaceChange();
+    router.refresh();
+  }
+
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 py-4">
+    <li className="flex flex-wrap items-start justify-between gap-3 py-4">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[14px] font-semibold text-zinc-950">
-          {workspace.name}
-        </p>
-        <p className="mt-1 truncate text-[12.5px] text-zinc-500">
-          {workspace.repoFullName ?? workspace.slug}
-        </p>
+        {isEditing ? (
+          <div className="grid max-w-xl gap-3 sm:grid-cols-2">
+            <label className="grid gap-1.5 text-[12px] font-semibold text-zinc-600">
+              Name
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                disabled={isSaving}
+                className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-[13px] font-normal text-zinc-950 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-50"
+              />
+            </label>
+            <label className="grid gap-1.5 text-[12px] font-semibold text-zinc-600">
+              Repository
+              <input
+                value={repoFullName}
+                onChange={(event) => setRepoFullName(event.target.value)}
+                disabled={isSaving}
+                placeholder="owner/repository"
+                className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-[13px] font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-50"
+              />
+            </label>
+          </div>
+        ) : (
+          <>
+            <p className="truncate text-[14px] font-semibold text-zinc-950">
+              {workspace.name}
+            </p>
+            <p className="mt-1 truncate text-[12.5px] text-zinc-500">
+              {workspace.repoFullName ?? workspace.slug}
+            </p>
+          </>
+        )}
         {errorMessage && !isConfirmOpen ? (
           <p className="mt-2 text-xs font-medium leading-5 text-rose-600">
             {errorMessage}
@@ -169,16 +240,52 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
         ) : null}
       </div>
 
-      <button
-        type="button"
-        onClick={openConfirm}
-        disabled={isPending}
-        aria-haspopup="dialog"
-        aria-expanded={isConfirmOpen}
-        className="shrink-0 cursor-pointer text-[13px] font-semibold text-zinc-500 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
-      >
-        Delete
-      </button>
+      <div className="flex shrink-0 items-center gap-3 pt-1">
+        {isEditing ? (
+          <>
+            <button
+              type="button"
+              onClick={cancelEdit}
+              disabled={isSaving}
+              className="text-[13px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={saveWorkspace}
+              disabled={isSaving || !name.trim()}
+              className="text-[13px] font-semibold text-zinc-950 transition hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+            >
+              {isSaving ? "Saving…" : "Save"}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setErrorMessage(null);
+              setIsEditing(true);
+            }}
+            disabled={isPending}
+            className="text-[13px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+          >
+            Edit
+          </button>
+        )}
+        {!isEditing ? (
+          <button
+            type="button"
+            onClick={openConfirm}
+            disabled={isPending}
+            aria-haspopup="dialog"
+            aria-expanded={isConfirmOpen}
+            className="cursor-pointer text-[13px] font-semibold text-zinc-500 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+          >
+            Delete
+          </button>
+        ) : null}
+      </div>
 
       {isConfirmOpen
         ? createPortal(
