@@ -1,0 +1,9 @@
+openlog_deploy_user: ubuntu
+openlog_deploy_group: ubuntu
+openlog_deploy_path: /opt/openlog
+openlog_authorized_key_files:
+  - "{{ playbook_dir }}/../files/openlog-admin.pub"
+  - "{{ playbook_dir }}/../files/openlog-production-deploy.pub"
+openlog_public_tcp_ports:
+  - "80"
+  - "443"

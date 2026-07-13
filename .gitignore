@@ -65,6 +65,8 @@ AGENTS.private.md
 *.tfstate
 *.tfstate.*
 *.tfvars
+*.tfvars.json
+*.tfplan
 crash.log
 crash.*.log
 override.tf
