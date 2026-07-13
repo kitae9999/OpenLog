@@ -17,7 +17,7 @@ const WRITE_TOOL_ANNOTATIONS = {
 export async function runMcpServer(): Promise<void> {
   const server = new McpServer({
     name: "openlog",
-    version: "0.2.0",
+    version: "1.0.0",
   });
 
   server.registerTool(
