@@ -101,7 +101,7 @@ const tailwindBody = (
       <li>Cleaner defaults and less boilerplate.</li>
       <li>Better DX for design tokens and theming.</li>
     </ul>
-    <pre className="overflow-x-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-[12px] leading-5 text-zinc-900">
+    <pre className="openlog-scroll overflow-x-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-[12px] leading-5 text-zinc-900">
       <code>{`/* Example: keep your utility usage expressive */
 .card {
   @apply rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm;

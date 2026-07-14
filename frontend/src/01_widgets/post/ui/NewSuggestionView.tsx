@@ -499,7 +499,7 @@ function FilesChanged({
       </div>
 
       {hasChanges ? (
-        <div className="overflow-x-auto">
+        <div className="openlog-scroll overflow-x-auto">
           <div className="min-w-[664px]">
             {rows.map((row, index) => (
               <DiffRowView

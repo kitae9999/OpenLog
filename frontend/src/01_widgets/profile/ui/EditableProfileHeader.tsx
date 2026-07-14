@@ -523,7 +523,7 @@ function FollowListContent({
   }
 
   return (
-    <ul className="mt-5 max-h-[360px] overflow-y-auto">
+    <ul className="openlog-scroll mt-5 max-h-[360px] overflow-y-auto">
       {users.map((user) => {
         const name = user.nickname ?? user.username;
 

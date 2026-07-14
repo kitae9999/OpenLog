@@ -149,14 +149,14 @@ function AgentGuideTipLink({
             className="absolute -top-[5px] right-5 size-2.5 rotate-45 border-t border-l border-zinc-200 bg-white"
           />
           <p className="relative text-[12px] leading-4 text-zinc-600">
-            이 워크스페이스에서 에이전트가 무엇을 기록할지 알려주세요.
+            Tell agents what to capture in this workspace.
           </p>
           <button
             type="button"
             onClick={dismissTip}
             className="relative mt-1.5 text-[11px] font-medium text-zinc-400 underline-offset-2 transition hover:text-zinc-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
           >
-            다시 보지 않기
+            Do not show again
           </button>
         </div>
       ) : null}
@@ -212,7 +212,7 @@ function McpSetupPrompt({
     <div className="fixed inset-0 z-[80] grid place-items-center p-4">
       <button
         type="button"
-        aria-label="MCP 안내 닫기"
+        aria-label="Dismiss MCP setup prompt"
         onClick={dismiss}
         className="absolute inset-0 bg-zinc-950/12 backdrop-blur-[10px] backdrop-saturate-150"
       />
@@ -227,14 +227,14 @@ function McpSetupPrompt({
           id={titleId}
           className="text-[16px] font-semibold tracking-[-0.01em] text-zinc-950"
         >
-          MCP를 연결하셨나요?
+          Have you connected MCP?
         </h2>
         <p
           id={descriptionId}
           className="mt-2 text-[13.5px] leading-6 text-zinc-500"
         >
-          에이전트가 Task·Log·Output을 남기려면 MCP 연동이 필요합니다. 가이드에서
-          설치와 설정을 확인할 수 있어요.
+          Agents need MCP to create Tasks, Logs, and Outputs. Open the guide to
+          install and configure it.
         </p>
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
@@ -242,14 +242,14 @@ function McpSetupPrompt({
             onClick={dismiss}
             className="inline-flex h-9 items-center rounded-xl px-3.5 text-[13px] font-semibold text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
           >
-            건너뛰기
+            Skip
           </button>
           <Link
-            href={`${getMcpGuideHref()}?lang=ko`}
+            href={getMcpGuideHref()}
             onClick={dismiss}
             className="inline-flex h-9 items-center rounded-xl bg-zinc-950 px-3.5 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
           >
-            MCP 가이드 보기
+            Open MCP Guide
           </Link>
         </div>
       </div>

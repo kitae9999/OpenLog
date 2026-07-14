@@ -574,7 +574,7 @@ export function HomeSidebar({
         isOpen ? "translate-x-0" : "-translate-x-full",
       )}
     >
-      <nav className="flex h-full flex-col overflow-y-auto px-3 py-4">
+      <nav className="openlog-scroll flex h-full flex-col overflow-y-auto px-3 py-4">
         <WorkspaceSwitcher
           isLoggedIn={isLoggedIn}
           workspaces={workspaces}

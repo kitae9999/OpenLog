@@ -225,7 +225,7 @@ function SuggestionDiff({ suggestion }: { suggestion: Suggestion }) {
         <span className="font-mono text-[12px] text-zinc-400">Unified view</span>
       </div>
 
-      <div className="mt-3 overflow-x-auto border-t border-zinc-200">
+      <div className="openlog-scroll mt-3 overflow-x-auto border-t border-zinc-200">
         <div className="min-w-[664px]">
           {suggestion.diffRows.map((row, index) => (
             <DiffRow

@@ -175,10 +175,7 @@ export function WorkspaceAgentSettingsView({
       <header className="border-b border-zinc-200 pb-7">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400">
-              {data.workspace.slug} / agent policy
-            </p>
-            <h1 className="mt-2 text-[26px] font-semibold tracking-[-0.025em] text-zinc-950">
+            <h1 className="text-[26px] font-semibold tracking-[-0.025em] text-zinc-950">
               {data.workspace.name}
             </h1>
             <p className="mt-2 max-w-[68ch] text-[13.5px] leading-6 text-zinc-500">
@@ -203,77 +200,104 @@ export function WorkspaceAgentSettingsView({
       ) : null}
 
       <section className="py-8" aria-labelledby="guide-heading">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 id="guide-heading" className="text-[16px] font-semibold text-zinc-950">
-              Workspace Guide
-            </h2>
-            <p className="mt-1 text-[12.5px] leading-5 text-zinc-500">
-              English Markdown · loaded fresh whenever an agent starts an OpenLog session
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span
-              aria-live="polite"
-              className={cn(
-                "text-[12px] font-medium",
-                saveState === "error" ? "text-rose-600" : "text-zinc-400",
-              )}
-            >
-              {guideSaveLabel(saveState, hasGuideChanges)}
-            </span>
-            <button
-              type="button"
-              onClick={saveGuide}
-              disabled={!content.trim() || !hasGuideChanges || saveState === "saving"}
-              className="h-9 rounded-lg bg-zinc-950 px-4 text-[12.5px] font-semibold text-white transition hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 disabled:cursor-not-allowed disabled:bg-zinc-300"
-            >
-              {saveState === "saving" ? "Saving…" : "Save Guide"}
-            </button>
-          </div>
+        <div>
+          <h2 id="guide-heading" className="text-[16px] font-semibold text-zinc-950">
+            Workspace Guide
+          </h2>
+          <p className="mt-1 text-[12.5px] leading-5 text-zinc-500">
+            English Markdown · loaded fresh whenever an agent starts an OpenLog session
+          </p>
         </div>
 
-        <div className="mt-5 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_16px_50px_rgba(24,24,27,0.04)]">
-          <div className="flex items-end justify-between border-b border-zinc-200 bg-zinc-50/60 px-4 pt-2">
-            <div role="tablist" aria-label="Agent Guide editor" className="flex gap-1">
-              <EditorTab active={editorMode === "write"} onClick={() => setEditorMode("write")}>
+        <div className="mt-5">
+          <div className="flex items-end justify-between gap-3 border-b border-zinc-200">
+            <div
+              role="tablist"
+              aria-label="Agent Guide editor"
+              className="flex items-end gap-1"
+            >
+              <EditorTab
+                active={editorMode === "write"}
+                onClick={() => setEditorMode("write")}
+              >
                 Write
               </EditorTab>
-              <EditorTab active={editorMode === "preview"} onClick={() => setEditorMode("preview")}>
+              <EditorTab
+                active={editorMode === "preview"}
+                onClick={() => setEditorMode("preview")}
+              >
                 Preview
               </EditorTab>
             </div>
-            <span className="pb-2 font-mono text-[10.5px] text-zinc-400">
+            <span className="pb-2.5 font-mono text-[10.5px] tabular-nums text-zinc-400">
               {content.length.toLocaleString()} / 20,000
             </span>
           </div>
-          <div className="border-b border-zinc-100 px-4 py-2.5">
+
+          <div className="mt-3">
             <MarkdownToolbar
               disabled={editorMode === "preview"}
               onAction={insertFormatting}
             />
           </div>
+
           {editorMode === "write" ? (
-            <textarea
-              ref={editorRef}
-              aria-label="Workspace Agent Guide Markdown"
-              value={content}
-              maxLength={20_000}
-              onChange={(event) => {
-                setContent(event.target.value);
-                setSaveState("idle");
-              }}
-              className="openlog-scroll min-h-[520px] w-full resize-y border-0 bg-white px-5 py-5 font-mono text-[13px] leading-7 text-zinc-800 outline-none"
-            />
+            <label className="mt-3 block">
+              <span className="sr-only">Workspace Agent Guide Markdown</span>
+              <textarea
+                ref={editorRef}
+                value={content}
+                maxLength={20_000}
+                onChange={(event) => {
+                  setContent(event.target.value);
+                  setSaveState("idle");
+                }}
+                placeholder={`# What agents should know\n\n## Worth recording\n- Decisions and rationale\n- Verified fixes\n\n## Prefer\n- Task for ongoing work\n- Log for durable notes`}
+                className="openlog-scroll min-h-[480px] w-full resize-none overflow-y-auto border-0 bg-transparent py-2 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
+              />
+            </label>
           ) : (
-            <div className="min-h-[520px] px-6 py-6">
+            <div className="mt-3 min-h-[480px] py-2 text-[15px] leading-7 text-zinc-800">
               <MarkdownContent
                 markdown={content}
                 variant="compact"
-                emptyFallback={<p className="text-zinc-400">Nothing to preview.</p>}
+                emptyFallback={
+                  <p className="text-zinc-400">Nothing to preview yet.</p>
+                }
               />
             </div>
           )}
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-1">
+            <span
+              aria-live="polite"
+              className={cn(
+                "text-[12.5px]",
+                saveState === "error"
+                  ? "font-medium text-rose-600"
+                  : "text-zinc-500",
+              )}
+            >
+              {saveState === "error"
+                ? guideSaveLabel(saveState, hasGuideChanges)
+                : `${guideSaveLabel(saveState, hasGuideChanges)} · Markdown supported`}
+            </span>
+            <button
+              type="button"
+              onClick={saveGuide}
+              disabled={
+                !content.trim() || !hasGuideChanges || saveState === "saving"
+              }
+              className={cn(
+                "cursor-pointer text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                content.trim() && hasGuideChanges && saveState !== "saving"
+                  ? "text-zinc-950 hover:text-zinc-700"
+                  : "cursor-not-allowed text-zinc-400",
+              )}
+            >
+              {saveState === "saving" ? "Saving..." : "Save Guide"}
+            </button>
+          </div>
         </div>
       </section>
 
@@ -436,13 +460,14 @@ function EditorTab({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "border-b-2 px-3 pb-2 pt-1 text-[12.5px] font-semibold transition",
-        active
-          ? "border-zinc-950 text-zinc-950"
-          : "border-transparent text-zinc-400 hover:text-zinc-700",
+        "relative h-9 cursor-pointer px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-800",
       )}
     >
       {children}
+      {active ? (
+        <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
+      ) : null}
     </button>
   );
 }

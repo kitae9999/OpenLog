@@ -210,7 +210,7 @@ export function NotificationMenu() {
             ) : null}
           </div>
 
-          <div className="max-h-[420px] overflow-y-auto p-2">
+          <div className="openlog-scroll max-h-[420px] overflow-y-auto p-2">
             {isLoading ? <NotificationLoadingState /> : null}
 
             {!isLoading && loadError ? (
