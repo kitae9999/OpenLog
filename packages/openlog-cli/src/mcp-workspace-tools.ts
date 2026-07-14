@@ -75,11 +75,20 @@ type OutputDetailResponse = {
   } | null;
 };
 
+type AgentGuideResponse = {
+  workspaceId: number;
+  content: string;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export function registerWorkspaceTools(
   registry: McpToolRegistry,
   webBaseUrl: string,
 ): void {
   registerWorkspaceReadTools(registry);
+  registerAgentGuideTools(registry);
   registerTaskTools(registry);
   registerLogTools(registry);
   registerTodoTools(registry);
@@ -87,6 +96,63 @@ export function registerWorkspaceTools(
   registerOutputTools(registry, webBaseUrl);
   registerLinkTools(registry);
   registerWorkspaceDeleteTools(registry);
+}
+
+function registerAgentGuideTools(registry: McpToolRegistry): void {
+  registry.registerAuthenticated(
+    "get_workspace_agent_guide",
+    "read",
+    {
+      title: "Get OpenLog Workspace Agent Guide",
+      description:
+        "Return the current workspace Agent Guide content and revision. Prefer this mid-session when the Guide may have changed, or before updating it. Use Guide content for durable agent behavior and recording policy; keep one-off knowledge in NOTE Logs.",
+      inputSchema: { workspaceId: POSITIVE_ID },
+      annotations: READ_TOOL_ANNOTATIONS,
+    },
+    (client, { workspaceId }) =>
+      client.get(`/workspaces/${workspaceId}/agent-guide`),
+  );
+
+  registry.registerAuthenticated(
+    "update_workspace_agent_guide",
+    "write",
+    {
+      title: "Update OpenLog Workspace Agent Guide",
+      description:
+        "Replace the workspace Agent Guide with full Markdown content. Use only for durable behavior and recording policy agreed in the session; keep one-off knowledge in NOTE Logs. Preserve useful existing sections and apply minimal edits. Follow Capture Mode (ASK confirms first). Do not store secrets. Re-read with get_workspace_agent_guide when the session Guide may be stale. Requires confirm: true unless skipConfirmation is explicitly requested.",
+      inputSchema: {
+        workspaceId: POSITIVE_ID,
+        content: z.string().min(1).max(20_000),
+        confirm: z.boolean().optional(),
+        skipConfirmation: z.boolean().optional(),
+      },
+      annotations: IDEMPOTENT_WRITE_TOOL_ANNOTATIONS,
+    },
+    async (client, { workspaceId, content, confirm, skipConfirmation }) => {
+      const trimmed = content.trim();
+      // 확인 전 호출은 현재 Guide 조회와 초안 preview만 반환하며 PUT은 호출하지 않는다.
+      if (confirm !== true && skipConfirmation !== true) {
+        const current = await client.get<AgentGuideResponse>(
+          `/workspaces/${workspaceId}/agent-guide`,
+        );
+        return {
+          requiresConfirmation: true,
+          preview: {
+            workspaceId,
+            currentRevision: current.revision,
+            contentPreview: createContentPreview(trimmed),
+            contentLength: trimmed.length,
+          },
+          nextStep:
+            "Call update_workspace_agent_guide again with confirm: true, or skipConfirmation: true if the user explicitly requested updating without confirmation.",
+        };
+      }
+
+      return client.put(`/workspaces/${workspaceId}/agent-guide`, {
+        content: trimmed,
+      });
+    },
+  );
 }
 
 function registerWorkspaceReadTools(registry: McpToolRegistry): void {

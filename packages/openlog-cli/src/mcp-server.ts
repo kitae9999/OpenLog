@@ -22,8 +22,9 @@ import { createProjectGit, type ProjectGit } from "./project-git.js";
 export const OPENLOG_MCP_INSTRUCTIONS = `Before substantive work on a project, call start_openlog_session with that project's path.
 Use the returned workspace Agent Guide and Capture Mode when deciding whether to create or update OpenLog Tasks, Logs, and Outputs.
 AUTO allows proactive draft creation or updates when the Guide says the work is worth recording. ASK requires user confirmation before those writes. EXPLICIT permits those writes only after an explicit user request.
+When the user agrees to lasting behavior or recording policy changes during a session, update the Agent Guide with update_workspace_agent_guide after preview confirmation; keep one-off knowledge in NOTE Logs instead.
 Do not guess a workspace or connect an uninitialized project. If start_openlog_session returns not_initialized or stale, show its init command to the user.
-Publishing and deletion keep their own confirmation requirements regardless of Capture Mode. The active MCP permission profile always takes precedence.`;
+Publishing, Agent Guide updates, and deletion keep their own confirmation requirements regardless of Capture Mode. The active MCP permission profile always takes precedence.`;
 
 type CreateOpenLogMcpServerOptions = {
   permissions?: ResolvedMcpPermissions;

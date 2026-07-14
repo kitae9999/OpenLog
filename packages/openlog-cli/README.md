@@ -41,16 +41,21 @@ same normalized repository can be connected only once. If the server connection
 is created but writing `.git/config` fails, init rolls the new connection back.
 
 Each workspace owns one editable English Markdown Agent Guide. The MCP server's
-`start_openlog_session` tool reads the project ID and returns the latest Guide
-revision together with the project Capture Mode:
+`start_openlog_session` and `get_workspace_agent_guide` tools return the latest
+Guide revision. `update_workspace_agent_guide` replaces Guide content after a
+preview confirmation (`confirm: true`, or `skipConfirmation: true` when the user
+explicitly asked to skip). Use the Guide for durable agent behavior and recording
+policy; keep one-off knowledge in NOTE Logs.
+
+The project Capture Mode returned with the session:
 
 - `AUTO`: create or update Task, Log, and Output drafts when the Guide says the work matters
 - `ASK`: ask before those writes; this is the default
 - `EXPLICIT`: perform those writes only after an explicit request
 
 Capture Mode is model guidance, not a server authorization boundary. MCP
-permissions take precedence, and publishing or deletion keeps its own
-confirmation policy.
+permissions take precedence, and publishing, Agent Guide updates, or deletion
+keep their own confirmation policy.
 
 ## Human-facing output
 
