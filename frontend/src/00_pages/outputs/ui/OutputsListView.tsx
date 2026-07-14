@@ -133,18 +133,18 @@ export function OutputsListView({
               role="tab"
               aria-selected={active}
               className={cn(
-                "relative flex h-9 items-center px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                active
-                  ? "text-zinc-950"
-                  : "text-zinc-500 hover:text-zinc-800",
+                "group relative flex h-9 cursor-pointer items-center px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-950",
               )}
             >
               <span className="inline-flex items-center gap-1.5">
                 {getOutputStatusLabel(item)}
                 <span
                   className={cn(
-                    "tabular-nums",
-                    active ? "text-zinc-500" : "text-zinc-400",
+                    "tabular-nums transition",
+                    active
+                      ? "text-zinc-500"
+                      : "text-zinc-400 group-hover:text-zinc-500",
                   )}
                 >
                   {count}
@@ -152,7 +152,9 @@ export function OutputsListView({
               </span>
               {active ? (
                 <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
-              ) : null}
+              ) : (
+                <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-300 opacity-0 transition group-hover:opacity-100" />
+              )}
             </Link>
           );
         })}
