@@ -13,9 +13,9 @@ import {
   dim,
   formatError,
   heading,
-  kv,
   success,
 } from "./cli-ui.js";
+import { formatWhoamiOutput } from "./whoami-output.js";
 
 const command = process.argv[2] ?? "setup";
 const subcommand = process.argv[3];
@@ -76,35 +76,17 @@ async function installMcpCommand(): Promise<void> {
 
 async function whoami(): Promise<void> {
   const asJson = process.argv.includes("--json");
+  const forceHuman = process.argv.includes("--human");
   const apiClient = await createAuthenticatedApiClient();
   const me = (await apiClient.get("/auth/me")) as Record<string, unknown>;
 
-  if (asJson) {
-    console.log(JSON.stringify(me, null, 2));
-    return;
-  }
-
-  const name =
-    pickString(me, "nickname") ??
-    pickString(me, "username") ??
-    pickString(me, "name") ??
-    "OpenLog user";
-  const username = pickString(me, "username");
-  const email = pickString(me, "email");
-  const id = pickString(me, "id") ?? pickString(me, "userId");
-
-  console.log(heading("Signed in"));
-  console.log(kv("Name", name));
-  if (username) {
-    console.log(kv("Username", `@${username}`));
-  }
-  if (email) {
-    console.log(kv("Email", email));
-  }
-  if (id) {
-    console.log(kv("Id", String(id)));
-  }
-  console.log(dim("Tip: pass --json for machine-readable output."));
+  console.log(
+    formatWhoamiOutput(me, {
+      asJson,
+      forceHuman,
+      isTTY: Boolean(process.stdout.isTTY),
+    }),
+  );
 }
 
 async function logout(): Promise<void> {
@@ -143,6 +125,7 @@ function printHelp(): void {
   console.log(`  openlog logout             Remove local credentials`);
   console.log(`  openlog whoami             Show the current user`);
   console.log(`  openlog whoami --json      Print raw /auth/me JSON`);
+  console.log(`  openlog whoami --human     Force human-readable output`);
   console.log("");
   console.log(dim("MCP"));
   console.log(`  openlog mcp                Start the MCP stdio server`);
@@ -171,12 +154,4 @@ function formatCliError(error: unknown): string {
   }
 
   return formatError(error instanceof Error ? error.message : String(error));
-}
-
-function pickString(
-  value: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const next = value[key];
-  return typeof next === "string" && next.trim().length > 0 ? next : undefined;
 }

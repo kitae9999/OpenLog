@@ -40,8 +40,9 @@ Usage
   ...
 ```
 
-Pass `whoami --json` for machine-readable `/auth/me` output. Set `NO_COLOR=1`
-to disable ANSI styling.
+Interactive terminals use the human-readable `whoami` view. Pipes and scripts
+keep the machine-readable `/auth/me` JSON; pass `--json` or `--human` to select
+the output explicitly. Set `NO_COLOR=1` to disable ANSI styling.
 
 ## Local MCP permissions
 
