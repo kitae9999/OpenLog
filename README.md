@@ -179,14 +179,15 @@ openlog mcp permissions reset
 | --- | --- |
 | Permissions and account | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts` |
 | Public posts | `get_post_detail`, `upload_post_image`, `publish_post` |
-| Workspace and activity | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
+| Workspace and activity | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
+| Agent Guide | `update_workspace_agent_guide` |
 | Tasks and logs | `list_workspace_tasks`, `get_workspace_task`, `create_workspace_task`, `update_workspace_task`, and the matching workspace-log tools |
 | Todos and memories | Todo list/create/done tools and memory list/get/create/from-log/update tools |
 | Outputs | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `publish_workspace_output` |
 | Graph links | `list_workspace_links` and task/log/cross-link create tools |
 | Full-profile deletes | Working-brief clear and individual task/log/todo/memory/output/link delete tools |
 
-`publish_post` and `publish_workspace_output` return a preview by default. Publishing requires `confirm: true`, or `skipConfirmation: true` when the user has explicitly requested publishing without another confirmation.
+`publish_post`, `publish_workspace_output`, and `update_workspace_agent_guide` return a preview by default. Applying the write requires `confirm: true`, or `skipConfirmation: true` when the user has explicitly requested the write without another confirmation.
 
 ### Connect to a local server
 

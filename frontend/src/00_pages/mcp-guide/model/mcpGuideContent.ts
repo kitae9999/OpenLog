@@ -62,11 +62,17 @@ export const mcpGuideTools = [
       "start_openlog_session",
       "list_workspaces",
       "get_workspace",
+      "get_workspace_agent_guide",
       "get_working_brief",
       "get_workspace_activity",
       "get_workspace_activity_day_logs",
     ],
     access: "readOnly",
+  },
+  {
+    area: { en: "Agent Guide update", ko: "Agent Guide 수정" },
+    tools: ["update_workspace_agent_guide"],
+    access: "safeWrite",
   },
   {
     area: { en: "Working brief update", ko: "Working brief 수정" },
@@ -220,7 +226,7 @@ export const mcpGuideCopy = {
         colTools: "Tools",
         colAccess: "Available from",
         footnote:
-          "start_openlog_session loads the latest Workspace Guide and Capture Mode from the project's local binding. Publishing tools return a preview first. Pass confirm: true after review, or use skipConfirmation: true only when the user explicitly requested publishing without another confirmation.",
+          "start_openlog_session loads the latest Workspace Guide and Capture Mode from the project's local binding. Publishing and Agent Guide update tools return a preview first. Pass confirm: true after review, or use skipConfirmation: true only when the user explicitly requested the write without another confirmation.",
       },
       local: {
         title: "7. Local development",
@@ -304,7 +310,7 @@ export const mcpGuideCopy = {
         colTools: "Tool",
         colAccess: "사용 가능 프로필",
         footnote:
-          "start_openlog_session은 프로젝트의 로컬 연결을 통해 최신 Workspace Guide와 Capture Mode를 불러옵니다. 발행 tool은 먼저 미리보기를 반환합니다. 검토 후 confirm: true를 전달하세요. 사용자가 추가 확인 없이 발행하라고 명시한 경우에만 skipConfirmation: true를 사용할 수 있습니다.",
+          "start_openlog_session은 프로젝트의 로컬 연결을 통해 최신 Workspace Guide와 Capture Mode를 불러옵니다. 발행·Agent Guide 수정 tool은 먼저 미리보기를 반환합니다. 검토 후 confirm: true를 전달하세요. 사용자가 추가 확인 없이 쓰라고 명시한 경우에만 skipConfirmation: true를 사용할 수 있습니다.",
       },
       local: {
         title: "7. 로컬 개발",

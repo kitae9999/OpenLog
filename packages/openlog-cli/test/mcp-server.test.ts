@@ -21,13 +21,16 @@ test("exposes tools according to the active permission profile", async (t) => {
   const readOnlyTools = await readOnly.client.listTools();
   assert.ok(readOnlyTools.tools.some((tool) => tool.name === "list_workspaces"));
   assert.ok(readOnlyTools.tools.some((tool) => tool.name === "start_openlog_session"));
+  assert.ok(readOnlyTools.tools.some((tool) => tool.name === "get_workspace_agent_guide"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "create_workspace_task"));
+  assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "update_workspace_agent_guide"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "publish_post"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "delete_workspace_task"));
 
   const safeWrite = await createSession(t, "safe-write");
   const safeWriteTools = await safeWrite.client.listTools();
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "create_workspace_task"));
+  assert.ok(safeWriteTools.tools.some((tool) => tool.name === "update_workspace_agent_guide"));
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "publish_workspace_output"));
   assert.ok(!safeWriteTools.tools.some((tool) => tool.name === "delete_workspace_task"));
 
@@ -44,15 +47,20 @@ test("advertises session instructions and document selection criteria", async (t
   const session = await createSession(t, "safe-write");
   assert.match(session.client.getInstructions() ?? "", /call start_openlog_session/);
   assert.match(session.client.getInstructions() ?? "", /Do not guess a workspace/);
-  assert.match(session.client.getInstructions() ?? "", /Publishing and deletion/);
+  assert.match(session.client.getInstructions() ?? "", /update_workspace_agent_guide/);
+  assert.match(session.client.getInstructions() ?? "", /Publishing, Agent Guide updates, and deletion/);
 
   const tools = await session.client.listTools();
   const task = tools.tools.find((tool) => tool.name === "create_workspace_task");
   const log = tools.tools.find((tool) => tool.name === "create_workspace_log");
   const output = tools.tools.find((tool) => tool.name === "create_workspace_output");
+  const updateGuide = tools.tools.find(
+    (tool) => tool.name === "update_workspace_agent_guide",
+  );
   assert.match(task?.description ?? "", /actionable work/);
   assert.match(log?.description ?? "", /durable event or reusable knowledge/);
   assert.match(output?.description ?? "", /reviewable or shareable draft/);
+  assert.match(updateGuide?.description ?? "", /durable behavior and recording policy/);
 });
 
 test("starts a read-only project session from the supplied project path", async (t) => {
@@ -107,6 +115,11 @@ test("maps workspace read and safe-write tools to their REST endpoints", async (
   }> = [
     { tool: "list_workspaces", args: {}, calls: [{ method: "GET", path: "/workspaces" }] },
     { tool: "get_workspace", args: { workspaceId: 1 }, calls: [{ method: "GET", path: "/workspaces/1" }] },
+    {
+      tool: "get_workspace_agent_guide",
+      args: { workspaceId: 1 },
+      calls: [{ method: "GET", path: "/workspaces/1/agent-guide" }],
+    },
     { tool: "get_working_brief", args: { workspaceId: 1 }, calls: [{ method: "GET", path: "/workspaces/1/working-brief" }] },
     {
       tool: "push_working_brief",
@@ -271,6 +284,40 @@ test("previews workspace output publishing before the confirmed POST", async (t)
   ]);
 });
 
+test("previews agent guide updates before the confirmed PUT", async (t) => {
+  const session = await createSession(t, "safe-write");
+  const content = "# Updated Guide\n\nPrefer NOTE logs for one-off knowledge.";
+
+  const preview = await callJson(session.client, "update_workspace_agent_guide", {
+    workspaceId: 1,
+    content,
+  });
+  assert.equal(preview.requiresConfirmation, true);
+  const previewBody = preview.preview as Record<string, unknown>;
+  assert.equal(previewBody.workspaceId, 1);
+  assert.equal(previewBody.currentRevision, 3);
+  assert.equal(previewBody.contentLength, content.length);
+  assert.deepEqual(session.api.calls, [
+    { method: "GET", path: "/workspaces/1/agent-guide" },
+  ]);
+
+  session.api.calls.length = 0;
+  const updated = await callJson(session.client, "update_workspace_agent_guide", {
+    workspaceId: 1,
+    content: `  ${content}  `,
+    confirm: true,
+  });
+  assert.equal(updated.revision, 4);
+  assert.equal(updated.content, content);
+  assert.deepEqual(session.api.calls, [
+    {
+      method: "PUT",
+      path: "/workspaces/1/agent-guide",
+      body: { content },
+    },
+  ]);
+});
+
 test("executes full-profile delete tools immediately", async (t) => {
   const session = await createSession(t, "full");
   const cases: Array<[string, Record<string, unknown>, string]> = [
@@ -353,6 +400,9 @@ class RecordingApiClient {
     if (path === "/workspaces/1/outputs/6") {
       return outputResponse(null) as T;
     }
+    if (path === "/workspaces/1/agent-guide") {
+      return agentGuideResponse(3, "# Workspace Agent Guide") as T;
+    }
     if (path === "/workspace-projects/42/agent-context") {
       return {
         workspace: { id: 1, name: "OpenLog", slug: "openlog" },
@@ -375,6 +425,13 @@ class RecordingApiClient {
   async put<T>(path: string, body?: unknown): Promise<T> {
     this.record("PUT", path, body);
     this.throwFailure(path);
+    if (path === "/workspaces/1/agent-guide") {
+      const content =
+        body && typeof body === "object" && "content" in body
+          ? String((body as { content: unknown }).content)
+          : "";
+      return agentGuideResponse(4, content) as T;
+    }
     return { ok: true, path } as T;
   }
 
@@ -475,6 +532,16 @@ function outputResponse(
     tasks: [{ id: 2, title: "Task" }],
     logs: [{ id: 3, title: "Log" }],
     publishedPost,
+  };
+}
+
+function agentGuideResponse(revision: number, content: string) {
+  return {
+    workspaceId: 1,
+    content,
+    revision,
+    createdAt: "2026-07-13T00:00:00",
+    updatedAt: "2026-07-14T00:00:00",
   };
 }
 
