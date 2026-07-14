@@ -18,6 +18,12 @@ import type {
   WorkspaceUiData,
   WorkspaceWorkingBrief,
 } from "@/entities/workspace/model/workspaceTypes";
+import type { SyncFillState, SyncFillZone } from "@/shared/model/syncFill";
+
+export type {
+  SyncFillState,
+  SyncFillZone,
+} from "@/shared/model/syncFill";
 
 export type PreviewReplayStepId =
   | "boot"
@@ -166,29 +172,6 @@ export const PREVIEW_RESERVED_COUNTS = {
   output: 1,
   memory: 1,
 } as const;
-
-export type SyncFillZone =
-  | "logs"
-  | "tasks"
-  | "todos"
-  | "output"
-  | "memory";
-
-export type SyncFillState = {
-  status: "idle" | "fetching" | "filling" | "settled";
-  zone?: SyncFillZone;
-  reserved: {
-    tasks: number;
-    logs: number;
-    todos: number;
-    output: number;
-    memory: number;
-  };
-  /** Among empty rails in the active zone, which one pulses (usually 0). */
-  pendingSlotIndex?: number;
-  /** Ids that should play enter animation this frame. */
-  incomingIds: string[];
-};
 
 export type PreviewReplaySnapshot = {
   stepId: PreviewReplayStepId;

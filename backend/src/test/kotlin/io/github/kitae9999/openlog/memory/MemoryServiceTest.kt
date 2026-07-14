@@ -5,6 +5,7 @@ import io.github.kitae9999.openlog.memory.entity.WorkspaceMemory
 import io.github.kitae9999.openlog.memory.repository.WorkspaceMemoryRepository
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.WorkspaceAccessResolver
+import io.github.kitae9999.openlog.workspace.WorkspaceChangeNotifier
 import io.github.kitae9999.openlog.workspace.entity.LogKind
 import io.github.kitae9999.openlog.workspace.entity.LogStatus
 import io.github.kitae9999.openlog.workspace.entity.Workspace
@@ -24,13 +25,14 @@ import org.mockito.junit.jupiter.MockitoExtension
 class MemoryServiceTest {
     @Mock private lateinit var repository: WorkspaceMemoryRepository
     @Mock private lateinit var accessResolver: WorkspaceAccessResolver
+    @Mock private lateinit var workspaceChangeNotifier: WorkspaceChangeNotifier
     private lateinit var service: MemoryService
     private lateinit var user: User
     private lateinit var workspace: Workspace
 
     @BeforeEach
     fun setUp() {
-        service = MemoryService(repository, accessResolver, MemoryMapper())
+        service = MemoryService(repository, accessResolver, MemoryMapper(), workspaceChangeNotifier)
         user = User(id = 1L, username = "alice")
         workspace = Workspace(id = 10L, owner = user, slug = "default", name = "Default")
     }

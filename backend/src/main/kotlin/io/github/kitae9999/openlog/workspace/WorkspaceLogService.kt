@@ -2,6 +2,9 @@ package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceChangeAction
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceEntityType
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceSyncZone
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogCursorResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogDetailResponse
@@ -22,6 +25,7 @@ class WorkspaceLogService(
     private val workspaceLogRepository: WorkspaceLogRepository,
     private val workspaceAccessResolver: WorkspaceAccessResolver,
     private val workspaceMapper: WorkspaceMapper,
+    private val workspaceChangeNotifier: WorkspaceChangeNotifier,
 ) {
     @Transactional(readOnly = true)
     fun getLogs(
@@ -106,6 +110,13 @@ class WorkspaceLogService(
 
         val savedLog = workspaceLogRepository.save(log)
         task?.touch()
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.LOGS,
+            entityType = WorkspaceEntityType.LOG,
+            entityId = requireNotNull(savedLog.id),
+            action = WorkspaceChangeAction.CREATED,
+        )
 
         return workspaceMapper.toLogResponse(savedLog)
     }
@@ -130,6 +141,13 @@ class WorkspaceLogService(
             status = status,
         )
         task?.touch()
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.LOGS,
+            entityType = WorkspaceEntityType.LOG,
+            entityId = logId,
+            action = WorkspaceChangeAction.UPDATED,
+        )
 
         return workspaceMapper.toLogDetailResponse(log)
     }
@@ -147,6 +165,15 @@ class WorkspaceLogService(
         }
 
         workspaceLogRepository.deleteAll(logs)
+        logs.forEach { log ->
+            workspaceChangeNotifier.notify(
+                workspaceId = workspaceId,
+                zone = WorkspaceSyncZone.LOGS,
+                entityType = WorkspaceEntityType.LOG,
+                entityId = requireNotNull(log.id),
+                action = WorkspaceChangeAction.DELETED,
+            )
+        }
     }
 
     private fun findLogsByCursor(

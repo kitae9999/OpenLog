@@ -40,9 +40,15 @@ import {
   PREVIEW_RESERVED_COUNTS,
   type PreviewReplayHighlight,
   type PreviewReplaySnapshot,
-  type SyncFillState,
-  type SyncFillZone,
 } from "@/widgets/workspace-preview/model/previewSessionReplay";
+import {
+  IDLE_SYNC_FILL,
+  isIncomingId,
+  isZoneFetching,
+  type SyncFillState,
+} from "@/shared/model/syncFill";
+import { FetchingIndicator } from "@/shared/ui/sync/FetchingIndicator";
+import { useWorkspaceLiveSync } from "@/features/workspace-sync/model/useWorkspaceLiveSync";
 import { WorkspaceGraphPreview } from "@/widgets/workspace-dashboard/ui/WorkspaceGraphPreview";
 import {
   createWorkspaceTodo,
@@ -60,11 +66,7 @@ const PreviewReplayHighlightContext = createContext<PreviewReplayHighlight>({
   kind: "none",
 });
 
-const PreviewSyncFillContext = createContext<SyncFillState>({
-  status: "idle",
-  reserved: { ...PREVIEW_RESERVED_COUNTS },
-  incomingIds: [],
-});
+const PreviewSyncFillContext = createContext<SyncFillState>(IDLE_SYNC_FILL);
 
 function usePreviewReplayHighlight() {
   return useContext(PreviewReplayHighlightContext);
@@ -72,17 +74,6 @@ function usePreviewReplayHighlight() {
 
 function usePreviewSyncFill() {
   return useContext(PreviewSyncFillContext);
-}
-
-function isIncomingId(syncFill: SyncFillState, id: string) {
-  return (
-    (syncFill.status === "filling" || syncFill.status === "settled") &&
-    syncFill.incomingIds.includes(id)
-  );
-}
-
-function isZoneFetching(syncFill: SyncFillState, zone: SyncFillZone) {
-  return syncFill.status === "fetching" && syncFill.zone === zone;
 }
 
 type ExploreWidget = "activity" | "graph" | "memory" | "tasks";
@@ -338,11 +329,25 @@ export function WorkspaceDashboardView({
       ? getPreviewReplayWorkspaceData(replaySnapshot)
       : workspaceData;
   const highlight = replaySnapshot?.highlight ?? { kind: "none" as const };
-  const syncFill = replaySnapshot?.syncFill ?? {
-    status: "idle" as const,
-    reserved: { ...PREVIEW_RESERVED_COUNTS },
-    incomingIds: [] as string[],
-  };
+  const liveSync = useWorkspaceLiveSync({
+    workspaceId: resolvedWorkspaceData?.workspaceId
+      ? Number(resolvedWorkspaceData.workspaceId)
+      : null,
+    enabled: !isPreview && Boolean(resolvedWorkspaceData?.workspaceId),
+  });
+  const {
+    syncFill: liveSyncFill,
+    noteEntityIds,
+    showFetchingToast,
+    fetchingToastExiting,
+  } = liveSync;
+  const syncFill = isPreview
+    ? (replaySnapshot?.syncFill ?? {
+        status: "idle" as const,
+        reserved: { ...PREVIEW_RESERVED_COUNTS },
+        incomingIds: [] as string[],
+      })
+    : liveSyncFill;
 
   const [exploreWidget, setExploreWidget] = useState<ExploreWidget>(() => {
     if (
@@ -363,20 +368,39 @@ export function WorkspaceDashboardView({
     resolvedWorkspaceData?.workingBrief ?? deriveWorkingBrief(tasks, logs);
   const recentLogs = logs.slice(0, 6);
   const visibleTasks = tasks.filter((task) => isActiveTaskStatus(task.status));
-  const tasksFetching = isPreview && isZoneFetching(syncFill, "tasks");
-  const logsFetching = isPreview && isZoneFetching(syncFill, "logs");
+  const tasksFetching = isZoneFetching(syncFill, "tasks");
+  const logsFetching = isZoneFetching(syncFill, "logs");
+  const briefFetching = isZoneFetching(syncFill, "brief");
   const showOutputSection =
     isPreview &&
     (outputs.length > 0 ||
       (syncFill.status === "fetching" && syncFill.zone === "output"));
   const briefIncoming =
-    isPreview &&
-    (isIncomingId(syncFill, "working-brief") ||
-      (brief?.taskId != null && isIncomingId(syncFill, brief.taskId)));
+    isIncomingId(syncFill, "working-brief") ||
+    (brief?.taskId != null && isIncomingId(syncFill, brief.taskId)) ||
+    (syncFill.zone === "brief" &&
+      (syncFill.status === "filling" || syncFill.status === "settled") &&
+      syncFill.incomingIds.length > 0);
   const briefHighlighted =
     isPreview &&
     brief?.taskId != null &&
     isPreviewHighlight(highlight, "task", brief.taskId);
+
+  useEffect(() => {
+    if (isPreview || !resolvedWorkspaceData) {
+      return;
+    }
+    noteEntityIds([
+      ...resolvedWorkspaceData.tasks.map((task) => task.id),
+      ...resolvedWorkspaceData.logs.map((log) => log.id),
+      ...resolvedWorkspaceData.todos.map((todo) => todo.id),
+      ...resolvedWorkspaceData.outputs.map((output) => output.id),
+      ...resolvedWorkspaceData.memories.map((memory) => memory.id),
+      ...(resolvedWorkspaceData.workingBrief || brief
+        ? ["working-brief"]
+        : []),
+    ]);
+  }, [brief, isPreview, noteEntityIds, resolvedWorkspaceData]);
 
   useEffect(() => {
     if (!isPreview || !replaySnapshot) {
@@ -452,7 +476,7 @@ export function WorkspaceDashboardView({
         data-preview-anchor={isPreview ? "task" : undefined}
         className={cn(
           "border-l-2 border-zinc-950 pl-5",
-          tasksFetching && !brief && "sync-zone-fetching",
+          (tasksFetching || briefFetching) && !brief && "sync-zone-fetching",
         )}
       >
         <SectionLabel>Now working</SectionLabel>
@@ -563,8 +587,13 @@ export function WorkspaceDashboardView({
         <section
           data-testid="todos-section"
           data-preview-anchor={isPreview ? "todos" : undefined}
-          className="lg:border-l lg:border-zinc-200 lg:pl-10"
+          className="relative lg:border-l lg:border-zinc-200 lg:pl-10"
         >
+          {/* 세로 스택( < lg )일 때 Tasks↔Todos 구분선. gap-10 중앙에 맞춤. */}
+          <div
+            className="absolute inset-x-0 -top-5 h-px bg-zinc-200 lg:hidden"
+            aria-hidden="true"
+          />
           <TodosSection
             todos={resolvedWorkspaceData?.todos ?? []}
             workspaceId={resolvedWorkspaceData?.workspaceId}
@@ -604,7 +633,6 @@ export function WorkspaceDashboardView({
           <SectionRule />
           <PreviewOutputSection
             outputs={outputs}
-            isPreview={isPreview}
             syncFill={syncFill}
             highlight={highlight}
           />
@@ -684,7 +712,17 @@ export function WorkspaceDashboardView({
   );
 
   if (!isPreview) {
-    return dashboard;
+    return (
+      <PreviewSyncFillContext.Provider value={syncFill}>
+        {dashboard}
+        {showFetchingToast ? (
+          <FetchingIndicator
+            exiting={fetchingToastExiting}
+            className="fixed right-4 bottom-4 z-40 sm:right-6 sm:bottom-6"
+          />
+        ) : null}
+      </PreviewSyncFillContext.Provider>
+    );
   }
 
   return (
@@ -707,7 +745,7 @@ function TaskRow({
   const syncFill = usePreviewSyncFill();
   const isHighlighted =
     isPreview && isPreviewHighlight(highlight, "task", task.id);
-  const isIncoming = isPreview && isIncomingId(syncFill, task.id);
+  const isIncoming = isIncomingId(syncFill, task.id);
 
   return (
     <li>
@@ -748,7 +786,7 @@ function LogRow({
   const syncFill = usePreviewSyncFill();
   const isHighlighted =
     isPreview && isPreviewHighlight(highlight, "log", log.id);
-  const isIncoming = isPreview && isIncomingId(syncFill, log.id);
+  const isIncoming = isIncomingId(syncFill, log.id);
 
   return (
     <li>
@@ -805,19 +843,17 @@ function GraphPanel({
 
 function PreviewOutputSection({
   outputs,
-  isPreview,
   syncFill,
   highlight,
 }: {
   outputs: WorkspaceTaskOutput[];
-  isPreview: boolean;
   syncFill: SyncFillState;
   highlight: PreviewReplayHighlight;
 }) {
   const output = outputs[0];
   const outputFetching = isZoneFetching(syncFill, "output");
   const isIncoming =
-    isPreview && output != null && isIncomingId(syncFill, output.id);
+    output != null && isIncomingId(syncFill, output.id);
   const isHighlighted =
     output != null && isPreviewHighlight(highlight, "output", output.id);
 
@@ -875,9 +911,10 @@ function MemoryWidget({
   const highlight = usePreviewReplayHighlight();
   const syncFill = usePreviewSyncFill();
   const isHighlighted = isPreview && isPreviewHighlight(highlight, "memory");
-  const memoryIncoming = isPreview && isIncomingId(syncFill, "memory");
+  const memoryIncoming =
+    isIncomingId(syncFill, "memory") ||
+    memories.some((memory) => isIncomingId(syncFill, memory.id));
   const memoryFetching =
-    isPreview &&
     syncFill.status === "fetching" &&
     (syncFill.zone === "memory" ||
       (syncFill.zone === "output" && memories.length === 0));
@@ -985,7 +1022,6 @@ function TodosSection({
   const canMutate =
     !isPreview && (Boolean(workspaceId) || Boolean(createTodoOverride));
   const todosFetching =
-    isPreview &&
     syncFill.status === "fetching" &&
     (syncFill.zone === "todos" ||
       syncFill.incomingIds.some((id) => id.includes("todo")));
@@ -1163,7 +1199,7 @@ function TodosSection({
         <SideListViewport as="ul" className="divide-y divide-zinc-200/80">
           {localTodos.map((todo) => {
             const done = Boolean(todo.done);
-            const isIncoming = isPreview && isIncomingId(syncFill, todo.id);
+            const isIncoming = isIncomingId(syncFill, todo.id);
             return (
               <li key={todo.id}>
                 <div

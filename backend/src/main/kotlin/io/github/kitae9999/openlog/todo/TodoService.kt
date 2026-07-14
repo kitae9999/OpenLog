@@ -1,5 +1,8 @@
 package io.github.kitae9999.openlog.todo
 
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceChangeAction
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceEntityType
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceSyncZone
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.todo.dto.TodoResponse
@@ -7,6 +10,7 @@ import io.github.kitae9999.openlog.todo.entity.Todo
 import io.github.kitae9999.openlog.todo.repository.TodoRepository
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.WorkspaceAccessResolver
+import io.github.kitae9999.openlog.workspace.WorkspaceChangeNotifier
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -18,6 +22,7 @@ class TodoService(
     private val todoRepository: TodoRepository,
     private val workspaceAccessResolver: WorkspaceAccessResolver,
     private val todoMapper: TodoMapper,
+    private val workspaceChangeNotifier: WorkspaceChangeNotifier,
 ) {
     @Transactional
     fun createTodo(
@@ -42,6 +47,13 @@ class TodoService(
             sortOrder = sortOrder,
         )
         val savedTodo = todoRepository.save(todo)
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.TODOS,
+            entityType = WorkspaceEntityType.TODO,
+            entityId = requireNotNull(savedTodo.id),
+            action = WorkspaceChangeAction.CREATED,
+        )
 
         return todoMapper.toResponse(savedTodo)
     }
@@ -104,7 +116,16 @@ class TodoService(
             todo.markOpen()
         }
 
-        return todoMapper.toResponse(todoRepository.save(todo))
+        val saved = todoRepository.save(todo)
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.TODOS,
+            entityType = WorkspaceEntityType.TODO,
+            entityId = todoId,
+            action = WorkspaceChangeAction.UPDATED,
+        )
+
+        return todoMapper.toResponse(saved)
     }
 
     @Transactional
@@ -115,6 +136,13 @@ class TodoService(
     ) {
         val todo = requireOwnedTodo(userId, workspaceId, todoId)
         todoRepository.delete(todo)
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.TODOS,
+            entityType = WorkspaceEntityType.TODO,
+            entityId = todoId,
+            action = WorkspaceChangeAction.DELETED,
+        )
     }
 
     private fun requireOwnedTodo(userId: Long, workspaceId: Long, todoId: Long): Todo {

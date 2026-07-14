@@ -17,11 +17,12 @@ import java.time.LocalDate
 class TodoServiceTest {
     @Mock private lateinit var repository: TodoRepository
     @Mock private lateinit var accessResolver: WorkspaceAccessResolver
+    @Mock private lateinit var workspaceChangeNotifier: io.github.kitae9999.openlog.workspace.WorkspaceChangeNotifier
     private lateinit var service: TodoService
 
     @BeforeEach
     fun setUp() {
-        service = TodoService(repository, accessResolver, TodoMapper())
+        service = TodoService(repository, accessResolver, TodoMapper(), workspaceChangeNotifier)
     }
 
     @Test
