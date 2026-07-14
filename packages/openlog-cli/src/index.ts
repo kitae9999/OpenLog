@@ -8,6 +8,7 @@ import { ApiError, OpenLogApiClient } from "./api-client.js";
 import { createAuthenticatedApiClient } from "./authenticated-client.js";
 import { runMcpPermissionsCommand } from "./mcp-permissions-command.js";
 import { runSetup } from "./setup.js";
+import { runInit } from "./init.js";
 import {
   banner,
   dim,
@@ -23,6 +24,8 @@ const subcommand = process.argv[3];
 try {
   if (command === "setup" || command === undefined) {
     await runSetup();
+  } else if (command === "init") {
+    await runInit();
   } else if (command === "login") {
     await login();
   } else if (command === "logout") {
@@ -119,6 +122,7 @@ function printHelp(): void {
   console.log(dim("Setup"));
   console.log(`  openlog                     Guided setup (login → agent → permissions)`);
   console.log(`  openlog setup               Same as above`);
+  console.log(`  openlog init                Connect the current Git project`);
   console.log("");
   console.log(dim("Auth"));
   console.log(`  openlog login              Sign in from the terminal`);

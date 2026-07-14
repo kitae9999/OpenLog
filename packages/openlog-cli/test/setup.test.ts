@@ -82,6 +82,7 @@ test("setup logs in when unsigned, installs agent, sets permissions", async () =
   assert.equal(installedClient, "codex");
   assert.equal(writtenProfile, "read-only");
   assert.match(output.join("\n"), /Setup complete/);
+  assert.match(output.join("\n"), /npx @openloghq\/cli@latest init/);
 });
 
 test("setup can install into all agents", async () => {
