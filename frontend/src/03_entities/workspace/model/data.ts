@@ -894,6 +894,7 @@ export const logsSubnavItems = [
   { key: "issues", label: "Issues" },
   { key: "fixes", label: "Fixes" },
   { key: "decisions", label: "Decisions" },
+  { key: "notes", label: "Notes" },
 ] as const;
 
 export type LogListTypeFilter = (typeof logsSubnavItems)[number]["key"];
@@ -908,6 +909,8 @@ export function getLogListTitle(type: LogListTypeFilter) {
       return "Fixes";
     case "decisions":
       return "Decisions";
+    case "notes":
+      return "Notes";
     default:
       return "Logs";
   }
@@ -960,6 +963,8 @@ function matchesLogTypeFilter(
       return log.label.toLowerCase() === "fix";
     case "decisions":
       return log.label.toLowerCase() === "decision";
+    case "notes":
+      return log.label.toLowerCase() === "note" || log.kind === "NOTE";
     default:
       return true;
   }

@@ -802,6 +802,8 @@ function mapLogLabel(kind: LogKind) {
       return "Fix";
     case "DECISION":
       return "Decision";
+    case "NOTE":
+      return "Note";
     default:
       return "Log";
   }

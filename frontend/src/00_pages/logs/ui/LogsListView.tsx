@@ -350,6 +350,8 @@ function matchesLogTypeFilter(log: WorkspaceLogItem, type: LogListTypeFilter) {
       return log.label.toLowerCase() === "fix";
     case "decisions":
       return log.label.toLowerCase() === "decision";
+    case "notes":
+      return log.label.toLowerCase() === "note" || log.kind === "NOTE";
     default:
       return true;
   }
