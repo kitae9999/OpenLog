@@ -57,6 +57,15 @@ class TodoService(
     }
 
     @Transactional(readOnly = true)
+    fun getAllTodos(userId: Long, workspaceId: Long): List<TodoResponse> {
+        workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+
+        return todoRepository
+            .findAllByWorkspaceIdOrderByDoneAscPlannedForAscSortOrderAscIdAsc(workspaceId)
+            .map(todoMapper::toResponse)
+    }
+
+    @Transactional(readOnly = true)
     fun getTodosInRange(
         userId: Long,
         workspaceId: Long,

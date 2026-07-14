@@ -23,7 +23,7 @@ import {
   getSpawnedTodosForTask,
   getTabHref,
   getTaskBranches,
-  getTaskMeta,
+  resolveTaskActivityMeta,
   getLogHref,
   getTasksHref,
   type WorkspaceLogItem,
@@ -75,7 +75,7 @@ export function TaskDetailView({
   const branches = workspaceData
     ? getTaskBranchesFromLogs(logs)
     : getTaskBranches(task.id);
-  const meta = workspaceData ? getApiTaskMeta(logs) : getTaskMeta(task.id);
+  const meta = resolveTaskActivityMeta(task, logs);
   const spawnedTodos = workspaceData
     ? getApiSpawnedTodos(task.id, workspaceData.todos)
     : getSpawnedTodosForTask(task.id);
@@ -667,15 +667,6 @@ function getTaskBranchesFromLogs(logs: WorkspaceLogItem[]) {
   return Array.from(counts.entries())
     .map(([branch, count]) => ({ branch, count }))
     .sort((a, b) => b.count - a.count);
-}
-
-function getApiTaskMeta(logs: WorkspaceLogItem[]) {
-  const latest = logs[0]?.meta.split(" · ")[0] ?? "-";
-
-  return {
-    startedLabel: logs.at(-1)?.meta.split(" · ")[0] ?? latest,
-    lastActivityLabel: latest,
-  };
 }
 
 function getApiSpawnedTodos(

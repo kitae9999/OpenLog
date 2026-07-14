@@ -105,6 +105,7 @@ class WorkspaceLogService(
         }
 
         val savedLog = workspaceLogRepository.save(log)
+        task?.touch()
 
         return workspaceMapper.toLogResponse(savedLog)
     }
@@ -128,6 +129,7 @@ class WorkspaceLogService(
             task = task,
             status = status,
         )
+        task?.touch()
 
         return workspaceMapper.toLogDetailResponse(log)
     }

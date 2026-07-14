@@ -81,6 +81,9 @@ class TodoController(
         @RequestParam(required = false) to: LocalDate?,
     ): List<TodoResponse> {
         val userId = requireNotNull(user.id)
+        if (plannedFor == null && from == null && to == null) {
+            return todoService.getAllTodos(userId, workspaceId)
+        }
         if (plannedFor != null && from == null && to == null) {
             return todoService.getTodos(userId, workspaceId, plannedFor)
         }

@@ -9,8 +9,8 @@ import {
   getTabHref,
   getTaskExcerpt,
   getTaskHref,
-  getTaskMeta,
   isActiveTaskStatus,
+  resolveTaskActivityMeta,
   type TaskListFilter,
   type WorkspaceLogItem,
   type WorkspaceTaskOutput,
@@ -246,7 +246,7 @@ function TaskListRow({
   const outputCount = outputs.filter((output) =>
     output.taskIds.includes(task.id),
   ).length;
-  const meta = getTaskMeta(task.id);
+  const meta = resolveTaskActivityMeta(task, taskLogs);
   const excerpt = getTaskExcerpt(task.body);
 
   return (
@@ -282,7 +282,7 @@ function TaskListRow({
             ? ` · ${outputCount} output${outputCount === 1 ? "" : "s"}`
             : ""}
           {" · "}
-          Last {taskLogs[0]?.meta.split(" · ")[0] ?? meta.lastActivityLabel}
+          Last {meta.lastActivityLabel}
         </p>
       </div>
     </li>

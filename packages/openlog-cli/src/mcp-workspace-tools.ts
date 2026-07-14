@@ -37,13 +37,14 @@ const TODO_LIST_INPUT = z
     to: ISO_DATE.optional(),
   })
   .superRefine((value, context) => {
-    // Todo 조회는 단일 날짜 또는 완전한 기간 중 한 방식만 받는다.
+    // Todo 조회: 전체 / 단일 날짜 / from·to 기간 중 하나.
+    const usesAll = !value.plannedFor && !value.from && !value.to;
     const usesSingleDate = value.plannedFor && !value.from && !value.to;
     const usesRange = !value.plannedFor && value.from && value.to;
-    if (!usesSingleDate && !usesRange) {
+    if (!usesAll && !usesSingleDate && !usesRange) {
       context.addIssue({
         code: "custom",
-        message: "Provide plannedFor, or provide both from and to.",
+        message: "Provide plannedFor, both from and to, or omit dates to list all.",
       });
       return;
     }
@@ -527,7 +528,7 @@ function registerTodoTools(registry: McpToolRegistry): void {
     {
       title: "List OpenLog Workspace Todos",
       description:
-        "List todos for one date or an inclusive date range of at most 366 days.",
+        "List workspace todos. Omit dates for all todos; or pass plannedFor, or from and to (inclusive, max 366 days).",
       inputSchema: TODO_LIST_INPUT,
       annotations: READ_TOOL_ANNOTATIONS,
     },

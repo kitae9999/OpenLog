@@ -13,6 +13,10 @@ interface TodoRepository : JpaRepository<Todo, Long> {
         to: LocalDate,
     ): List<Todo>
 
+    fun findAllByWorkspaceIdOrderByDoneAscPlannedForAscSortOrderAscIdAsc(
+        workspaceId: Long,
+    ): List<Todo>
+
     /**
      * sortOrder가 가장 큰 todo 반환
      */

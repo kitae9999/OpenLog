@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useRef,
   useState,
   useTransition,
   type ReactNode,
@@ -26,6 +27,7 @@ import {
   getTaskHref,
   getTasksHref,
   isActiveTaskStatus,
+  resolveTaskActivityMeta,
   type WorkspaceLogItem,
   type WorkspaceTaskOutput,
   type WorkspaceTodoItem,
@@ -87,8 +89,62 @@ type ExploreWidget = "activity" | "graph" | "memory" | "tasks";
 
 /** Empty block body — reserves height with copy + CTA, no mock rows. */
 /** Height for 4 rows (py-2 + leading-6) + 3×1px divide borders — no phantom scrollbar at 4. */
-const SIDE_LIST_VIEWPORT =
-  "openlog-scroll mt-3 h-[calc(2.5rem*4+3px)] overflow-y-auto overscroll-contain";
+const SIDE_LIST_VIEWPORT_BASE =
+  "openlog-scroll mt-3 h-[calc(2.5rem*4+3px)]";
+
+/**
+ * Fixed-height list frame. Only enables overflow-y scrolling when content
+ * actually overflows — otherwise trackpad wheel passes through to the page.
+ */
+function SideListViewport({
+  as: Component = "div",
+  className,
+  children,
+}: {
+  as?: "div" | "ul";
+  className?: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement | HTMLUListElement | null>(null);
+  const [canScroll, setCanScroll] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const update = () => {
+      setCanScroll(el.scrollHeight > el.clientHeight + 1);
+    };
+
+    update();
+    const resizeObserver = new ResizeObserver(update);
+    resizeObserver.observe(el);
+    const mutationObserver = new MutationObserver(update);
+    mutationObserver.observe(el, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, []);
+
+  return (
+    <Component
+      ref={ref as never}
+      className={cn(
+        SIDE_LIST_VIEWPORT_BASE,
+        canScroll ? "overflow-y-auto" : "overflow-y-hidden",
+        className,
+      )}
+    >
+      {children}
+    </Component>
+  );
+}
 
 const EXPLORE_TABS: { id: ExploreWidget; label: string }[] = [
   { id: "activity", label: "Activity" },
@@ -476,23 +532,23 @@ export function WorkspaceDashboardView({
             </QuietLink>
           </div>
           {visibleTasks.length === 0 ? (
-            <div
+            <SideListViewport
               className={cn(
-                SIDE_LIST_VIEWPORT,
                 "flex items-start",
                 tasksFetching && "sync-zone-fetching",
               )}
             >
               <p className="text-sm text-zinc-500">No tasks yet.</p>
-            </div>
+            </SideListViewport>
           ) : (
-            <ul
-              className={cn(SIDE_LIST_VIEWPORT, "divide-y divide-zinc-200/80")}
+            <SideListViewport
+              as="ul"
+              className="divide-y divide-zinc-200/80"
             >
               {visibleTasks.map((task) => (
                 <TaskRow key={task.id} task={task} isPreview={isPreview} />
               ))}
-            </ul>
+            </SideListViewport>
           )}
           <PreviewableLink
             href={getNewTaskHref()}
@@ -1095,17 +1151,16 @@ function TodosSection({
         </span>
       </div>
       {localTodos.length === 0 ? (
-        <div
+        <SideListViewport
           className={cn(
-            SIDE_LIST_VIEWPORT,
             "flex items-start",
             todosFetching && "sync-zone-fetching",
           )}
         >
           <p className="text-sm text-zinc-500">No todos yet.</p>
-        </div>
+        </SideListViewport>
       ) : (
-        <ul className={cn(SIDE_LIST_VIEWPORT, "divide-y divide-zinc-200/80")}>
+        <SideListViewport as="ul" className="divide-y divide-zinc-200/80">
           {localTodos.map((todo) => {
             const done = Boolean(todo.done);
             const isIncoming = isPreview && isIncomingId(syncFill, todo.id);
@@ -1164,7 +1219,7 @@ function TodosSection({
               </li>
             );
           })}
-        </ul>
+        </SideListViewport>
       )}
       <input
         data-testid="todo-add-input"
@@ -1373,6 +1428,7 @@ function deriveWorkingBrief(
 
   const relatedLogs = logs.filter((log) => log.taskId === task.id);
   const latestLog = relatedLogs[0];
+  const activity = resolveTaskActivityMeta(task, relatedLogs);
   const prose =
     task.description?.trim() ||
     getTaskExcerpt(task.body, 220) ||
@@ -1384,7 +1440,7 @@ function deriveWorkingBrief(
       prose: "No brief yet for this task.",
       taskId: task.id,
       taskTitle: task.title,
-      updatedLabel: latestLog?.meta.split(" · ")[0],
+      updatedLabel: activity.lastActivityLabel,
     };
   }
 
@@ -1394,6 +1450,6 @@ function deriveWorkingBrief(
     taskId: task.id,
     taskTitle: task.title,
     branch: latestLog?.branch,
-    updatedLabel: latestLog?.meta.split(" · ")[0],
+    updatedLabel: activity.lastActivityLabel,
   };
 }
