@@ -109,17 +109,20 @@ function AgentGuideTipLink({
   const [showTip, setShowTip] = useState(false);
 
   useEffect(() => {
-    if (blocked) {
-      setShowTip(false);
-      return;
-    }
-    try {
-      if (window.localStorage.getItem(AGENT_GUIDE_TIP_STORAGE_KEY) !== "1") {
+    const frame = window.requestAnimationFrame(() => {
+      if (blocked) {
+        setShowTip(false);
+        return;
+      }
+      try {
+        if (window.localStorage.getItem(AGENT_GUIDE_TIP_STORAGE_KEY) !== "1") {
+          setShowTip(true);
+        }
+      } catch {
         setShowTip(true);
       }
-    } catch {
-      setShowTip(true);
-    }
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [blocked]);
 
   const dismissTip = () => {
@@ -178,20 +181,23 @@ function McpSetupPrompt({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!enabled || hasWorkspaceActivity) {
-      setOpen(false);
-      onOpenChange(false);
-      return;
-    }
-    let shouldOpen = false;
-    try {
-      shouldOpen =
-        window.localStorage.getItem(MCP_SETUP_PROMPT_STORAGE_KEY) !== "1";
-    } catch {
-      shouldOpen = true;
-    }
-    setOpen(shouldOpen);
-    onOpenChange(shouldOpen);
+    const frame = window.requestAnimationFrame(() => {
+      if (!enabled || hasWorkspaceActivity) {
+        setOpen(false);
+        onOpenChange(false);
+        return;
+      }
+      let shouldOpen = false;
+      try {
+        shouldOpen =
+          window.localStorage.getItem(MCP_SETUP_PROMPT_STORAGE_KEY) !== "1";
+      } catch {
+        shouldOpen = true;
+      }
+      setOpen(shouldOpen);
+      onOpenChange(shouldOpen);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [enabled, hasWorkspaceActivity, onOpenChange]);
 
   const dismiss = () => {
