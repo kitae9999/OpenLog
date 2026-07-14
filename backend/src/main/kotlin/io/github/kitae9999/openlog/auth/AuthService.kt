@@ -14,6 +14,9 @@ import io.github.kitae9999.openlog.common.exception.UsernameAlreadyTakenExceptio
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.user.repository.UserRepository
 import io.github.kitae9999.openlog.workspace.entity.Workspace
+import io.github.kitae9999.openlog.workspace.entity.WorkspaceAgentGuide
+import io.github.kitae9999.openlog.workspace.DefaultWorkspaceAgentGuide
+import io.github.kitae9999.openlog.workspace.repository.WorkspaceAgentGuideRepository
 import io.github.kitae9999.openlog.workspace.repository.WorkspaceRepository
 import jakarta.transaction.Transactional
 import org.springframework.beans.factory.annotation.Value
@@ -42,6 +45,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val oauthAccountRepository: OauthAccountRepository,
     private val workspaceRepository: WorkspaceRepository,
+    private val workspaceAgentGuideRepository: WorkspaceAgentGuideRepository,
 ) {
     companion object {
         private  val OAUTH_STATE_TTL: Duration = Duration.ofMinutes(5)
@@ -223,11 +227,17 @@ class AuthService(
             return
         }
 
-        workspaceRepository.save(
+        val workspace = workspaceRepository.save(
             Workspace(
                 owner = user,
                 slug = DEFAULT_WORKSPACE_SLUG,
                 name = user.nickname?.takeIf { it.isNotBlank() } ?: "My Workspace",
+            )
+        )
+        workspaceAgentGuideRepository.save(
+            WorkspaceAgentGuide(
+                workspace = workspace,
+                content = DefaultWorkspaceAgentGuide.CONTENT,
             )
         )
     }

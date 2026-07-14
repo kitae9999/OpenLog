@@ -6,6 +6,7 @@ import io.github.kitae9999.openlog.workspace.dto.TaskDetailResponse
 import io.github.kitae9999.openlog.workspace.dto.TaskLinkResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogDetailResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogResponse
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceProjectResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskResponse
 import io.github.kitae9999.openlog.workspace.entity.LogLink
@@ -13,19 +14,35 @@ import io.github.kitae9999.openlog.workspace.entity.LogLinkResponse
 import io.github.kitae9999.openlog.workspace.entity.TaskLink
 import io.github.kitae9999.openlog.workspace.entity.Workspace
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceLog
+import io.github.kitae9999.openlog.workspace.entity.WorkspaceProject
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
 import org.springframework.stereotype.Component
 
 @Component
 class WorkspaceMapper {
-    fun toWorkspaceResponse(workspace: Workspace): WorkspaceResponse {
+    fun toWorkspaceResponse(
+        workspace: Workspace,
+        projects: List<WorkspaceProject> = emptyList(),
+    ): WorkspaceResponse {
         return WorkspaceResponse(
             id = requireNotNull(workspace.id),
             slug = workspace.slug,
             name = workspace.name,
-            repoFullName = workspace.repoFullName,
+            projects = projects.map(::toWorkspaceProjectResponse),
             createdAt = workspace.createdAt.toString(),
             updatedAt = workspace.updatedAt.toString(),
+        )
+    }
+
+    fun toWorkspaceProjectResponse(project: WorkspaceProject): WorkspaceProjectResponse {
+        return WorkspaceProjectResponse(
+            id = requireNotNull(project.id),
+            workspaceId = requireNotNull(project.workspace.id),
+            displayName = project.displayName,
+            repositoryFullName = project.repositoryFullName,
+            captureMode = project.captureMode,
+            createdAt = project.createdAt.toString(),
+            updatedAt = project.updatedAt.toString(),
         )
     }
 

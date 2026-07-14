@@ -27,7 +27,6 @@ class Workspace(
     owner: User,
     slug: String,
     name: String,
-    repoFullName: String? = null,
 ) {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "owner_id", nullable = false)
@@ -42,10 +41,6 @@ class Workspace(
     var name: String = name
         protected set
 
-    @Column(name = "repo_full_name")
-    var repoFullName: String? = repoFullName
-        protected set
-
     @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
         protected set
@@ -54,13 +49,12 @@ class Workspace(
     var updatedAt: LocalDateTime = LocalDateTime.now()
         protected set
 
-    fun update(name: String, repoFullName: String?) {
-        if (this.name == name && this.repoFullName == repoFullName) {
+    fun update(name: String) {
+        if (this.name == name) {
             return
         }
 
         this.name = name
-        this.repoFullName = repoFullName
         this.updatedAt = LocalDateTime.now()
     }
 }
