@@ -130,7 +130,7 @@ export function WorkspaceSwitcher({
     <div ref={rootRef} className="relative mb-4">
       <WorkspaceSwitcherTrigger
         name={activeWorkspace.name}
-        repositoryFullName={activeWorkspace.repoFullName}
+        projectLabel={workspaceProjectLabel(activeWorkspace)}
         initial={workspaceInitial(activeWorkspace.name)}
         open={open}
         onClick={() => setOpen((current) => !current)}
@@ -171,7 +171,7 @@ export function WorkspaceSwitcher({
                       {workspace.name}
                     </span>
                     <span className="block truncate font-mono text-[10.5px] text-zinc-400">
-                      {workspace.repoFullName ?? workspace.slug}
+                      {workspaceProjectLabel(workspace)}
                     </span>
                   </span>
                   {isActive ? (
@@ -210,14 +210,14 @@ function workspaceInitial(name: string) {
 
 function WorkspaceSwitcherTrigger({
   name,
-  repositoryFullName,
+  projectLabel,
   initial,
   open,
   disabled = false,
   onClick,
 }: {
   name: string;
-  repositoryFullName: string | null;
+  projectLabel: string;
   initial: string;
   open: boolean;
   disabled?: boolean;
@@ -243,7 +243,7 @@ function WorkspaceSwitcherTrigger({
           {name}
         </span>
         <span className="block truncate font-mono text-[10.5px] text-zinc-400">
-          {repositoryFullName ?? "No repository"}
+          {projectLabel}
         </span>
       </span>
       <IconChevronDown
@@ -255,6 +255,17 @@ function WorkspaceSwitcherTrigger({
       />
     </button>
   );
+}
+
+function workspaceProjectLabel(workspace: ManagedWorkspace) {
+  if (workspace.projects.length === 0) {
+    return "No connected projects";
+  }
+  if (workspace.projects.length > 1) {
+    return `${workspace.projects.length} connected projects`;
+  }
+  const project = workspace.projects[0]!;
+  return project.repositoryFullName ?? `${project.displayName} · local`;
 }
 
 function IconChevronDown({ className }: { className?: string }) {

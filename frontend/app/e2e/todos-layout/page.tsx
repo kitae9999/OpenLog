@@ -8,6 +8,7 @@ import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes"
 const baseFixture: Omit<WorkspaceUiData, "todos"> = {
   workspaceId: "e2e-workspace",
   workspaceName: "E2E Workspace",
+  projects: [],
   repositoryFullName: null,
   tasks: [],
   logs: [],

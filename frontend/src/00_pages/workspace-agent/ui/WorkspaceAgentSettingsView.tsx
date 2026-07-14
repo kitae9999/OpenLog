@@ -1,0 +1,472 @@
+"use client";
+
+import Link from "next/link";
+import { useRef, useState } from "react";
+import { cn } from "@/shared/lib/cn";
+import {
+  formatSelection,
+  getImageFallbackText,
+  type ToolbarAction,
+  type ToolbarActionPayload,
+} from "@/shared/lib/markdown/markdownFormatting";
+import { MarkdownContent } from "@/shared/ui/markdown/MarkdownContent";
+import { MarkdownToolbar } from "@/shared/ui/markdown/MarkdownToolbar";
+import type { WorkspaceAgentSettingsData } from "@/entities/workspace/api/workspaceAgentApi";
+import type {
+  WorkspaceCaptureMode,
+  WorkspaceProjectItem,
+} from "@/entities/workspace/model/workspaceTypes";
+import {
+  disconnectWorkspaceProject,
+  updateWorkspaceAgentGuide,
+  updateWorkspaceProjectCaptureMode,
+} from "@/features/workspace-agent/api/workspaceAgentActions";
+
+const CAPTURE_MODE_COPY: Record<
+  WorkspaceCaptureMode,
+  { label: string; detail: string }
+> = {
+  AUTO: {
+    label: "Auto",
+    detail: "The agent may create or update drafts when the Guide says the work matters.",
+  },
+  ASK: {
+    label: "Ask first",
+    detail: "The agent asks before creating or updating Tasks, Logs, or Outputs.",
+  },
+  EXPLICIT: {
+    label: "Explicit only",
+    detail: "The agent acts only after a direct OpenLog request.",
+  },
+};
+
+const CAPTURE_MODES = ["ASK", "AUTO", "EXPLICIT"] as const;
+
+export function WorkspaceAgentSettingsView({
+  data,
+}: {
+  data: WorkspaceAgentSettingsData;
+}) {
+  const [content, setContent] = useState(data.guide.content);
+  const [savedContent, setSavedContent] = useState(data.guide.content);
+  const [revision, setRevision] = useState(data.guide.revision);
+  const [updatedAt, setUpdatedAt] = useState(data.guide.updatedAt);
+  const [editorMode, setEditorMode] = useState<"write" | "preview">("write");
+  const [saveState, setSaveState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const [message, setMessage] = useState<string | null>(null);
+  const [projects, setProjects] = useState(data.workspace.projects);
+  const [busyProjectId, setBusyProjectId] = useState<string | null>(null);
+  const [confirmProjectId, setConfirmProjectId] = useState<string | null>(null);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const hasGuideChanges = content !== savedContent;
+
+  function insertFormatting(
+    action: ToolbarAction,
+    payload?: ToolbarActionPayload,
+  ) {
+    const textarea = editorRef.current;
+    if (!textarea) {
+      return;
+    }
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const selectedText = content.slice(selectionStart, selectionEnd);
+    const next = formatSelection(
+      action,
+      content,
+      selectedText,
+      selectionStart,
+      selectionEnd,
+      { fallbackText: getImageFallbackText(payload) },
+    );
+    setContent(next.nextValue);
+    setSaveState("idle");
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(next.nextSelectionStart, next.nextSelectionEnd);
+    });
+  }
+
+  async function saveGuide() {
+    if (!content.trim() || !hasGuideChanges || saveState === "saving") {
+      return;
+    }
+    setSaveState("saving");
+    setMessage(null);
+    const result = await updateWorkspaceAgentGuide({
+      workspaceId: data.workspace.id,
+      content,
+    });
+    if (!result.ok || !result.guide) {
+      setSaveState("error");
+      setMessage(result.message ?? "Failed to save the Agent Guide.");
+      return;
+    }
+    setContent(result.guide.content);
+    setSavedContent(result.guide.content);
+    setRevision(result.guide.revision);
+    setUpdatedAt(result.guide.updatedAt);
+    setSaveState("saved");
+  }
+
+  async function changeCaptureMode(
+    project: WorkspaceProjectItem,
+    captureMode: WorkspaceCaptureMode,
+  ) {
+    if (project.captureMode === captureMode || busyProjectId) {
+      return;
+    }
+    setBusyProjectId(project.id);
+    setMessage(null);
+    const result = await updateWorkspaceProjectCaptureMode({
+      project,
+      captureMode,
+    });
+    setBusyProjectId(null);
+    if (!result.ok) {
+      setMessage(result.message ?? "Failed to update Capture Mode.");
+      return;
+    }
+    setProjects((current) =>
+      current.map((item) =>
+        item.id === project.id ? { ...item, captureMode } : item,
+      ),
+    );
+  }
+
+  async function disconnectProject(projectId: string) {
+    if (busyProjectId) {
+      return;
+    }
+    setBusyProjectId(projectId);
+    setMessage(null);
+    const result = await disconnectWorkspaceProject({
+      workspaceId: data.workspace.id,
+      projectId,
+    });
+    setBusyProjectId(null);
+    if (!result.ok) {
+      setMessage(result.message ?? "Failed to disconnect the project.");
+      return;
+    }
+    setProjects((current) => current.filter((project) => project.id !== projectId));
+    setConfirmProjectId(null);
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[1040px]">
+      <nav
+        aria-label="Breadcrumb"
+        className="mb-6 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
+      >
+        <Link href="/" className="font-medium transition hover:text-zinc-950">
+          openlog
+        </Link>
+        <span className="text-zinc-300">/</span>
+        <Link href="/settings/manage" className="transition hover:text-zinc-950">
+          Settings
+        </Link>
+        <span className="text-zinc-300">/</span>
+        <span className="font-semibold text-zinc-950">Agent Guide</span>
+      </nav>
+
+      <header className="border-b border-zinc-200 pb-7">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400">
+              {data.workspace.slug} / agent policy
+            </p>
+            <h1 className="mt-2 text-[26px] font-semibold tracking-[-0.025em] text-zinc-950">
+              {data.workspace.name}
+            </h1>
+            <p className="mt-2 max-w-[68ch] text-[13.5px] leading-6 text-zinc-500">
+              One workspace guide governs every connected project. Capture Mode decides
+              when each project may turn that guidance into Task, Log, and Output drafts.
+            </p>
+          </div>
+          <div className="text-right font-mono text-[11px] leading-5 text-zinc-400">
+            <p>revision {revision}</p>
+            <p>updated {formatTimestamp(updatedAt)}</p>
+          </div>
+        </div>
+      </header>
+
+      {message ? (
+        <div
+          role="status"
+          className="mt-5 border-l-2 border-rose-500 bg-rose-50/70 px-3 py-2 text-[12.5px] font-medium text-rose-700"
+        >
+          {message}
+        </div>
+      ) : null}
+
+      <section className="py-8" aria-labelledby="guide-heading">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="guide-heading" className="text-[16px] font-semibold text-zinc-950">
+              Workspace Guide
+            </h2>
+            <p className="mt-1 text-[12.5px] leading-5 text-zinc-500">
+              English Markdown · loaded fresh whenever an agent starts an OpenLog session
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span
+              aria-live="polite"
+              className={cn(
+                "text-[12px] font-medium",
+                saveState === "error" ? "text-rose-600" : "text-zinc-400",
+              )}
+            >
+              {guideSaveLabel(saveState, hasGuideChanges)}
+            </span>
+            <button
+              type="button"
+              onClick={saveGuide}
+              disabled={!content.trim() || !hasGuideChanges || saveState === "saving"}
+              className="h-9 rounded-lg bg-zinc-950 px-4 text-[12.5px] font-semibold text-white transition hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 disabled:cursor-not-allowed disabled:bg-zinc-300"
+            >
+              {saveState === "saving" ? "Saving…" : "Save Guide"}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-5 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_16px_50px_rgba(24,24,27,0.04)]">
+          <div className="flex items-end justify-between border-b border-zinc-200 bg-zinc-50/60 px-4 pt-2">
+            <div role="tablist" aria-label="Agent Guide editor" className="flex gap-1">
+              <EditorTab active={editorMode === "write"} onClick={() => setEditorMode("write")}>
+                Write
+              </EditorTab>
+              <EditorTab active={editorMode === "preview"} onClick={() => setEditorMode("preview")}>
+                Preview
+              </EditorTab>
+            </div>
+            <span className="pb-2 font-mono text-[10.5px] text-zinc-400">
+              {content.length.toLocaleString()} / 20,000
+            </span>
+          </div>
+          <div className="border-b border-zinc-100 px-4 py-2.5">
+            <MarkdownToolbar
+              disabled={editorMode === "preview"}
+              onAction={insertFormatting}
+            />
+          </div>
+          {editorMode === "write" ? (
+            <textarea
+              ref={editorRef}
+              aria-label="Workspace Agent Guide Markdown"
+              value={content}
+              maxLength={20_000}
+              onChange={(event) => {
+                setContent(event.target.value);
+                setSaveState("idle");
+              }}
+              className="openlog-scroll min-h-[520px] w-full resize-y border-0 bg-white px-5 py-5 font-mono text-[13px] leading-7 text-zinc-800 outline-none"
+            />
+          ) : (
+            <div className="min-h-[520px] px-6 py-6">
+              <MarkdownContent
+                markdown={content}
+                variant="compact"
+                emptyFallback={<p className="text-zinc-400">Nothing to preview.</p>}
+              />
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="border-t border-zinc-200 py-8" aria-labelledby="projects-heading">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="projects-heading" className="text-[16px] font-semibold text-zinc-950">
+              Connected projects
+            </h2>
+            <p className="mt-1 text-[12.5px] leading-5 text-zinc-500">
+              Repository and local Git projects share this Guide but keep their own Capture Mode.
+            </p>
+          </div>
+          <code className="rounded-md bg-zinc-100 px-2.5 py-1.5 text-[11px] text-zinc-600">
+            npx @openloghq/cli@latest init
+          </code>
+        </div>
+
+        {projects.length === 0 ? (
+          <div className="mt-6 border-l-2 border-zinc-300 py-2 pl-4">
+            <p className="text-[13px] font-medium text-zinc-700">No projects connected.</p>
+            <p className="mt-1 text-[12.5px] text-zinc-500">
+              Run the init command from a Git project to create the first connection.
+            </p>
+          </div>
+        ) : (
+          <ul className="mt-5 divide-y divide-zinc-200 border-y border-zinc-200">
+            {projects.map((project) => (
+              <ProjectRow
+                key={project.id}
+                project={project}
+                busy={busyProjectId === project.id}
+                confirming={confirmProjectId === project.id}
+                onCaptureModeChange={(mode) => changeCaptureMode(project, mode)}
+                onConfirm={() => setConfirmProjectId(project.id)}
+                onCancel={() => setConfirmProjectId(null)}
+                onDisconnect={() => disconnectProject(project.id)}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function ProjectRow({
+  project,
+  busy,
+  confirming,
+  onCaptureModeChange,
+  onConfirm,
+  onCancel,
+  onDisconnect,
+}: {
+  project: WorkspaceProjectItem;
+  busy: boolean;
+  confirming: boolean;
+  onCaptureModeChange: (mode: WorkspaceCaptureMode) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+  onDisconnect: () => void;
+}) {
+  return (
+    <li className="grid gap-4 py-4 sm:grid-cols-[minmax(0,1fr)_220px_auto] sm:items-center">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="rounded border border-zinc-200 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">
+            {project.repositoryFullName ? "Remote" : "Local"}
+          </span>
+          <p className="truncate text-[13.5px] font-semibold text-zinc-900">
+            {project.displayName}
+          </p>
+        </div>
+        {project.repositoryFullName ? (
+          <a
+            href={`https://github.com/${project.repositoryFullName}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1.5 block truncate font-mono text-[11.5px] text-zinc-500 underline-offset-2 hover:text-zinc-950 hover:underline"
+          >
+            {project.repositoryFullName}
+          </a>
+        ) : (
+          <p className="mt-1.5 text-[11.5px] text-zinc-500">
+            Bound by project ID in local .git/config
+          </p>
+        )}
+      </div>
+
+      <label className="grid gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+        Capture mode
+        <select
+          value={project.captureMode}
+          disabled={busy || confirming}
+          onChange={(event) =>
+            onCaptureModeChange(event.target.value as WorkspaceCaptureMode)
+          }
+          className="h-9 rounded-lg border border-zinc-200 bg-white px-2.5 text-[12.5px] font-medium normal-case tracking-normal text-zinc-800 outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-50"
+        >
+          {CAPTURE_MODES.map((mode) => (
+            <option key={mode} value={mode}>
+              {CAPTURE_MODE_COPY[mode].label}
+            </option>
+          ))}
+        </select>
+        <span className="normal-case tracking-normal text-zinc-400">
+          {CAPTURE_MODE_COPY[project.captureMode].detail}
+        </span>
+      </label>
+
+      <div className="flex min-w-[126px] items-center justify-end gap-2">
+        {confirming ? (
+          <>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={busy}
+              className="text-[12px] font-medium text-zinc-500 hover:text-zinc-950 disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onDisconnect}
+              disabled={busy}
+              className="text-[12px] font-semibold text-rose-600 hover:text-rose-800 disabled:opacity-40"
+            >
+              {busy ? "Disconnecting…" : "Confirm"}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className="text-[12px] font-medium text-zinc-400 transition hover:text-rose-700 disabled:opacity-40"
+          >
+            Disconnect
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function EditorTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "border-b-2 px-3 pb-2 pt-1 text-[12.5px] font-semibold transition",
+        active
+          ? "border-zinc-950 text-zinc-950"
+          : "border-transparent text-zinc-400 hover:text-zinc-700",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function guideSaveLabel(
+  state: "idle" | "saving" | "saved" | "error",
+  changed: boolean,
+) {
+  if (state === "saving") return "Saving revision…";
+  if (state === "saved" && !changed) return "Saved";
+  if (state === "error") return "Save failed";
+  return changed ? "Unsaved changes" : "Up to date";
+}
+
+function formatTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat("en", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}

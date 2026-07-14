@@ -51,6 +51,7 @@ export type WorkspaceUiData = {
   workspaceId: string;
   workspaceName: string;
   repositoryFullName: string | null;
+  projects: WorkspaceProjectItem[];
   tasks: WorkspaceWorkItem[];
   logs: WorkspaceLogItem[];
   outputs: WorkspaceTaskOutput[];
@@ -90,5 +91,17 @@ export type ManagedWorkspace = {
   id: string;
   slug: string;
   name: string;
-  repoFullName: string | null;
+  projects: WorkspaceProjectItem[];
+};
+
+export type WorkspaceCaptureMode = "AUTO" | "ASK" | "EXPLICIT";
+
+export type WorkspaceProjectItem = {
+  id: string;
+  workspaceId: string;
+  displayName: string;
+  repositoryFullName: string | null;
+  captureMode: WorkspaceCaptureMode;
+  createdAt: string;
+  updatedAt: string;
 };

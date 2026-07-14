@@ -172,20 +172,37 @@ export function WorkspaceDashboardView({
             {resolvedWorkspaceData?.workspaceName ?? "Workspace"}
           </h1>
         </div>
-        {resolvedWorkspaceData?.repositoryFullName ? (
-          <a
-            href={`https://github.com/${resolvedWorkspaceData.repositoryFullName}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex max-w-full items-center gap-2 rounded-md py-1 text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            title={`Open ${resolvedWorkspaceData.repositoryFullName} on GitHub`}
-          >
-            <GitHubIcon className="size-4 shrink-0 text-zinc-700 transition group-hover:text-zinc-950" />
-            <span className="truncate font-mono text-[12.5px] underline-offset-2 group-hover:underline">
-              {resolvedWorkspaceData.repositoryFullName}
-            </span>
-          </a>
-        ) : null}
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2">
+          {resolvedWorkspaceData?.repositoryFullName ? (
+            <a
+              href={`https://github.com/${resolvedWorkspaceData.repositoryFullName}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex max-w-full items-center gap-2 rounded-md py-1 text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              title={`Open ${resolvedWorkspaceData.repositoryFullName} on GitHub`}
+            >
+              <GitHubIcon className="size-4 shrink-0 text-zinc-700 transition group-hover:text-zinc-950" />
+              <span className="truncate font-mono text-[12.5px] underline-offset-2 group-hover:underline">
+                {resolvedWorkspaceData.repositoryFullName}
+              </span>
+            </a>
+          ) : resolvedWorkspaceData && resolvedWorkspaceData.projects.length > 1 ? (
+            <Link
+              href={`/settings/workspaces/${resolvedWorkspaceData.workspaceId}/agent`}
+              className="text-[12.5px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              {resolvedWorkspaceData.projects.length} projects
+            </Link>
+          ) : null}
+          {!isPreview && resolvedWorkspaceData ? (
+            <Link
+              href={`/settings/workspaces/${resolvedWorkspaceData.workspaceId}/agent`}
+              className="text-[12.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              Agent Guide
+            </Link>
+          ) : null}
+        </div>
       </header>
 
       <section

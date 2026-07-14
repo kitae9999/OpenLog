@@ -1254,6 +1254,7 @@ export function getPreviewReplayWorkspaceData(
     workspaceId: "preview-demo",
     workspaceName: "openlog",
     repositoryFullName: "kitae9999/openlog",
+    projects: [],
     tasks: snapshot.tasks,
     logs: snapshot.logs,
     todos: snapshot.todos,

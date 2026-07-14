@@ -20,6 +20,7 @@ import type {
   WorkspaceCrossLinkItem,
   WorkspaceLogLinkItem,
   WorkspaceMemoryItem,
+  WorkspaceProjectItem,
   WorkspaceTaskLinkItem,
   WorkspaceUiData,
 } from "@/entities/workspace/model/workspaceTypes";
@@ -30,7 +31,17 @@ type WorkspaceResponse = {
   id: number;
   slug: string;
   name: string;
-  repoFullName: string | null;
+  projects: WorkspaceProjectResponse[];
+};
+
+type WorkspaceProjectResponse = {
+  id: number;
+  workspaceId: number;
+  displayName: string;
+  repositoryFullName: string | null;
+  captureMode: "AUTO" | "ASK" | "EXPLICIT";
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type WorkspacePageData = {
@@ -396,7 +407,8 @@ async function fetchWorkspaceNavigationData(
   return {
     workspaceId: String(selected.id),
     workspaceName: selected.name || selected.slug,
-    repositoryFullName: selected.repoFullName,
+    repositoryFullName: singleRepositoryFullName(selected.projects),
+    projects: selected.projects.map(mapWorkspaceProject),
     tasks: tasks.map(mapTask),
     logs: logs.map(mapLog),
     outputs: [],
@@ -483,7 +495,7 @@ function mapManagedWorkspace(workspace: WorkspaceResponse): ManagedWorkspace {
     id: String(workspace.id),
     slug: workspace.slug,
     name: workspace.name || workspace.slug,
-    repoFullName: workspace.repoFullName,
+    projects: workspace.projects.map(mapWorkspaceProject),
   };
 }
 
@@ -607,7 +619,8 @@ function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
   return {
     workspaceId: String(snapshot.workspace.id),
     workspaceName: snapshot.workspace.name || snapshot.workspace.slug,
-    repositoryFullName: snapshot.workspace.repoFullName,
+    repositoryFullName: singleRepositoryFullName(snapshot.workspace.projects),
+    projects: snapshot.workspace.projects.map(mapWorkspaceProject),
     tasks,
     logs,
     outputs,
@@ -637,6 +650,24 @@ function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
       ? mapWorkingBrief(snapshot.workingBrief)
       : null,
   };
+}
+
+function mapWorkspaceProject(project: WorkspaceProjectResponse): WorkspaceProjectItem {
+  return {
+    id: String(project.id),
+    workspaceId: String(project.workspaceId),
+    displayName: project.displayName,
+    repositoryFullName: project.repositoryFullName,
+    captureMode: project.captureMode,
+    createdAt: project.createdAt,
+    updatedAt: project.updatedAt,
+  };
+}
+
+function singleRepositoryFullName(
+  projects: WorkspaceProjectResponse[],
+): string | null {
+  return projects.length === 1 ? projects[0]?.repositoryFullName ?? null : null;
 }
 
 function mapWorkingBrief(brief: WorkingBriefResponse) {

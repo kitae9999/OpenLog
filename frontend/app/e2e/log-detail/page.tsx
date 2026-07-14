@@ -16,6 +16,7 @@ const log =
 const workspaceData: WorkspaceUiData = {
   workspaceId: "e2e-workspace",
   workspaceName: "E2E Workspace",
+  projects: [],
   repositoryFullName: null,
   tasks: workspaceWorkItems,
   logs: workspaceLogs,

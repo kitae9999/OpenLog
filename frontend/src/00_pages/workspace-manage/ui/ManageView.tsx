@@ -88,9 +88,6 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [name, setName] = useState(workspace.name);
-  const [repoFullName, setRepoFullName] = useState(
-    workspace.repoFullName ?? "",
-  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -166,7 +163,6 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
     }
 
     setName(workspace.name);
-    setRepoFullName(workspace.repoFullName ?? "");
     setErrorMessage(null);
     setIsEditing(false);
   }
@@ -185,7 +181,6 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
     const result = await updateWorkspace({
       workspaceId: workspace.id,
       name: trimmedName,
-      repoFullName,
     });
     setIsSaving(false);
 
@@ -204,7 +199,7 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
       <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg px-2.5 py-3 transition hover:bg-zinc-50">
       <div className="min-w-0 flex-1">
         {isEditing ? (
-          <div className="grid max-w-xl gap-3 sm:grid-cols-2">
+          <div className="grid max-w-sm gap-3">
             <label className="grid gap-1.5 text-[12px] font-medium text-zinc-500">
               Name
               <input
@@ -214,16 +209,6 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
                 className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-[13px] font-normal text-zinc-950 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-50"
               />
             </label>
-            <label className="grid gap-1.5 text-[12px] font-medium text-zinc-500">
-              Repository
-              <input
-                value={repoFullName}
-                onChange={(event) => setRepoFullName(event.target.value)}
-                disabled={isSaving}
-                placeholder="owner/repository"
-                className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-[13px] font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-50"
-              />
-            </label>
           </div>
         ) : (
           <>
@@ -231,7 +216,7 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
               {workspace.name}
             </p>
             <p className="mt-1 truncate text-[12.5px] text-zinc-500">
-              {workspace.repoFullName ?? workspace.slug}
+              {workspaceProjectSummary(workspace)}
             </p>
           </>
         )}
@@ -243,6 +228,14 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-3 pt-0.5">
+        {!isEditing ? (
+          <Link
+            href={`/settings/workspaces/${workspace.id}/agent`}
+            className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          >
+            Agent Guide
+          </Link>
+        ) : null}
         {isEditing ? (
           <>
             <button
@@ -356,4 +349,15 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
       </div>
     </li>
   );
+}
+
+function workspaceProjectSummary(workspace: ManagedWorkspace) {
+  if (workspace.projects.length === 0) {
+    return `${workspace.slug} · no connected projects`;
+  }
+  if (workspace.projects.length > 1) {
+    return `${workspace.projects.length} connected projects`;
+  }
+  const project = workspace.projects[0]!;
+  return project.repositoryFullName ?? `${project.displayName} · local Git`;
 }

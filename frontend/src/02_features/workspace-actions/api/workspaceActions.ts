@@ -50,14 +50,12 @@ export async function createWorkspace(input: {
 export async function updateWorkspace(input: {
   workspaceId: string;
   name: string;
-  repoFullName?: string | null;
 }): Promise<WorkspaceActionResult> {
   return mutateWorkspace(async (cookie) => {
     await requestJson(`/workspaces/${input.workspaceId}`, cookie, {
       method: "PUT",
       body: JSON.stringify({
         name: input.name,
-        repoFullName: input.repoFullName?.trim() || null,
       }),
     });
 
