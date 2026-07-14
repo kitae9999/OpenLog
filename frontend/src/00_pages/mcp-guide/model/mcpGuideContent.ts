@@ -1,80 +1,178 @@
 export type McpGuideLocale = "en" | "ko";
 
-export const MCP_GUIDE_LOCALES: Array<{ key: McpGuideLocale; label: string }> = [
-  { key: "en", label: "ENG" },
-  { key: "ko", label: "KOR" },
-];
+export const MCP_GUIDE_LOCALES: Array<{ key: McpGuideLocale; label: string }> =
+  [
+    { key: "en", label: "ENG" },
+    { key: "ko", label: "KOR" },
+  ];
 
 export const mcpGuideCopyButtonLabels = {
   en: { copy: "Copy", copied: "Copied", retry: "Retry", aria: "Copy code" },
   ko: { copy: "복사", copied: "복사됨", retry: "다시", aria: "코드 복사" },
 } as const;
 
-export const mcpGuideTools = [
+export const mcpGuidePermissionProfiles = [
   {
-    name: "get_auth_status",
+    name: "read-only",
     description: {
-      en: "Check whether the local CLI is authenticated.",
-      ko: "로컬 CLI 로그인 상태를 확인합니다.",
+      en: "Authentication status and all read tools.",
+      ko: "인증 상태와 모든 조회 tool을 허용합니다.",
     },
   },
   {
-    name: "get_me",
+    name: "safe-write",
     description: {
-      en: "Return the currently authenticated OpenLog user.",
-      ko: "현재 로그인한 OpenLog 사용자 정보를 반환합니다.",
+      en: "Read, create, update, link, upload, and confirmed publish tools. This is the default.",
+      ko: "조회, 생성, 수정, 연결, 이미지 업로드, 확인 후 발행 tool을 허용합니다. 기본 프로필입니다.",
     },
   },
   {
-    name: "list_my_notifications",
+    name: "full",
     description: {
-      en: "Return notifications for the authenticated user.",
-      ko: "로그인한 사용자의 알림 목록을 반환합니다.",
-    },
-  },
-  {
-    name: "list_my_posts",
-    description: {
-      en: "Return posts authored by the authenticated user.",
-      ko: "내가 작성한 글 목록을 반환합니다.",
-    },
-  },
-  {
-    name: "list_my_liked_posts",
-    description: {
-      en: "Return posts liked by the authenticated user.",
-      ko: "내가 좋아요한 글 목록을 반환합니다.",
-    },
-  },
-  {
-    name: "get_post_detail",
-    description: {
-      en: "Return a public post by author username and slug.",
-      ko: "작성자 username과 slug로 공개 글 상세를 조회합니다.",
-    },
-  },
-  {
-    name: "upload_post_image",
-    description: {
-      en: "Upload a local image as WebP and return markdown for output content.",
-      ko: "로컬 이미지를 WebP로 변환·업로드하고 output 본문용 markdown을 반환합니다.",
-    },
-  },
-  {
-    name: "create_output",
-    description: {
-      en: "Create an output draft from logs, tasks, or direct content.",
-      ko: "log, task 또는 직접 작성한 내용으로 output 초안을 만듭니다.",
-    },
-  },
-  {
-    name: "publish_output",
-    description: {
-      en: "Publish a post_draft output as a public post after review.",
-      ko: "검토한 post_draft output을 공개 post로 발행합니다.",
+      en: "Everything in safe-write, plus immediate single-item deletes and working-brief clear.",
+      ko: "safe-write 기능에 개별 즉시 삭제와 working brief 초기화를 추가합니다.",
     },
   },
 ] as const;
+
+export const mcpGuideTools = [
+  {
+    area: { en: "Permissions and account", ko: "권한과 계정" },
+    tools: ["get_mcp_permissions", "get_auth_status", "get_me"],
+    access: "readOnly",
+  },
+  {
+    area: { en: "Personal activity", ko: "내 활동" },
+    tools: ["list_my_notifications", "list_my_posts", "list_my_liked_posts"],
+    access: "readOnly",
+  },
+  {
+    area: { en: "Public post lookup", ko: "공개 게시글 조회" },
+    tools: ["get_post_detail"],
+    access: "readOnly",
+  },
+  {
+    area: { en: "Public post publishing", ko: "공개 게시글 발행" },
+    tools: ["upload_post_image", "publish_post"],
+    access: "safeWrite",
+  },
+  {
+    area: { en: "Workspace and activity", ko: "워크스페이스와 활동" },
+    tools: [
+      "list_workspaces",
+      "get_workspace",
+      "get_working_brief",
+      "get_workspace_activity",
+      "get_workspace_activity_day_logs",
+    ],
+    access: "readOnly",
+  },
+  {
+    area: { en: "Working brief update", ko: "Working brief 수정" },
+    tools: ["push_working_brief"],
+    access: "safeWrite",
+  },
+  {
+    area: { en: "Tasks — read", ko: "Task 조회" },
+    tools: ["list_workspace_tasks", "get_workspace_task"],
+    access: "readOnly",
+  },
+  {
+    area: { en: "Tasks — write", ko: "Task 생성·수정" },
+    tools: ["create_workspace_task", "update_workspace_task"],
+    access: "safeWrite",
+  },
+  {
+    area: { en: "Logs — read", ko: "Log 조회" },
+    tools: ["list_workspace_logs", "get_workspace_log"],
+    access: "readOnly",
+  },
+  {
+    area: { en: "Logs — write", ko: "Log 생성·수정" },
+    tools: ["create_workspace_log", "update_workspace_log"],
+    access: "safeWrite",
+  },
+  {
+    area: { en: "Todos — read", ko: "Todo 조회" },
+    tools: ["list_workspace_todos"],
+    access: "readOnly",
+  },
+  {
+    area: { en: "Todos — write", ko: "Todo 생성·완료" },
+    tools: ["create_workspace_todo", "set_workspace_todo_done"],
+    access: "safeWrite",
+  },
+  {
+    area: { en: "Memories — read", ko: "Memory 조회" },
+    tools: ["list_workspace_memories", "get_workspace_memory"],
+    access: "readOnly",
+  },
+  {
+    area: { en: "Memories — write", ko: "Memory 생성·수정" },
+    tools: [
+      "create_workspace_memory",
+      "create_workspace_memory_from_log",
+      "update_workspace_memory",
+    ],
+    access: "safeWrite",
+  },
+  {
+    area: { en: "Outputs — read", ko: "Output 조회" },
+    tools: ["list_workspace_outputs", "get_workspace_output"],
+    access: "readOnly",
+  },
+  {
+    area: { en: "Outputs — write", ko: "Output 생성·수정·발행" },
+    tools: [
+      "create_workspace_output",
+      "update_workspace_output",
+      "publish_workspace_output",
+    ],
+    access: "safeWrite",
+  },
+  {
+    area: { en: "Graph links — read", ko: "Graph link 조회" },
+    tools: ["list_workspace_links"],
+    access: "readOnly",
+  },
+  {
+    area: { en: "Graph links — write", ko: "Graph link 생성" },
+    tools: [
+      "create_workspace_task_link",
+      "create_workspace_log_link",
+      "create_workspace_cross_link",
+    ],
+    access: "safeWrite",
+  },
+  {
+    area: { en: "Single-item deletes", ko: "개별 삭제" },
+    tools: [
+      "clear_working_brief",
+      "delete_workspace_task",
+      "delete_workspace_log",
+      "delete_workspace_todo",
+      "delete_workspace_memory",
+      "delete_workspace_output",
+      "delete_workspace_task_link",
+      "delete_workspace_log_link",
+      "delete_workspace_cross_link",
+    ],
+    access: "full",
+  },
+] as const;
+
+export const mcpGuideAccessLabels = {
+  en: {
+    readOnly: "read-only+",
+    safeWrite: "safe-write+",
+    full: "full only",
+  },
+  ko: {
+    readOnly: "read-only 이상",
+    safeWrite: "safe-write 이상",
+    full: "full 전용",
+  },
+} as const;
 
 export const mcpGuideCopy = {
   en: {
@@ -99,25 +197,36 @@ export const mcpGuideCopy = {
         title: "3. Start the server (manual)",
         body: "Most clients launch the server automatically. To run it yourself for debugging:",
         footnote:
-          "The terminal is reserved for MCP protocol traffic once the server is running.",
+          "The terminal is reserved for MCP protocol traffic once the server is running. Without an override, it connects to https://api.openlog.kr/api.",
+      },
+      permissions: {
+        title: "4. Choose a local permission profile",
+        body: "The profile controls which tools the local MCP server exposes. Check or change it with:",
+        colProfile: "Profile",
+        colCapability: "Capabilities",
+        footnote:
+          "Changes apply after the MCP server restarts. This is a local agent safety policy; OpenLog API authentication and ownership checks still apply.",
       },
       tools: {
-        title: "4. Available tools",
-        colTool: "Tool",
-        colDescription: "Description",
-        footnoteBefore: "returns a preview first. Pass",
-        footnoteAfter: "to publish after review.",
+        title: "5. Available tools",
+        colArea: "Area",
+        colTools: "Tools",
+        colAccess: "Available from",
+        footnote:
+          "Publishing tools return a preview first. Pass confirm: true after review, or use skipConfirmation: true only when the user explicitly requested publishing without another confirmation.",
       },
       local: {
-        title: "5. Local development",
+        title: "6. Local development",
         body: "Point the CLI at a local API and web origin:",
         envApi: "API base URL the CLI and MCP call.",
-        envWeb: "Web origin used in publish_output response URLs.",
+        envWeb: "Web origin used in published-post response URLs.",
         envAuthBefore: "Optional path instead of default",
         envAuthAfter: ".",
+        envMcpBefore: "Optional permission config path instead of default",
+        envMcpAfter: ".",
       },
       troubleshooting: {
-        title: "6. Troubleshooting",
+        title: "7. Troubleshooting",
         items: [
           {
             label: "Not authenticated",
@@ -130,6 +239,10 @@ export const mcpGuideCopy = {
           {
             label: "Onboarding incomplete",
             body: "finish profile setup before listing or publishing posts.",
+          },
+          {
+            label: "Invalid permission config",
+            body: "run `openlog mcp permissions reset`, then restart the MCP server.",
           },
         ],
       },
@@ -157,25 +270,37 @@ export const mcpGuideCopy = {
       manual: {
         title: "3. server 수동 실행",
         body: "대부분의 client가 server를 자동으로 띄웁니다. 디버깅용으로 직접 실행하려면:",
-        footnote: "server가 실행 중이면 해당 터미널은 MCP 프로토콜 전용입니다.",
+        footnote:
+          "server가 실행 중이면 해당 터미널은 MCP 프로토콜 전용입니다. 별도 설정이 없으면 https://api.openlog.kr/api에 연결합니다.",
+      },
+      permissions: {
+        title: "4. 로컬 권한 프로필 선택",
+        body: "로컬 MCP server가 노출할 tool 범위를 프로필로 설정합니다. 현재 설정을 확인하거나 변경하려면:",
+        colProfile: "프로필",
+        colCapability: "허용 기능",
+        footnote:
+          "변경 사항은 MCP server를 재시작한 뒤 반영됩니다. 이 설정은 로컬 에이전트 안전 정책이며, OpenLog API의 인증과 소유권 검사는 그대로 적용됩니다.",
       },
       tools: {
-        title: "4. 사용 가능한 tool",
-        colTool: "Tool",
-        colDescription: "설명",
-        footnoteBefore: "는 먼저 미리보기를 반환합니다. 검토 후",
-        footnoteAfter: "로 발행하세요.",
+        title: "5. 사용 가능한 tool",
+        colArea: "영역",
+        colTools: "Tool",
+        colAccess: "사용 가능 프로필",
+        footnote:
+          "발행 tool은 먼저 미리보기를 반환합니다. 검토 후 confirm: true를 전달하세요. 사용자가 추가 확인 없이 발행하라고 명시한 경우에만 skipConfirmation: true를 사용할 수 있습니다.",
       },
       local: {
-        title: "5. 로컬 개발",
+        title: "6. 로컬 개발",
         body: "로컬 API와 web origin을 지정합니다:",
         envApi: "CLI와 MCP가 호출하는 API base URL.",
-        envWeb: "publish_output 응답 URL에 쓰는 web origin.",
+        envWeb: "게시글 발행 응답 URL에 쓰는 web origin.",
         envAuthBefore: "기본",
         envAuthAfter: " 대신 쓸 인증 파일 경로(선택).",
+        envMcpBefore: "기본",
+        envMcpAfter: " 대신 쓸 권한 설정 파일 경로(선택).",
       },
       troubleshooting: {
-        title: "6. 문제 해결",
+        title: "7. 문제 해결",
         items: [
           {
             label: "인증되지 않음",
@@ -188,6 +313,10 @@ export const mcpGuideCopy = {
           {
             label: "온보딩 미완료",
             body: "글 목록 조회·발행 전에 프로필 설정을 마치세요.",
+          },
+          {
+            label: "잘못된 권한 설정",
+            body: "`openlog mcp permissions reset`을 실행한 뒤 MCP server를 재시작하세요.",
           },
         ],
       },
@@ -210,6 +339,9 @@ export const mcpGuideCommands = {
   mcp: "npx -y @openloghq/cli mcp",
   installCodex: "openlog mcp install codex",
   installClaude: "openlog mcp install claude-code",
+  permissions: `openlog mcp permissions
+openlog mcp permissions set read-only|safe-write|full
+openlog mcp permissions reset`,
   localDev: `OPENLOG_API_BASE_URL=http://localhost:8080/api \\
 OPENLOG_WEB_BASE_URL=http://localhost:3030 \\
 npx -y @openloghq/cli mcp`,
@@ -220,5 +352,7 @@ export function parseMcpGuideLocale(value: string | null): McpGuideLocale {
 }
 
 export function buildMcpGuideHref(locale: McpGuideLocale) {
-  return locale === "en" ? "/settings/mcp-guide" : "/settings/mcp-guide?lang=ko";
+  return locale === "en"
+    ? "/settings/mcp-guide"
+    : "/settings/mcp-guide?lang=ko";
 }
