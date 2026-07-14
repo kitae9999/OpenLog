@@ -6,6 +6,7 @@ import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes"
 const fixture: WorkspaceUiData = {
   workspaceId: "demo-workspace",
   workspaceName: "openlog",
+  projects: [],
   repositoryFullName: "kitae9999/openlog",
   tasks: [
     {

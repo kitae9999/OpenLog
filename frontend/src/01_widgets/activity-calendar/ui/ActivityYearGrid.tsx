@@ -63,7 +63,7 @@ export function ActivityYearGrid({
           </div>
           <div
             data-activity-scroll
-            className="min-w-0 flex-1 overflow-x-auto overflow-y-visible pb-8 pt-14"
+            className="openlog-scroll min-w-0 flex-1 overflow-x-auto overflow-y-visible pb-8 pt-14"
           >
             <div data-activity-months className="flex w-max">
               {months.map((month, monthIndex) => (

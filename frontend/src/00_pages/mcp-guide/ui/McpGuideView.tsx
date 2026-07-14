@@ -77,6 +77,14 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
           </p>
         </GuideSection>
 
+        <GuideSection title={copy.sections.project.title}>
+          <p>{copy.sections.project.body}</p>
+          <CodeBlock locale={locale}>{mcpGuideCommands.init}</CodeBlock>
+          <p className="text-[12.5px] text-zinc-500">
+            {copy.sections.project.footnote}
+          </p>
+        </GuideSection>
+
         <GuideSection title={copy.sections.register.title}>
           <p>{copy.sections.register.body}</p>
           <CodeBlock locale={locale}>{mcpClientConfig}</CodeBlock>
@@ -385,7 +393,7 @@ function CodeBlock({
     <div className="flex overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
       <pre
         className={cn(
-          "min-w-0 flex-1 overflow-x-auto px-3.5 py-3",
+          "openlog-scroll min-w-0 flex-1 overflow-x-auto px-3.5 py-3",
           "font-mono text-[12px] leading-[1.55] text-zinc-800",
         )}
       >

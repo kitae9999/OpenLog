@@ -533,6 +533,7 @@ export function HomeSidebar({
   workspaceNav = "dashboard",
   logsFilter = "all",
   settingsNav,
+  agentWorkspaceId,
   workspaces = [],
   workspaceData,
 }: {
@@ -550,7 +551,8 @@ export function HomeSidebar({
     | "memory"
     | "activity";
   logsFilter?: LogListTypeFilter;
-  settingsNav?: "mcp-guide" | "manage";
+  settingsNav?: "mcp-guide" | "manage" | "agent";
+  agentWorkspaceId?: string;
   workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
 }) {
@@ -572,7 +574,7 @@ export function HomeSidebar({
         isOpen ? "translate-x-0" : "-translate-x-full",
       )}
     >
-      <nav className="flex h-full flex-col overflow-y-auto px-3 py-4">
+      <nav className="openlog-scroll flex h-full flex-col overflow-y-auto px-3 py-4">
         <WorkspaceSwitcher
           isLoggedIn={isLoggedIn}
           workspaces={workspaces}
@@ -675,6 +677,15 @@ export function HomeSidebar({
         </SidebarSection>
 
         <SidebarSection label="SETTINGS">
+          {isLoggedIn && agentWorkspaceId ? (
+            <SidebarLink
+              href={`/settings/workspaces/${agentWorkspaceId}/agent`}
+              label="Agent Guide"
+              active={settingsNav === "agent"}
+              icon={<IconMcpGuide className="size-[15px]" />}
+              onNavigate={onNavigate}
+            />
+          ) : null}
           <SidebarLink
             href={getMcpGuideHref()}
             label="MCP Guide"

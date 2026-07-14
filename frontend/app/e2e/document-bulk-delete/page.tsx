@@ -8,6 +8,7 @@ import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes"
 const workspaceData: WorkspaceUiData = {
   workspaceId: "100",
   workspaceName: "Bulk delete fixture",
+  projects: [],
   repositoryFullName: null,
   tasks: [
     {

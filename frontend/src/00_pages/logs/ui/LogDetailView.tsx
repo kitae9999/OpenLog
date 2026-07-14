@@ -689,7 +689,7 @@ function TaskSwitcher({
           >
             Unassigned
           </button>
-          <div className="max-h-56 overflow-y-auto border-t border-zinc-100">
+          <div className="openlog-scroll max-h-56 overflow-y-auto border-t border-zinc-100">
             {openTasks.length === 0 ? (
               <p className="px-3 py-3 text-[12px] text-zinc-400">
                 No open tasks.

@@ -145,8 +145,8 @@ export async function runSetup(
 
     write("");
     write(success("Setup complete."));
-    write(dim("Next: open your agent and confirm OpenLog under /mcp."));
-    write(dim("Commands: openlog whoami · openlog mcp permissions · openlog help"));
+    write(dim("Next: cd <project>"));
+    write(dim("Then: npx @openloghq/cli@latest init"));
   } finally {
     await io.close?.();
   }

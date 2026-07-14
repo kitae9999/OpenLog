@@ -4,6 +4,7 @@ import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes"
 const workspaceData: WorkspaceUiData = {
   workspaceId: "e2e-workspace",
   workspaceName: "E2E Workspace",
+  projects: [],
   repositoryFullName: null,
   tasks: [
     {

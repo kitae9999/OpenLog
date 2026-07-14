@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { OpenLogApiClient } from "./api-client.js";
+import { ApiError, OpenLogApiClient } from "./api-client.js";
 import { readAuthFile, type AuthFile } from "./auth-store.js";
 import { createAuthenticatedApiClient } from "./authenticated-client.js";
 import { getApiBaseUrl, getWebBaseUrl } from "./config.js";
@@ -17,6 +17,13 @@ import {
 } from "./mcp-toolkit.js";
 import { registerWorkspaceTools } from "./mcp-workspace-tools.js";
 import { uploadPostImage } from "./post-image-upload.js";
+import { createProjectGit, type ProjectGit } from "./project-git.js";
+
+export const OPENLOG_MCP_INSTRUCTIONS = `Before substantive work on a project, call start_openlog_session with that project's path.
+Use the returned workspace Agent Guide and Capture Mode when deciding whether to create or update OpenLog Tasks, Logs, and Outputs.
+AUTO allows proactive draft creation or updates when the Guide says the work is worth recording. ASK requires user confirmation before those writes. EXPLICIT permits those writes only after an explicit user request.
+Do not guess a workspace or connect an uninitialized project. If start_openlog_session returns not_initialized or stale, show its init command to the user.
+Publishing and deletion keep their own confirmation requirements regardless of Capture Mode. The active MCP permission profile always takes precedence.`;
 
 type CreateOpenLogMcpServerOptions = {
   permissions?: ResolvedMcpPermissions;
@@ -25,6 +32,7 @@ type CreateOpenLogMcpServerOptions = {
   uploadImage?: typeof uploadPostImage;
   apiBaseUrl?: string;
   webBaseUrl?: string;
+  projectGit?: ProjectGit;
 };
 
 export type CreatedOpenLogMcpServer = {
@@ -44,10 +52,14 @@ export async function createOpenLogMcpServer(
   const uploadImage = options.uploadImage ?? uploadPostImage;
   const apiBaseUrl = options.apiBaseUrl ?? getApiBaseUrl();
   const webBaseUrl = options.webBaseUrl ?? getWebBaseUrl();
-  const server = new McpServer({
-    name: "openlog",
-    version: "1.0.0",
-  });
+  const projectGit = options.projectGit ?? createProjectGit();
+  const server = new McpServer(
+    {
+      name: "openlog",
+      version: "1.0.0",
+    },
+    { instructions: OPENLOG_MCP_INSTRUCTIONS },
+  );
   const registry = new McpToolRegistry(server, permissions, createClient);
 
   registry.registerLocal(
@@ -114,6 +126,56 @@ export async function createOpenLogMcpServer(
       annotations: READ_TOOL_ANNOTATIONS,
     },
     (client) => client.get("/auth/me"),
+  );
+
+  registry.registerAuthenticated(
+    "start_openlog_session",
+    "read",
+    {
+      title: "Start OpenLog Project Session",
+      description:
+        "Resolve an explicitly supplied Git project path through its local openlog.projectId and return the latest workspace Agent Guide and Capture Mode. Call this before substantive project work. It never guesses or creates a workspace binding.",
+      inputSchema: {
+        projectPath: z.string().min(1),
+      },
+      annotations: READ_TOOL_ANNOTATIONS,
+    },
+    async (client, { projectPath }) => {
+      let project;
+      try {
+        project = await projectGit.inspect(projectPath);
+      } catch (error) {
+        return sessionInitRequired(
+          projectPath,
+          "not_git_repository",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+
+      if (project.projectId == null) {
+        return sessionInitRequired(project.root, "not_initialized");
+      }
+
+      try {
+        const context = await client.get(
+          `/workspace-projects/${project.projectId}/agent-context`,
+        );
+        return {
+          status: "ready",
+          projectRoot: project.root,
+          ...asRecord(context),
+        };
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          return sessionInitRequired(
+            project.root,
+            "stale",
+            `OpenLog project ID ${project.projectId} no longer resolves.`,
+          );
+        }
+        throw error;
+      }
+    },
   );
 
   registry.registerAuthenticated(
@@ -316,6 +378,29 @@ export async function runMcpServer(): Promise<void> {
   const created = await createOpenLogMcpServer();
   printMcpStartupHint(created.permissions, created.toolNames);
   await created.server.connect(new StdioServerTransport());
+}
+
+function sessionInitRequired(
+  projectPath: string,
+  status: "not_git_repository" | "not_initialized" | "stale",
+  detail?: string,
+) {
+  return {
+    status,
+    projectPath,
+    ...(detail ? { detail } : {}),
+    initCommand: `cd ${quoteShellArgument(projectPath)} && npx @openloghq/cli@latest init`,
+  };
+}
+
+function quoteShellArgument(value: string): string {
+  return `'${value.replaceAll("'", `'"'"'`)}'`;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : { context: value };
 }
 
 type PostWriteResponse = {

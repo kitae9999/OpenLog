@@ -6,10 +6,12 @@ import {
   createContext,
   useContext,
   useEffect,
+  useId,
   useState,
   useTransition,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/shared/lib/cn";
 import { todayIso } from "@/shared/lib/todayIso";
 import { GitHubIcon } from "@/shared/ui/icons";
@@ -17,6 +19,7 @@ import { ActivityYearGrid } from "@/widgets/activity-calendar/ui/ActivityYearGri
 import {
   getLogHref,
   getLogsHref,
+  getMcpGuideHref,
   getMemoryHref,
   getNewTaskHref,
   getTaskExcerpt,
@@ -93,6 +96,174 @@ const EXPLORE_TABS: { id: ExploreWidget; label: string }[] = [
   { id: "tasks", label: "Tasks" },
 ];
 
+const AGENT_GUIDE_TIP_STORAGE_KEY = "openlog.dismiss-agent-guide-tip";
+const MCP_SETUP_PROMPT_STORAGE_KEY = "openlog.dismiss-mcp-setup-prompt";
+
+function AgentGuideTipLink({
+  workspaceId,
+  blocked,
+}: {
+  workspaceId: string;
+  blocked: boolean;
+}) {
+  const [showTip, setShowTip] = useState(false);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      if (blocked) {
+        setShowTip(false);
+        return;
+      }
+      try {
+        if (window.localStorage.getItem(AGENT_GUIDE_TIP_STORAGE_KEY) !== "1") {
+          setShowTip(true);
+        }
+      } catch {
+        setShowTip(true);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [blocked]);
+
+  const dismissTip = () => {
+    try {
+      window.localStorage.setItem(AGENT_GUIDE_TIP_STORAGE_KEY, "1");
+    } catch {
+      // Ignore quota / private-mode failures; tip still closes for this session.
+    }
+    setShowTip(false);
+  };
+
+  return (
+    <div className="relative">
+      <Link
+        href={`/settings/workspaces/${workspaceId}/agent`}
+        className="text-[12.5px] font-semibold text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+      >
+        Agent Guide →
+      </Link>
+      {showTip ? (
+        <div
+          role="note"
+          className="absolute top-full right-0 z-20 mt-2.5 w-max max-w-[min(280px,calc(100vw-2rem))] rounded-lg border border-zinc-200 bg-white px-3 py-2.5 shadow-[0_10px_28px_-18px_rgba(24,24,27,0.55)]"
+        >
+          <span
+            aria-hidden="true"
+            className="absolute -top-[5px] right-5 size-2.5 rotate-45 border-t border-l border-zinc-200 bg-white"
+          />
+          <p className="relative text-[12px] leading-4 text-zinc-600">
+            Tell agents what to capture in this workspace.
+          </p>
+          <button
+            type="button"
+            onClick={dismissTip}
+            className="relative mt-1.5 text-[11px] font-medium text-zinc-400 underline-offset-2 transition hover:text-zinc-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          >
+            Do not show again
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function McpSetupPrompt({
+  enabled,
+  hasWorkspaceActivity,
+  onOpenChange,
+}: {
+  enabled: boolean;
+  hasWorkspaceActivity: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      if (!enabled || hasWorkspaceActivity) {
+        setOpen(false);
+        onOpenChange(false);
+        return;
+      }
+      let shouldOpen = false;
+      try {
+        shouldOpen =
+          window.localStorage.getItem(MCP_SETUP_PROMPT_STORAGE_KEY) !== "1";
+      } catch {
+        shouldOpen = true;
+      }
+      setOpen(shouldOpen);
+      onOpenChange(shouldOpen);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [enabled, hasWorkspaceActivity, onOpenChange]);
+
+  const dismiss = () => {
+    try {
+      window.localStorage.setItem(MCP_SETUP_PROMPT_STORAGE_KEY, "1");
+    } catch {
+      // Ignore quota / private-mode failures; prompt still closes for this session.
+    }
+    setOpen(false);
+    onOpenChange(false);
+  };
+
+  if (!open) {
+    return null;
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[80] grid place-items-center p-4">
+      <button
+        type="button"
+        aria-label="Dismiss MCP setup prompt"
+        onClick={dismiss}
+        className="absolute inset-0 bg-zinc-950/12 backdrop-blur-[10px] backdrop-saturate-150"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        className="relative z-10 w-full max-w-[380px] rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-[0_18px_50px_rgba(24,24,27,0.12)]"
+      >
+        <h2
+          id={titleId}
+          className="text-[16px] font-semibold tracking-[-0.01em] text-zinc-950"
+        >
+          Have you connected MCP?
+        </h2>
+        <p
+          id={descriptionId}
+          className="mt-2 text-[13.5px] leading-6 text-zinc-500"
+        >
+          Agents need MCP to create Tasks, Logs, and Outputs. Open the guide to
+          install and configure it.
+        </p>
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={dismiss}
+            className="inline-flex h-9 items-center rounded-xl px-3.5 text-[13px] font-semibold text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          >
+            Skip
+          </button>
+          <Link
+            href={getMcpGuideHref()}
+            onClick={dismiss}
+            className="inline-flex h-9 items-center rounded-xl bg-zinc-950 px-3.5 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          >
+            Open MCP Guide
+          </Link>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function WorkspaceDashboardView({
   workspaceData,
   activity,
@@ -125,6 +296,7 @@ export function WorkspaceDashboardView({
     }
     return "activity";
   });
+  const [mcpPromptOpen, setMcpPromptOpen] = useState(false);
   const tasks = resolvedWorkspaceData?.tasks ?? [];
   const logs = resolvedWorkspaceData?.logs ?? [];
   const memories = resolvedWorkspaceData?.memories ?? [];
@@ -172,21 +344,52 @@ export function WorkspaceDashboardView({
             {resolvedWorkspaceData?.workspaceName ?? "Workspace"}
           </h1>
         </div>
-        {resolvedWorkspaceData?.repositoryFullName ? (
-          <a
-            href={`https://github.com/${resolvedWorkspaceData.repositoryFullName}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex max-w-full items-center gap-2 rounded-md py-1 text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-            title={`Open ${resolvedWorkspaceData.repositoryFullName} on GitHub`}
-          >
-            <GitHubIcon className="size-4 shrink-0 text-zinc-700 transition group-hover:text-zinc-950" />
-            <span className="truncate font-mono text-[12.5px] underline-offset-2 group-hover:underline">
-              {resolvedWorkspaceData.repositoryFullName}
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-8 gap-y-2">
+          {resolvedWorkspaceData?.repositoryFullName ? (
+            <a
+              href={`https://github.com/${resolvedWorkspaceData.repositoryFullName}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex max-w-full items-center gap-2 rounded-md py-1 text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              title={`Open ${resolvedWorkspaceData.repositoryFullName} on GitHub`}
+            >
+              <GitHubIcon className="size-4 shrink-0 text-zinc-700 transition group-hover:text-zinc-950" />
+              <span className="truncate font-mono text-[12.5px] underline-offset-2 group-hover:underline">
+                {resolvedWorkspaceData.repositoryFullName}
+              </span>
+            </a>
+          ) : resolvedWorkspaceData && resolvedWorkspaceData.projects.length > 1 ? (
+            <Link
+              href={`/settings/workspaces/${resolvedWorkspaceData.workspaceId}/agent`}
+              className="text-[12.5px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              {resolvedWorkspaceData.projects.length} projects
+            </Link>
+          ) : null}
+          {!isPreview &&
+          resolvedWorkspaceData &&
+          (resolvedWorkspaceData.repositoryFullName ||
+            resolvedWorkspaceData.projects.length > 1) ? (
+            <span aria-hidden="true" className="text-[12.5px] text-zinc-300">
+              |
             </span>
-          </a>
-        ) : null}
+          ) : null}
+          {!isPreview && resolvedWorkspaceData ? (
+            <AgentGuideTipLink
+              workspaceId={resolvedWorkspaceData.workspaceId}
+              blocked={mcpPromptOpen}
+            />
+          ) : null}
+        </div>
       </header>
+
+      {!isPreview ? (
+        <McpSetupPrompt
+          enabled
+          hasWorkspaceActivity={tasks.length > 0 || logs.length > 0}
+          onOpenChange={setMcpPromptOpen}
+        />
+      ) : null}
 
       <section
         data-preview-anchor={isPreview ? "task" : undefined}

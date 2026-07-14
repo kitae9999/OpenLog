@@ -171,6 +171,7 @@ export function getPreviewWorkspaceData(): WorkspaceUiData {
     workspaceId: "preview-demo",
     workspaceName: "openlog",
     repositoryFullName: previewDemoRepository.fullName,
+    projects: [],
     tasks: previewTasks,
     logs: previewLogs,
     todos: previewTodos,

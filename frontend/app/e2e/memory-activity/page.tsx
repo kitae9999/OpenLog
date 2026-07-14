@@ -5,6 +5,7 @@ import type { WorkspaceActivity, WorkspaceUiData } from "@/entities/workspace/mo
 const workspaceData: WorkspaceUiData = {
   workspaceId: "e2e-workspace",
   workspaceName: "E2E Workspace",
+  projects: [],
   repositoryFullName: null,
   tasks: [{ id: "task-1", title: "Ship memory", description: null, status: "doing", apiStatus: "DOING", body: "" }],
   logs: [],

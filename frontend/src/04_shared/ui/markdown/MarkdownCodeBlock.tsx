@@ -76,7 +76,7 @@ export function MarkdownCodeBlock({
 
       <pre
         className={cn(
-          "overflow-x-auto px-4 pb-3.5 pt-10 font-mono",
+          "openlog-scroll overflow-x-auto px-4 pb-3.5 pt-10 font-mono",
           variant === "default"
             ? "text-[12.5px] leading-[1.65]"
             : "text-xs leading-5",

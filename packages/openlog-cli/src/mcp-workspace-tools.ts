@@ -238,7 +238,8 @@ function registerTaskTools(registry: McpToolRegistry): void {
     "write",
     {
       title: "Create OpenLog Workspace Task",
-      description: "Create a task in an existing workspace.",
+      description:
+        "Create a Task only for actionable work that still needs to be started, tracked, or completed. Use it as the work container and link durable findings as Logs. Do not use a Task for an already completed event, standalone knowledge, or a shareable synthesis; prefer updating an existing Task over duplicating one. Follow the session Agent Guide and Capture Mode.",
       inputSchema: {
         workspaceId: POSITIVE_ID,
         title: z.string().min(1),
@@ -263,7 +264,7 @@ function registerTaskTools(registry: McpToolRegistry): void {
     {
       title: "Update OpenLog Workspace Task",
       description:
-        "Replace the editable fields of an existing workspace task.",
+        "Update an existing actionable work container and its completion state. Keep durable events and knowledge in linked Logs, and do not repurpose a Task as an Output. Prefer this over creating a duplicate. Follow the session Agent Guide and Capture Mode.",
       inputSchema: {
         workspaceId: POSITIVE_ID,
         taskId: POSITIVE_ID,
@@ -328,7 +329,7 @@ function registerLogTools(registry: McpToolRegistry): void {
     {
       title: "Create OpenLog Workspace Log",
       description:
-        "Create an ISSUE, FIX, DECISION, or NOTE log. ISSUE uses OPEN/CLOSED; other kinds use NONE.",
+        "Create a Log for a durable event or reusable knowledge: ISSUE for a relevant problem, FIX for an identified cause and resolution, DECISION for a meaningful choice and rationale, or NOTE for reusable context. ISSUE uses OPEN/CLOSED; other kinds use NONE. Link the producing Task when applicable. Do not use Logs as future-work containers, raw transcripts, or routine command history. Prefer updating or linking existing records over duplicates, and follow the session Agent Guide and Capture Mode.",
       inputSchema: {
         workspaceId: POSITIVE_ID,
         kind: LOG_KIND,
@@ -357,7 +358,7 @@ function registerLogTools(registry: McpToolRegistry): void {
     {
       title: "Update OpenLog Workspace Log",
       description:
-        "Replace the editable fields of a log. Its original kind is preserved.",
+        "Update an existing durable event or knowledge record while preserving its original kind. Keep future work in Tasks and shareable syntheses in Outputs. Prefer this over creating a duplicate, and follow the session Agent Guide and Capture Mode.",
       inputSchema: {
         workspaceId: POSITIVE_ID,
         logId: POSITIVE_ID,
@@ -574,7 +575,8 @@ function registerOutputTools(
     "write",
     {
       title: "Create OpenLog Workspace Output",
-      description: "Create a draft output from selected tasks and logs.",
+      description:
+        "Create an Output only for a coherent, reviewable or shareable draft that synthesizes selected Tasks and Logs. Do not use an Output for a single follow-up action, routine progress note, raw conversation, or isolated incident. Prefer updating an existing Output over duplicating one, and follow the session Agent Guide and Capture Mode.",
       inputSchema: {
         workspaceId: POSITIVE_ID,
         title: z.string().min(1),
@@ -598,7 +600,8 @@ function registerOutputTools(
     "write",
     {
       title: "Update OpenLog Workspace Output",
-      description: "Replace a draft output and its selected source documents.",
+      description:
+        "Update an existing coherent draft and its source Tasks and Logs. Keep actionable work in Tasks and durable events or knowledge in Logs. Prefer this over creating a duplicate Output, and follow the session Agent Guide and Capture Mode.",
       inputSchema: {
         workspaceId: POSITIVE_ID,
         outputId: POSITIVE_ID,

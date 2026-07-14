@@ -174,7 +174,7 @@ export function PlannerView({
         <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
           <section
             aria-label={`${formatMonth(month)} calendar`}
-            className="overflow-x-auto rounded-2xl border border-zinc-200/80 bg-white"
+            className="openlog-scroll overflow-x-auto rounded-2xl border border-zinc-200/80 bg-white"
           >
             <div className="min-w-[700px]">
               <div className="grid grid-cols-7 border-b border-zinc-100 bg-zinc-50/70">

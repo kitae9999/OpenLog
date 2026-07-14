@@ -8,6 +8,7 @@ import type {
   McpPermissionProfile,
   ResolvedMcpPermissions,
 } from "../src/mcp-permissions.js";
+import type { ProjectGit } from "../src/project-git.js";
 
 type RecordedCall = {
   method: string;
@@ -19,6 +20,7 @@ test("exposes tools according to the active permission profile", async (t) => {
   const readOnly = await createSession(t, "read-only");
   const readOnlyTools = await readOnly.client.listTools();
   assert.ok(readOnlyTools.tools.some((tool) => tool.name === "list_workspaces"));
+  assert.ok(readOnlyTools.tools.some((tool) => tool.name === "start_openlog_session"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "create_workspace_task"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "publish_post"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "delete_workspace_task"));
@@ -36,6 +38,64 @@ test("exposes tools according to the active permission profile", async (t) => {
   );
   assert.equal(deleteTask?.annotations?.destructiveHint, true);
   assert.ok(fullTools.tools.some((tool) => tool.name === "clear_working_brief"));
+});
+
+test("advertises session instructions and document selection criteria", async (t) => {
+  const session = await createSession(t, "safe-write");
+  assert.match(session.client.getInstructions() ?? "", /call start_openlog_session/);
+  assert.match(session.client.getInstructions() ?? "", /Do not guess a workspace/);
+  assert.match(session.client.getInstructions() ?? "", /Publishing and deletion/);
+
+  const tools = await session.client.listTools();
+  const task = tools.tools.find((tool) => tool.name === "create_workspace_task");
+  const log = tools.tools.find((tool) => tool.name === "create_workspace_log");
+  const output = tools.tools.find((tool) => tool.name === "create_workspace_output");
+  assert.match(task?.description ?? "", /actionable work/);
+  assert.match(log?.description ?? "", /durable event or reusable knowledge/);
+  assert.match(output?.description ?? "", /reviewable or shareable draft/);
+});
+
+test("starts a read-only project session from the supplied project path", async (t) => {
+  const session = await createSession(t, "read-only", {
+    projectGit: projectGitFixture(42),
+  });
+
+  const context = await callJson(session.client, "start_openlog_session", {
+    projectPath: "/work/openlog",
+  });
+
+  assert.equal(context.status, "ready");
+  assert.equal(context.projectRoot, "/work/openlog");
+  assert.deepEqual(session.api.calls, [
+    { method: "GET", path: "/workspace-projects/42/agent-context" },
+  ]);
+  const guide = context.guide as Record<string, unknown>;
+  assert.equal(guide.revision, 3);
+});
+
+test("does not guess a workspace for uninitialized or stale projects", async (t) => {
+  const uninitialized = await createSession(t, "read-only", {
+    projectGit: projectGitFixture(null),
+  });
+  const missing = await callJson(uninitialized.client, "start_openlog_session", {
+    projectPath: "/work/openlog",
+  });
+  assert.equal(missing.status, "not_initialized");
+  assert.match(String(missing.initCommand), /npx @openloghq\/cli@latest init/);
+  assert.deepEqual(uninitialized.api.calls, []);
+
+  const stale = await createSession(t, "read-only", {
+    projectGit: projectGitFixture(99),
+  });
+  stale.api.failures.set(
+    "/workspace-projects/99/agent-context",
+    new ApiError(404, "test", "missing"),
+  );
+  const staleResult = await callJson(stale.client, "start_openlog_session", {
+    projectPath: "/work/openlog",
+  });
+  assert.equal(staleResult.status, "stale");
+  assert.match(String(staleResult.initCommand), /openloghq\/cli@latest init/);
 });
 
 test("maps workspace read and safe-write tools to their REST endpoints", async (t) => {
@@ -293,6 +353,13 @@ class RecordingApiClient {
     if (path === "/workspaces/1/outputs/6") {
       return outputResponse(null) as T;
     }
+    if (path === "/workspace-projects/42/agent-context") {
+      return {
+        workspace: { id: 1, name: "OpenLog", slug: "openlog" },
+        project: { id: 42, workspaceId: 1, captureMode: "ASK" },
+        guide: { workspaceId: 1, content: "Guide", revision: 3 },
+      } as T;
+    }
     return { ok: true, path } as T;
   }
 
@@ -340,6 +407,7 @@ class RecordingApiClient {
 async function createSession(
   t: test.TestContext,
   profileOrPermissions: McpPermissionProfile | ResolvedMcpPermissions,
+  options: { projectGit?: ProjectGit } = {},
 ) {
   const permissions =
     typeof profileOrPermissions === "string"
@@ -352,6 +420,7 @@ async function createSession(
       api as unknown as OpenLogApiClient,
     readAuth: async () => null,
     webBaseUrl: "https://openlog.test",
+    projectGit: options.projectGit,
   });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "openlog-test", version: "1.0.0" });
@@ -364,6 +433,20 @@ async function createSession(
   });
 
   return { api, client, server: created.server, permissions };
+}
+
+function projectGitFixture(projectId: number | null): ProjectGit {
+  return {
+    inspect: async (projectPath) => ({
+      root: projectPath,
+      displayName: "openlog",
+      remoteUrl: "git@github.com:openlog/openlog.git",
+      repositoryFullName: "openlog/openlog",
+      projectId,
+    }),
+    writeProjectId: async () => {},
+    clearProjectId: async () => {},
+  };
 }
 
 function permissionsFor(profile: McpPermissionProfile): ResolvedMcpPermissions {
