@@ -88,7 +88,10 @@ jobs:
     needs:
       - changes
       - verify
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && needs.changes.outputs.cli == 'true')
+    if: (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop') || (github.event_name == 'push' && needs.changes.outputs.cli == 'true')
+    concurrency:
+      group: openlog-cli-npm-publish
+      cancel-in-progress: false
     permissions:
       contents: read
       id-token: write
@@ -109,42 +112,48 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
-
-      - name: Verify package contents
-        run: npm pack --dry-run
-
       - name: Read package metadata
         id: package
         run: |
           node - <<'NODE' >> "$GITHUB_OUTPUT"
           const packageJson = require('./package.json')
           console.log(`name=${packageJson.name}`)
-          console.log(`version=${packageJson.version}`)
+          console.log(`requested_version=${packageJson.version}`)
           NODE
 
-      - name: Check whether version should be published
+      - name: Resolve release version
         id: release
         run: |
           set +e
-          npm view "${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}" version --json >/tmp/openlog-cli-version.json 2>/tmp/openlog-cli-view-error.log
+          latest_version=$(npm view "${{ steps.package.outputs.name }}" version 2>/tmp/openlog-cli-view-error.log)
           status=$?
           set -e
 
-          if [ "$status" -eq 0 ]; then
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }} is already published. Skipping npm publish."
-            exit 0
-          fi
-
-          if ! grep -q "E404" /tmp/openlog-cli-view-error.log; then
+          if [ "$status" -ne 0 ] && ! grep -q "E404" /tmp/openlog-cli-view-error.log; then
             cat /tmp/openlog-cli-view-error.log
             exit "$status"
           fi
 
-          echo "publish=true" >> "$GITHUB_OUTPUT"
+          if [ "$status" -ne 0 ]; then
+            latest_version=""
+          fi
+
+          release_version=$(node ./scripts/resolve-release-version.mjs \
+            "${{ steps.package.outputs.requested_version }}" \
+            "$latest_version")
+
+          echo "version=$release_version" >> "$GITHUB_OUTPUT"
+          echo "::notice::Resolved ${{ steps.package.outputs.name }} release version $release_version from requested ${{ steps.package.outputs.requested_version }} and npm latest ${latest_version:-none}."
+
+      - name: Apply release version
+        if: steps.release.outputs.version != steps.package.outputs.requested_version
+        run: npm version "${{ steps.release.outputs.version }}" --no-git-tag-version
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify package contents
+        run: npm pack --dry-run
 
       - name: Publish to npm
-        if: steps.release.outputs.publish == 'true'
         run: npm publish --access public
