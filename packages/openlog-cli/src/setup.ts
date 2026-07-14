@@ -19,6 +19,7 @@ import {
   choose,
   confirm,
   createPromptIo,
+  InvalidChoiceError,
   type PromptIo,
 } from "./prompt.js";
 
@@ -161,8 +162,11 @@ async function chooseStep(
     try {
       return await choose(io, message, options, defaultValue);
     } catch (error) {
+      if (!(error instanceof InvalidChoiceError)) {
+        throw error;
+      }
       console.log(
-        dim(error instanceof Error ? error.message : String(error)),
+        dim(error.message),
       );
     }
   }

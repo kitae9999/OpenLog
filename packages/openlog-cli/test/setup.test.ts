@@ -188,3 +188,30 @@ test("setup cancels when user declines login", async () => {
     /Setup cancelled/,
   );
 });
+
+test("setup propagates prompt input failures instead of retrying forever", async () => {
+  let questionCalls = 0;
+
+  await assert.rejects(
+    () =>
+      runSetup({
+        isTTY: true,
+        promptIo: {
+          question: async () => {
+            questionCalls += 1;
+            throw new Error("input closed");
+          },
+        },
+        writeOutput: () => {},
+        readAuth: async () => authFixture(),
+        login: async () => {},
+        fetchMe: async () => ({ nickname: "kitae" }),
+        installMcp: async () => {},
+        readPermissions: async () => permissionsFixture(),
+        writePermissionProfile: async () => permissionsFixture(),
+      }),
+    /input closed/,
+  );
+
+  assert.equal(questionCalls, 1);
+});

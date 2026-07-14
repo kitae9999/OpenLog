@@ -7,6 +7,8 @@ export type PromptIo = {
   close?: () => void | Promise<void>;
 };
 
+export class InvalidChoiceError extends Error {}
+
 export async function createPromptIo(): Promise<PromptIo> {
   const rl = readline.createInterface({ input, output });
   return {
@@ -67,7 +69,7 @@ export async function choose(
     return byValue.value;
   }
 
-  throw new Error(
+  throw new InvalidChoiceError(
     `Invalid choice "${answer}". Enter a number 1-${options.length}.`,
   );
 }
