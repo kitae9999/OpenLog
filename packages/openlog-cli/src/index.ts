@@ -7,12 +7,23 @@ import { installMcp, printMcpInstallHelp } from "./mcp-install.js";
 import { ApiError, OpenLogApiClient } from "./api-client.js";
 import { createAuthenticatedApiClient } from "./authenticated-client.js";
 import { runMcpPermissionsCommand } from "./mcp-permissions-command.js";
+import { runSetup } from "./setup.js";
+import {
+  banner,
+  dim,
+  formatError,
+  heading,
+  kv,
+  success,
+} from "./cli-ui.js";
 
-const command = process.argv[2] ?? "help";
+const command = process.argv[2] ?? "setup";
 const subcommand = process.argv[3];
 
 try {
-  if (command === "login") {
+  if (command === "setup" || command === undefined) {
+    await runSetup();
+  } else if (command === "login") {
     await login();
   } else if (command === "logout") {
     await logout();
@@ -64,10 +75,36 @@ async function installMcpCommand(): Promise<void> {
 }
 
 async function whoami(): Promise<void> {
+  const asJson = process.argv.includes("--json");
   const apiClient = await createAuthenticatedApiClient();
-  const me = await apiClient.get("/auth/me");
+  const me = (await apiClient.get("/auth/me")) as Record<string, unknown>;
 
-  console.log(JSON.stringify(me, null, 2));
+  if (asJson) {
+    console.log(JSON.stringify(me, null, 2));
+    return;
+  }
+
+  const name =
+    pickString(me, "nickname") ??
+    pickString(me, "username") ??
+    pickString(me, "name") ??
+    "OpenLog user";
+  const username = pickString(me, "username");
+  const email = pickString(me, "email");
+  const id = pickString(me, "id") ?? pickString(me, "userId");
+
+  console.log(heading("Signed in"));
+  console.log(kv("Name", name));
+  if (username) {
+    console.log(kv("Username", `@${username}`));
+  }
+  if (email) {
+    console.log(kv("Email", email));
+  }
+  if (id) {
+    console.log(kv("Id", String(id)));
+  }
+  console.log(dim("Tip: pass --json for machine-readable output."));
 }
 
 async function logout(): Promise<void> {
@@ -82,44 +119,46 @@ async function logout(): Promise<void> {
         refreshToken: authFile.refreshToken,
       });
     } catch (error) {
-      console.error(`Warning: remote session revoke failed: ${formatCliError(error)}`);
+      console.error(
+        formatError(`remote session revoke failed: ${formatCliError(error)}`),
+      );
     }
   }
 
   await deleteAuthFile();
-  console.log("Logged out.");
+  console.log(success("Logged out."));
 }
 
 function printHelp(): void {
-  console.log(`OpenLog CLI
-
-Usage:
-  openlog login    Sign in to OpenLog from the CLI
-  openlog logout   Remove local OpenLog credentials
-  openlog whoami   Print the current OpenLog user
-  openlog mcp      Start the OpenLog MCP stdio server
-  openlog mcp install all
-                  Register OpenLog MCP with all supported local clients
-  openlog mcp install codex
-                  Register OpenLog MCP with Codex
-  openlog mcp install claude-code
-                  Register OpenLog MCP with Claude Code
-  openlog mcp install cursor
-                  Register OpenLog MCP with Cursor
-  openlog mcp permissions
-                  Show the active local MCP permission profile
-  openlog mcp permissions set read-only|safe-write|full
-                  Change the local MCP permission profile
-  openlog mcp permissions reset
-                  Restore the default safe-write profile
-
-Environment:
-  OPENLOG_API_BASE_URL  Override the OpenLog API base URL
-  OPENLOG_WEB_BASE_URL  Override the OpenLog web base URL for published post links
-  OPENLOG_AUTH_FILE     Override the local auth file path
-  OPENLOG_MCP_CONFIG_FILE
-                        Override the local MCP permission config path
-`);
+  console.log(banner());
+  console.log("");
+  console.log(heading("Usage"));
+  console.log("");
+  console.log(dim("Setup"));
+  console.log(`  openlog                     Guided setup (login → agent → permissions)`);
+  console.log(`  openlog setup               Same as above`);
+  console.log("");
+  console.log(dim("Auth"));
+  console.log(`  openlog login              Sign in from the terminal`);
+  console.log(`  openlog logout             Remove local credentials`);
+  console.log(`  openlog whoami             Show the current user`);
+  console.log(`  openlog whoami --json      Print raw /auth/me JSON`);
+  console.log("");
+  console.log(dim("MCP"));
+  console.log(`  openlog mcp                Start the MCP stdio server`);
+  console.log(`  openlog mcp install all`);
+  console.log(`  openlog mcp install codex`);
+  console.log(`  openlog mcp install claude-code`);
+  console.log(`  openlog mcp install cursor`);
+  console.log(`  openlog mcp permissions`);
+  console.log(`  openlog mcp permissions set read-only|safe-write|full`);
+  console.log(`  openlog mcp permissions reset`);
+  console.log("");
+  console.log(dim("Environment"));
+  console.log(`  OPENLOG_API_BASE_URL       API base URL override`);
+  console.log(`  OPENLOG_WEB_BASE_URL       Web origin for published post links`);
+  console.log(`  OPENLOG_AUTH_FILE          Local auth file path`);
+  console.log(`  OPENLOG_MCP_CONFIG_FILE    Local MCP permission config path`);
 }
 
 function formatCliError(error: unknown): string {
@@ -128,8 +167,16 @@ function formatCliError(error: unknown): string {
       ? "\n\nLocal hint: if your backend uses SERVER_SERVLET_CONTEXT_PATH=/api, run with OPENLOG_API_BASE_URL=http://localhost:8080/api."
       : "";
 
-    return `${error.message}\nRequested: ${error.url}${hint}`;
+    return formatError(`${error.message}\nRequested: ${error.url}${hint}`);
   }
 
-  return error instanceof Error ? error.message : String(error);
+  return formatError(error instanceof Error ? error.message : String(error));
+}
+
+function pickString(
+  value: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const next = value[key];
+  return typeof next === "string" && next.trim().length > 0 ? next : undefined;
 }

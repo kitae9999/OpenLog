@@ -3,12 +3,47 @@
 Official CLI and MCP server for OpenLog.
 
 ```bash
+npx -y @openloghq/cli
+npx -y @openloghq/cli setup
 npx -y @openloghq/cli login
 npx -y @openloghq/cli whoami
 npx -y @openloghq/cli mcp
 ```
 
-Local MCP permissions:
+## Guided setup
+
+Running `openlog` or `openlog setup` in a TTY walks through:
+
+1. Sign in (browser device login) if needed
+2. Install MCP into Codex, Claude Code, Cursor, all of them, or skip
+3. Choose an MCP permission profile
+
+Non-interactive shells should use the individual commands instead.
+
+## Human-facing output
+
+`help`, `setup`, `login`, `whoami`, and `mcp permissions` use a session-log skin
+(ASCII logo, quiet ANSI when the terminal supports color). MCP `serve` stays
+plain stdio JSON-RPC.
+
+```text
+ ██████╗ ██████╗ ███████╗███╗   ██╗██╗      ██████╗  ██████╗
+██╔═══██╗██╔══██╗██╔════╝████╗  ██║██║     ██╔═══██╗██╔════╝
+██║   ██║██████╔╝█████╗  ██╔██╗ ██║██║     ██║   ██║██║  ███╗
+██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║██║     ██║   ██║██║   ██║
+╚██████╔╝██║     ███████╗██║ ╚████║███████╗╚██████╔╝╚██████╔╝
+ ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝ ╚═════╝  ╚═════╝
+session log · cli
+
+Usage
+  openlog login              Sign in from the terminal
+  ...
+```
+
+Pass `whoami --json` for machine-readable `/auth/me` output. Set `NO_COLOR=1`
+to disable ANSI styling.
+
+## Local MCP permissions
 
 ```bash
 openlog mcp permissions

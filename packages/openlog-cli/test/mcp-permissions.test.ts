@@ -71,18 +71,18 @@ test("runs show, set, and reset permission commands", async (t) => {
   const writeOutput = (message: string) => output.push(message);
 
   await runMcpPermissionsCommand(["set", "read-only"], writeOutput);
-  assert.match(output.join("\n"), /Profile: read-only/);
+  assert.match(output.join("\n"), /Profile\s+read-only/);
   assert.match(output.join("\n"), /Restart or reload/);
 
   output.length = 0;
   await runMcpPermissionsCommand(["show"], writeOutput);
-  assert.match(output.join("\n"), /Capabilities: read/);
-  assert.match(output.join("\n"), /Source: local config/);
+  assert.match(output.join("\n"), /Capabilities\s+read/);
+  assert.match(output.join("\n"), /Source\s+local config/);
 
   output.length = 0;
   await runMcpPermissionsCommand(["reset"], writeOutput);
-  assert.match(output.join("\n"), /Profile: safe-write/);
-  assert.match(output.join("\n"), /Source: default/);
+  assert.match(output.join("\n"), /Profile\s+safe-write/);
+  assert.match(output.join("\n"), /Source\s+default/);
 });
 
 async function createConfigFixture(t: test.TestContext) {
