@@ -38,6 +38,7 @@ import {
 } from "@/entities/workspace/model/data";
 import { WorkspaceView } from "@/widgets/workspace-dashboard/ui/WorkspaceView";
 import { WorkspaceSwitcher } from "@/widgets/app-shell/ui/WorkspaceSwitcher";
+import { useActiveWorkspaceId } from "@/features/workspace-selection/model/useActiveWorkspace";
 import { FeedArticleCard } from "@/widgets/feed-article/ui/FeedArticleCard";
 import type {
   ManagedWorkspace,
@@ -556,8 +557,19 @@ export function HomeSidebar({
   workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
 }) {
+  const activeWorkspaceId = useActiveWorkspaceId();
   const sidebarTasks = isLoggedIn ? (workspaceData?.tasks ?? []) : [];
   const sidebarLogs = isLoggedIn ? (workspaceData?.logs ?? []) : [];
+  const storedWorkspaceId = workspaces.some(
+    (workspace) => workspace.id === activeWorkspaceId,
+  )
+    ? activeWorkspaceId
+    : null;
+  const resolvedAgentWorkspaceId =
+    agentWorkspaceId ??
+    workspaceData?.workspaceId ??
+    storedWorkspaceId ??
+    workspaces[0]?.id;
   const doingTaskCount =
     sidebarTasks.filter((task) => task.status === "doing").length ||
     sidebarTasks.filter((task) => task.status === "todo").length;
@@ -677,9 +689,9 @@ export function HomeSidebar({
         </SidebarSection>
 
         <SidebarSection label="SETTINGS">
-          {isLoggedIn && agentWorkspaceId ? (
+          {isLoggedIn && resolvedAgentWorkspaceId ? (
             <SidebarLink
-              href={`/settings/workspaces/${agentWorkspaceId}/agent`}
+              href={`/settings/workspaces/${resolvedAgentWorkspaceId}/agent`}
               label="Agent Guide"
               active={settingsNav === "agent"}
               icon={<IconMcpGuide className="size-[15px]" />}

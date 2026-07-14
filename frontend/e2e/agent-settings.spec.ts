@@ -18,6 +18,14 @@ test.describe("Workspace Agent Settings", () => {
     await expect(page.getByText("Bound by project ID in local .git/config")).toBeVisible();
   });
 
+  test("shows the Agent Guide sidebar link without a route-specific workspace ID", async ({
+    page,
+  }) => {
+    const link = page.getByRole("link", { name: "Agent Guide" });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", "/settings/workspaces/10/agent");
+  });
+
   test("shows per-project Capture Modes and asks before disconnecting", async ({
     page,
   }) => {

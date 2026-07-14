@@ -1,6 +1,7 @@
 "use client";
 
 import { WorkspaceAgentSettingsView } from "@/pages/workspace-agent/ui/WorkspaceAgentSettingsView";
+import { HomeSidebar } from "@/widgets/app-shell/ui/HomeFeedShell";
 import type { WorkspaceAgentSettingsData } from "@/entities/workspace/api/workspaceAgentApi";
 
 const fixture: WorkspaceAgentSettingsData = {
@@ -39,8 +40,17 @@ const fixture: WorkspaceAgentSettingsData = {
 
 export default function AgentSettingsFixturePage() {
   return (
-    <main className="min-h-dvh bg-app px-6 py-8">
-      <WorkspaceAgentSettingsView data={fixture} />
-    </main>
+    <div className="min-h-dvh bg-app">
+      <HomeSidebar
+        activeTab="workspace"
+        isLoggedIn
+        isOpen
+        onNavigate={() => undefined}
+        workspaces={[fixture.workspace]}
+      />
+      <main className="min-h-dvh px-6 py-8 lg:pl-[306px]">
+        <WorkspaceAgentSettingsView data={fixture} />
+      </main>
+    </div>
   );
 }
