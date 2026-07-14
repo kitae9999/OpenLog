@@ -26,6 +26,7 @@ import {
   getTaskHref,
   getTasksHref,
   isActiveTaskStatus,
+  resolveTaskActivityMeta,
   type WorkspaceLogItem,
   type WorkspaceTaskOutput,
   type WorkspaceTodoItem,
@@ -1373,6 +1374,7 @@ function deriveWorkingBrief(
 
   const relatedLogs = logs.filter((log) => log.taskId === task.id);
   const latestLog = relatedLogs[0];
+  const activity = resolveTaskActivityMeta(task, relatedLogs);
   const prose =
     task.description?.trim() ||
     getTaskExcerpt(task.body, 220) ||
@@ -1384,7 +1386,7 @@ function deriveWorkingBrief(
       prose: "No brief yet for this task.",
       taskId: task.id,
       taskTitle: task.title,
-      updatedLabel: latestLog?.meta.split(" · ")[0],
+      updatedLabel: activity.lastActivityLabel,
     };
   }
 
@@ -1394,6 +1396,6 @@ function deriveWorkingBrief(
     taskId: task.id,
     taskTitle: task.title,
     branch: latestLog?.branch,
-    updatedLabel: latestLog?.meta.split(" · ")[0],
+    updatedLabel: activity.lastActivityLabel,
   };
 }

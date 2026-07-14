@@ -1,4 +1,8 @@
 import { assets } from "@/shared/config/assets";
+import {
+  formatWorkspaceDateLabel,
+  pickLatestIso,
+} from "@/shared/lib/formatWorkspaceDateLabel";
 
 export type TabKey = "workspace" | "explore" | "home" | "following" | "liked";
 
@@ -274,6 +278,10 @@ export type WorkspaceWorkItem = {
   status: WorkspaceWorkStatus;
   apiStatus?: "TODO" | "DOING" | "DONE";
   body: string;
+  /** Present for API-backed tasks; used for Started. */
+  createdAt?: string;
+  /** Present for API-backed tasks; used with linked log times for Updated. */
+  updatedAt?: string;
 };
 
 export const workspaceWorkItems: WorkspaceWorkItem[] = [
@@ -696,6 +704,41 @@ export function getTaskMeta(taskId: string): WorkspaceTaskMeta {
       lastActivityLabel: "—",
     }
   );
+}
+
+/**
+ * Started = task creation.
+ * Updated = latest of task.updatedAt and linked log createdAt (log add / task edit).
+ * Demo tasks without timestamps fall back to hardcoded meta / log meta labels.
+ */
+export function resolveTaskActivityMeta(
+  task: WorkspaceWorkItem,
+  logs: WorkspaceLogItem[] = [],
+): WorkspaceTaskMeta {
+  if (!task.createdAt && !task.updatedAt) {
+    const demo = getTaskMeta(task.id);
+    const latestLogLabel = logs[0]?.meta.split(" · ")[0];
+    if (!latestLogLabel) return demo;
+    return {
+      startedLabel: demo.startedLabel,
+      lastActivityLabel: latestLogLabel,
+    };
+  }
+
+  const startedLabel = task.createdAt
+    ? formatWorkspaceDateLabel(task.createdAt)
+    : "—";
+  const latestActivity = pickLatestIso([
+    task.updatedAt,
+    ...logs.map((log) => log.createdAt),
+  ]);
+
+  return {
+    startedLabel,
+    lastActivityLabel: latestActivity
+      ? formatWorkspaceDateLabel(latestActivity)
+      : startedLabel,
+  };
 }
 
 export function getTaskBranches(taskId: string) {

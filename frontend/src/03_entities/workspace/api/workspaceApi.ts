@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { headers } from "next/headers";
 import { API_CONFIG } from "@/shared/api";
+import { formatWorkspaceDateLabel } from "@/shared/lib/formatWorkspaceDateLabel";
 import { todayIso } from "@/shared/lib/todayIso";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import {
@@ -677,7 +678,7 @@ function mapWorkingBrief(brief: WorkingBriefResponse) {
     taskId: brief.taskId != null ? String(brief.taskId) : undefined,
     taskTitle: brief.taskTitle ?? undefined,
     branch: brief.branch ?? undefined,
-    updatedLabel: formatDateLabel(brief.updatedAt),
+    updatedLabel: formatWorkspaceDateLabel(brief.updatedAt),
   };
 }
 
@@ -704,6 +705,8 @@ function mapTask(task: WorkspaceTaskResponse): WorkspaceWorkItem {
     status: mapTaskStatus(task.status),
     apiStatus: task.status,
     body: task.content ?? task.description ?? "",
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
   };
 }
 
@@ -759,7 +762,7 @@ function mapOutput(
       `${logCount} log${logCount === 1 ? "" : "s"}`,
     ].join(" · "),
     content: isDetail ? output.content : "",
-    updatedLabel: formatDateLabel(output.updatedAt),
+    updatedLabel: formatWorkspaceDateLabel(output.updatedAt),
     publishedHref:
       isDetail && output.publishedPost
         ? buildPublicPostPath(
@@ -823,14 +826,14 @@ function mapOutputStatus(status: OutputStatus): WorkspaceOutputStatus {
 
 function buildLogMeta(log: WorkspaceLogResponse | WorkspaceLogDetailResponse) {
   if (log.status === "OPEN") {
-    return `open · ${formatDateLabel(log.createdAt)}`;
+    return `open · ${formatWorkspaceDateLabel(log.createdAt)}`;
   }
   if (log.status === "CLOSED") {
     const closedAt = "closedAt" in log ? log.closedAt : null;
-    return `closed · ${formatDateLabel(closedAt ?? log.createdAt)}`;
+    return `closed · ${formatWorkspaceDateLabel(closedAt ?? log.createdAt)}`;
   }
 
-  return formatDateLabel(log.createdAt);
+  return formatWorkspaceDateLabel(log.createdAt);
 }
 
 function excerpt(content: string, maxLength = 120) {
@@ -845,16 +848,3 @@ function excerpt(content: string, maxLength = 120) {
     : `${plain.slice(0, maxLength).trim()}...`;
 }
 
-function formatDateLabel(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    timeZone: "Asia/Seoul",
-  }).format(date);
-}

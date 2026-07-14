@@ -69,4 +69,8 @@ class WorkspaceTask(
         this.status = status
         this.updatedAt = LocalDateTime.now()
     }
+
+    fun touch() {
+        this.updatedAt = LocalDateTime.now()
+    }
 }
