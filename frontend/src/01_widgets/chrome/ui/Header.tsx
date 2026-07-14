@@ -4,7 +4,7 @@ import Link from "next/link";
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GuestActions } from "@/features/auth/ui";
-import { logoMarkClassName, logoWordmarkClassName } from "@/shared/config/brand";
+import { OpenLogLogo } from "@/shared/ui/brand";
 import { NotificationMenu } from "./NotificationMenu";
 import { ProfileMenu } from "./ProfileMenu";
 import { SearchBar } from "./SearchBar";
@@ -50,17 +50,9 @@ export function Header({
 
             <Link
               href="/"
-              className="flex items-center gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
             >
-              <span
-                className={cn(
-                  "grid size-7 place-items-center rounded-lg bg-black text-[16px] text-white",
-                  logoMarkClassName,
-                )}
-              >
-                O
-              </span>
-              <span className={logoWordmarkClassName}>OpenLog</span>
+              <OpenLogLogo className="w-[132px]" priority sizes="132px" />
             </Link>
           </div>
         </div>

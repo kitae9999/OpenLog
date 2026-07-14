@@ -6,11 +6,8 @@ import { Geist_Mono } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
 import { GuestActions } from "@/features/auth/ui";
 import { handleOAuth } from "@/features/auth/api/handleOAuth";
-import {
-  logoMarkClassName,
-  logoWordmarkClassName,
-} from "@/shared/config/brand";
 import { cn } from "@/shared/lib/cn";
+import { OpenLogLogo } from "@/shared/ui/brand";
 import { GitHubIcon } from "@/shared/ui/icons";
 import { LandingGraphDemo } from "./LandingGraphDemo";
 import { LandingSessionDemo } from "./LandingSessionDemo";
@@ -110,17 +107,9 @@ export function LandingPage() {
             <div className="mx-auto flex h-20 w-full max-w-[1280px] items-center justify-between px-6">
               <Link
                 href="/"
-                className="flex items-center gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
-                <span
-                  className={cn(
-                    "grid size-7 place-items-center rounded-lg bg-black text-[16px] text-white",
-                    logoMarkClassName,
-                  )}
-                >
-                  O
-                </span>
-                <span className={logoWordmarkClassName}>OpenLog</span>
+                <OpenLogLogo className="w-[136px]" priority sizes="136px" />
               </Link>
 
               <div className="hidden items-center gap-6 md:flex">
@@ -422,16 +411,8 @@ export function LandingPage() {
           <footer className="relative z-10 w-full border-t border-zinc-200/50 bg-white py-24">
             <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-16 px-6 md:grid-cols-4">
               <div className="col-span-1 md:col-span-2">
-                <div className="mb-8 flex items-center gap-2 opacity-80">
-                  <span
-                    className={cn(
-                      "grid size-6 place-items-center rounded-md bg-black text-[14px] text-white",
-                      logoMarkClassName,
-                    )}
-                  >
-                    O
-                  </span>
-                  <span className={logoWordmarkClassName}>OpenLog</span>
+                <div className="mb-8 opacity-80">
+                  <OpenLogLogo className="w-[132px]" sizes="132px" />
                 </div>
                 <p className="max-w-sm text-sm leading-relaxed font-light text-zinc-500">
                   OpenLog helps developers automatically capture context and

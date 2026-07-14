@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getUser } from "@/features/auth/api/getUser";
 import { API_CONFIG } from "@/shared/api";
-import { logoMarkClassName } from "@/shared/config/brand";
-import { cn } from "@/shared/lib/cn";
+import { OpenLogLogo } from "@/shared/ui/brand";
 import { CliLoginApprovalForm } from "./CliLoginApprovalForm";
 
 export const metadata: Metadata = {
@@ -33,14 +32,11 @@ export default async function CliLoginPage({
                 Authorize terminal access
               </h1>
             </div>
-            <div
-              className={cn(
-                "grid size-12 shrink-0 place-items-center bg-zinc-950 text-xl text-white",
-                logoMarkClassName,
-              )}
-            >
-              O
-            </div>
+            <OpenLogLogo
+              variant="mark"
+              className="size-12"
+              decorative
+            />
           </div>
 
           <div className="mt-8 border-t border-zinc-200 pt-8">

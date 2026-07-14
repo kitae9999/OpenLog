@@ -1,5 +1,5 @@
-export const logoWordmarkClassName =
-  "text-[24px] font-bold leading-none [font-family:Georgia,serif]";
+export const OPENLOG_WORDMARK_ASSET =
+  "/brand/openlog-logo-knot-claude-orange.png";
 
-export const logoMarkClassName =
-  "font-bold leading-none [font-family:Georgia,serif]";
+export const OPENLOG_MARK_ASSET =
+  "/brand/openlog-mark-knot-claude-orange.png";

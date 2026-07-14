@@ -125,7 +125,7 @@ export const mcpGuideCopy = {
           },
           {
             label: "Client cannot find npx",
-            body: "use the full path to npx in `command` or install globally: `npm i -g @kitae9999/openlog-cli`.",
+            body: "use the full path to npx in `command` or install globally: `npm i -g @openloghq/cli`.",
           },
           {
             label: "Onboarding incomplete",
@@ -183,7 +183,7 @@ export const mcpGuideCopy = {
           },
           {
             label: "client가 npx를 찾지 못함",
-            body: "`command`에 npx 전체 경로를 넣거나 `npm i -g @kitae9999/openlog-cli`로 전역 설치하세요.",
+            body: "`command`에 npx 전체 경로를 넣거나 `npm i -g @openloghq/cli`로 전역 설치하세요.",
           },
           {
             label: "온보딩 미완료",
@@ -200,19 +200,19 @@ export const mcpClientConfig = `{
   "mcpServers": {
     "openlog": {
       "command": "npx",
-      "args": ["-y", "@kitae9999/openlog-cli", "mcp"]
+      "args": ["-y", "@openloghq/cli", "mcp"]
     }
   }
 }`;
 
 export const mcpGuideCommands = {
-  login: "npx -y @kitae9999/openlog-cli login",
-  mcp: "npx -y @kitae9999/openlog-cli mcp",
+  login: "npx -y @openloghq/cli login",
+  mcp: "npx -y @openloghq/cli mcp",
   installCodex: "openlog mcp install codex",
   installClaude: "openlog mcp install claude-code",
   localDev: `OPENLOG_API_BASE_URL=http://localhost:8080/api \\
 OPENLOG_WEB_BASE_URL=http://localhost:3030 \\
-npx -y @kitae9999/openlog-cli mcp`,
+npx -y @openloghq/cli mcp`,
 } as const;
 
 export function parseMcpGuideLocale(value: string | null): McpGuideLocale {

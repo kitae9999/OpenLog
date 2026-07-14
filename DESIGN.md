@@ -164,7 +164,7 @@ text-sm font-medium, 비활성 text-zinc-500 → hover/활성 text-zinc-950
 ### 비로그인 (게스트)
 
 - 사이드바·워크스페이스 없음. 게스트 헤더(로고 + 검색 + `Sign in`/`Get started`)와 발행 글 피드만.
-- 상단 배너: 제품 한 줄 설명 + CLI 스니펫(`$ npx @kitae9999/openlog-cli login`)이 가입 진입점.
+- 상단 배너: 제품 한 줄 설명 + CLI 스니펫(`$ npx @openloghq/cli login`)이 가입 진입점.
 - Following 탭, Follow 버튼 등 로그인 필요 기능은 렌더링하지 않는다.
 
 ### 반응형

@@ -5,6 +5,7 @@ import {
   SITE_NAME,
   SITE_URL,
 } from "@/shared/config/site";
+import { OPENLOG_MARK_ASSET } from "@/shared/config/brand";
 import "./globals.css";
 
 const geistMono = Geist_Mono({
@@ -35,6 +36,10 @@ export const metadata: Metadata = {
   creator: SITE_NAME,
   publisher: SITE_NAME,
   category: "technology",
+  icons: {
+    icon: [{ url: OPENLOG_MARK_ASSET, type: "image/png", sizes: "512x512" }],
+    apple: [{ url: OPENLOG_MARK_ASSET, type: "image/png", sizes: "512x512" }],
+  },
   referrer: "origin-when-cross-origin",
   alternates: {
     canonical: "/",

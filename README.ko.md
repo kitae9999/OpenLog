@@ -67,9 +67,9 @@ OpenLog는 그 맥락을 실제 작업 가까이에 남깁니다.
 공식 CLI는 Node.js 20 이상이 필요합니다.
 
 ```bash
-npx -y @kitae9999/openlog-cli login
-npx -y @kitae9999/openlog-cli whoami
-npx -y @kitae9999/openlog-cli mcp
+npx -y @openloghq/cli login
+npx -y @openloghq/cli whoami
+npx -y @openloghq/cli mcp
 ```
 
 - `openlog login`: device login을 시작하고 브라우저에서 승인 화면을 엽니다.
@@ -80,7 +80,7 @@ npx -y @kitae9999/openlog-cli mcp
 전역으로 설치하면 `openlog` 명령을 바로 사용할 수 있습니다.
 
 ```bash
-npm install -g @kitae9999/openlog-cli
+npm install -g @openloghq/cli
 openlog login
 openlog mcp
 ```
@@ -92,7 +92,7 @@ openlog mcp
   "mcpServers": {
     "openlog": {
       "command": "npx",
-      "args": ["-y", "@kitae9999/openlog-cli", "mcp"]
+      "args": ["-y", "@openloghq/cli", "mcp"]
     }
   }
 }
@@ -145,7 +145,7 @@ openlog mcp permissions reset
 ```bash
 OPENLOG_API_BASE_URL=http://localhost:8080/api \
 OPENLOG_WEB_BASE_URL=http://localhost:3030 \
-npx -y @kitae9999/openlog-cli mcp
+npx -y @openloghq/cli mcp
 ```
 
 - `OPENLOG_API_BASE_URL`: CLI와 MCP server가 호출할 API base URL

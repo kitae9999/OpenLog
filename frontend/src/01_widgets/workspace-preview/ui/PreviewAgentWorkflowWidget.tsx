@@ -8,8 +8,8 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/shared/lib/cn";
+import { OpenLogLogo } from "@/shared/ui/brand";
 import { FetchingIndicator } from "@/shared/ui/sync";
-import { logoMarkClassName } from "@/shared/config/brand";
 import type {
   PreviewAgentLine,
   PreviewReplaySnapshot,
@@ -462,16 +462,12 @@ function ChromeNavIcon({ kind }: { kind: "back" | "forward" | "reload" }) {
 /** Header-style OpenLog mark (black tile + O). */
 function OpenLogFavicon({ className }: { className?: string }) {
   return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "grid place-items-center rounded-[3px] bg-black text-[8px] text-white",
-        logoMarkClassName,
-        className,
-      )}
-    >
-      O
-    </span>
+    <OpenLogLogo
+      variant="mark"
+      className={className}
+      decorative
+      sizes="12px"
+    />
   );
 }
 
