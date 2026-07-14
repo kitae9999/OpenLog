@@ -6,7 +6,10 @@ import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { getLogById } from "@/entities/workspace/model/data";
 import { LogEditShell } from "@/pages/logs/ui/LogEditShell";
 import { requireWorkspaceData } from "@/widgets/app-shell/lib/requireWorkspacePageData";
-import { loadWorkspacePageData } from "@/entities/workspace/api/workspaceApi";
+import {
+  getWorkspaceLog,
+  loadWorkspaceNavigationPageData,
+} from "@/entities/workspace/api/workspaceApi";
 
 export async function LogEditFeed({
   logId,
@@ -18,13 +21,13 @@ export async function LogEditFeed({
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
   const pageData = user
-    ? await loadWorkspacePageData()
+    ? await loadWorkspaceNavigationPageData()
     : { workspaces: [], workspaceData: null, status: "empty" as const };
   const workspaces = pageData.workspaces;
   const workspaceData = user ? requireWorkspaceData(pageData) : null;
-  const log =
-    workspaceData?.logs.find((item) => item.id === logId) ??
-    (user ? undefined : getLogById(logId));
+  const log = workspaceData
+    ? await getWorkspaceLog(workspaceData.workspaceId, logId)
+    : getLogById(logId);
 
   if (!log) {
     notFound();

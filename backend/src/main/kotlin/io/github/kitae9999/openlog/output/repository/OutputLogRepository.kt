@@ -6,5 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface OutputLogRepository : JpaRepository<OutputLog, OutputLogId> {
     fun findAllByOutputId(outputId: Long): List<OutputLog>
+    fun findAllByOutputIdIn(outputIds: Collection<Long>): List<OutputLog>
     fun findAllByLogId(logId: Long): List<OutputLog>
 }

@@ -38,13 +38,23 @@ class OutputService(
         } else {
             workspaceOutputRepository.findAllByWorkspaceIdAndStatusOrderByUpdatedAtDesc(workspaceId, status)
         }
+        val outputIds = outputs.map { requireNotNull(it.id) }
+        if (outputIds.isEmpty()) {
+            return emptyList()
+        }
+        val taskIdsByOutputId = outputTaskRepository.findAllByOutputIdIn(outputIds)
+            .groupBy { requireNotNull(it.output.id) }
+            .mapValues { (_, links) -> links.map { requireNotNull(it.task.id) } }
+        val logIdsByOutputId = outputLogRepository.findAllByOutputIdIn(outputIds)
+            .groupBy { requireNotNull(it.output.id) }
+            .mapValues { (_, links) -> links.map { requireNotNull(it.log.id) } }
 
         return outputs.map { output ->
             val outputId = requireNotNull(output.id)
             outputMapper.toOutputResponse(
                 output = output,
-                taskCount = outputTaskRepository.findAllByOutputId(outputId).size,
-                logCount = outputLogRepository.findAllByOutputId(outputId).size,
+                taskIds = taskIdsByOutputId[outputId].orEmpty(),
+                logIds = logIdsByOutputId[outputId].orEmpty(),
             )
         }
     }

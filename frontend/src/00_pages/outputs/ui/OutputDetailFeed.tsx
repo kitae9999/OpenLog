@@ -5,7 +5,10 @@ import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { OutputDetailShell } from "@/pages/outputs/ui/OutputDetailShell";
 import { requireWorkspaceData } from "@/widgets/app-shell/lib/requireWorkspacePageData";
-import { loadWorkspacePageData } from "@/entities/workspace/api/workspaceApi";
+import {
+  getWorkspaceOutput,
+  loadWorkspaceNavigationPageData,
+} from "@/entities/workspace/api/workspaceApi";
 
 export async function OutputDetailFeed({
   viewer,
@@ -17,11 +20,14 @@ export async function OutputDetailFeed({
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
   const pageData = user
-    ? await loadWorkspacePageData()
+    ? await loadWorkspaceNavigationPageData()
     : { workspaces: [], workspaceData: null, status: "empty" as const };
   const workspaces = pageData.workspaces;
   const workspaceData = user ? requireWorkspaceData(pageData) : null;
-  const output = workspaceData?.outputs.find((item) => item.id === outputId);
+  const output = workspaceData
+    ? ((await getWorkspaceOutput(workspaceData.workspaceId, outputId)) ??
+      undefined)
+    : undefined;
 
   if (user && !output) {
     notFound();

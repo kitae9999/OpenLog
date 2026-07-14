@@ -586,8 +586,9 @@ function PreviewOutputSection({
             {output.title}
           </h3>
           <p className="mt-2 text-[14.5px] leading-7 text-zinc-600">
-            {output.content?.replace(/^## Summary\n\n/, "") ??
-              "Linked logs are ready to publish."}
+            {output.content.trim()
+              ? output.content.replace(/^## Summary\n\n/, "")
+              : "Linked logs are ready to publish."}
           </p>
           {output.updatedLabel ? (
             <p className="mt-2 text-[12.5px] text-zinc-500">

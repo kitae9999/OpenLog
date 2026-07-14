@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.BDDMockito.given
 import org.mockito.Mock
 import org.mockito.Mockito.never
@@ -87,6 +88,43 @@ class OutputServiceTest {
             postService = postService,
             outputMapper = OutputMapper(),
         )
+    }
+
+    @Test
+    fun `getOutputs loads source ids in batches`() {
+        val firstOutput = WorkspaceOutput(
+            id = 40L,
+            workspace = workspace,
+            author = user,
+            title = "First",
+            content = "First content",
+        )
+        val secondOutput = WorkspaceOutput(
+            id = 41L,
+            workspace = workspace,
+            author = user,
+            title = "Second",
+            content = "Second content",
+        )
+        given(workspaceAccessResolver.requireOwnedWorkspace(1L, 100L)).willReturn(workspace)
+        given(workspaceOutputRepository.findAllByWorkspaceIdOrderByUpdatedAtDesc(100L))
+            .willReturn(listOf(firstOutput, secondOutput))
+        given(outputTaskRepository.findAllByOutputIdIn(listOf(40L, 41L)))
+            .willReturn(listOf(OutputTask(firstOutput, task)))
+        given(outputLogRepository.findAllByOutputIdIn(listOf(40L, 41L)))
+            .willReturn(listOf(OutputLog(secondOutput, log)))
+
+        val responses = outputService.getOutputs(1L, 100L, null)
+
+        assertThat(responses).hasSize(2)
+        assertThat(responses[0].taskIds).containsExactly(10L)
+        assertThat(responses[0].logIds).isEmpty()
+        assertThat(responses[1].taskIds).isEmpty()
+        assertThat(responses[1].logIds).containsExactly(20L)
+        verify(outputTaskRepository).findAllByOutputIdIn(listOf(40L, 41L))
+        verify(outputLogRepository).findAllByOutputIdIn(listOf(40L, 41L))
+        verify(outputTaskRepository, never()).findAllByOutputId(anyLong())
+        verify(outputLogRepository, never()).findAllByOutputId(anyLong())
     }
 
     @Test

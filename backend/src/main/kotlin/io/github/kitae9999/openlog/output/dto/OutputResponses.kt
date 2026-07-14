@@ -12,6 +12,8 @@ data class OutputResponse(
     val authorName: String,
     val taskCount: Int,
     val logCount: Int,
+    val taskIds: List<Long>,
+    val logIds: List<Long>,
     val createdAt: String,
     val updatedAt: String,
     val publishedAt: String?,

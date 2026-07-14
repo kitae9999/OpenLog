@@ -119,6 +119,8 @@ type OutputResponse = {
   title: string;
   taskCount: number;
   logCount: number;
+  taskIds?: number[];
+  logIds?: number[];
   updatedAt: string;
   publishedAt: string | null;
 };
@@ -144,8 +146,8 @@ type OutputDetailResponse = {
 type WorkspaceApiSnapshot = {
   workspace: WorkspaceResponse;
   tasks: WorkspaceTaskResponse[];
-  logs: WorkspaceLogDetailResponse[];
-  outputs: Array<OutputDetailResponse | OutputResponse>;
+  logs: WorkspaceLogResponse[];
+  outputs: OutputResponse[];
   todos: TodoResponse[];
   taskLinks: TaskLinkResponse[];
   logLinks: LogLinkResponse[];
@@ -202,33 +204,45 @@ export const listManagedWorkspaces = cache(
   },
 );
 
-export const loadWorkspacePageData = cache(
-  async (): Promise<WorkspacePageData> => {
-    try {
-      const headerStore = await headers();
-      const cookie = headerStore.get("cookie") ?? "";
-      const workspaceResponses = await fetchJson<WorkspaceResponse[]>(
-        "/workspaces",
-        cookie,
-      );
-      const workspaces = workspaceResponses.map(mapManagedWorkspace);
-
-      if (workspaces.length === 0) {
-        return { workspaces, workspaceData: null, status: "empty" };
-      }
-
-      const selectedId = resolveSelectedWorkspaceId(workspaces, cookie);
-      const workspaceData = await fetchWorkspaceUiData(
-        workspaceResponses,
-        cookie,
-        selectedId,
-      );
-      return { workspaces, workspaceData, status: "ready" };
-    } catch {
-      return { workspaces: [], workspaceData: null, status: "error" };
-    }
-  },
+export const loadWorkspacePageData = cache(() =>
+  loadWorkspacePageDataWith(fetchWorkspaceUiData),
 );
+
+export const loadWorkspaceNavigationPageData = cache(() =>
+  loadWorkspacePageDataWith(fetchWorkspaceNavigationData),
+);
+
+async function loadWorkspacePageDataWith(
+  loadWorkspaceData: (
+    workspaces: WorkspaceResponse[],
+    cookie: string,
+    workspaceId?: string | null,
+  ) => Promise<WorkspaceUiData | null>,
+): Promise<WorkspacePageData> {
+  try {
+    const headerStore = await headers();
+    const cookie = headerStore.get("cookie") ?? "";
+    const workspaceResponses = await fetchJson<WorkspaceResponse[]>(
+      "/workspaces",
+      cookie,
+    );
+    const workspaces = workspaceResponses.map(mapManagedWorkspace);
+
+    if (workspaces.length === 0) {
+      return { workspaces, workspaceData: null, status: "empty" };
+    }
+
+    const selectedId = resolveSelectedWorkspaceId(workspaces, cookie);
+    const workspaceData = await loadWorkspaceData(
+      workspaceResponses,
+      cookie,
+      selectedId,
+    );
+    return { workspaces, workspaceData, status: "ready" };
+  } catch {
+    return { workspaces: [], workspaceData: null, status: "error" };
+  }
+}
 
 export const getWorkspaceUiData = cache(
   async (workspaceId?: string | null): Promise<WorkspaceUiData | null> => {
@@ -246,24 +260,48 @@ export const getWorkspaceUiData = cache(
   },
 );
 
+export const getWorkspaceLog = cache(
+  async (
+    workspaceId: string,
+    logId: string,
+  ): Promise<WorkspaceLogItem | null> => {
+    try {
+      const headerStore = await headers();
+      const log = await fetchJson<WorkspaceLogDetailResponse>(
+        `/workspaces/${workspaceId}/logs/${logId}`,
+        headerStore.get("cookie") ?? "",
+      );
+      return mapLog(log);
+    } catch {
+      return null;
+    }
+  },
+);
+
+export const getWorkspaceOutput = cache(
+  async (
+    workspaceId: string,
+    outputId: string,
+  ): Promise<WorkspaceTaskOutput | null> => {
+    try {
+      const headerStore = await headers();
+      const output = await fetchJson<OutputDetailResponse>(
+        `/workspaces/${workspaceId}/outputs/${outputId}`,
+        headerStore.get("cookie") ?? "",
+      );
+      return mapOutput(output);
+    } catch {
+      return null;
+    }
+  },
+);
+
 async function fetchWorkspaceUiData(
   workspaces: WorkspaceResponse[],
   cookie: string,
   workspaceId?: string | null,
 ): Promise<WorkspaceUiData | null> {
-  if (workspaces.length === 0) {
-    return null;
-  }
-
-  const selected =
-    (workspaceId
-      ? workspaces.find((workspace) => String(workspace.id) === workspaceId)
-      : null) ??
-    workspaces.find(
-      (workspace) =>
-        String(workspace.id) === readActiveWorkspaceIdFromCookie(cookie),
-    ) ??
-    workspaces[0];
+  const selected = selectWorkspace(workspaces, cookie, workspaceId);
 
   if (!selected) {
     return null;
@@ -309,20 +347,11 @@ async function fetchWorkspaceUiData(
       ).catch(() => null),
     ]);
 
-  const outputDetails = await Promise.all(
-    outputSummaries.map((output) =>
-      fetchJson<OutputDetailResponse>(
-        `/workspaces/${selectedId}/outputs/${output.id}`,
-        cookie,
-      ).catch(() => output),
-    ),
-  );
-
   return mapWorkspaceSnapshot({
     workspace: selected,
     tasks,
     logs,
-    outputs: outputDetails,
+    outputs: outputSummaries,
     todos,
     taskLinks,
     logLinks,
@@ -330,6 +359,54 @@ async function fetchWorkspaceUiData(
     memories,
     workingBrief,
   });
+}
+
+function selectWorkspace(
+  workspaces: WorkspaceResponse[],
+  cookie: string,
+  workspaceId?: string | null,
+) {
+  return (
+    (workspaceId
+      ? workspaces.find((workspace) => String(workspace.id) === workspaceId)
+      : null) ??
+    workspaces.find(
+      (workspace) =>
+        String(workspace.id) === readActiveWorkspaceIdFromCookie(cookie),
+    ) ??
+    workspaces[0]
+  );
+}
+
+async function fetchWorkspaceNavigationData(
+  workspaces: WorkspaceResponse[],
+  cookie: string,
+  workspaceId?: string | null,
+): Promise<WorkspaceUiData | null> {
+  const selected = selectWorkspace(workspaces, cookie, workspaceId);
+  if (!selected) {
+    return null;
+  }
+
+  const [tasks, logs] = await Promise.all([
+    fetchAllTasks(selected.id, cookie),
+    fetchAllLogs(selected.id, cookie),
+  ]);
+
+  return {
+    workspaceId: String(selected.id),
+    workspaceName: selected.name || selected.slug,
+    repositoryFullName: selected.repoFullName,
+    tasks: tasks.map(mapTask),
+    logs: logs.map(mapLog),
+    outputs: [],
+    todos: [],
+    taskLinks: [],
+    logLinks: [],
+    crossLinks: [],
+    memories: [],
+    workingBrief: null,
+  };
 }
 
 export const getWorkspaceMemory = cache(
@@ -460,16 +537,10 @@ async function fetchAllTasks(workspaceId: number, cookie: string) {
 }
 
 async function fetchOutputs(workspaceId: number, cookie: string) {
-  const groups = await Promise.all(
-    (["DRAFT", "EXPORTED", "PUBLISHED"] as const).map((status) =>
-      fetchJson<OutputResponse[]>(
-        `/workspaces/${workspaceId}/outputs?status=${status}`,
-        cookie,
-      ),
-    ),
+  return fetchJson<OutputResponse[]>(
+    `/workspaces/${workspaceId}/outputs`,
+    cookie,
   );
-
-  return groups.flat();
 }
 
 async function fetchAllMemories(workspaceId: number, cookie: string) {
@@ -509,21 +580,7 @@ async function fetchAllLogs(workspaceId: number, cookie: string) {
     hasNext = page.hasNext && !!cursor;
   }
 
-  return Promise.all(
-    logs.map((log) =>
-      fetchJson<WorkspaceLogDetailResponse>(
-        `/workspaces/${workspaceId}/logs/${log.id}`,
-        cookie,
-      ).catch(
-        (): WorkspaceLogDetailResponse => ({
-          ...log,
-          content: log.summary ?? "",
-          updatedAt: log.createdAt,
-          closedAt: null,
-        }),
-      ),
-    ),
-  );
+  return logs;
 }
 
 async function fetchJson<T>(path: string, cookie: string): Promise<T> {
@@ -619,9 +676,12 @@ function mapTask(task: WorkspaceTaskResponse): WorkspaceWorkItem {
   };
 }
 
-function mapLog(log: WorkspaceLogDetailResponse): WorkspaceLogItem {
+function mapLog(
+  log: WorkspaceLogResponse | WorkspaceLogDetailResponse,
+): WorkspaceLogItem {
   const label = mapLogLabel(log.kind);
-  const description = log.summary ?? excerpt(log.content) ?? "";
+  const content = "content" in log ? log.content : undefined;
+  const description = log.summary ?? (content ? excerpt(content) : "");
 
   return {
     id: String(log.id),
@@ -635,15 +695,23 @@ function mapLog(log: WorkspaceLogDetailResponse): WorkspaceLogItem {
     meta: buildLogMeta(log),
     href: getLogHref(String(log.id)),
     taskId: log.taskId ? String(log.taskId) : undefined,
-    body: log.content,
+    body: content,
     createdAt: log.createdAt,
   };
 }
 
-function mapOutput(output: OutputDetailResponse | OutputResponse): WorkspaceTaskOutput {
+function mapOutput(
+  output: OutputDetailResponse | OutputResponse,
+): WorkspaceTaskOutput {
   const isDetail = "content" in output;
-  const taskIds = isDetail ? output.tasks.map((task) => String(task.id)) : [];
-  const logIds = isDetail ? output.logs.map((log) => String(log.id)) : [];
+  const taskIds = isDetail
+    ? output.tasks.map((task) => String(task.id))
+    : (output.taskIds ?? []).map(String);
+  const logIds = isDetail
+    ? output.logs.map((log) => String(log.id))
+    : (output.logIds ?? []).map(String);
+  const taskCount = isDetail ? taskIds.length : output.taskCount;
+  const logCount = isDetail ? logIds.length : output.logCount;
   const status = mapOutputStatus(output.status);
 
   return {
@@ -651,11 +719,13 @@ function mapOutput(output: OutputDetailResponse | OutputResponse): WorkspaceTask
     taskId: taskIds[0] ?? "",
     taskIds,
     logIds,
+    taskCount,
+    logCount,
     status,
     title: output.title,
     description: [
-      `${isDetail ? taskIds.length : output.taskCount} task${(isDetail ? taskIds.length : output.taskCount) === 1 ? "" : "s"}`,
-      `${isDetail ? logIds.length : output.logCount} log${(isDetail ? logIds.length : output.logCount) === 1 ? "" : "s"}`,
+      `${taskCount} task${taskCount === 1 ? "" : "s"}`,
+      `${logCount} log${logCount === 1 ? "" : "s"}`,
     ].join(" · "),
     content: isDetail ? output.content : "",
     updatedLabel: formatDateLabel(output.updatedAt),
@@ -720,12 +790,13 @@ function mapOutputStatus(status: OutputStatus): WorkspaceOutputStatus {
   return status === "PUBLISHED" ? "published" : "draft";
 }
 
-function buildLogMeta(log: WorkspaceLogDetailResponse) {
+function buildLogMeta(log: WorkspaceLogResponse | WorkspaceLogDetailResponse) {
   if (log.status === "OPEN") {
     return `open · ${formatDateLabel(log.createdAt)}`;
   }
   if (log.status === "CLOSED") {
-    return `closed · ${formatDateLabel(log.closedAt ?? log.createdAt)}`;
+    const closedAt = "closedAt" in log ? log.closedAt : null;
+    return `closed · ${formatDateLabel(closedAt ?? log.createdAt)}`;
   }
 
   return formatDateLabel(log.createdAt);
@@ -738,7 +809,9 @@ function excerpt(content: string, maxLength = 120) {
     .trim();
 
   if (!plain) return "";
-  return plain.length <= maxLength ? plain : `${plain.slice(0, maxLength).trim()}...`;
+  return plain.length <= maxLength
+    ? plain
+    : `${plain.slice(0, maxLength).trim()}...`;
 }
 
 function formatDateLabel(value: string) {

@@ -6,7 +6,10 @@ import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { getLogById } from "@/entities/workspace/model/data";
 import { LogDetailShell } from "@/pages/logs/ui/LogDetailShell";
 import { requireWorkspaceData } from "@/widgets/app-shell/lib/requireWorkspacePageData";
-import { loadWorkspacePageData } from "@/entities/workspace/api/workspaceApi";
+import {
+  getWorkspaceLog,
+  loadWorkspacePageData,
+} from "@/entities/workspace/api/workspaceApi";
 
 export async function LogDetailFeed({
   logId,
@@ -22,9 +25,9 @@ export async function LogDetailFeed({
     : { workspaces: [], workspaceData: null, status: "empty" as const };
   const workspaces = pageData.workspaces;
   const workspaceData = user ? requireWorkspaceData(pageData) : null;
-  const log =
-    workspaceData?.logs.find((item) => item.id === logId) ??
-    (user ? undefined : getLogById(logId));
+  const log = workspaceData
+    ? await getWorkspaceLog(workspaceData.workspaceId, logId)
+    : getLogById(logId);
 
   if (!log) {
     notFound();

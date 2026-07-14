@@ -16,16 +16,18 @@ import org.springframework.stereotype.Component
 class OutputMapper {
     fun toOutputResponse(
         output: WorkspaceOutput,
-        taskCount: Int,
-        logCount: Int,
+        taskIds: List<Long>,
+        logIds: List<Long>,
     ): OutputResponse {
         return OutputResponse(
             id = requireNotNull(output.id),
             status = output.status,
             title = output.title,
             authorName = resolveAuthorName(output.author),
-            taskCount = taskCount,
-            logCount = logCount,
+            taskCount = taskIds.size,
+            logCount = logIds.size,
+            taskIds = taskIds,
+            logIds = logIds,
             createdAt = output.createdAt.toString(),
             updatedAt = output.updatedAt.toString(),
             publishedAt = output.publishedAt?.toString(),

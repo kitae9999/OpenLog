@@ -6,7 +6,7 @@ import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { getTaskById } from "@/entities/workspace/model/data";
 import { requireWorkspaceData } from "@/widgets/app-shell/lib/requireWorkspacePageData";
 import { TaskEditShell } from "@/pages/tasks/ui/TaskEditShell";
-import { loadWorkspacePageData } from "@/entities/workspace/api/workspaceApi";
+import { loadWorkspaceNavigationPageData } from "@/entities/workspace/api/workspaceApi";
 
 export async function TaskEditFeed({
   taskId,
@@ -18,7 +18,7 @@ export async function TaskEditFeed({
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
   const pageData = user
-    ? await loadWorkspacePageData()
+    ? await loadWorkspaceNavigationPageData()
     : { workspaces: [], workspaceData: null, status: "empty" as const };
   const workspaces = pageData.workspaces;
   const workspaceData = user ? requireWorkspaceData(pageData) : null;

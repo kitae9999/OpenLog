@@ -574,6 +574,8 @@ export type WorkspaceTaskOutput = {
   taskId: string;
   taskIds: string[];
   logIds: string[];
+  taskCount?: number;
+  logCount?: number;
   status: WorkspaceOutputStatus;
   title: string;
   description: string;

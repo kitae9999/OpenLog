@@ -6,5 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface OutputTaskRepository : JpaRepository<OutputTask, OutputTaskId> {
     fun findAllByOutputId(outputId: Long): List<OutputTask>
+    fun findAllByOutputIdIn(outputIds: Collection<Long>): List<OutputTask>
     fun findAllByTaskId(taskId: Long): List<OutputTask>
 }

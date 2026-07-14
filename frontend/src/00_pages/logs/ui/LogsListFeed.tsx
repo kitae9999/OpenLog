@@ -5,7 +5,7 @@ import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import type { LogListTypeFilter } from "@/entities/workspace/model/data";
 import { LogsListShell } from "@/pages/logs/ui/LogsListShell";
 import { requireWorkspaceData } from "@/widgets/app-shell/lib/requireWorkspacePageData";
-import { loadWorkspacePageData } from "@/entities/workspace/api/workspaceApi";
+import { loadWorkspaceNavigationPageData } from "@/entities/workspace/api/workspaceApi";
 
 export async function LogsListFeed({
   typeFilter = "all",
@@ -17,7 +17,7 @@ export async function LogsListFeed({
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
   const pageData = user
-    ? await loadWorkspacePageData()
+    ? await loadWorkspaceNavigationPageData()
     : { workspaces: [], workspaceData: null, status: "empty" as const };
   const workspaces = pageData.workspaces;
   const workspaceData = user ? requireWorkspaceData(pageData) : null;
