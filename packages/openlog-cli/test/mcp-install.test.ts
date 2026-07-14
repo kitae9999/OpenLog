@@ -97,7 +97,7 @@ test("rejects invalid Cursor config instead of overwriting it", () => {
   );
 });
 
-test("installs a self-contained npx MCP command", async () => {
+test("installs a latest-tagged npx MCP command", async () => {
   let installedConfig: ServerConfig | undefined;
 
   await installMcp(
@@ -112,7 +112,11 @@ test("installs a self-contained npx MCP command", async () => {
   );
 
   assert.equal(installedConfig?.command, "npx");
-  assert.deepEqual(installedConfig?.args, ["-y", "@openloghq/cli", "mcp"]);
+  assert.deepEqual(installedConfig?.args, [
+    "-y",
+    "@openloghq/cli@latest",
+    "mcp",
+  ]);
 });
 
 test("all installs every client and reports failures after continuing", async () => {
