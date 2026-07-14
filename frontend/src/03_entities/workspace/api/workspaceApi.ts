@@ -119,8 +119,8 @@ type OutputResponse = {
   title: string;
   taskCount: number;
   logCount: number;
-  taskIds: number[];
-  logIds: number[];
+  taskIds?: number[];
+  logIds?: number[];
   updatedAt: string;
   publishedAt: string | null;
 };
@@ -706,10 +706,10 @@ function mapOutput(
   const isDetail = "content" in output;
   const taskIds = isDetail
     ? output.tasks.map((task) => String(task.id))
-    : output.taskIds.map(String);
+    : (output.taskIds ?? []).map(String);
   const logIds = isDetail
     ? output.logs.map((log) => String(log.id))
-    : output.logIds.map(String);
+    : (output.logIds ?? []).map(String);
   const taskCount = isDetail ? taskIds.length : output.taskCount;
   const logCount = isDetail ? logIds.length : output.logCount;
   const status = mapOutputStatus(output.status);
