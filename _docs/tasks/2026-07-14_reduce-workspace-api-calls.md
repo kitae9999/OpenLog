@@ -6,7 +6,7 @@
 - 작성자: OpenLog Team
 - 작업 브랜치: `refactor/reduce-workspace-api-calls`
 - 상태: Done
-- 관련 링크: 커밋 `ea00574`, `df26e1b`, `fd628bb`
+- 관련 링크: 커밋 `8bce9e2`, `0f5c0c9`, `45c145e`, `69a7893`
 - 영향 범위: 프론트엔드 워크스페이스 서버 렌더링, 로그/산출물 조회 API, 백엔드 산출물 연관 데이터 조회
 
 ## 1. 문제 정의 (Problem Statement)
@@ -255,15 +255,16 @@ Repository 메서드 호출을 코드에 명시된 호출 기준으로 계산한
 ### 조사/측정
 - [x] `develop`과 현재 브랜치의 호출 경로 비교 — `workspaceApi.ts`
 - [x] 페이지네이션 크기와 최소 호출 수 확인 — Task/Log/Memory `size=50`
-- [x] 화면별 전체/경량 로더 사용처 확인 — 커밋 `fd628bb`
-- [x] 백엔드 Output Repository 호출 구조 확인 — 커밋 `df26e1b`
+- [x] 화면별 전체/경량 로더 사용처 확인 — 커밋 `45c145e`
+- [x] 백엔드 Output Repository 호출 구조 확인 — 커밋 `0f5c0c9`
 
 ### 구현
-- [x] Log 목록 직후 상세 N+1 제거 — 커밋 `ea00574`
-- [x] Output 목록 직후 상세 N+1 제거 — 커밋 `df26e1b`
-- [x] Output 상태별 3회 호출을 1회로 통합 — 커밋 `df26e1b`
-- [x] Output 연결 조회를 배치 처리 — 커밋 `df26e1b`
-- [x] 화면별 경량 로더 적용 — 커밋 `fd628bb`
+- [x] Log 목록 직후 상세 N+1 제거 — 커밋 `8bce9e2`
+- [x] Output 목록 직후 상세 N+1 제거 — 커밋 `0f5c0c9`
+- [x] Output 상태별 3회 호출을 1회로 통합 — 커밋 `0f5c0c9`
+- [x] Output 연결 조회를 배치 처리 — 커밋 `0f5c0c9`
+- [x] 화면별 경량 로더 적용 — 커밋 `45c145e`
+- [x] 구버전 Output 목록 응답 배포 호환성 처리 — 커밋 `69a7893`
 
 ### 테스트
 - [x] 프론트 TypeScript 검사 통과 — `pnpm exec tsc --noEmit`
