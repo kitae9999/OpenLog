@@ -109,6 +109,35 @@ test("setup can install into all agents", async () => {
   assert.equal(installedClient, "all");
 });
 
+test("setup continues after a partial all-agent install failure", async () => {
+  const output: string[] = [];
+  let writtenProfile: string | null = null;
+
+  await runSetup({
+    isTTY: true,
+    promptIo: scriptedPrompt(["1", "2"]),
+    writeOutput: (message) => output.push(message),
+    readAuth: async () => authFixture(),
+    login: async () => {
+      throw new Error("login should not run");
+    },
+    fetchMe: async () => ({ nickname: "kitae" }),
+    installMcp: async () => {
+      throw new Error("claude-code: Claude CLI unavailable");
+    },
+    readPermissions: async () => permissionsFixture(),
+    writePermissionProfile: async (profile) => {
+      writtenProfile = profile;
+      return permissionsFixture({ profile, configured: true });
+    },
+  });
+
+  assert.equal(writtenProfile, "read-only");
+  assert.match(output.join("\n"), /Some clients could not be configured/);
+  assert.match(output.join("\n"), /Continuing with MCP permission setup/);
+  assert.match(output.join("\n"), /Setup complete/);
+});
+
 test("setup skips install and keeps profile when already signed in", async () => {
   const output: string[] = [];
   let installCalls = 0;

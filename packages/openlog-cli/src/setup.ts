@@ -105,7 +105,16 @@ export async function runSetup(
 
     if (agent !== "skip") {
       write("");
-      await runInstall({ client: agent, printOnly: false });
+      try {
+        await runInstall({ client: agent, printOnly: false });
+      } catch (error) {
+        if (agent !== "all") {
+          throw error;
+        }
+        write(dim("Some clients could not be configured:"));
+        write(dim(error instanceof Error ? error.message : String(error)));
+        write(dim("Continuing with MCP permission setup."));
+      }
     } else {
       write(dim("Skipped MCP install. You can run `openlog mcp install` later."));
     }
