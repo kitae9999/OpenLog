@@ -879,14 +879,16 @@ function PostsView({ posts }: { posts: FeedPost[] }) {
               role="tab"
               aria-selected={active}
               className={cn(
-                "relative h-9 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-800",
+                "group relative h-9 cursor-pointer px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-950",
               )}
             >
               {tab}
               {active ? (
                 <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
-              ) : null}
+              ) : (
+                <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-300 opacity-0 transition group-hover:opacity-100" />
+              )}
             </button>
           );
         })}
@@ -960,16 +962,18 @@ function ExploreView({
                 aria-selected={active}
                 onClick={() => onSubTabChange(tab.key)}
                 className={cn(
-                  "relative inline-flex h-9 items-center gap-1.5 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                  "group relative inline-flex h-9 cursor-pointer items-center gap-1.5 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
                   active
                     ? "text-zinc-950"
-                    : "text-zinc-500 hover:text-zinc-800",
+                    : "text-zinc-500 hover:text-zinc-950",
                 )}
               >
                 <span
                   className={cn(
-                    "shrink-0",
-                    active ? "text-zinc-700" : "text-zinc-400",
+                    "shrink-0 transition",
+                    active
+                      ? "text-zinc-700"
+                      : "text-zinc-400 group-hover:text-zinc-500",
                   )}
                 >
                   {getExploreTabIcon(tab.key)}
@@ -977,7 +981,9 @@ function ExploreView({
                 {tab.label}
                 {active ? (
                   <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
-                ) : null}
+                ) : (
+                  <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-300 opacity-0 transition group-hover:opacity-100" />
+                )}
               </button>
             );
           })}
