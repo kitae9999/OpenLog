@@ -4,7 +4,7 @@ import Link from "next/link";
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { GuestActions } from "@/features/auth/ui";
-import { logoMarkClassName, logoWordmarkClassName } from "./brand";
+import { logoMarkClassName, logoWordmarkClassName } from "@/shared/config/brand";
 import { NotificationMenu } from "./NotificationMenu";
 import { ProfileMenu } from "./ProfileMenu";
 import { SearchBar } from "./SearchBar";

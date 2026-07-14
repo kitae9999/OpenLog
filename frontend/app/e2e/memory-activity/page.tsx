@@ -1,6 +1,6 @@
-import { ActivityView } from "@/widgets/home-feed/ui/ActivityView";
-import { MemoryListView } from "@/widgets/home-feed/ui/MemoryViews";
-import type { WorkspaceActivity, WorkspaceUiData } from "@/widgets/home-feed/ui/workspaceTypes";
+import { ActivityView } from "@/pages/activity/ui/ActivityView";
+import { MemoryListView } from "@/pages/memory/ui/MemoryViews";
+import type { WorkspaceActivity, WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
 
 const workspaceData: WorkspaceUiData = {
   workspaceId: "e2e-workspace",

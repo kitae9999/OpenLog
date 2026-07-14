@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WorkspaceCreateFeed } from "@/widgets/home-feed/ui/WorkspaceCreateFeed";
+import { WorkspaceCreateFeed } from "@/pages/workspace-create/ui/WorkspaceCreateFeed";
 
 export const metadata: Metadata = {
   title: "New workspace | OpenLog",

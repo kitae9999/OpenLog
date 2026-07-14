@@ -9,7 +9,7 @@ import { handleOAuth } from "@/features/auth/api/handleOAuth";
 import {
   logoMarkClassName,
   logoWordmarkClassName,
-} from "@/widgets/chrome/ui/brand";
+} from "@/shared/config/brand";
 import { cn } from "@/shared/lib/cn";
 import { GitHubIcon } from "@/shared/ui/icons";
 import { LandingGraphDemo } from "./LandingGraphDemo";

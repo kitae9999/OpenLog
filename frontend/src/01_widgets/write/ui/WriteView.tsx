@@ -35,11 +35,11 @@ import {
 } from "@/shared/lib/markdown";
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import { Footer } from "@/widgets/chrome/ui";
-import { AppChromeShell } from "@/widgets/home-feed/ui/AppChromeShell";
+import { AppChromeShell } from "@/widgets/app-shell/ui/AppChromeShell";
 import type {
   ManagedWorkspace,
   WorkspaceUiData,
-} from "@/widgets/home-feed/ui/workspaceTypes";
+} from "@/entities/workspace/model/workspaceTypes";
 
 type ComposerMode = "edit" | "preview";
 type WriteViewMode = "create" | "edit";

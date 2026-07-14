@@ -1,5 +1,5 @@
-import { OutputsListFeed } from "@/widgets/home-feed/ui/OutputsListFeed";
-import type { WorkspaceOutputStatus } from "@/widgets/home-feed/ui/data";
+import { OutputsListFeed } from "@/pages/outputs/ui/OutputsListFeed";
+import type { WorkspaceOutputStatus } from "@/entities/workspace/model/data";
 
 const allowedStatuses: WorkspaceOutputStatus[] = ["draft", "published"];
 

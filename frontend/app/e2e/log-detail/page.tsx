@@ -1,12 +1,12 @@
 "use client";
 
-import { LogDetailView } from "@/widgets/home-feed/ui/LogDetailView";
+import { LogDetailView } from "@/pages/logs/ui/LogDetailView";
 import {
   getLogById,
   workspaceLogs,
   workspaceWorkItems,
-} from "@/widgets/home-feed/ui/data";
-import type { WorkspaceUiData } from "@/widgets/home-feed/ui/workspaceTypes";
+} from "@/entities/workspace/model/data";
+import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
 
 const log =
   getLogById("turbopack-pnpm") ??

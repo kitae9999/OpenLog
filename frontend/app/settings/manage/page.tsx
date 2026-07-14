@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ManageFeed } from "@/widgets/home-feed/ui/ManageFeed";
+import { ManageFeed } from "@/pages/workspace-manage/ui/ManageFeed";
 
 export const metadata: Metadata = {
   title: "Manage | OpenLog",

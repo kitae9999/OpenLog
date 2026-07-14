@@ -1,9 +1,9 @@
 import { Suspense } from "react";
-import { LogsListView } from "@/widgets/home-feed/ui/LogsListView";
-import { MemoryListView } from "@/widgets/home-feed/ui/MemoryViews";
-import { OutputsListView } from "@/widgets/home-feed/ui/OutputsListView";
-import { TasksListView } from "@/widgets/home-feed/ui/TasksListView";
-import type { WorkspaceUiData } from "@/widgets/home-feed/ui/workspaceTypes";
+import { LogsListView } from "@/pages/logs/ui/LogsListView";
+import { MemoryListView } from "@/pages/memory/ui/MemoryViews";
+import { OutputsListView } from "@/pages/outputs/ui/OutputsListView";
+import { TasksListView } from "@/pages/tasks/ui/TasksListView";
+import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
 
 const workspaceData: WorkspaceUiData = {
   workspaceId: "100",

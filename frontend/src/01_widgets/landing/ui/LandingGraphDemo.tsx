@@ -3,13 +3,13 @@
 import { useMemo } from "react";
 import { cn } from "@/shared/lib/cn";
 import { graphCanvasSurfaceClassName } from "@/shared/ui/GraphCanvasBackdrop";
-import { WorkspaceGraphCanvas } from "@/widgets/home-feed/ui/WorkspaceGraphView";
+import { WorkspaceGraphCanvas } from "@/widgets/workspace-graph/ui/WorkspaceGraphView";
 import type {
   WorkspaceGraph,
   WorkspaceGraphEdge,
   WorkspaceGraphNode,
   WorkspaceGraphNodeKind,
-} from "@/widgets/home-feed/ui/workspaceGraphModel";
+} from "@/widgets/workspace-graph/model/workspaceGraphModel";
 
 const LANDING_LINKED_NODE_COUNT = 80;
 const LANDING_ORPHAN_NODE_COUNT = 20;

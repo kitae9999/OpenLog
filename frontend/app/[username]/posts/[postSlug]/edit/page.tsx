@@ -9,7 +9,7 @@ import {
   parsePublicPostSlugParam,
   parsePublicUsernameParam,
 } from "@/shared/lib/publicRoutes";
-import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
+import { loadAppChromeWorkspace } from "@/widgets/app-shell/api/loadAppChromeWorkspace";
 import { WriteView } from "@/widgets/write/ui";
 
 export default async function EditPostPage({

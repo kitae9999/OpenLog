@@ -1,7 +1,7 @@
 "use client";
 
-import { WorkspaceDashboardView } from "@/widgets/home-feed/ui/WorkspaceDashboardView";
-import type { WorkspaceUiData } from "@/widgets/home-feed/ui/workspaceTypes";
+import { WorkspaceDashboardView } from "@/widgets/workspace-dashboard/ui/WorkspaceDashboardView";
+import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
 
 const fixture: WorkspaceUiData = {
   workspaceId: "demo-workspace",

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getUser } from "@/features/auth/api/getUser";
 import { API_CONFIG } from "@/shared/api";
-import { logoMarkClassName } from "@/widgets/chrome/ui/brand";
+import { logoMarkClassName } from "@/shared/config/brand";
 import { cn } from "@/shared/lib/cn";
 import { CliLoginApprovalForm } from "./CliLoginApprovalForm";
 

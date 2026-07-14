@@ -1,4 +1,4 @@
-import { LogDetailFeed } from "@/widgets/home-feed/ui/LogDetailFeed";
+import { LogDetailFeed } from "@/pages/logs/ui/LogDetailFeed";
 
 export default async function LogDetailPage({
   params,

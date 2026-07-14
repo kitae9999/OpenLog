@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { Footer } from "@/widgets/chrome/ui";
-import { AppChromeShell } from "@/widgets/home-feed/ui/AppChromeShell";
-import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
+import { AppChromeShell } from "@/widgets/app-shell/ui/AppChromeShell";
+import { loadAppChromeWorkspace } from "@/widgets/app-shell/api/loadAppChromeWorkspace";
 import { NewSuggestionView } from "@/widgets/post/ui";
 import { getPostSuggestionDetail } from "@/entities/post/api/getPostSuggestionDetail";
 import { getPostSuggestions } from "@/entities/post/api/getPostSuggestions";

@@ -1,5 +1,5 @@
-import { PlannerView } from "@/widgets/home-feed/ui/PlannerView";
-import type { WorkspaceUiData } from "@/widgets/home-feed/ui/workspaceTypes";
+import { PlannerView } from "@/pages/planner/ui/PlannerView";
+import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
 
 const workspaceData: WorkspaceUiData = {
   workspaceId: "e2e-workspace",

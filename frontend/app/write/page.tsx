@@ -3,7 +3,7 @@ import { getPublicUserPosts } from "@/entities/user/api/getPublicUserPosts";
 import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 import { WriteView } from "@/widgets/write/ui";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
-import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
+import { loadAppChromeWorkspace } from "@/widgets/app-shell/api/loadAppChromeWorkspace";
 
 export const metadata: Metadata = {
   title: "Write | OpenLog",
