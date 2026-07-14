@@ -52,7 +52,10 @@ export function useWorkspaceLiveSync({
   }, []);
 
   const syncStatusRef = useRef(syncFill.status);
-  syncStatusRef.current = syncFill.status;
+
+  useEffect(() => {
+    syncStatusRef.current = syncFill.status;
+  }, [syncFill.status]);
 
   useEffect(() => {
     if (!enabled || workspaceId == null) {

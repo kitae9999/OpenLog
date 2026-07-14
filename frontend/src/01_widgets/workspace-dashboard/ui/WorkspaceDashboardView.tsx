@@ -46,7 +46,6 @@ import {
   isIncomingId,
   isZoneFetching,
   type SyncFillState,
-  type SyncFillZone,
 } from "@/shared/model/syncFill";
 import { FetchingIndicator } from "@/shared/ui/sync/FetchingIndicator";
 import { useWorkspaceLiveSync } from "@/features/workspace-sync/model/useWorkspaceLiveSync";
@@ -364,7 +363,6 @@ export function WorkspaceDashboardView({
   const logs = resolvedWorkspaceData?.logs ?? [];
   const memories = resolvedWorkspaceData?.memories ?? [];
   const outputs = resolvedWorkspaceData?.outputs ?? [];
-  const todos = resolvedWorkspaceData?.todos ?? [];
   // Backend timestamps are timezone-free Asia/Seoul local datetimes.
   const brief =
     resolvedWorkspaceData?.workingBrief ?? deriveWorkingBrief(tasks, logs);
@@ -389,27 +387,20 @@ export function WorkspaceDashboardView({
     isPreviewHighlight(highlight, "task", brief.taskId);
 
   useEffect(() => {
-    if (isPreview) {
+    if (isPreview || !resolvedWorkspaceData) {
       return;
     }
     noteEntityIds([
-      ...tasks.map((task) => task.id),
-      ...logs.map((log) => log.id),
-      ...todos.map((todo) => todo.id),
-      ...outputs.map((output) => output.id),
-      ...memories.map((memory) => memory.id),
-      ...(brief ? ["working-brief"] : []),
+      ...resolvedWorkspaceData.tasks.map((task) => task.id),
+      ...resolvedWorkspaceData.logs.map((log) => log.id),
+      ...resolvedWorkspaceData.todos.map((todo) => todo.id),
+      ...resolvedWorkspaceData.outputs.map((output) => output.id),
+      ...resolvedWorkspaceData.memories.map((memory) => memory.id),
+      ...(resolvedWorkspaceData.workingBrief || brief
+        ? ["working-brief"]
+        : []),
     ]);
-  }, [
-    brief,
-    isPreview,
-    logs,
-    memories,
-    noteEntityIds,
-    outputs,
-    tasks,
-    todos,
-  ]);
+  }, [brief, isPreview, noteEntityIds, resolvedWorkspaceData]);
 
   useEffect(() => {
     if (!isPreview || !replaySnapshot) {
@@ -642,7 +633,6 @@ export function WorkspaceDashboardView({
           <SectionRule />
           <PreviewOutputSection
             outputs={outputs}
-            isPreview={isPreview}
             syncFill={syncFill}
             highlight={highlight}
           />
@@ -853,12 +843,10 @@ function GraphPanel({
 
 function PreviewOutputSection({
   outputs,
-  isPreview,
   syncFill,
   highlight,
 }: {
   outputs: WorkspaceTaskOutput[];
-  isPreview: boolean;
   syncFill: SyncFillState;
   highlight: PreviewReplayHighlight;
 }) {
