@@ -122,7 +122,7 @@ function buildServerConfig(): ServerConfig {
 
   return {
     command: "npx",
-    args: ["-y", "@openloghq/cli", "mcp"],
+    args: ["-y", "@openloghq/cli@latest", "mcp"],
     env,
   };
 }

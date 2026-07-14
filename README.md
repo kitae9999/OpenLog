@@ -69,7 +69,7 @@ The official CLI requires Node.js 20 or later.
 Run the guided setup for your first connection:
 
 ```bash
-npx -y @openloghq/cli
+npx -y @openloghq/cli@latest
 ```
 
 The interactive wizard signs you in, registers OpenLog MCP with Codex, Claude
@@ -77,15 +77,15 @@ Code, Cursor, or all supported clients, and lets you choose a local MCP
 permission profile. You can run the wizard again at any time:
 
 ```bash
-npx -y @openloghq/cli setup
+npx -y @openloghq/cli@latest setup
 ```
 
 For non-interactive shells or manual setup, run the individual commands:
 
 ```bash
-npx -y @openloghq/cli login
-npx -y @openloghq/cli whoami
-npx -y @openloghq/cli mcp
+npx -y @openloghq/cli@latest login
+npx -y @openloghq/cli@latest whoami
+npx -y @openloghq/cli@latest mcp
 ```
 
 - `openlog login` starts device login and opens the approval page in your browser.
@@ -107,7 +107,7 @@ openlog
   "mcpServers": {
     "openlog": {
       "command": "npx",
-      "args": ["-y", "@openloghq/cli", "mcp"]
+      "args": ["-y", "@openloghq/cli@latest", "mcp"]
     }
   }
 }
@@ -165,7 +165,7 @@ openlog mcp permissions reset
 ```bash
 OPENLOG_API_BASE_URL=http://localhost:8080/api \
 OPENLOG_WEB_BASE_URL=http://localhost:3030 \
-npx -y @openloghq/cli mcp
+npx -y @openloghq/cli@latest mcp
 ```
 
 - `OPENLOG_API_BASE_URL`: API base URL used by the CLI and MCP server
