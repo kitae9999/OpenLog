@@ -67,9 +67,9 @@ Open [openlog.kr](https://openlog.kr), sign in, and create a workspace.
 The official CLI requires Node.js 20 or later.
 
 ```bash
-npx -y @kitae9999/openlog-cli login
-npx -y @kitae9999/openlog-cli whoami
-npx -y @kitae9999/openlog-cli mcp
+npx -y @openloghq/cli login
+npx -y @openloghq/cli whoami
+npx -y @openloghq/cli mcp
 ```
 
 - `openlog login` starts device login and opens the approval page in your browser.
@@ -80,7 +80,7 @@ npx -y @kitae9999/openlog-cli mcp
 You can also install the CLI globally:
 
 ```bash
-npm install -g @kitae9999/openlog-cli
+npm install -g @openloghq/cli
 openlog login
 openlog mcp
 ```
@@ -92,7 +92,7 @@ openlog mcp
   "mcpServers": {
     "openlog": {
       "command": "npx",
-      "args": ["-y", "@kitae9999/openlog-cli", "mcp"]
+      "args": ["-y", "@openloghq/cli", "mcp"]
     }
   }
 }
@@ -145,7 +145,7 @@ openlog mcp permissions reset
 ```bash
 OPENLOG_API_BASE_URL=http://localhost:8080/api \
 OPENLOG_WEB_BASE_URL=http://localhost:3030 \
-npx -y @kitae9999/openlog-cli mcp
+npx -y @openloghq/cli mcp
 ```
 
 - `OPENLOG_API_BASE_URL`: API base URL used by the CLI and MCP server

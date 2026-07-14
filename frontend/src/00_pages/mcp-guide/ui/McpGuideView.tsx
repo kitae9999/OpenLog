@@ -174,12 +174,12 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
         <p className="text-[12.5px] text-zinc-500">
           {copy.footerPackage}{" "}
           <a
-            href="https://www.npmjs.com/package/@kitae9999/openlog-cli"
+            href="https://www.npmjs.com/package/@openloghq/cli"
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium text-zinc-700 underline-offset-2 transition hover:text-zinc-950 hover:underline"
           >
-            @kitae9999/openlog-cli
+            @openloghq/cli
           </a>
         </p>
       </footer>

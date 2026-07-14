@@ -3,9 +3,9 @@
 Official CLI and MCP server for OpenLog.
 
 ```bash
-npx -y @kitae9999/openlog-cli login
-npx -y @kitae9999/openlog-cli whoami
-npx -y @kitae9999/openlog-cli mcp
+npx -y @openloghq/cli login
+npx -y @openloghq/cli whoami
+npx -y @openloghq/cli mcp
 ```
 
 Local MCP permissions:
@@ -34,7 +34,7 @@ MCP client configuration:
   "mcpServers": {
     "openlog": {
       "command": "npx",
-      "args": ["-y", "@kitae9999/openlog-cli", "mcp"]
+      "args": ["-y", "@openloghq/cli", "mcp"]
     }
   }
 }
