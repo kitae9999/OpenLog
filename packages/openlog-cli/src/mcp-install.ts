@@ -121,8 +121,8 @@ function buildServerConfig(): ServerConfig {
   }
 
   return {
-    command: "openlog",
-    args: ["mcp"],
+    command: "npx",
+    args: ["-y", "@openloghq/cli", "mcp"],
     env,
   };
 }
