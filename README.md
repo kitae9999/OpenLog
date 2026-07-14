@@ -66,6 +66,22 @@ Open [openlog.kr](https://openlog.kr), sign in, and create a workspace.
 
 The official CLI requires Node.js 20 or later.
 
+Run the guided setup for your first connection:
+
+```bash
+npx -y @openloghq/cli
+```
+
+The interactive wizard signs you in, registers OpenLog MCP with Codex, Claude
+Code, Cursor, or all supported clients, and lets you choose a local MCP
+permission profile. You can run the wizard again at any time:
+
+```bash
+npx -y @openloghq/cli setup
+```
+
+For non-interactive shells or manual setup, run the individual commands:
+
 ```bash
 npx -y @openloghq/cli login
 npx -y @openloghq/cli whoami
@@ -81,8 +97,7 @@ You can also install the CLI globally:
 
 ```bash
 npm install -g @openloghq/cli
-openlog login
-openlog mcp
+openlog
 ```
 
 ### MCP client configuration
