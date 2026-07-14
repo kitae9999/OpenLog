@@ -69,7 +69,7 @@ OpenLog는 그 맥락을 실제 작업 가까이에 남깁니다.
 처음 연결할 때는 대화형 설정을 실행하세요.
 
 ```bash
-npx -y @openloghq/cli
+npx -y @openloghq/cli@latest
 ```
 
 온보딩 위저드가 로그인, Codex·Claude Code·Cursor 또는 모든 지원 client의
@@ -77,15 +77,15 @@ OpenLog MCP 등록, 로컬 MCP 권한 프로필 선택을 차례로 안내합니
 언제든 다시 실행할 수 있습니다.
 
 ```bash
-npx -y @openloghq/cli setup
+npx -y @openloghq/cli@latest setup
 ```
 
 비대화형 환경이나 수동 설정에서는 개별 명령을 사용하세요.
 
 ```bash
-npx -y @openloghq/cli login
-npx -y @openloghq/cli whoami
-npx -y @openloghq/cli mcp
+npx -y @openloghq/cli@latest login
+npx -y @openloghq/cli@latest whoami
+npx -y @openloghq/cli@latest mcp
 ```
 
 - `openlog login`: device login을 시작하고 브라우저에서 승인 화면을 엽니다.
@@ -107,7 +107,7 @@ openlog
   "mcpServers": {
     "openlog": {
       "command": "npx",
-      "args": ["-y", "@openloghq/cli", "mcp"]
+      "args": ["-y", "@openloghq/cli@latest", "mcp"]
     }
   }
 }
@@ -165,7 +165,7 @@ openlog mcp permissions reset
 ```bash
 OPENLOG_API_BASE_URL=http://localhost:8080/api \
 OPENLOG_WEB_BASE_URL=http://localhost:3030 \
-npx -y @openloghq/cli mcp
+npx -y @openloghq/cli@latest mcp
 ```
 
 - `OPENLOG_API_BASE_URL`: CLI와 MCP server가 호출할 API base URL

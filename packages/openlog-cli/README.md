@@ -3,11 +3,11 @@
 Official CLI and MCP server for OpenLog.
 
 ```bash
-npx -y @openloghq/cli
-npx -y @openloghq/cli setup
-npx -y @openloghq/cli login
-npx -y @openloghq/cli whoami
-npx -y @openloghq/cli mcp
+npx -y @openloghq/cli@latest
+npx -y @openloghq/cli@latest setup
+npx -y @openloghq/cli@latest login
+npx -y @openloghq/cli@latest whoami
+npx -y @openloghq/cli@latest mcp
 ```
 
 ## Guided setup
@@ -70,7 +70,7 @@ MCP client configuration:
   "mcpServers": {
     "openlog": {
       "command": "npx",
-      "args": ["-y", "@openloghq/cli", "mcp"]
+      "args": ["-y", "@openloghq/cli@latest", "mcp"]
     }
   }
 }

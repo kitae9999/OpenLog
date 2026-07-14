@@ -231,7 +231,7 @@ export const mcpGuideCopy = {
         items: [
           {
             label: "Not authenticated",
-            body: "run `npx -y @openloghq/cli login` again and complete browser approval.",
+            body: "run `npx -y @openloghq/cli@latest login` again and complete browser approval.",
           },
           {
             label: "Client cannot find npx",
@@ -239,11 +239,11 @@ export const mcpGuideCopy = {
           },
           {
             label: "Onboarding incomplete",
-            body: "run `npx -y @openloghq/cli setup` and finish the guided setup.",
+            body: "run `npx -y @openloghq/cli@latest setup` and finish the guided setup.",
           },
           {
             label: "Invalid permission config",
-            body: "run `npx -y @openloghq/cli mcp permissions reset`, then restart the MCP server.",
+            body: "run `npx -y @openloghq/cli@latest mcp permissions reset`, then restart the MCP server.",
           },
         ],
       },
@@ -306,7 +306,7 @@ export const mcpGuideCopy = {
         items: [
           {
             label: "인증되지 않음",
-            body: "`npx -y @openloghq/cli login`을 다시 실행하고 브라우저 승인을 완료하세요.",
+            body: "`npx -y @openloghq/cli@latest login`을 다시 실행하고 브라우저 승인을 완료하세요.",
           },
           {
             label: "client가 npx를 찾지 못함",
@@ -314,11 +314,11 @@ export const mcpGuideCopy = {
           },
           {
             label: "온보딩 미완료",
-            body: "`npx -y @openloghq/cli setup`을 실행해 대화형 설정을 완료하세요.",
+            body: "`npx -y @openloghq/cli@latest setup`을 실행해 대화형 설정을 완료하세요.",
           },
           {
             label: "잘못된 권한 설정",
-            body: "`npx -y @openloghq/cli mcp permissions reset`을 실행한 뒤 MCP server를 재시작하세요.",
+            body: "`npx -y @openloghq/cli@latest mcp permissions reset`을 실행한 뒤 MCP server를 재시작하세요.",
           },
         ],
       },
@@ -331,25 +331,25 @@ export const mcpClientConfig = `{
   "mcpServers": {
     "openlog": {
       "command": "npx",
-      "args": ["-y", "@openloghq/cli", "mcp"]
+      "args": ["-y", "@openloghq/cli@latest", "mcp"]
     }
   }
 }`;
 
 export const mcpGuideCommands = {
-  setup: "npx -y @openloghq/cli",
-  setupAgain: "npx -y @openloghq/cli setup",
-  mcp: "npx -y @openloghq/cli mcp",
-  installAll: "npx -y @openloghq/cli mcp install all",
-  installCodex: "npx -y @openloghq/cli mcp install codex",
-  installClaude: "npx -y @openloghq/cli mcp install claude-code",
-  installCursor: "npx -y @openloghq/cli mcp install cursor",
-  permissions: `npx -y @openloghq/cli mcp permissions
-npx -y @openloghq/cli mcp permissions set read-only|safe-write|full
-npx -y @openloghq/cli mcp permissions reset`,
+  setup: "npx -y @openloghq/cli@latest",
+  setupAgain: "npx -y @openloghq/cli@latest setup",
+  mcp: "npx -y @openloghq/cli@latest mcp",
+  installAll: "npx -y @openloghq/cli@latest mcp install all",
+  installCodex: "npx -y @openloghq/cli@latest mcp install codex",
+  installClaude: "npx -y @openloghq/cli@latest mcp install claude-code",
+  installCursor: "npx -y @openloghq/cli@latest mcp install cursor",
+  permissions: `npx -y @openloghq/cli@latest mcp permissions
+npx -y @openloghq/cli@latest mcp permissions set read-only|safe-write|full
+npx -y @openloghq/cli@latest mcp permissions reset`,
   localDev: `OPENLOG_API_BASE_URL=http://localhost:8080/api \\
 OPENLOG_WEB_BASE_URL=http://localhost:3030 \\
-npx -y @openloghq/cli mcp`,
+npx -y @openloghq/cli@latest mcp`,
 } as const;
 
 export function parseMcpGuideLocale(value: string | null): McpGuideLocale {
