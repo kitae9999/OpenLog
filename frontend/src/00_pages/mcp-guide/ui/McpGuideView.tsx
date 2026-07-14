@@ -77,6 +77,14 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
           </p>
         </GuideSection>
 
+        <GuideSection title={copy.sections.project.title}>
+          <p>{copy.sections.project.body}</p>
+          <CodeBlock locale={locale}>{mcpGuideCommands.init}</CodeBlock>
+          <p className="text-[12.5px] text-zinc-500">
+            {copy.sections.project.footnote}
+          </p>
+        </GuideSection>
+
         <GuideSection title={copy.sections.register.title}>
           <p>{copy.sections.register.body}</p>
           <CodeBlock locale={locale}>{mcpClientConfig}</CodeBlock>
