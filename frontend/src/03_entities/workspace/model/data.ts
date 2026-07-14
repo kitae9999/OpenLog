@@ -526,11 +526,19 @@ export function getNewLogHref(taskId?: string) {
   return taskId ? `/logs/new?taskId=${taskId}` : "/logs/new";
 }
 
-export type TaskListFilter = "all" | WorkspaceWorkStatus;
+export type TaskListFilter = "active" | "all" | WorkspaceWorkStatus;
+
+export function isActiveTaskStatus(status: WorkspaceWorkStatus) {
+  return status === "doing" || status === "todo";
+}
 
 export function getTasksFiltered(filter: TaskListFilter) {
   if (filter === "all") {
     return workspaceWorkItems;
+  }
+
+  if (filter === "active") {
+    return workspaceWorkItems.filter((task) => isActiveTaskStatus(task.status));
   }
 
   return workspaceWorkItems.filter((task) => task.status === filter);
