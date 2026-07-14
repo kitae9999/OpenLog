@@ -74,39 +74,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
 
       - name: Verify package contents
         run: npm pack --dry-run
-
-      - name: Read package metadata for release check
-        id: package
-        if: github.event_name == 'pull_request' && needs.changes.outputs.cli == 'true'
-        run: |
-          node - <<'NODE' >> "$GITHUB_OUTPUT"
-          const packageJson = require('./package.json')
-          console.log(`name=${packageJson.name}`)
-          console.log(`version=${packageJson.version}`)
-          NODE
-
-      - name: Check PR version is unpublished
-        if: github.event_name == 'pull_request' && needs.changes.outputs.cli == 'true'
-        run: |
-          set +e
-          npm view "${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}" version --json >/tmp/openlog-cli-version.json 2>/tmp/openlog-cli-view-error.log
-          status=$?
-          set -e
-
-          if [ "$status" -eq 0 ]; then
-            echo "::error::${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }} is already published. Bump packages/openlog-cli/package.json before merging."
-            exit 1
-          fi
-
-          if ! grep -q "E404" /tmp/openlog-cli-view-error.log; then
-            cat /tmp/openlog-cli-view-error.log
-            exit "$status"
-          fi
 
   publish:
     runs-on: ubuntu-latest
@@ -149,7 +124,8 @@ jobs:
           console.log(`version=${packageJson.version}`)
           NODE
 
-      - name: Check version is unpublished
+      - name: Check whether version should be published
+        id: release
         run: |
           set +e
           npm view "${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}" version --json >/tmp/openlog-cli-version.json 2>/tmp/openlog-cli-view-error.log
@@ -157,8 +133,9 @@ jobs:
           set -e
 
           if [ "$status" -eq 0 ]; then
-            echo "::error::${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }} is already published. Bump packages/openlog-cli/package.json before publishing."
-            exit 1
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }} is already published. Skipping npm publish."
+            exit 0
           fi
 
           if ! grep -q "E404" /tmp/openlog-cli-view-error.log; then
@@ -166,5 +143,8 @@ jobs:
             exit "$status"
           fi
 
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
       - name: Publish to npm
+        if: steps.release.outputs.publish == 'true'
         run: npm publish --access public
