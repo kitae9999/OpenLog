@@ -187,6 +187,11 @@ test("maps workspace read and safe-write tools to their REST endpoints", async (
       calls: [{ method: "GET", path: "/workspaces/1/todos?from=2026-07-01&to=2026-07-13" }],
     },
     {
+      tool: "list_workspace_todos",
+      args: { workspaceId: 1 },
+      calls: [{ method: "GET", path: "/workspaces/1/todos" }],
+    },
+    {
       tool: "create_workspace_todo",
       args: { workspaceId: 1, title: "Review", plannedFor: "2026-07-13", taskId: 2 },
       calls: [{ method: "POST", path: "/workspaces/1/todos", body: { title: "Review", plannedFor: "2026-07-13", taskId: 2 } }],

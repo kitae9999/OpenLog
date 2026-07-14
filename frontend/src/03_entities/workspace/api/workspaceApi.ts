@@ -4,7 +4,6 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { API_CONFIG } from "@/shared/api";
 import { formatWorkspaceDateLabel } from "@/shared/lib/formatWorkspaceDateLabel";
-import { todayIso } from "@/shared/lib/todayIso";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import {
   getLogHref,
@@ -346,7 +345,7 @@ async function fetchWorkspaceUiData(
         cookie,
       ).catch(() => []),
       fetchJson<TodoResponse[]>(
-        `/workspaces/${selectedId}/todos?plannedFor=${todayIso()}`,
+        `/workspaces/${selectedId}/todos`,
         cookie,
       ),
       fetchOutputs(selectedId, cookie),

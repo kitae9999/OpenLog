@@ -25,6 +25,17 @@ class TodoServiceTest {
     }
 
     @Test
+    fun `getAllTodos returns workspace todos without date filter`() {
+        given(
+            repository.findAllByWorkspaceIdOrderByDoneAscPlannedForAscSortOrderAscIdAsc(10L),
+        ).willReturn(emptyList())
+
+        val response = service.getAllTodos(1L, 10L)
+
+        assertThat(response).isEmpty()
+    }
+
+    @Test
     fun `getTodosInRange returns todos ordered by repository query`() {
         val from = LocalDate.of(2026, 7, 1)
         val to = LocalDate.of(2026, 7, 31)
