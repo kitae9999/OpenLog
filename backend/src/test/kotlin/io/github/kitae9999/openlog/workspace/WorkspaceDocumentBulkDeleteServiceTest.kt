@@ -23,6 +23,7 @@ class WorkspaceDocumentBulkDeleteServiceTest {
     @Mock private lateinit var taskRepository: WorkspaceTaskRepository
     @Mock private lateinit var logRepository: WorkspaceLogRepository
     @Mock private lateinit var accessResolver: WorkspaceAccessResolver
+    @Mock private lateinit var workspaceChangeNotifier: WorkspaceChangeNotifier
     private lateinit var taskService: WorkspaceTaskService
     private lateinit var logService: WorkspaceLogService
     private lateinit var workspace: Workspace
@@ -33,8 +34,8 @@ class WorkspaceDocumentBulkDeleteServiceTest {
         user = User(id = 1L, username = "alice")
         workspace = Workspace(id = 10L, owner = user, slug = "default", name = "Default")
         val mapper = WorkspaceMapper()
-        taskService = WorkspaceTaskService(taskRepository, accessResolver, mapper)
-        logService = WorkspaceLogService(logRepository, accessResolver, mapper)
+        taskService = WorkspaceTaskService(taskRepository, accessResolver, mapper, workspaceChangeNotifier)
+        logService = WorkspaceLogService(logRepository, accessResolver, mapper, workspaceChangeNotifier)
     }
 
     @Test

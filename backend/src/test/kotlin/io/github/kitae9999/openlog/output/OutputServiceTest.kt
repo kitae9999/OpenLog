@@ -55,6 +55,9 @@ class OutputServiceTest {
     @Mock
     private lateinit var postService: PostService
 
+    @Mock
+    private lateinit var workspaceChangeNotifier: io.github.kitae9999.openlog.workspace.WorkspaceChangeNotifier
+
     private lateinit var outputService: OutputService
 
     private val user = User(id = 1L, username = "alice", nickname = "Alice")
@@ -87,6 +90,7 @@ class OutputServiceTest {
             postRepository = postRepository,
             postService = postService,
             outputMapper = OutputMapper(),
+            workspaceChangeNotifier = workspaceChangeNotifier,
         )
     }
 

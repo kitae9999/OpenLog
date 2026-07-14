@@ -2,6 +2,9 @@ package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursor
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceChangeAction
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceEntityType
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceSyncZone
 import io.github.kitae9999.openlog.workspace.entity.TaskStatus
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
 import io.github.kitae9999.openlog.workspace.repository.WorkspaceTaskRepository
@@ -20,6 +23,7 @@ class WorkspaceTaskService(
     private val workspaceTaskRepository: WorkspaceTaskRepository,
     private val workspaceAccessResolver: WorkspaceAccessResolver,
     private val workspaceMapper: WorkspaceMapper,
+    private val workspaceChangeNotifier: WorkspaceChangeNotifier,
 ) {
     @Transactional(readOnly = true)
     fun getTasks(
@@ -89,6 +93,13 @@ class WorkspaceTaskService(
             status = request.status,
         )
         val savedTask = workspaceTaskRepository.save(task)
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.TASKS,
+            entityType = WorkspaceEntityType.TASK,
+            entityId = requireNotNull(savedTask.id),
+            action = WorkspaceChangeAction.CREATED,
+        )
 
         return workspaceMapper.toTaskResponse(savedTask)
     }
@@ -109,6 +120,13 @@ class WorkspaceTaskService(
             content = request.content?.trim()?.takeIf { it.isNotEmpty() },
             status = request.status,
         )
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.TASKS,
+            entityType = WorkspaceEntityType.TASK,
+            entityId = taskId,
+            action = WorkspaceChangeAction.UPDATED,
+        )
 
         return workspaceMapper.toTaskResponse(task)
     }
@@ -126,6 +144,15 @@ class WorkspaceTaskService(
         }
 
         workspaceTaskRepository.deleteAll(tasks)
+        tasks.forEach { task ->
+            workspaceChangeNotifier.notify(
+                workspaceId = workspaceId,
+                zone = WorkspaceSyncZone.TASKS,
+                entityType = WorkspaceEntityType.TASK,
+                entityId = requireNotNull(task.id),
+                action = WorkspaceChangeAction.DELETED,
+            )
+        }
     }
 
     private fun findTasksByCursor(

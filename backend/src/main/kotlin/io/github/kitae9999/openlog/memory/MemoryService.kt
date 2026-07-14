@@ -1,6 +1,9 @@
 package io.github.kitae9999.openlog.memory
 
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceChangeAction
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceEntityType
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceSyncZone
 import io.github.kitae9999.openlog.memory.dto.CreateMemoryRequest
 import io.github.kitae9999.openlog.memory.dto.MemoryCursorResponse
 import io.github.kitae9999.openlog.memory.dto.MemoryResponse
@@ -9,6 +12,7 @@ import io.github.kitae9999.openlog.memory.entity.WorkspaceMemory
 import io.github.kitae9999.openlog.memory.repository.WorkspaceMemoryRepository
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.WorkspaceAccessResolver
+import io.github.kitae9999.openlog.workspace.WorkspaceChangeNotifier
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -23,6 +27,7 @@ class MemoryService(
     private val memoryRepository: WorkspaceMemoryRepository,
     private val workspaceAccessResolver: WorkspaceAccessResolver,
     private val memoryMapper: MemoryMapper,
+    private val workspaceChangeNotifier: WorkspaceChangeNotifier,
 ) {
     @Transactional(readOnly = true)
     fun getMemories(
@@ -72,6 +77,13 @@ class MemoryService(
                 content = request.content.trim(),
             )
         )
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.MEMORY,
+            entityType = WorkspaceEntityType.MEMORY,
+            entityId = requireNotNull(memory.id),
+            action = WorkspaceChangeAction.CREATED,
+        )
 
         return memoryMapper.toResponse(memory)
     }
@@ -94,6 +106,13 @@ class MemoryService(
                 content = log.content,
             )
         )
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.MEMORY,
+            entityType = WorkspaceEntityType.MEMORY,
+            entityId = requireNotNull(memory.id),
+            action = WorkspaceChangeAction.CREATED,
+        )
 
         return LogMemoryResult(memoryMapper.toResponse(memory), created = true)
     }
@@ -109,6 +128,13 @@ class MemoryService(
         val memory = workspaceAccessResolver.requireOwnedMemory(workspace, memoryId)
         val task = workspaceAccessResolver.resolveTask(workspace, request.taskId)
         memory.update(request.title.trim(), request.content.trim(), task)
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.MEMORY,
+            entityType = WorkspaceEntityType.MEMORY,
+            entityId = memoryId,
+            action = WorkspaceChangeAction.UPDATED,
+        )
 
         return memoryMapper.toResponse(memory)
     }
@@ -125,6 +151,15 @@ class MemoryService(
             workspaceAccessResolver.requireOwnedMemory(workspace, memoryId)
         }
         memoryRepository.deleteAll(memories)
+        memories.forEach { memory ->
+            workspaceChangeNotifier.notify(
+                workspaceId = workspaceId,
+                zone = WorkspaceSyncZone.MEMORY,
+                entityType = WorkspaceEntityType.MEMORY,
+                entityId = requireNotNull(memory.id),
+                action = WorkspaceChangeAction.DELETED,
+            )
+        }
     }
 
     private companion object {

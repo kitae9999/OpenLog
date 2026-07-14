@@ -1,5 +1,8 @@
 package io.github.kitae9999.openlog.output
 
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceChangeAction
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceEntityType
+import io.github.kitae9999.openlog.common.event.payload.WorkspaceSyncZone
 import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.output.dto.OutputDetailResponse
@@ -15,6 +18,7 @@ import io.github.kitae9999.openlog.post.PostService
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.WorkspaceAccessResolver
+import io.github.kitae9999.openlog.workspace.WorkspaceChangeNotifier
 import io.github.kitae9999.openlog.workspace.entity.Workspace
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -29,6 +33,7 @@ class OutputService(
     private val postRepository: PostRepository,
     private val postService: PostService,
     private val outputMapper: OutputMapper,
+    private val workspaceChangeNotifier: WorkspaceChangeNotifier,
 ) {
     @Transactional(readOnly = true)
     fun getOutputs(userId: Long, workspaceId: Long, status: OutputStatus?): List<OutputResponse> {
@@ -86,6 +91,13 @@ class OutputService(
         )
 
         replaceSources(output, workspace, taskIds, logIds)
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.OUTPUT,
+            entityType = WorkspaceEntityType.OUTPUT,
+            entityId = requireNotNull(output.id),
+            action = WorkspaceChangeAction.CREATED,
+        )
 
         return toDetailResponse(output)
     }
@@ -109,6 +121,13 @@ class OutputService(
             content = content.trim(),
         )
         replaceSources(output, workspace, taskIds, logIds)
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.OUTPUT,
+            entityType = WorkspaceEntityType.OUTPUT,
+            entityId = outputId,
+            action = WorkspaceChangeAction.UPDATED,
+        )
 
         return toDetailResponse(output)
     }
@@ -135,6 +154,13 @@ class OutputService(
             topics = topics,
         )
         output.markPublished()
+        workspaceChangeNotifier.notify(
+            workspaceId = workspaceId,
+            zone = WorkspaceSyncZone.OUTPUT,
+            entityType = WorkspaceEntityType.OUTPUT,
+            entityId = outputId,
+            action = WorkspaceChangeAction.UPDATED,
+        )
 
         return toDetailResponse(output)
     }
@@ -151,6 +177,15 @@ class OutputService(
             requireOwnedOutput(workspace, outputId)
         }
         workspaceOutputRepository.deleteAll(outputs)
+        outputs.forEach { output ->
+            workspaceChangeNotifier.notify(
+                workspaceId = workspaceId,
+                zone = WorkspaceSyncZone.OUTPUT,
+                entityType = WorkspaceEntityType.OUTPUT,
+                entityId = requireNotNull(output.id),
+                action = WorkspaceChangeAction.DELETED,
+            )
+        }
     }
 
     /**

@@ -6,6 +6,7 @@ import io.github.kitae9999.openlog.workingbrief.dto.UpsertWorkingBriefRequest
 import io.github.kitae9999.openlog.workingbrief.entity.WorkspaceWorkingBrief
 import io.github.kitae9999.openlog.workingbrief.repository.WorkspaceWorkingBriefRepository
 import io.github.kitae9999.openlog.workspace.WorkspaceAccessResolver
+import io.github.kitae9999.openlog.workspace.WorkspaceChangeNotifier
 import io.github.kitae9999.openlog.workspace.entity.Workspace
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
 import org.assertj.core.api.Assertions.assertThat
@@ -24,13 +25,14 @@ import org.mockito.junit.jupiter.MockitoExtension
 class WorkingBriefServiceTest {
     @Mock private lateinit var repository: WorkspaceWorkingBriefRepository
     @Mock private lateinit var accessResolver: WorkspaceAccessResolver
+    @Mock private lateinit var workspaceChangeNotifier: WorkspaceChangeNotifier
     private lateinit var service: WorkingBriefService
     private lateinit var user: User
     private lateinit var workspace: Workspace
 
     @BeforeEach
     fun setUp() {
-        service = WorkingBriefService(repository, accessResolver, WorkingBriefMapper())
+        service = WorkingBriefService(repository, accessResolver, WorkingBriefMapper(), workspaceChangeNotifier)
         user = User(id = 1L, username = "alice")
         workspace = Workspace(id = 10L, owner = user, slug = "default", name = "Default")
     }
