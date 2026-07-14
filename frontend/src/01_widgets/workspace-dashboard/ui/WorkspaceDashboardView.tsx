@@ -25,6 +25,7 @@ import {
   getTaskExcerpt,
   getTaskHref,
   getTasksHref,
+  isActiveTaskStatus,
   type WorkspaceLogItem,
   type WorkspaceTaskOutput,
   type WorkspaceTodoItem,
@@ -305,7 +306,7 @@ export function WorkspaceDashboardView({
   const brief =
     resolvedWorkspaceData?.workingBrief ?? deriveWorkingBrief(tasks, logs);
   const recentLogs = logs.slice(0, 6);
-  const visibleTasks = tasks;
+  const visibleTasks = tasks.filter((task) => isActiveTaskStatus(task.status));
   const tasksFetching = isPreview && isZoneFetching(syncFill, "tasks");
   const logsFetching = isPreview && isZoneFetching(syncFill, "logs");
   const showOutputSection =
@@ -619,7 +620,7 @@ export function WorkspaceDashboardView({
             <MemoryWidget memories={memories} isPreview={isPreview} />
           ) : null}
           {exploreWidget === "tasks" ? (
-            <TasksWidget tasks={tasks} isPreview={isPreview} />
+            <TasksWidget tasks={visibleTasks} isPreview={isPreview} />
           ) : null}
         </div>
       </section>
@@ -1326,7 +1327,6 @@ function NewUpdateBadge() {
 function TaskStatusLegend() {
   const items: Array<{ status: WorkspaceWorkStatus; label: string }> = [
     { status: "doing", label: "doing" },
-    { status: "done", label: "done" },
     { status: "todo", label: "todo" },
   ];
 

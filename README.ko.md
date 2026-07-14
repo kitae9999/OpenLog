@@ -151,15 +151,16 @@ openlog mcp permissions reset
 | --- | --- |
 | 권한과 계정 | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts` |
 | 공개 게시글 | `get_post_detail`, `upload_post_image`, `publish_post` |
-| 워크스페이스와 활동 | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
+| 워크스페이스와 활동 | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_project`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
 | Agent Guide | `update_workspace_agent_guide` |
+| Capture Mode | `update_workspace_project_capture_mode` |
 | Task와 Log | workspace task와 log의 list/get/create/update tool |
 | Todo와 Memory | todo 조회·생성·완료 tool, memory 조회·생성·log 변환·수정 tool |
 | Output | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `publish_workspace_output` |
 | Graph link | `list_workspace_links`와 task/log/cross-link 생성 tool |
 | Full 삭제 | working brief 초기화와 task/log/todo/memory/output/link 개별 삭제 tool |
 
-`publish_post`, `publish_workspace_output`, `update_workspace_agent_guide`는 기본적으로 미리보기만 반환합니다. 실제 반영에는 `confirm: true`가 필요하며, 사용자가 추가 확인 없이 쓰라고 명시한 경우에만 `skipConfirmation: true`를 사용할 수 있습니다.
+`publish_post`, `publish_workspace_output`, `update_workspace_agent_guide`, `update_workspace_project_capture_mode`는 기본적으로 미리보기만 반환합니다. 실제 반영에는 `confirm: true`가 필요하며, 사용자가 추가 확인 없이 쓰라고 명시한 경우에만 `skipConfirmation: true`를 사용할 수 있습니다.
 
 ### 로컬 서버 연결
 

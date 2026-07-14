@@ -10,6 +10,7 @@ import {
   getTaskExcerpt,
   getTaskHref,
   getTaskMeta,
+  isActiveTaskStatus,
   type TaskListFilter,
   type WorkspaceLogItem,
   type WorkspaceTaskOutput,
@@ -26,11 +27,32 @@ import { deleteWorkspaceDocuments } from "@/features/workspace-actions/api/works
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
 
 const filterItems: Array<{ key: TaskListFilter; label: string }> = [
-  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
   { key: "doing", label: "Doing" },
   { key: "todo", label: "Todo" },
   { key: "done", label: "Done" },
+  { key: "all", label: "All" },
 ];
+
+function matchesTaskFilter(
+  task: WorkspaceWorkItem,
+  filter: TaskListFilter,
+): boolean {
+  if (filter === "all") {
+    return true;
+  }
+  if (filter === "active") {
+    return isActiveTaskStatus(task.status);
+  }
+  return task.status === filter;
+}
+
+function countTasksForFilter(
+  tasks: WorkspaceWorkItem[],
+  filter: TaskListFilter,
+): number {
+  return tasks.filter((task) => matchesTaskFilter(task, filter)).length;
+}
 
 export function TasksListView({
   isLoggedIn,
@@ -42,7 +64,7 @@ export function TasksListView({
   const router = useRouter();
   const logs = workspaceData?.logs ?? [];
   const outputs = workspaceData?.outputs ?? [];
-  const [filter, setFilter] = useState<TaskListFilter>("all");
+  const [filter, setFilter] = useState<TaskListFilter>("active");
   const tasks = useMemo(() => {
     const initialTasks = workspaceData?.tasks ?? [];
     return workspaceData
@@ -51,10 +73,7 @@ export function TasksListView({
   }, [workspaceData]);
 
   const filteredTasks = useMemo(
-    () =>
-      filter === "all"
-        ? tasks
-        : tasks.filter((task) => task.status === filter),
+    () => tasks.filter((task) => matchesTaskFilter(task, filter)),
     [filter, tasks],
   );
 
@@ -134,10 +153,7 @@ export function TasksListView({
       >
         {filterItems.map((item) => {
           const active = filter === item.key;
-          const count =
-            item.key === "all"
-              ? tasks.length
-              : tasks.filter((task) => task.status === item.key).length;
+          const count = countTasksForFilter(tasks, item.key);
 
           return (
             <button
@@ -276,7 +292,6 @@ function TaskListRow({
 function TaskStatusLegend() {
   const items: Array<{ status: WorkspaceWorkStatus; label: string }> = [
     { status: "doing", label: "doing" },
-    { status: "done", label: "done" },
     { status: "todo", label: "todo" },
   ];
 

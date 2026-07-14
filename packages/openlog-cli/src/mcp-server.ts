@@ -23,8 +23,9 @@ export const OPENLOG_MCP_INSTRUCTIONS = `Before substantive work on a project, c
 Use the returned workspace Agent Guide and Capture Mode when deciding whether to create or update OpenLog Tasks, Logs, and Outputs.
 AUTO allows proactive draft creation or updates when the Guide says the work is worth recording. ASK requires user confirmation before those writes. EXPLICIT permits those writes only after an explicit user request.
 When the user agrees to lasting behavior or recording policy changes during a session, update the Agent Guide with update_workspace_agent_guide after preview confirmation; keep one-off knowledge in NOTE Logs instead.
+When the user wants to change Capture Mode during a session, use update_workspace_project_capture_mode after preview confirmation, then re-read the project or restart the session so the new mode applies.
 Do not guess a workspace or connect an uninitialized project. If start_openlog_session returns not_initialized or stale, show its init command to the user.
-Publishing, Agent Guide updates, and deletion keep their own confirmation requirements regardless of Capture Mode. The active MCP permission profile always takes precedence.`;
+Publishing, Agent Guide updates, Capture Mode updates, and deletion keep their own confirmation requirements regardless of Capture Mode. The active MCP permission profile always takes precedence.`;
 
 type CreateOpenLogMcpServerOptions = {
   permissions?: ResolvedMcpPermissions;

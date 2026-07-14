@@ -47,6 +47,11 @@ preview confirmation (`confirm: true`, or `skipConfirmation: true` when the user
 explicitly asked to skip). Use the Guide for durable agent behavior and recording
 policy; keep one-off knowledge in NOTE Logs.
 
+`get_workspace_project` returns the connected project's Capture Mode.
+`update_workspace_project_capture_mode` changes it after the same preview
+confirmation pattern. After a confirmed change, re-read the project or call
+`start_openlog_session` again so the new mode applies in the session.
+
 The project Capture Mode returned with the session:
 
 - `AUTO`: create or update Task, Log, and Output drafts when the Guide says the work matters
@@ -54,8 +59,8 @@ The project Capture Mode returned with the session:
 - `EXPLICIT`: perform those writes only after an explicit request
 
 Capture Mode is model guidance, not a server authorization boundary. MCP
-permissions take precedence, and publishing, Agent Guide updates, or deletion
-keep their own confirmation policy.
+permissions take precedence, and publishing, Agent Guide updates, Capture Mode
+updates, or deletion keep their own confirmation policy.
 
 ## Human-facing output
 
