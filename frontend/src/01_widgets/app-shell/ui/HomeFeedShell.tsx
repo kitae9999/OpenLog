@@ -694,7 +694,7 @@ export function HomeSidebar({
               href={`/settings/workspaces/${resolvedAgentWorkspaceId}/agent`}
               label="Agent Guide"
               active={settingsNav === "agent"}
-              icon={<IconMcpGuide className="size-[15px]" />}
+              icon={<IconAgentGuide className="size-[15px]" />}
               onNavigate={onNavigate}
             />
           ) : null}
@@ -1311,6 +1311,54 @@ function IconCompass({ className }: { className?: string }) {
         d="m15.5 8.5-2 5-5 2 2-5 5-2Z"
         stroke="currentColor"
         strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function IconAgentGuide({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 3.5v2.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+      <circle cx="12" cy="2.8" r="1" fill="currentColor" />
+      <rect
+        x="6"
+        y="6"
+        width="12"
+        height="10"
+        rx="2.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <circle cx="9.5" cy="10.5" r="1.2" fill="currentColor" />
+      <circle cx="14.5" cy="10.5" r="1.2" fill="currentColor" />
+      <path
+        d="M9.5 14h5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M4.5 10v2M19.5 10v2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M9 18.5h6"
+        stroke="currentColor"
+        strokeLinecap="round"
         strokeWidth="1.8"
       />
     </svg>
