@@ -101,9 +101,14 @@ openlog mcp
 Automatic registration is available for supported clients:
 
 ```bash
+openlog mcp install all
 openlog mcp install codex
 openlog mcp install claude-code
+openlog mcp install cursor
 ```
+
+`all` registers Codex, Claude Code, and Cursor in sequence. Cursor registration
+updates the global `~/.cursor/mcp.json` while preserving existing MCP servers.
 
 ### Local MCP permissions
 

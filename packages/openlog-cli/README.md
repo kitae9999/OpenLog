@@ -40,6 +40,18 @@ MCP client configuration:
 }
 ```
 
+Register every supported local client, or choose one:
+
+```bash
+openlog mcp install all
+openlog mcp install codex
+openlog mcp install claude-code
+openlog mcp install cursor
+```
+
+Cursor registration updates the global `~/.cursor/mcp.json` while preserving
+existing MCP servers.
+
 Set `OPENLOG_API_BASE_URL` to point at a non-production API. Set
 `OPENLOG_WEB_BASE_URL` to control absolute post URLs returned by `publish_post`.
 Set `OPENLOG_MCP_CONFIG_FILE` to replace the default

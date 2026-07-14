@@ -47,9 +47,11 @@ async function installMcpCommand(): Promise<void> {
   const printOnly = process.argv.includes("--print");
 
   if (
+    client !== "all" &&
     client !== "codex" &&
     client !== "claude-code" &&
-    client !== "claude"
+    client !== "claude" &&
+    client !== "cursor"
   ) {
     printMcpInstallHelp();
     process.exit(1);
@@ -96,10 +98,14 @@ Usage:
   openlog logout   Remove local OpenLog credentials
   openlog whoami   Print the current OpenLog user
   openlog mcp      Start the OpenLog MCP stdio server
+  openlog mcp install all
+                  Register OpenLog MCP with all supported local clients
   openlog mcp install codex
                   Register OpenLog MCP with Codex
   openlog mcp install claude-code
                   Register OpenLog MCP with Claude Code
+  openlog mcp install cursor
+                  Register OpenLog MCP with Cursor
   openlog mcp permissions
                   Show the active local MCP permission profile
   openlog mcp permissions set read-only|safe-write|full

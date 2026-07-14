@@ -101,9 +101,14 @@ openlog mcp
 지원하는 client에는 CLI로 자동 등록할 수도 있습니다.
 
 ```bash
+openlog mcp install all
 openlog mcp install codex
 openlog mcp install claude-code
+openlog mcp install cursor
 ```
+
+`all`은 Codex, Claude Code, Cursor에 차례로 등록합니다. Cursor 설정은 전역
+`~/.cursor/mcp.json`에 추가되며 기존 MCP server 설정은 유지됩니다.
 
 ### 로컬 MCP 권한
 

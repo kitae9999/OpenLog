@@ -83,7 +83,7 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
           <p>{copy.sections.register.installers}</p>
           <CodeBlock
             locale={locale}
-          >{`${mcpGuideCommands.installCodex}\n${mcpGuideCommands.installClaude}`}</CodeBlock>
+          >{`${mcpGuideCommands.installAll}\n\n${mcpGuideCommands.installCodex}\n${mcpGuideCommands.installClaude}\n${mcpGuideCommands.installCursor}`}</CodeBlock>
         </GuideSection>
 
         <GuideSection title={copy.sections.manual.title}>

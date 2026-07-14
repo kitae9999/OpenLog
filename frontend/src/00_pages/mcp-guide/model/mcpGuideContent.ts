@@ -180,7 +180,7 @@ export const mcpGuideCopy = {
     breadcrumbCurrent: "MCP Guide",
     title: "MCP Guide",
     subtitle:
-      "Connect Claude Code, Codex, or any MCP client to OpenLog. The CLI stores your login locally; the MCP server exposes tools over stdio so agents can read workspace data and publish outputs.",
+      "Connect Codex, Claude Code, Cursor, or any MCP client to OpenLog. The CLI stores your login locally; the MCP server exposes tools over stdio so agents can read workspace data and publish outputs.",
     sections: {
       login: {
         title: "1. Log in with the CLI",
@@ -191,7 +191,8 @@ export const mcpGuideCopy = {
       register: {
         title: "2. Register the MCP server",
         body: "Add OpenLog to your MCP client configuration:",
-        installers: "Or use the built-in installers:",
+        installers:
+          "Register all supported local clients at once, or choose one client:",
       },
       manual: {
         title: "3. Start the server (manual)",
@@ -254,7 +255,7 @@ export const mcpGuideCopy = {
     breadcrumbCurrent: "MCP Guide",
     title: "MCP Guide",
     subtitle:
-      "Claude Code, Codex 등 MCP client를 OpenLog에 연결하는 방법입니다. CLI가 로그인 정보를 로컬에 저장하고, MCP server가 stdio로 tool을 노출해 agent가 워크스페이스 데이터를 읽고 output을 발행할 수 있습니다.",
+      "Codex, Claude Code, Cursor 등 MCP client를 OpenLog에 연결하는 방법입니다. CLI가 로그인 정보를 로컬에 저장하고, MCP server가 stdio로 tool을 노출해 agent가 워크스페이스 데이터를 읽고 output을 발행할 수 있습니다.",
     sections: {
       login: {
         title: "1. CLI로 로그인",
@@ -265,7 +266,8 @@ export const mcpGuideCopy = {
       register: {
         title: "2. MCP server 등록",
         body: "MCP client 설정에 OpenLog를 추가합니다:",
-        installers: "또는 내장 installer를 사용합니다:",
+        installers:
+          "지원하는 로컬 client를 한 번에 등록하거나, 필요한 client만 선택해 등록합니다:",
       },
       manual: {
         title: "3. server 수동 실행",
@@ -337,8 +339,10 @@ export const mcpClientConfig = `{
 export const mcpGuideCommands = {
   login: "npx -y @openloghq/cli login",
   mcp: "npx -y @openloghq/cli mcp",
+  installAll: "openlog mcp install all",
   installCodex: "openlog mcp install codex",
   installClaude: "openlog mcp install claude-code",
+  installCursor: "openlog mcp install cursor",
   permissions: `openlog mcp permissions
 openlog mcp permissions set read-only|safe-write|full
 openlog mcp permissions reset`,
