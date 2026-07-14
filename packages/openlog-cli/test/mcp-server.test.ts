@@ -22,8 +22,10 @@ test("exposes tools according to the active permission profile", async (t) => {
   assert.ok(readOnlyTools.tools.some((tool) => tool.name === "list_workspaces"));
   assert.ok(readOnlyTools.tools.some((tool) => tool.name === "start_openlog_session"));
   assert.ok(readOnlyTools.tools.some((tool) => tool.name === "get_workspace_agent_guide"));
+  assert.ok(readOnlyTools.tools.some((tool) => tool.name === "get_workspace_project"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "create_workspace_task"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "update_workspace_agent_guide"));
+  assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "update_workspace_project_capture_mode"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "publish_post"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "delete_workspace_task"));
 
@@ -31,6 +33,7 @@ test("exposes tools according to the active permission profile", async (t) => {
   const safeWriteTools = await safeWrite.client.listTools();
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "create_workspace_task"));
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "update_workspace_agent_guide"));
+  assert.ok(safeWriteTools.tools.some((tool) => tool.name === "update_workspace_project_capture_mode"));
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "publish_workspace_output"));
   assert.ok(!safeWriteTools.tools.some((tool) => tool.name === "delete_workspace_task"));
 
@@ -48,7 +51,8 @@ test("advertises session instructions and document selection criteria", async (t
   assert.match(session.client.getInstructions() ?? "", /call start_openlog_session/);
   assert.match(session.client.getInstructions() ?? "", /Do not guess a workspace/);
   assert.match(session.client.getInstructions() ?? "", /update_workspace_agent_guide/);
-  assert.match(session.client.getInstructions() ?? "", /Publishing, Agent Guide updates, and deletion/);
+  assert.match(session.client.getInstructions() ?? "", /update_workspace_project_capture_mode/);
+  assert.match(session.client.getInstructions() ?? "", /Publishing, Agent Guide updates, Capture Mode updates, and deletion/);
 
   const tools = await session.client.listTools();
   const task = tools.tools.find((tool) => tool.name === "create_workspace_task");
@@ -57,10 +61,14 @@ test("advertises session instructions and document selection criteria", async (t
   const updateGuide = tools.tools.find(
     (tool) => tool.name === "update_workspace_agent_guide",
   );
+  const updateCapture = tools.tools.find(
+    (tool) => tool.name === "update_workspace_project_capture_mode",
+  );
   assert.match(task?.description ?? "", /actionable work/);
   assert.match(log?.description ?? "", /durable event or reusable knowledge/);
   assert.match(output?.description ?? "", /reviewable or shareable draft/);
   assert.match(updateGuide?.description ?? "", /durable behavior and recording policy/);
+  assert.match(updateCapture?.description ?? "", /Capture Mode/);
 });
 
 test("starts a read-only project session from the supplied project path", async (t) => {
@@ -119,6 +127,11 @@ test("maps workspace read and safe-write tools to their REST endpoints", async (
       tool: "get_workspace_agent_guide",
       args: { workspaceId: 1 },
       calls: [{ method: "GET", path: "/workspaces/1/agent-guide" }],
+    },
+    {
+      tool: "get_workspace_project",
+      args: { projectId: 42 },
+      calls: [{ method: "GET", path: "/workspace-projects/42" }],
     },
     { tool: "get_working_brief", args: { workspaceId: 1 }, calls: [{ method: "GET", path: "/workspaces/1/working-brief" }] },
     {
@@ -318,6 +331,48 @@ test("previews agent guide updates before the confirmed PUT", async (t) => {
   ]);
 });
 
+test("previews capture mode updates before the confirmed PATCH", async (t) => {
+  const session = await createSession(t, "safe-write");
+
+  const preview = await callJson(
+    session.client,
+    "update_workspace_project_capture_mode",
+    { projectId: 42, captureMode: "AUTO" },
+  );
+  assert.equal(preview.requiresConfirmation, true);
+  assert.deepEqual(preview.preview, {
+    projectId: 42,
+    workspaceId: 1,
+    displayName: "OpenLog",
+    currentCaptureMode: "ASK",
+    nextCaptureMode: "AUTO",
+  });
+  assert.deepEqual(session.api.calls, [
+    { method: "GET", path: "/workspace-projects/42" },
+  ]);
+
+  session.api.calls.length = 0;
+  const updated = await callJson(
+    session.client,
+    "update_workspace_project_capture_mode",
+    { projectId: 42, captureMode: "AUTO", confirm: true },
+  );
+  assert.equal(updated.captureMode, "AUTO");
+  assert.deepEqual(session.api.calls, [
+    { method: "GET", path: "/workspace-projects/42" },
+    {
+      method: "PATCH",
+      path: "/workspace-projects/42",
+      body: {
+        workspaceId: 1,
+        displayName: "OpenLog",
+        repositoryFullName: "openlog/openlog",
+        captureMode: "AUTO",
+      },
+    },
+  ]);
+});
+
 test("executes full-profile delete tools immediately", async (t) => {
   const session = await createSession(t, "full");
   const cases: Array<[string, Record<string, unknown>, string]> = [
@@ -403,6 +458,9 @@ class RecordingApiClient {
     if (path === "/workspaces/1/agent-guide") {
       return agentGuideResponse(3, "# Workspace Agent Guide") as T;
     }
+    if (path === "/workspace-projects/42") {
+      return workspaceProjectResponse("ASK") as T;
+    }
     if (path === "/workspace-projects/42/agent-context") {
       return {
         workspace: { id: 1, name: "OpenLog", slug: "openlog" },
@@ -438,6 +496,15 @@ class RecordingApiClient {
   async patch<T>(path: string, body?: unknown): Promise<T> {
     this.record("PATCH", path, body);
     this.throwFailure(path);
+    if (path === "/workspace-projects/42") {
+      const captureMode =
+        body && typeof body === "object" && "captureMode" in body
+          ? String((body as { captureMode: unknown }).captureMode)
+          : "ASK";
+      return workspaceProjectResponse(
+        captureMode as "AUTO" | "ASK" | "EXPLICIT",
+      ) as T;
+    }
     return { ok: true, path } as T;
   }
 
@@ -540,6 +607,18 @@ function agentGuideResponse(revision: number, content: string) {
     workspaceId: 1,
     content,
     revision,
+    createdAt: "2026-07-13T00:00:00",
+    updatedAt: "2026-07-14T00:00:00",
+  };
+}
+
+function workspaceProjectResponse(captureMode: "AUTO" | "ASK" | "EXPLICIT") {
+  return {
+    id: 42,
+    workspaceId: 1,
+    displayName: "OpenLog",
+    repositoryFullName: "openlog/openlog",
+    captureMode,
     createdAt: "2026-07-13T00:00:00",
     updatedAt: "2026-07-14T00:00:00",
   };

@@ -62,6 +62,8 @@ const ACTIVITY_RANGE_INPUT = z
     validateDateRange(value.from, value.to, context);
   });
 
+const CAPTURE_MODE = z.enum(["AUTO", "ASK", "EXPLICIT"]);
+
 type OutputDetailResponse = {
   id: number;
   status: string;
@@ -83,12 +85,23 @@ type AgentGuideResponse = {
   updatedAt: string;
 };
 
+type WorkspaceProjectResponse = {
+  id: number;
+  workspaceId: number;
+  displayName: string;
+  repositoryFullName: string | null;
+  captureMode: "AUTO" | "ASK" | "EXPLICIT";
+  createdAt: string;
+  updatedAt: string;
+};
+
 export function registerWorkspaceTools(
   registry: McpToolRegistry,
   webBaseUrl: string,
 ): void {
   registerWorkspaceReadTools(registry);
   registerAgentGuideTools(registry);
+  registerCaptureModeTools(registry);
   registerTaskTools(registry);
   registerLogTools(registry);
   registerTodoTools(registry);
@@ -150,6 +163,66 @@ function registerAgentGuideTools(registry: McpToolRegistry): void {
 
       return client.put(`/workspaces/${workspaceId}/agent-guide`, {
         content: trimmed,
+      });
+    },
+  );
+}
+
+function registerCaptureModeTools(registry: McpToolRegistry): void {
+  registry.registerAuthenticated(
+    "get_workspace_project",
+    "read",
+    {
+      title: "Get OpenLog Workspace Project",
+      description:
+        "Return one connected workspace project, including its Capture Mode. Prefer this mid-session when Capture Mode may have changed on the web or after an update.",
+      inputSchema: { projectId: POSITIVE_ID },
+      annotations: READ_TOOL_ANNOTATIONS,
+    },
+    (client, { projectId }) => client.get(`/workspace-projects/${projectId}`),
+  );
+
+  registry.registerAuthenticated(
+    "update_workspace_project_capture_mode",
+    "write",
+    {
+      title: "Update OpenLog Project Capture Mode",
+      description:
+        "Change a project's Capture Mode (AUTO, ASK, or EXPLICIT) after user approval. AUTO allows proactive Task/Log/Output drafts when the Guide says the work matters; ASK asks first; EXPLICIT only after an explicit request. Requires confirm: true unless skipConfirmation is explicitly requested. Re-read with get_workspace_project or start_openlog_session after a confirmed change.",
+      inputSchema: {
+        projectId: POSITIVE_ID,
+        captureMode: CAPTURE_MODE,
+        confirm: z.boolean().optional(),
+        skipConfirmation: z.boolean().optional(),
+      },
+      annotations: IDEMPOTENT_WRITE_TOOL_ANNOTATIONS,
+    },
+    async (client, { projectId, captureMode, confirm, skipConfirmation }) => {
+      const current = await client.get<WorkspaceProjectResponse>(
+        `/workspace-projects/${projectId}`,
+      );
+
+      // 확인 전 호출은 현재 프로젝트 조회와 변경 preview만 반환하며 PATCH는 호출하지 않는다.
+      if (confirm !== true && skipConfirmation !== true) {
+        return {
+          requiresConfirmation: true,
+          preview: {
+            projectId: current.id,
+            workspaceId: current.workspaceId,
+            displayName: current.displayName,
+            currentCaptureMode: current.captureMode,
+            nextCaptureMode: captureMode,
+          },
+          nextStep:
+            "Call update_workspace_project_capture_mode again with confirm: true, or skipConfirmation: true if the user explicitly requested updating without confirmation.",
+        };
+      }
+
+      return client.patch(`/workspace-projects/${projectId}`, {
+        workspaceId: current.workspaceId,
+        displayName: current.displayName,
+        repositoryFullName: current.repositoryFullName,
+        captureMode,
       });
     },
   );
