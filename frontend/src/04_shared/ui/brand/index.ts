@@ -1,0 +1,1 @@
+export { OpenLogLogo } from "./OpenLogLogo";

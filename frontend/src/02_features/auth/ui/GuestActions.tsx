@@ -12,8 +12,7 @@ import { createPortal } from "react-dom";
 import { AuthMode } from "@/features/auth/model/auth.type";
 import { handleOAuth } from "@/features/auth/api/handleOAuth";
 import { GitHubIcon } from "@/shared/ui/icons";
-import { logoMarkClassName } from "@/shared/config/brand";
-import { cn } from "@/shared/lib/cn";
+import { OpenLogLogo } from "@/shared/ui/brand";
 
 type AuthContent = {
   title: string;
@@ -186,14 +185,7 @@ function AuthDialog({
         <div className="flex flex-col items-center gap-8 pt-3">
           {/* 로고 + description */}
           <div className="flex w-full max-w-[382px] flex-col items-center">
-            <div
-              className={cn(
-                "grid size-12 place-items-center rounded-[14px] bg-black text-[24px] text-white",
-                logoMarkClassName,
-              )}
-            >
-              O
-            </div>
+            <OpenLogLogo variant="mark" className="size-12" decorative />
 
             <h2
               id={titleId}
