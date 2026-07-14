@@ -2,11 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -24,21 +20,12 @@
       }
     ],
     "paths": {
-      "@/app/*": [
-        "./app/*"
-      ],
-      "@/widgets/*": [
-        "./src/01_widgets/*"
-      ],
-      "@/features/*": [
-        "./src/02_features/*"
-      ],
-      "@/entities/*": [
-        "./src/03_entities/*"
-      ],
-      "@/shared/*": [
-        "./src/04_shared/*"
-      ]
+      "@/app/*": ["./app/*"],
+      "@/pages/*": ["./src/00_pages/*"],
+      "@/widgets/*": ["./src/01_widgets/*"],
+      "@/features/*": ["./src/02_features/*"],
+      "@/entities/*": ["./src/03_entities/*"],
+      "@/shared/*": ["./src/04_shared/*"]
     }
   },
   "include": [
@@ -53,7 +40,5 @@
     ".next-landing-preview/types/**/*.ts",
     ".next-landing-preview/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

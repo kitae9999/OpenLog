@@ -12,7 +12,7 @@ import { createPortal } from "react-dom";
 import { AuthMode } from "@/features/auth/model/auth.type";
 import { handleOAuth } from "@/features/auth/api/handleOAuth";
 import { GitHubIcon } from "@/shared/ui/icons";
-import { logoMarkClassName } from "@/widgets/chrome/ui/brand";
+import { logoMarkClassName } from "@/shared/config/brand";
 import { cn } from "@/shared/lib/cn";
 
 type AuthContent = {

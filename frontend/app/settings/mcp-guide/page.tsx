@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { McpGuideFeed } from "@/widgets/home-feed/ui/McpGuideFeed";
+import { McpGuideFeed } from "@/pages/mcp-guide/ui/McpGuideFeed";
 
 export const metadata: Metadata = {
   title: "MCP Guide | OpenLog",

@@ -1,4 +1,4 @@
-import { LogCreateFeed } from "@/widgets/home-feed/ui/LogCreateFeed";
+import { LogCreateFeed } from "@/pages/logs/ui/LogCreateFeed";
 
 export default async function NewLogPage({
   searchParams,

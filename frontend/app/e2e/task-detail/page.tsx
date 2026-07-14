@@ -1,7 +1,7 @@
 "use client";
 
-import { TaskDetailView } from "@/widgets/home-feed/ui/TaskDetailView";
-import { workspaceWorkItems } from "@/widgets/home-feed/ui/data";
+import { TaskDetailView } from "@/pages/tasks/ui/TaskDetailView";
+import { workspaceWorkItems } from "@/entities/workspace/model/data";
 
 const task =
   workspaceWorkItems.find((item) => item.id === "workspace-view") ??

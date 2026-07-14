@@ -1,4 +1,4 @@
-import { LogEditFeed } from "@/widgets/home-feed/ui/LogEditFeed";
+import { LogEditFeed } from "@/pages/logs/ui/LogEditFeed";
 
 export default async function LogEditPage({
   params,

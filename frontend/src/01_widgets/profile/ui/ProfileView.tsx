@@ -5,8 +5,8 @@ import { getPublicUserPostGraph } from "@/entities/user/api/getPublicUserPostGra
 import { getPublicUserProfile } from "@/entities/user/api/getPublicUserProfile";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { Footer } from "@/widgets/chrome/ui";
-import { AppChromeShell } from "@/widgets/home-feed/ui/AppChromeShell";
-import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
+import { AppChromeShell } from "@/widgets/app-shell/ui/AppChromeShell";
+import { loadAppChromeWorkspace } from "@/widgets/app-shell/api/loadAppChromeWorkspace";
 import { ProfileWorkspace } from "./ProfileWorkspace";
 
 export async function ProfileView({ username }: { username: string }) {

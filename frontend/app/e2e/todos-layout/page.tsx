@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { WorkspaceView } from "@/widgets/home-feed/ui/WorkspaceView";
-import type { WorkspaceTodoItem } from "@/widgets/home-feed/ui/data";
-import type { WorkspaceUiData } from "@/widgets/home-feed/ui/workspaceTypes";
+import { WorkspaceView } from "@/widgets/workspace-dashboard/ui/WorkspaceView";
+import type { WorkspaceTodoItem } from "@/entities/workspace/model/data";
+import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
 
 const baseFixture: Omit<WorkspaceUiData, "todos"> = {
   workspaceId: "e2e-workspace",

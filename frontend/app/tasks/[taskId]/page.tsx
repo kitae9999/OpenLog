@@ -1,4 +1,4 @@
-import { TaskDetailFeed } from "@/widgets/home-feed/ui/TaskDetailFeed";
+import { TaskDetailFeed } from "@/pages/tasks/ui/TaskDetailFeed";
 
 export default async function TaskDetailPage({
   params,

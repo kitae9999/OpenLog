@@ -1,4 +1,4 @@
-import { PlannerFeed } from "@/widgets/home-feed/ui/PlannerFeed";
+import { PlannerFeed } from "@/pages/planner/ui/PlannerFeed";
 
 export default async function PlannerPage({
   searchParams,

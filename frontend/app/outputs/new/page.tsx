@@ -1,4 +1,4 @@
-import { OutputCreateFeed } from "@/widgets/home-feed/ui/OutputCreateFeed";
+import { OutputCreateFeed } from "@/pages/outputs/ui/OutputCreateFeed";
 
 export default async function NewOutputPage({
   searchParams,

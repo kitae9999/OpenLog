@@ -1,4 +1,4 @@
-import { MemoryFeed } from "@/widgets/home-feed/ui/MemoryFeed";
+import { MemoryFeed } from "@/pages/memory/ui/MemoryFeed";
 
 export default function NewMemoryPage() {
   return <MemoryFeed mode="new" />;

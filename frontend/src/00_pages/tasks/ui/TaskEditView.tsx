@@ -1,0 +1,263 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useRef, useState, type ReactNode } from "react";
+import { cn } from "@/shared/lib/cn";
+import {
+  formatSelection,
+  getImageFallbackText,
+  type ToolbarAction,
+  type ToolbarActionPayload,
+} from "@/shared/lib/markdown";
+import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
+import { getTabHref, getTaskHref, type WorkspaceWorkItem } from "@/entities/workspace/model/data";
+import { saveTaskOverride } from "@/features/document-overrides/model/taskOverrides";
+import { updateWorkspaceTask } from "@/features/workspace-actions/api/workspaceActions";
+
+export function TaskEditView({
+  task,
+  workspaceId,
+}: {
+  task: WorkspaceWorkItem;
+  workspaceId?: string;
+}) {
+  const router = useRouter();
+  const [title, setTitle] = useState(task.title);
+  const [body, setBody] = useState(task.body);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [mode, setMode] = useState<"write" | "preview">("write");
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+
+  const trimmedTitle = title.trim();
+  const canSave = trimmedTitle.length > 0;
+
+  function insertFormatting(
+    action: ToolbarAction,
+    payload?: ToolbarActionPayload,
+  ) {
+    const textarea = editorRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const selectedText = body.slice(selectionStart, selectionEnd);
+    const { nextValue, nextSelectionStart, nextSelectionEnd } = formatSelection(
+      action,
+      body,
+      selectedText,
+      selectionStart,
+      selectionEnd,
+      { fallbackText: getImageFallbackText(payload) },
+    );
+
+    setBody(nextValue);
+
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+    });
+  }
+
+  async function saveTask() {
+    if (!canSave || isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    if (workspaceId) {
+      const result = await updateWorkspaceTask({
+        workspaceId,
+        taskId: task.id,
+        title: trimmedTitle,
+        description: task.description ?? null,
+        content: body,
+        status: task.apiStatus ?? toApiTaskStatus(task.status),
+      });
+
+      setIsSaving(false);
+
+      if (!result.ok) {
+        setError(result.message ?? "Failed to save task.");
+        return;
+      }
+
+      router.push(getTaskHref(task.id));
+      router.refresh();
+      return;
+    }
+
+    saveTaskOverride(task.id, {
+      title: trimmedTitle,
+      body,
+    });
+    setIsSaving(false);
+    router.push(getTaskHref(task.id));
+    router.refresh();
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[920px] pb-4">
+      <nav
+        aria-label="Breadcrumb"
+        className="mb-6 flex flex-wrap items-center gap-1.5 text-[13px] text-zinc-500"
+      >
+        <Link
+          href={getTabHref("workspace", true)}
+          className="font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          openlog
+        </Link>
+        <span className="text-zinc-300">/</span>
+        <span>Tasks</span>
+        <span className="text-zinc-300">/</span>
+        <Link
+          href={getTaskHref(task.id)}
+          className="truncate font-mono text-[12px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        >
+          {task.id}
+        </Link>
+        <span className="text-zinc-300">/</span>
+        <span className="font-semibold text-zinc-950">Edit</span>
+      </nav>
+
+      <header className="pb-8">
+        <p className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
+          Edit task
+        </p>
+        <label className="mt-3 block">
+          <span className="sr-only">Task title</span>
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Task title"
+            className="w-full border-0 border-b border-zinc-200 bg-transparent px-0 py-1 text-[22px] font-semibold tracking-tight text-zinc-950 outline-none transition placeholder:text-zinc-300 focus:border-zinc-900"
+          />
+        </label>
+      </header>
+
+      <section>
+        <div
+          role="tablist"
+          aria-label="Task document editor"
+          className="flex items-end gap-1 border-b border-zinc-200"
+        >
+          <TabButton active={mode === "write"} onClick={() => setMode("write")}>
+            Write
+          </TabButton>
+          <TabButton
+            active={mode === "preview"}
+            onClick={() => setMode("preview")}
+          >
+            Preview
+          </TabButton>
+        </div>
+
+        <div className="mt-3">
+          <MarkdownToolbar
+            disabled={mode === "preview"}
+            onAction={insertFormatting}
+          />
+        </div>
+
+        {mode === "write" ? (
+          <label className="mt-3 block">
+            <span className="sr-only">Task document</span>
+            <textarea
+              ref={editorRef}
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              placeholder={`## Context\nWhy this task exists\n\n## Goal\nWhat done looks like\n\n## Scope\n- In\n- Out`}
+              className="openlog-scroll min-h-[420px] w-full resize-none overflow-y-auto border-0 bg-transparent py-2 font-mono text-[13.5px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400"
+            />
+          </label>
+        ) : (
+          <div className="mt-3 min-h-[420px] py-2 text-[15px] leading-7 text-zinc-800">
+            <MarkdownContent
+              markdown={body}
+              variant="compact"
+              emptyFallback={
+                <p className="text-zinc-400">Nothing to preview yet.</p>
+              }
+            />
+          </div>
+        )}
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-1">
+          {error ? (
+            <p className="text-[12.5px] font-medium text-rose-600">{error}</p>
+          ) : (
+            <span className="text-[12.5px] text-zinc-500">
+              Markdown supported · title and body save together
+            </span>
+          )}
+          <div className="flex items-center gap-3">
+            <Link
+              href={getTaskHref(task.id)}
+              className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              Cancel
+            </Link>
+            <button
+              type="button"
+              onClick={saveTask}
+              disabled={!canSave || isSaving}
+              className={cn(
+                "cursor-pointer text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                canSave && !isSaving
+                  ? "text-zinc-950 hover:text-zinc-700"
+                  : "cursor-not-allowed text-zinc-400",
+              )}
+            >
+              {isSaving ? "Saving..." : "Save changes"}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function toApiTaskStatus(status: WorkspaceWorkItem["status"]) {
+  switch (status) {
+    case "done":
+      return "DONE" as const;
+    case "doing":
+      return "DOING" as const;
+    default:
+      return "TODO" as const;
+  }
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "relative h-9 cursor-pointer px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-800",
+      )}
+    >
+      {children}
+      {active ? (
+        <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
+      ) : null}
+    </button>
+  );
+}

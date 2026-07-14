@@ -1,4 +1,4 @@
-import { OutputDetailFeed } from "@/widgets/home-feed/ui/OutputDetailFeed";
+import { OutputDetailFeed } from "@/pages/outputs/ui/OutputDetailFeed";
 
 export default async function OutputDetailPage({
   params,

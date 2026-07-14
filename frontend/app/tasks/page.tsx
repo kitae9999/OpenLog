@@ -1,4 +1,4 @@
-import { TasksListFeed } from "@/widgets/home-feed/ui/TasksListFeed";
+import { TasksListFeed } from "@/pages/tasks/ui/TasksListFeed";
 
 export default function TasksPage() {
   return <TasksListFeed />;

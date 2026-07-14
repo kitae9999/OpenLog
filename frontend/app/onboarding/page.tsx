@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getIncompleteUserOrRedirectHome } from "@/features/auth/api/requireOnboarding";
-import { HomeFeed } from "@/widgets/home-feed/ui";
+import { HomeFeed } from "@/pages/home/ui";
 import { OnboardingView } from "@/widgets/onboarding/ui";
 
 export const metadata: Metadata = {

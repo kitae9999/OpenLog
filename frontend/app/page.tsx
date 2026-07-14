@@ -1,7 +1,7 @@
 import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
-import { HomeFeed } from "@/widgets/home-feed/ui";
+import { HomeFeed } from "@/pages/home/ui";
 import { LandingPage } from "@/widgets/landing/ui";
-import { getDefaultTab, type TabKey } from "@/widgets/home-feed/ui/data";
+import { getDefaultTab, type TabKey } from "@/entities/workspace/model/data";
 
 export default async function Home({
   searchParams,

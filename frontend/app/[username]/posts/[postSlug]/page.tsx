@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Footer } from "@/widgets/chrome/ui";
-import { AppChromeShell } from "@/widgets/home-feed/ui/AppChromeShell";
-import { loadAppChromeWorkspace } from "@/widgets/home-feed/ui/loadAppChromeWorkspace";
+import { AppChromeShell } from "@/widgets/app-shell/ui/AppChromeShell";
+import { loadAppChromeWorkspace } from "@/widgets/app-shell/api/loadAppChromeWorkspace";
 import { PostArticle } from "@/widgets/post/ui";
 import { getPostComments } from "@/entities/comment/api/getPostComments";
 import { getPostDetail } from "@/entities/post/api/getPostDetail";

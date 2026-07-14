@@ -7,7 +7,7 @@ import {
   submitOnboarding,
   type OnboardingActionState,
 } from "@/app/onboarding/actions";
-import { logoMarkClassName } from "@/widgets/chrome/ui/brand";
+import { logoMarkClassName } from "@/shared/config/brand";
 import { cn } from "@/shared/lib/cn";
 
 const USERNAME_PATTERN = /^[a-z0-9]+$/;
