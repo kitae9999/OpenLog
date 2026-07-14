@@ -180,18 +180,19 @@ export const mcpGuideCopy = {
     breadcrumbCurrent: "MCP Guide",
     title: "MCP Guide",
     subtitle:
-      "Connect Claude Code, Codex, or any MCP client to OpenLog. The CLI stores your login locally; the MCP server exposes tools over stdio so agents can read workspace data and publish outputs.",
+      "Connect Codex, Claude Code, Cursor, or any MCP client to OpenLog. The guided CLI setup handles sign-in, client registration, and local permissions in one flow.",
     sections: {
-      login: {
-        title: "1. Log in with the CLI",
-        body: "MCP tools require a local OpenLog session. Run device login once in your terminal and approve the request in the browser.",
-        footnoteBefore: "Verify with",
-        footnoteAfter: ".",
+      setup: {
+        title: "1. Run guided setup",
+        body: "Run one command in an interactive terminal. The wizard signs you in, registers OpenLog with Codex, Claude Code, Cursor, or all supported clients, and asks you to choose a local MCP permission profile.",
+        footnoteBefore: "Run",
+        footnoteAfter: " to reopen the wizard later.",
       },
       register: {
-        title: "2. Register the MCP server",
-        body: "Add OpenLog to your MCP client configuration:",
-        installers: "Or use the built-in installers:",
+        title: "2. Register a client manually (optional)",
+        body: "If you skipped client registration in the wizard or need a custom configuration, add OpenLog to your MCP client:",
+        installers:
+          "You can also register all supported local clients at once, or choose one client:",
       },
       manual: {
         title: "3. Start the server (manual)",
@@ -200,8 +201,8 @@ export const mcpGuideCopy = {
           "The terminal is reserved for MCP protocol traffic once the server is running. Without an override, it connects to https://api.openlog.kr/api.",
       },
       permissions: {
-        title: "4. Choose a local permission profile",
-        body: "The profile controls which tools the local MCP server exposes. Check or change it with:",
+        title: "4. Review or change local permissions",
+        body: "The wizard sets the local permission profile. To review or change which tools the MCP server exposes, run:",
         colProfile: "Profile",
         colCapability: "Capabilities",
         footnote:
@@ -230,7 +231,7 @@ export const mcpGuideCopy = {
         items: [
           {
             label: "Not authenticated",
-            body: "run `openlog login` again and complete browser approval.",
+            body: "run `npx -y @openloghq/cli login` again and complete browser approval.",
           },
           {
             label: "Client cannot find npx",
@@ -238,11 +239,11 @@ export const mcpGuideCopy = {
           },
           {
             label: "Onboarding incomplete",
-            body: "finish profile setup before listing or publishing posts.",
+            body: "run `npx -y @openloghq/cli setup` and finish the guided setup.",
           },
           {
             label: "Invalid permission config",
-            body: "run `openlog mcp permissions reset`, then restart the MCP server.",
+            body: "run `npx -y @openloghq/cli mcp permissions reset`, then restart the MCP server.",
           },
         ],
       },
@@ -254,18 +255,19 @@ export const mcpGuideCopy = {
     breadcrumbCurrent: "MCP Guide",
     title: "MCP Guide",
     subtitle:
-      "Claude Code, Codex 등 MCP client를 OpenLog에 연결하는 방법입니다. CLI가 로그인 정보를 로컬에 저장하고, MCP server가 stdio로 tool을 노출해 agent가 워크스페이스 데이터를 읽고 output을 발행할 수 있습니다.",
+      "Codex, Claude Code, Cursor 등 MCP client를 OpenLog에 연결하는 방법입니다. 대화형 CLI 설정에서 로그인, client 등록, 로컬 권한 선택을 한 번에 진행할 수 있습니다.",
     sections: {
-      login: {
-        title: "1. CLI로 로그인",
-        body: "MCP tool을 쓰려면 로컬 OpenLog 세션이 필요합니다. 터미널에서 device login을 한 번 실행하고 브라우저에서 승인하세요.",
-        footnoteBefore: "확인:",
-        footnoteAfter: ".",
+      setup: {
+        title: "1. 대화형 설정 실행",
+        body: "대화형 터미널에서 명령 하나를 실행하세요. 온보딩 위저드가 로그인, Codex·Claude Code·Cursor 또는 모든 지원 client의 OpenLog 등록, 로컬 MCP 권한 프로필 선택을 차례로 안내합니다.",
+        footnoteBefore: "나중에 위저드를 다시 열려면",
+        footnoteAfter: "을 실행하세요.",
       },
       register: {
-        title: "2. MCP server 등록",
-        body: "MCP client 설정에 OpenLog를 추가합니다:",
-        installers: "또는 내장 installer를 사용합니다:",
+        title: "2. client 수동 등록(선택)",
+        body: "위저드에서 client 등록을 건너뛰었거나 설정을 직접 구성하려면 MCP client에 OpenLog를 추가하세요:",
+        installers:
+          "명령으로 모든 지원 client를 한 번에 등록하거나 필요한 client만 선택할 수도 있습니다:",
       },
       manual: {
         title: "3. server 수동 실행",
@@ -274,8 +276,8 @@ export const mcpGuideCopy = {
           "server가 실행 중이면 해당 터미널은 MCP 프로토콜 전용입니다. 별도 설정이 없으면 https://api.openlog.kr/api에 연결합니다.",
       },
       permissions: {
-        title: "4. 로컬 권한 프로필 선택",
-        body: "로컬 MCP server가 노출할 tool 범위를 프로필로 설정합니다. 현재 설정을 확인하거나 변경하려면:",
+        title: "4. 로컬 권한 확인·변경",
+        body: "위저드가 로컬 권한 프로필을 설정합니다. MCP server가 노출할 tool 범위를 확인하거나 변경하려면 다음 명령을 실행하세요:",
         colProfile: "프로필",
         colCapability: "허용 기능",
         footnote:
@@ -304,7 +306,7 @@ export const mcpGuideCopy = {
         items: [
           {
             label: "인증되지 않음",
-            body: "`openlog login`을 다시 실행하고 브라우저 승인을 완료하세요.",
+            body: "`npx -y @openloghq/cli login`을 다시 실행하고 브라우저 승인을 완료하세요.",
           },
           {
             label: "client가 npx를 찾지 못함",
@@ -312,11 +314,11 @@ export const mcpGuideCopy = {
           },
           {
             label: "온보딩 미완료",
-            body: "글 목록 조회·발행 전에 프로필 설정을 마치세요.",
+            body: "`npx -y @openloghq/cli setup`을 실행해 대화형 설정을 완료하세요.",
           },
           {
             label: "잘못된 권한 설정",
-            body: "`openlog mcp permissions reset`을 실행한 뒤 MCP server를 재시작하세요.",
+            body: "`npx -y @openloghq/cli mcp permissions reset`을 실행한 뒤 MCP server를 재시작하세요.",
           },
         ],
       },
@@ -335,13 +337,16 @@ export const mcpClientConfig = `{
 }`;
 
 export const mcpGuideCommands = {
-  login: "npx -y @openloghq/cli login",
+  setup: "npx -y @openloghq/cli",
+  setupAgain: "npx -y @openloghq/cli setup",
   mcp: "npx -y @openloghq/cli mcp",
-  installCodex: "openlog mcp install codex",
-  installClaude: "openlog mcp install claude-code",
-  permissions: `openlog mcp permissions
-openlog mcp permissions set read-only|safe-write|full
-openlog mcp permissions reset`,
+  installAll: "npx -y @openloghq/cli mcp install all",
+  installCodex: "npx -y @openloghq/cli mcp install codex",
+  installClaude: "npx -y @openloghq/cli mcp install claude-code",
+  installCursor: "npx -y @openloghq/cli mcp install cursor",
+  permissions: `npx -y @openloghq/cli mcp permissions
+npx -y @openloghq/cli mcp permissions set read-only|safe-write|full
+npx -y @openloghq/cli mcp permissions reset`,
   localDev: `OPENLOG_API_BASE_URL=http://localhost:8080/api \\
 OPENLOG_WEB_BASE_URL=http://localhost:3030 \\
 npx -y @openloghq/cli mcp`,

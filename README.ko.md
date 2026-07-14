@@ -66,6 +66,22 @@ OpenLog는 그 맥락을 실제 작업 가까이에 남깁니다.
 
 공식 CLI는 Node.js 20 이상이 필요합니다.
 
+처음 연결할 때는 대화형 설정을 실행하세요.
+
+```bash
+npx -y @openloghq/cli
+```
+
+온보딩 위저드가 로그인, Codex·Claude Code·Cursor 또는 모든 지원 client의
+OpenLog MCP 등록, 로컬 MCP 권한 프로필 선택을 차례로 안내합니다. 위저드는
+언제든 다시 실행할 수 있습니다.
+
+```bash
+npx -y @openloghq/cli setup
+```
+
+비대화형 환경이나 수동 설정에서는 개별 명령을 사용하세요.
+
 ```bash
 npx -y @openloghq/cli login
 npx -y @openloghq/cli whoami
@@ -81,8 +97,7 @@ npx -y @openloghq/cli mcp
 
 ```bash
 npm install -g @openloghq/cli
-openlog login
-openlog mcp
+openlog
 ```
 
 ### MCP client 설정
@@ -101,9 +116,14 @@ openlog mcp
 지원하는 client에는 CLI로 자동 등록할 수도 있습니다.
 
 ```bash
+openlog mcp install all
 openlog mcp install codex
 openlog mcp install claude-code
+openlog mcp install cursor
 ```
+
+`all`은 Codex, Claude Code, Cursor에 차례로 등록합니다. Cursor 설정은 전역
+`~/.cursor/mcp.json`에 추가되며 기존 MCP server 설정은 유지됩니다.
 
 ### 로컬 MCP 권한
 

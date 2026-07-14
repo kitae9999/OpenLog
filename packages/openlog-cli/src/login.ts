@@ -1,6 +1,15 @@
 import { OpenLogApiClient } from "./api-client.js";
 import { openBrowser } from "./browser.js";
 import { writeAuthFile } from "./auth-store.js";
+import {
+  banner,
+  box,
+  createSpinner,
+  dim,
+  heading,
+  kv,
+  success,
+} from "./cli-ui.js";
 
 type DeviceStartResponse = {
   deviceCode: string;
@@ -24,29 +33,42 @@ type DeviceTokenResponse =
       refreshExpiresIn: number;
     };
 
-export async function login(): Promise<void> {
+export async function login(
+  options: { showBanner?: boolean } = {},
+): Promise<void> {
   const apiClient = new OpenLogApiClient();
   const deviceLogin = await apiClient.post<DeviceStartResponse>(
     "/auth/device/start",
   );
   const opened = openBrowser(deviceLogin.verificationUriComplete);
 
-  console.log("OpenLog CLI login");
+  if (options.showBanner !== false) {
+    console.log(banner());
+    console.log("");
+  }
+  console.log(heading("Authorize this terminal"));
   console.log("");
-  console.log(`Code: ${deviceLogin.userCode}`);
-  console.log(`URL:  ${deviceLogin.verificationUriComplete}`);
+  console.log(dim("Approval code"));
+  console.log(box(deviceLogin.userCode));
+  console.log("");
+  console.log(kv("URL", deviceLogin.verificationUriComplete));
   console.log("");
   console.log(
     opened
-      ? "The approval page was opened in your browser."
-      : "Open the URL above in your browser.",
+      ? dim("Opened the approval page in your browser.")
+      : dim("Open the URL above in your browser."),
   );
-  console.log("Waiting for approval...");
 
-  const tokens = await pollForTokens(apiClient, deviceLogin);
-  await writeAuthFile(tokens);
+  const spinner = createSpinner("Waiting for approval...");
 
-  console.log("Login successful.");
+  try {
+    const tokens = await pollForTokens(apiClient, deviceLogin);
+    await writeAuthFile(tokens);
+    spinner.stop(success("Login successful. You can return to the terminal."));
+  } catch (error) {
+    spinner.stop();
+    throw error;
+  }
 }
 
 async function pollForTokens(

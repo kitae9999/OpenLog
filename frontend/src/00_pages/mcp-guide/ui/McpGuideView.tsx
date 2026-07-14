@@ -65,15 +65,15 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
       </header>
 
       <div className="space-y-0 divide-y divide-zinc-200/80">
-        <GuideSection title={copy.sections.login.title}>
-          <p>{copy.sections.login.body}</p>
-          <CodeBlock locale={locale}>{mcpGuideCommands.login}</CodeBlock>
+        <GuideSection title={copy.sections.setup.title}>
+          <p>{copy.sections.setup.body}</p>
+          <CodeBlock locale={locale}>{mcpGuideCommands.setup}</CodeBlock>
           <p className="text-[12.5px] text-zinc-500">
-            {copy.sections.login.footnoteBefore}{" "}
+            {copy.sections.setup.footnoteBefore}{" "}
             <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px]">
-              openlog whoami
+              {mcpGuideCommands.setupAgain}
             </code>
-            {copy.sections.login.footnoteAfter}
+            {copy.sections.setup.footnoteAfter}
           </p>
         </GuideSection>
 
@@ -83,7 +83,7 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
           <p>{copy.sections.register.installers}</p>
           <CodeBlock
             locale={locale}
-          >{`${mcpGuideCommands.installCodex}\n${mcpGuideCommands.installClaude}`}</CodeBlock>
+          >{`${mcpGuideCommands.installAll}\n\n${mcpGuideCommands.installCodex}\n${mcpGuideCommands.installClaude}\n${mcpGuideCommands.installCursor}`}</CodeBlock>
         </GuideSection>
 
         <GuideSection title={copy.sections.manual.title}>

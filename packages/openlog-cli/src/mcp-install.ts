@@ -1,5 +1,5 @@
 import { spawn, type StdioOptions } from "node:child_process";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -9,43 +9,93 @@ import {
   getWebBaseUrl,
 } from "./config.js";
 
-type McpInstallClient = "codex" | "claude-code" | "claude";
+type McpInstallClient = "all" | "codex" | "claude-code" | "claude" | "cursor";
 
-type McpInstallOptions = {
+type McpInstallTarget = Exclude<McpInstallClient, "all" | "claude">;
+
+export type McpInstallOptions = {
   client: McpInstallClient;
   printOnly: boolean;
 };
 
-type ServerConfig = {
+export type ServerConfig = {
   command: string;
   args: string[];
   env: Record<string, string>;
 };
 
-export async function installMcp(options: McpInstallOptions): Promise<void> {
+type McpInstaller = (serverConfig: ServerConfig) => Promise<void>;
+
+export type McpInstallDependencies = {
+  installers?: Partial<Record<McpInstallTarget, McpInstaller>>;
+};
+
+const ALL_INSTALL_TARGETS: McpInstallTarget[] = [
+  "codex",
+  "claude-code",
+  "cursor",
+];
+
+export async function installMcp(
+  options: McpInstallOptions,
+  dependencies: McpInstallDependencies = {},
+): Promise<void> {
   const serverConfig = buildServerConfig();
+  const client = options.client === "claude" ? "claude-code" : options.client;
+  const installers: Record<McpInstallTarget, McpInstaller> = {
+    codex: dependencies.installers?.codex ?? installCodex,
+    "claude-code":
+      dependencies.installers?.["claude-code"] ?? installClaudeCode,
+    cursor: dependencies.installers?.cursor ?? installCursor,
+  };
 
   if (options.printOnly) {
-    printConfig(options.client, serverConfig);
+    if (client === "all") {
+      for (const target of ALL_INSTALL_TARGETS) {
+        console.log(`--- ${target} ---`);
+        printConfig(target, serverConfig);
+      }
+      return;
+    }
+
+    printConfig(client, serverConfig);
     return;
   }
 
-  if (options.client === "codex") {
-    await installCodex(serverConfig);
+  if (client !== "all") {
+    await installers[client](serverConfig);
     return;
   }
 
-  await installClaudeCode(serverConfig);
+  const failures: string[] = [];
+  for (const target of ALL_INSTALL_TARGETS) {
+    try {
+      await installers[target](serverConfig);
+    } catch (error) {
+      failures.push(`${target}: ${summarizeCommandError(error)}`);
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      `Some MCP client installations failed:\n${failures
+        .map((failure) => `- ${failure}`)
+        .join("\n")}`,
+    );
+  }
 }
 
 export function printMcpInstallHelp(): void {
   console.log(`OpenLog MCP install
 
 Usage:
+  openlog mcp install all
   openlog mcp install codex
   openlog mcp install claude-code
+  openlog mcp install cursor
   openlog mcp install codex --print
   openlog mcp install claude-code --print
+  openlog mcp install cursor --print
 
 Aliases:
   claude      Same as claude-code
@@ -71,8 +121,8 @@ function buildServerConfig(): ServerConfig {
   }
 
   return {
-    command: "openlog",
-    args: ["mcp"],
+    command: "npx",
+    args: ["-y", "@openloghq/cli", "mcp"],
     env,
   };
 }
@@ -100,7 +150,9 @@ async function installCodex(serverConfig: ServerConfig): Promise<void> {
 
   await writeCodexConfig(serverConfig);
   console.log("OpenLog MCP server added to ~/.codex/config.toml.");
-  console.log("Restart Codex or reload MCP servers, then run `/mcp` to confirm.");
+  console.log(
+    "Restart Codex or reload MCP servers, then run `/mcp` to confirm.",
+  );
 }
 
 async function installClaudeCode(serverConfig: ServerConfig): Promise<void> {
@@ -119,6 +171,30 @@ async function installClaudeCode(serverConfig: ServerConfig): Promise<void> {
 
   console.log("OpenLog MCP server registered with Claude Code.");
   console.log("Run `/mcp` inside Claude Code to confirm it is connected.");
+}
+
+export async function installCursor(
+  serverConfig: ServerConfig,
+  homeDirectory = os.homedir(),
+): Promise<void> {
+  const configPath = getCursorMcpConfigPath(homeDirectory);
+  await mkdir(path.dirname(configPath), { recursive: true, mode: 0o700 });
+
+  const currentConfig = await readTextIfExists(configPath);
+  const nextConfig = upsertCursorServerConfig(
+    currentConfig,
+    serverConfig,
+    configPath,
+  );
+  await writeFile(configPath, nextConfig, { mode: 0o600 });
+  await chmod(configPath, 0o600);
+
+  console.log("OpenLog MCP server added to ~/.cursor/mcp.json.");
+  console.log("Open Cursor Settings > Tools & MCP to confirm it is connected.");
+}
+
+export function getCursorMcpConfigPath(homeDirectory = os.homedir()): string {
+  return path.join(homeDirectory, ".cursor", "mcp.json");
 }
 
 async function writeCodexConfig(serverConfig: ServerConfig): Promise<void> {
@@ -164,9 +240,59 @@ function buildCodexServerBlock(serverConfig: ServerConfig): string {
   return lines.join("\n");
 }
 
-function printConfig(client: McpInstallClient, serverConfig: ServerConfig): void {
+export function upsertCursorServerConfig(
+  currentConfig: string,
+  serverConfig: ServerConfig,
+  configPath = "~/.cursor/mcp.json",
+): string {
+  let parsed: unknown = {};
+  if (currentConfig.trim().length > 0) {
+    try {
+      parsed = JSON.parse(currentConfig);
+    } catch {
+      throw new Error(
+        `Invalid Cursor MCP config at ${configPath}: file is not valid JSON.`,
+      );
+    }
+  }
+
+  if (!isRecord(parsed)) {
+    throw new Error(
+      `Invalid Cursor MCP config at ${configPath}: root value must be an object.`,
+    );
+  }
+
+  const existingServers = parsed.mcpServers;
+  if (existingServers !== undefined && !isRecord(existingServers)) {
+    throw new Error(
+      `Invalid Cursor MCP config at ${configPath}: mcpServers must be an object.`,
+    );
+  }
+
+  return `${JSON.stringify(
+    {
+      ...parsed,
+      mcpServers: {
+        ...(existingServers ?? {}),
+        openlog: buildJsonServerConfig(serverConfig),
+      },
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+function printConfig(
+  client: McpInstallClient,
+  serverConfig: ServerConfig,
+): void {
   if (client === "codex") {
     console.log(buildCodexServerBlock(serverConfig));
+    return;
+  }
+
+  if (client === "cursor") {
+    console.log(upsertCursorServerConfig("", serverConfig).trimEnd());
     return;
   }
 
@@ -174,9 +300,7 @@ function printConfig(client: McpInstallClient, serverConfig: ServerConfig): void
     JSON.stringify(
       {
         type: "stdio",
-        command: serverConfig.command,
-        args: serverConfig.args,
-        env: serverConfig.env,
+        ...buildJsonServerConfig(serverConfig),
       },
       null,
       2,
@@ -203,6 +327,18 @@ async function readTextIfExists(filePath: string): Promise<string> {
 
 function tomlString(value: string): string {
   return JSON.stringify(value);
+}
+
+function buildJsonServerConfig(serverConfig: ServerConfig) {
+  return {
+    command: serverConfig.command,
+    args: serverConfig.args,
+    env: serverConfig.env,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 class CommandFailedError extends Error {
