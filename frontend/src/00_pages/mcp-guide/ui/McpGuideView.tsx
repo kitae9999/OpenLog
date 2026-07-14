@@ -9,9 +9,11 @@ import {
   MCP_GUIDE_LOCALES,
   buildMcpGuideHref,
   mcpClientConfig,
+  mcpGuideAccessLabels,
   mcpGuideCommands,
   mcpGuideCopy,
   mcpGuideCopyButtonLabels,
+  mcpGuidePermissionProfiles,
   mcpGuideTools,
   parseMcpGuideLocale,
   type McpGuideLocale,
@@ -45,7 +47,9 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
         <span className="text-zinc-300">/</span>
         <span>{copy.breadcrumbSettings}</span>
         <span className="text-zinc-300">/</span>
-        <span className="font-semibold text-zinc-950">{copy.breadcrumbCurrent}</span>
+        <span className="font-semibold text-zinc-950">
+          {copy.breadcrumbCurrent}
+        </span>
       </nav>
 
       <header className="flex flex-wrap items-end justify-between gap-3 pb-8">
@@ -61,113 +65,176 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
       </header>
 
       <div className="space-y-0 divide-y divide-zinc-200/80">
-          <GuideSection title={copy.sections.login.title}>
-            <p>{copy.sections.login.body}</p>
-            <CodeBlock locale={locale}>{mcpGuideCommands.login}</CodeBlock>
-            <p className="text-[12.5px] text-zinc-500">
-              {copy.sections.login.footnoteBefore}{" "}
-              <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px]">
-                openlog whoami
-              </code>
-              {copy.sections.login.footnoteAfter}
-            </p>
-          </GuideSection>
+        <GuideSection title={copy.sections.login.title}>
+          <p>{copy.sections.login.body}</p>
+          <CodeBlock locale={locale}>{mcpGuideCommands.login}</CodeBlock>
+          <p className="text-[12.5px] text-zinc-500">
+            {copy.sections.login.footnoteBefore}{" "}
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px]">
+              openlog whoami
+            </code>
+            {copy.sections.login.footnoteAfter}
+          </p>
+        </GuideSection>
 
-          <GuideSection title={copy.sections.register.title}>
-            <p>{copy.sections.register.body}</p>
-            <CodeBlock locale={locale}>{mcpClientConfig}</CodeBlock>
-            <p>{copy.sections.register.installers}</p>
-            <CodeBlock locale={locale}>{`${mcpGuideCommands.installCodex}\n${mcpGuideCommands.installClaude}`}</CodeBlock>
-          </GuideSection>
+        <GuideSection title={copy.sections.register.title}>
+          <p>{copy.sections.register.body}</p>
+          <CodeBlock locale={locale}>{mcpClientConfig}</CodeBlock>
+          <p>{copy.sections.register.installers}</p>
+          <CodeBlock
+            locale={locale}
+          >{`${mcpGuideCommands.installCodex}\n${mcpGuideCommands.installClaude}`}</CodeBlock>
+        </GuideSection>
 
-          <GuideSection title={copy.sections.manual.title}>
-            <p>{copy.sections.manual.body}</p>
-            <CodeBlock locale={locale}>{mcpGuideCommands.mcp}</CodeBlock>
-            <p className="text-[12.5px] text-zinc-500">{copy.sections.manual.footnote}</p>
-          </GuideSection>
+        <GuideSection title={copy.sections.manual.title}>
+          <p>{copy.sections.manual.body}</p>
+          <CodeBlock locale={locale}>{mcpGuideCommands.mcp}</CodeBlock>
+          <p className="text-[12.5px] text-zinc-500">
+            {copy.sections.manual.footnote}
+          </p>
+        </GuideSection>
 
-          <GuideSection title={copy.sections.tools.title}>
-            <div className="openlog-scroll overflow-x-auto">
-              <table className="w-full min-w-[480px] border-collapse text-left text-[13px]">
-                <thead>
-                  <tr className="border-b border-zinc-200">
-                    <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
-                      {copy.sections.tools.colTool}
-                    </th>
-                    <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
-                      {copy.sections.tools.colDescription}
-                    </th>
+        <GuideSection title={copy.sections.permissions.title}>
+          <p>{copy.sections.permissions.body}</p>
+          <CodeBlock locale={locale}>{mcpGuideCommands.permissions}</CodeBlock>
+          <div className="openlog-scroll overflow-x-auto">
+            <table className="w-full min-w-[540px] border-collapse text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-zinc-200">
+                  <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
+                    {copy.sections.permissions.colProfile}
+                  </th>
+                  <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
+                    {copy.sections.permissions.colCapability}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {mcpGuidePermissionProfiles.map((profile) => (
+                  <tr
+                    key={profile.name}
+                    className="border-b border-zinc-200/80 last:border-b-0"
+                  >
+                    <td className="px-2.5 py-2.5 align-top">
+                      <code className="font-mono text-[12px] text-zinc-950">
+                        {profile.name}
+                      </code>
+                    </td>
+                    <td className="px-2.5 py-2.5 text-zinc-600">
+                      {profile.description[locale]}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {mcpGuideTools.map((tool) => (
-                    <tr
-                      key={tool.name}
-                      className="border-b border-zinc-200/80 last:border-b-0"
-                    >
-                      <td className="px-2.5 py-2.5 align-top">
-                        <code className="font-mono text-[12px] text-zinc-950">
-                          {tool.name}
-                        </code>
-                      </td>
-                      <td className="px-2.5 py-2.5 text-zinc-600">
-                        {tool.description[locale]}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[12.5px] text-zinc-500">
+            {copy.sections.permissions.footnote}
+          </p>
+        </GuideSection>
+
+        <GuideSection title={copy.sections.tools.title}>
+          <div className="openlog-scroll overflow-x-auto">
+            <table className="w-full min-w-[720px] border-collapse text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-zinc-200">
+                  <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
+                    {copy.sections.tools.colArea}
+                  </th>
+                  <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
+                    {copy.sections.tools.colTools}
+                  </th>
+                  <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
+                    {copy.sections.tools.colAccess}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {mcpGuideTools.map((group) => (
+                  <tr
+                    key={group.area.en}
+                    className="border-b border-zinc-200/80 last:border-b-0"
+                  >
+                    <td className="w-[170px] px-2.5 py-2.5 align-top font-medium text-zinc-700">
+                      {group.area[locale]}
+                    </td>
+                    <td className="px-2.5 py-2.5 align-top">
+                      <div className="flex flex-wrap gap-x-2 gap-y-1">
+                        {group.tools.map((tool) => (
+                          <code
+                            key={tool}
+                            className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px] text-zinc-800"
+                          >
+                            {tool}
+                          </code>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="w-[140px] px-2.5 py-2.5 align-top text-zinc-500">
+                      {mcpGuideAccessLabels[locale][group.access]}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[12.5px] text-zinc-500">
+            {copy.sections.tools.footnote}
+          </p>
+        </GuideSection>
+
+        <GuideSection title={copy.sections.local.title}>
+          <p>{copy.sections.local.body}</p>
+          <CodeBlock locale={locale}>{mcpGuideCommands.localDev}</CodeBlock>
+          <dl className="grid gap-2 text-[12.5px] text-zinc-600 sm:grid-cols-1">
+            <div>
+              <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
+                OPENLOG_API_BASE_URL
+              </dt>
+              <dd>{copy.sections.local.envApi}</dd>
             </div>
-            <p className="text-[12.5px] text-zinc-500">
-              <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px]">
-                publish_output
-              </code>{" "}
-              {copy.sections.tools.footnoteBefore}{" "}
-              <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px]">
-                confirm: true
-              </code>{" "}
-              {copy.sections.tools.footnoteAfter}
-            </p>
-          </GuideSection>
+            <div>
+              <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
+                OPENLOG_WEB_BASE_URL
+              </dt>
+              <dd>{copy.sections.local.envWeb}</dd>
+            </div>
+            <div>
+              <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
+                OPENLOG_AUTH_FILE
+              </dt>
+              <dd>
+                {copy.sections.local.envAuthBefore}{" "}
+                <code className="font-mono text-[11px]">
+                  ~/.openlog/auth.json
+                </code>
+                {copy.sections.local.envAuthAfter}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
+                OPENLOG_MCP_CONFIG_FILE
+              </dt>
+              <dd>
+                {copy.sections.local.envMcpBefore}{" "}
+                <code className="font-mono text-[11px]">
+                  ~/.openlog/mcp-config.json
+                </code>
+                {copy.sections.local.envMcpAfter}
+              </dd>
+            </div>
+          </dl>
+        </GuideSection>
 
-          <GuideSection title={copy.sections.local.title}>
-            <p>{copy.sections.local.body}</p>
-            <CodeBlock locale={locale}>{mcpGuideCommands.localDev}</CodeBlock>
-            <dl className="grid gap-2 text-[12.5px] text-zinc-600 sm:grid-cols-1">
-              <div>
-                <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
-                  OPENLOG_API_BASE_URL
-                </dt>
-                <dd>{copy.sections.local.envApi}</dd>
-              </div>
-              <div>
-                <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
-                  OPENLOG_WEB_BASE_URL
-                </dt>
-                <dd>{copy.sections.local.envWeb}</dd>
-              </div>
-              <div>
-                <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
-                  OPENLOG_AUTH_FILE
-                </dt>
-                <dd>
-                  {copy.sections.local.envAuthBefore}{" "}
-                  <code className="font-mono text-[11px]">~/.openlog/auth.json</code>
-                  {copy.sections.local.envAuthAfter}
-                </dd>
-              </div>
-            </dl>
-          </GuideSection>
-
-          <GuideSection title={copy.sections.troubleshooting.title}>
-            <ul className="list-disc space-y-2 pl-5 text-[13.5px] text-zinc-600">
-              {copy.sections.troubleshooting.items.map((item) => (
-                <li key={item.label}>
-                  <TroubleshootingItem label={item.label} body={item.body} />
-                </li>
-              ))}
-            </ul>
-          </GuideSection>
+        <GuideSection title={copy.sections.troubleshooting.title}>
+          <ul className="list-disc space-y-2 pl-5 text-[13.5px] text-zinc-600">
+            {copy.sections.troubleshooting.items.map((item) => (
+              <li key={item.label}>
+                <TroubleshootingItem label={item.label} body={item.body} />
+              </li>
+            ))}
+          </ul>
+        </GuideSection>
       </div>
 
       <footer className="mt-8 border-t border-zinc-200 pt-4">
@@ -202,7 +269,9 @@ function LocaleToggle({
     >
       {MCP_GUIDE_LOCALES.map((item, index) => (
         <span key={item.key} className="inline-flex items-center gap-2">
-          {index > 0 ? <span className="font-normal text-zinc-300">/</span> : null}
+          {index > 0 ? (
+            <span className="font-normal text-zinc-300">/</span>
+          ) : null}
           <button
             type="button"
             aria-pressed={locale === item.key}
@@ -391,7 +460,10 @@ function CopyIcon({ copied }: { copied: boolean }) {
       strokeWidth="1.4"
     >
       <rect x="5.25" y="2.75" width="7" height="9" rx="1.5" />
-      <path d="M3.75 5.25V12a1.5 1.5 0 0 0 1.5 1.5H10.5" strokeLinecap="round" />
+      <path
+        d="M3.75 5.25V12a1.5 1.5 0 0 0 1.5 1.5H10.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
