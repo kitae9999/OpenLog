@@ -1,0 +1,16 @@
+[Unit]
+Description=Update the OpenLog GeoLite2 City database
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+UMask=0027
+ExecStart=/usr/bin/geoipupdate -f /etc/GeoIP.conf
+ExecStartPost=/usr/bin/chown root:alloy {{ geoip_database_path }}
+ExecStartPost=/usr/bin/chmod 0640 {{ geoip_database_path }}
+ExecStartPost=/usr/bin/systemctl try-restart alloy.service
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths={{ geoip_database_directory }}

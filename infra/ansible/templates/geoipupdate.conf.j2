@@ -1,0 +1,6 @@
+# Managed by Ansible. GeoLite2 downloads require an accepted MaxMind license.
+# Keep AccountID and LicenseKey in the GitHub production Environment secrets only.
+AccountID {{ maxmind_account_id }}
+LicenseKey {{ maxmind_license_key }}
+EditionIDs GeoLite2-City
+DatabaseDirectory {{ geoip_database_directory }}

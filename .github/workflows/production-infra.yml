@@ -41,6 +41,8 @@ jobs:
           GRAFANA_CLOUD_LOGS_URL: ${{ secrets.GRAFANA_CLOUD_LOGS_URL }}
           GRAFANA_CLOUD_LOGS_USER: ${{ secrets.GRAFANA_CLOUD_LOGS_USER }}
           GRAFANA_CLOUD_TOKEN: ${{ secrets.GRAFANA_CLOUD_TOKEN }}
+          MAXMIND_ACCOUNT_ID: ${{ secrets.MAXMIND_ACCOUNT_ID }}
+          MAXMIND_LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
         run: |
           ./infra/ansible/provision.sh \
             --extra-vars "ansible_host=${{ secrets.PRODUCTION_SSH_HOST }}" \

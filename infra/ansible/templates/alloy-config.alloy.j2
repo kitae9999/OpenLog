@@ -212,6 +212,32 @@ loki.process "openlog" {
     replace    = "[REDACTED_JWT]"
   }
 
+  stage.match {
+    selector = "{compose_service=\"nginx\"}"
+
+    stage.json {
+      expressions = {
+        client_ip = "client_ip",
+      }
+    }
+
+    stage.geoip {
+      source  = "client_ip"
+      db      = "{{ geoip_database_path }}"
+      db_type = "city"
+    }
+
+    // Keep visitor IP and GeoIP fields out of the Loki index.
+    stage.structured_metadata {
+      values = {
+        client_ip          = "",
+        geoip_city_name    = "",
+        geoip_country_code = "",
+        geoip_country_name = "",
+      }
+    }
+  }
+
   stage.json {
     expressions = {
       level = "\"log.level\"",
