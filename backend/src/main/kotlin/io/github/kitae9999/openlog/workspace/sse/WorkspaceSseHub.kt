@@ -1,5 +1,7 @@
 package io.github.kitae9999.openlog.workspace.sse
 
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
@@ -8,9 +10,19 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArraySet
 
 @Component
-class WorkspaceSseHub {
+class WorkspaceSseHub(
+    meterRegistry: MeterRegistry,
+) {
     private val emittersByWorkspaceId =
         ConcurrentHashMap<Long, CopyOnWriteArraySet<SseEmitter>>()
+
+    init {
+        Gauge.builder("openlog.sse.connections.active", this) { hub ->
+            hub.totalSubscriberCount().toDouble()
+        }
+            .description("Current number of active OpenLog SSE connections")
+            .register(meterRegistry)
+    }
 
     fun register(workspaceId: Long, emitter: SseEmitter) {
         val emitters = emittersByWorkspaceId.computeIfAbsent(workspaceId) {
@@ -72,6 +84,10 @@ class WorkspaceSseHub {
 
     fun subscriberCount(workspaceId: Long): Int {
         return emittersByWorkspaceId[workspaceId]?.size ?: 0
+    }
+
+    fun totalSubscriberCount(): Int {
+        return emittersByWorkspaceId.values.sumOf { it.size }
     }
 
     private companion object {

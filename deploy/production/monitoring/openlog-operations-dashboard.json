@@ -53,7 +53,7 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 6,
+        "w": 4,
         "x": 0,
         "y": 0
       },
@@ -115,8 +115,8 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 6,
-        "x": 6,
+        "w": 4,
+        "x": 4,
         "y": 0
       },
       "id": 2,
@@ -146,6 +146,65 @@
         }
       ],
       "title": "Alloy scrape 상태",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 15,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(openlog_sse_connections_active{job=\"openlog-backend\"})",
+          "legendFormat": "active",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "현재 SSE 연결 수",
       "type": "stat"
     },
     {
@@ -200,14 +259,14 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"openlog-backend\"}[5m]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"openlog-backend\",uri!~\"/actuator.*\",uri!=\"/workspaces/{workspaceId}/events\"}[5m]))",
           "legendFormat": "all",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"openlog-backend\",status=~\"5..\"}[5m]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"openlog-backend\",status=~\"5..\",uri!~\"/actuator.*\",uri!=\"/workspaces/{workspaceId}/events\"}[5m]))",
           "legendFormat": "5xx",
           "range": true,
           "refId": "B"
@@ -269,14 +328,14 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"openlog-backend\"}[5m])))",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"openlog-backend\",uri!~\"/actuator.*\",uri!=\"/workspaces/{workspaceId}/events\"}[5m])))",
           "legendFormat": "p50",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"openlog-backend\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"openlog-backend\",uri!~\"/actuator.*\",uri!=\"/workspaces/{workspaceId}/events\"}[5m])))",
           "legendFormat": "p95",
           "range": true,
           "refId": "B"
@@ -857,6 +916,71 @@
       ],
       "title": "TLS 인증서 잔여일",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 3,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 99.5
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 45
+      },
+      "id": 16,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * avg(avg_over_time(probe_success{job=\"openlog-api-health\"}[30d]))",
+          "legendFormat": "30d availability",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "API 30일 가용성 SLO (목표 99.5%)",
+      "type": "stat"
     }
   ],
   "refresh": "30s",
@@ -877,6 +1001,6 @@
   "timezone": "browser",
   "title": "OpenLog Operations",
   "uid": "openlog-operations",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
