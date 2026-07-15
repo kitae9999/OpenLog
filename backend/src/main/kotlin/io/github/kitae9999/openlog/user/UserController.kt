@@ -22,6 +22,15 @@ import org.springframework.web.bind.annotation.RestController
 class UserController(
     private val userService: UserService,
 ) {
+    @GetMapping("/me/posts")
+    fun getAuthoredPosts(
+        @AuthenticationPrincipal user: User,
+        @RequestParam(required = false) cursor: String?,
+        @RequestParam(defaultValue = "10") size: Int,
+    ): RecentPostCursorResponse {
+        return userService.getAuthoredPosts(requireNotNull(user.id), cursor, size)
+    }
+
     @GetMapping("/me/following/posts")
     fun getFollowingPosts(
         @AuthenticationPrincipal user: User,

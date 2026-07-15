@@ -63,6 +63,43 @@ class UserServiceTest {
     }
 
     @Test
+    fun `getAuthoredPosts returns only the current user's cursor page`() {
+        val author = User(
+            id = 9L,
+            username = "alice",
+            nickname = "Alice",
+            profileImageUrl = "https://example.com/alice.png",
+        )
+        val authoredPosts = (1L..11L).map { id ->
+            createPost(
+                id = id,
+                author = author,
+                slug = "authored-post-$id",
+                title = "Authored Post $id",
+            )
+        }
+        val pagePostIds = (1L..10L).toList()
+        given(
+            postRepository.findAllByAuthorIdOrderByCreatedAtDescIdDesc(
+                9L,
+                PageRequest.of(0, 11),
+            )
+        ).willReturn(authoredPosts)
+        given(postLikeRepository.countAllByPostIdIn(pagePostIds)).willReturn(emptyList())
+        given(commentRepository.countAllByPostIdIn(pagePostIds)).willReturn(emptyList())
+
+        val response = userService.getAuthoredPosts(userId = 9L, cursor = null, size = 30)
+
+        assertThat(response.size).isEqualTo(10)
+        assertThat(response.posts).hasSize(10)
+        assertThat(response.posts).allMatch { it.authorUsername == "alice" }
+        assertThat(response.hasNext).isTrue()
+        assertThat(response.nextCursor).isEqualTo(
+            DateTimeIdCursorCodec.encode(authoredPosts[9].createdAt, requireNotNull(authoredPosts[9].id))
+        )
+    }
+
+    @Test
     fun `getFollowingPosts returns first cursor page with capped page size`() {
         val author = User(
             id = 1L,
