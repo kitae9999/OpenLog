@@ -11,7 +11,11 @@ import {
 } from "./cli-ui.js";
 import { getWebBaseUrl } from "./config.js";
 import { confirm, createPromptIo, choose, InvalidChoiceError, type PromptIo } from "./prompt.js";
-import { createProjectGit, type GitProject, type ProjectGit } from "./project-git.js";
+import {
+  createProjectBinding,
+  type LocalProject,
+  type ProjectBinding,
+} from "./project-binding.js";
 
 export type CaptureMode = "AUTO" | "ASK" | "EXPLICIT";
 
@@ -53,7 +57,7 @@ export type InitDeps = {
   projectPath: string;
   promptIo: PromptIo;
   api: InitApi;
-  git: ProjectGit;
+  binding: ProjectBinding;
   webBaseUrl: string;
   writeOutput: (message: string) => void;
   spinner: (label: string) => CliSpinner;
@@ -73,7 +77,7 @@ export async function runInit(deps: Partial<InitDeps> = {}): Promise<void> {
 
   const io = deps.promptIo ?? (await createPromptIo());
   const api = deps.api ?? (await createAuthenticatedApiClient());
-  const git = deps.git ?? createProjectGit();
+  const binding = deps.binding ?? createProjectBinding();
   const projectPath = deps.projectPath ?? process.cwd();
   const write = deps.writeOutput ?? console.log;
   const webBaseUrl = deps.webBaseUrl ?? getWebBaseUrl();
@@ -86,14 +90,29 @@ export async function runInit(deps: Partial<InitDeps> = {}): Promise<void> {
 
     const project = await withSpinner(
       makeSpinner,
-      "Finding Git project...",
-      () => git.inspect(projectPath),
-      "Git project found.",
+      "Inspecting current folder...",
+      () => binding.inspect(projectPath),
+      "Folder inspected.",
     );
-    write(kv("Project", project.root));
-    write(kv("Repository", project.repositoryFullName ?? "Local Git project"));
+    write(kv("Folder", project.root));
+    write(kv("Type", project.kind === "git" ? "Git repository" : "General folder"));
+    if (project.repositoryFullName) {
+      write(kv("Repository", project.repositoryFullName));
+    }
+    write(kv("Local binding", project.bindingPath));
 
-    const resolved = await resolveExistingProject(api, project, makeSpinner, write);
+    write("");
+    const shouldConnect = await confirm(
+      io,
+      "Connect this folder to an OpenLog project?",
+      true,
+    );
+    if (!shouldConnect) {
+      write(dim("Project init cancelled. No local binding was written."));
+      return;
+    }
+
+    let resolved = await resolveExistingProject(api, project, makeSpinner, write);
     const workspaces = await withSpinner(
       makeSpinner,
       "Loading OpenLog workspaces...",
@@ -122,7 +141,10 @@ export async function runInit(deps: Partial<InitDeps> = {}): Promise<void> {
     const workspace = workspaces.find((item) => item.id === workspaceId)!;
 
     if (resolved && resolved.workspaceId !== workspaceId) {
-      const currentWorkspace = workspaces.find((item) => item.id === resolved.workspaceId);
+      const currentWorkspaceId = resolved.workspaceId;
+      const currentWorkspace = workspaces.find(
+        (item) => item.id === currentWorkspaceId,
+      );
       const shouldMove = await confirm(
         io,
         `Move this project from ${currentWorkspace?.name ?? "its current workspace"} to ${workspace.name}?`,
@@ -131,6 +153,30 @@ export async function runInit(deps: Partial<InitDeps> = {}): Promise<void> {
       if (!shouldMove) {
         write(dim("Project init cancelled. No changes were made."));
         return;
+      }
+    }
+
+    if (!resolved && workspace.projects.length > 0) {
+      write("");
+      const selectedProjectId = await chooseValue(
+        io,
+        heading("Create a project or connect this folder to an existing one?"),
+        [
+          {
+            value: "new",
+            label: `Create a new project named ${project.displayName}`,
+          },
+          ...workspace.projects.map((item) => ({
+            value: String(item.id),
+            label: `Use existing project: ${item.displayName}`,
+          })),
+        ],
+        "new",
+      );
+      if (selectedProjectId !== "new") {
+        resolved = workspace.projects.find(
+          (item) => item.id === Number.parseInt(selectedProjectId, 10),
+        )!;
       }
     }
 
@@ -144,7 +190,7 @@ export async function runInit(deps: Partial<InitDeps> = {}): Promise<void> {
 
     const savedProject = await saveProjectBinding({
       api,
-      git,
+      binding,
       project,
       existing: resolved,
       workspaceId,
@@ -162,6 +208,7 @@ export async function runInit(deps: Partial<InitDeps> = {}): Promise<void> {
     write(kv("Workspace", context.workspace.name));
     write(kv("Capture mode", context.project.captureMode));
     write(kv("Guide revision", String(context.guide.revision)));
+    write(kv("Local binding", project.bindingPath));
     write(`Agent settings: ${webBaseUrl}/settings/workspaces/${context.workspace.id}/agent`);
   } finally {
     await io.close?.();
@@ -170,7 +217,7 @@ export async function runInit(deps: Partial<InitDeps> = {}): Promise<void> {
 
 async function resolveExistingProject(
   api: InitApi,
-  project: GitProject,
+  project: LocalProject,
   makeSpinner: (label: string) => CliSpinner,
   write: (message: string) => void,
 ): Promise<WorkspaceProject | null> {
@@ -212,18 +259,24 @@ async function resolveExistingProject(
 
 async function saveProjectBinding(options: {
   api: InitApi;
-  git: ProjectGit;
-  project: GitProject;
+  binding: ProjectBinding;
+  project: LocalProject;
   existing: WorkspaceProject | null;
   workspaceId: number;
   captureMode: CaptureMode;
   makeSpinner: (label: string) => CliSpinner;
 }): Promise<WorkspaceProject> {
-  const body = {
-    displayName: options.project.repositoryFullName ?? options.project.displayName,
-    repositoryFullName: options.project.repositoryFullName,
-    captureMode: options.captureMode,
-  };
+  const body = options.existing
+    ? {
+        displayName: options.existing.displayName,
+        repositoryFullName: options.existing.repositoryFullName,
+        captureMode: options.captureMode,
+      }
+    : {
+        displayName: options.project.repositoryFullName ?? options.project.displayName,
+        repositoryFullName: options.project.repositoryFullName,
+        captureMode: options.captureMode,
+      };
   const saved = await withSpinner(
     options.makeSpinner,
     "Saving project connection...",
@@ -237,7 +290,7 @@ async function saveProjectBinding(options: {
   );
 
   try {
-    await options.git.writeProjectId(options.project.root, saved.id);
+    await options.binding.writeProjectId(options.project, saved.id);
   } catch (error) {
     if (!options.existing) {
       try {
@@ -249,7 +302,7 @@ async function saveProjectBinding(options: {
       }
     }
     throw new Error(
-      `Could not write openlog.projectId to ${options.project.root}/.git/config: ${error instanceof Error ? error.message : String(error)}`,
+      `Could not write the OpenLog project binding to ${options.project.bindingPath}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 

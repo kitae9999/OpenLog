@@ -145,7 +145,8 @@ export async function runSetup(
 
     write("");
     write(success("Setup complete."));
-    write(dim("Next: cd <project>"));
+    write(dim("Your agent can now discover OpenLog projects without a local folder."));
+    write(dim("Optional folder binding: cd <folder>"));
     write(dim("Then: npx @openloghq/cli@latest init"));
   } finally {
     await io.close?.();

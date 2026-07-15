@@ -74,25 +74,33 @@ npx -y @openloghq/cli@latest
 
 The interactive wizard signs you in, registers OpenLog MCP with Codex, Claude
 Code, Cursor, or all supported clients, and lets you choose a local MCP
-permission profile. Setup does not inspect or connect the current directory. You
-can run the wizard again at any time:
+permission profile. Setup does not inspect or connect the current directory, and
+agents can discover OpenLog projects without a local folder after setup. You can
+run the wizard again at any time:
 
 ```bash
 npx -y @openloghq/cli@latest setup
 ```
 
-Then connect each Git project from its repository root:
+Optionally connect any local folder for automatic path-based identification:
 
 ```bash
-cd <project>
+cd <folder>
 npx -y @openloghq/cli@latest init
 ```
 
-`openlog init` finds the Git root, lets you choose a workspace and Capture Mode,
-and stores the returned project binding as `openlog.projectId` in the local
-`.git/config`. It does not add a tracked file. A remote is optional; local Git
-projects are bound by project ID. One workspace can contain multiple project
-bindings, while the same repository can be connected only once per user.
+`openlog init` shows whether the current folder is a Git repository or a general
+folder, asks whether to connect it, and lets you choose a workspace, an existing
+or new project, and Capture Mode. Git repositories store `openlog.projectId` in
+local `.git/config`; general folders store a versioned ID in
+`.openlog/project.json`. A session started from a descendant resolves the nearest
+general-folder binding. OpenLog does not inspect folder contents.
+
+Without a local path, `start_openlog_session` automatically starts only when the
+account has exactly one project. It returns a project list when there are
+multiple choices so the agent can ask the user. `create_workspace_project` can
+create and start a project without creating a directory; `openlog init` can bind
+a folder to that project later.
 
 The workspace Agent Guide is an editable English Markdown SSOT. The MCP server
 loads its latest revision at the start of each project session. Capture Mode is
@@ -118,7 +126,7 @@ npx -y @openloghq/cli@latest mcp
 - `openlog login` starts device login and opens the approval page in your browser.
 - `openlog whoami` shows the locally authenticated account.
 - `openlog logout` removes the local OpenLog session.
-- `openlog init` connects the current Git project and loads its Agent Guide.
+- `openlog init` connects the current folder and loads its Agent Guide.
 - `openlog mcp` starts the stdio MCP server.
 
 You can also install the CLI globally:
@@ -179,7 +187,7 @@ openlog mcp permissions reset
 | --- | --- |
 | Permissions and account | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts` |
 | Public posts | `get_post_detail`, `upload_post_image`, `publish_post` |
-| Workspace and activity | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_project`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
+| Workspace and activity | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_project`, `create_workspace_project`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
 | Agent Guide | `update_workspace_agent_guide` |
 | Capture Mode | `update_workspace_project_capture_mode` |
 | Tasks and logs | `list_workspace_tasks`, `get_workspace_task`, `create_workspace_task`, `update_workspace_task`, and the matching workspace-log tools |
@@ -188,7 +196,7 @@ openlog mcp permissions reset
 | Graph links | `list_workspace_links` and task/log/cross-link create tools |
 | Full-profile deletes | Working-brief clear and individual task/log/todo/memory/output/link delete tools |
 
-`publish_post`, `publish_workspace_output`, `update_workspace_agent_guide`, and `update_workspace_project_capture_mode` return a preview by default. Applying the write requires `confirm: true`, or `skipConfirmation: true` when the user has explicitly requested the write without another confirmation.
+`create_workspace_project`, `publish_post`, `publish_workspace_output`, `update_workspace_agent_guide`, and `update_workspace_project_capture_mode` return a preview by default. Applying the write requires `confirm: true`, or `skipConfirmation: true` when the user has explicitly requested the write without another confirmation.
 
 ### Connect to a local server
 

@@ -102,7 +102,7 @@ export function registerWorkspaceTools(
 ): void {
   registerWorkspaceReadTools(registry);
   registerAgentGuideTools(registry);
-  registerCaptureModeTools(registry);
+  registerProjectTools(registry);
   registerTaskTools(registry);
   registerLogTools(registry);
   registerTodoTools(registry);
@@ -169,7 +169,7 @@ function registerAgentGuideTools(registry: McpToolRegistry): void {
   );
 }
 
-function registerCaptureModeTools(registry: McpToolRegistry): void {
+function registerProjectTools(registry: McpToolRegistry): void {
   registry.registerAuthenticated(
     "get_workspace_project",
     "read",
@@ -181,6 +181,57 @@ function registerCaptureModeTools(registry: McpToolRegistry): void {
       annotations: READ_TOOL_ANNOTATIONS,
     },
     (client, { projectId }) => client.get(`/workspace-projects/${projectId}`),
+  );
+
+  registry.registerAuthenticated(
+    "create_workspace_project",
+    "write",
+    {
+      title: "Create OpenLog Workspace Project",
+      description:
+        "Create an OpenLog project without requiring a local directory. Use this after a pathless start_openlog_session returns no_projects, or when the user explicitly wants another project. It does not write a local folder binding; run openlog init inside a folder later if desired. Requires confirm: true unless skipConfirmation is explicitly requested.",
+      inputSchema: {
+        workspaceId: POSITIVE_ID,
+        displayName: z.string().trim().min(1).max(255),
+        captureMode: CAPTURE_MODE.default("ASK"),
+        confirm: z.boolean().optional(),
+        skipConfirmation: z.boolean().optional(),
+      },
+      annotations: WRITE_TOOL_ANNOTATIONS,
+    },
+    async (
+      client,
+      { workspaceId, displayName, captureMode, confirm, skipConfirmation },
+    ) => {
+      if (confirm !== true && skipConfirmation !== true) {
+        return {
+          requiresConfirmation: true,
+          preview: {
+            workspaceId,
+            displayName,
+            captureMode,
+          },
+          nextStep:
+            "Ask the user to confirm, then call create_workspace_project again with confirm: true. Use skipConfirmation: true only when the user explicitly requested creation without confirmation.",
+        };
+      }
+
+      const project = await client.post<WorkspaceProjectResponse>(
+        `/workspaces/${workspaceId}/projects`,
+        {
+          displayName,
+          repositoryFullName: null,
+          captureMode,
+        },
+      );
+      const context = await client.get(
+        `/workspace-projects/${project.id}/agent-context`,
+      );
+      return {
+        status: "ready",
+        ...asRecord(context),
+      };
+    },
   );
 
   registry.registerAuthenticated(
@@ -227,6 +278,12 @@ function registerCaptureModeTools(registry: McpToolRegistry): void {
       });
     },
   );
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : { context: value };
 }
 
 function registerWorkspaceReadTools(registry: McpToolRegistry): void {

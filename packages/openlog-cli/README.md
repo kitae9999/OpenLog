@@ -19,26 +19,37 @@ Running `openlog` or `openlog setup` in a TTY walks through:
 2. Install MCP into Codex, Claude Code, Cursor, all of them, or skip
 3. Choose an MCP permission profile
 
-Setup never inspects or connects the current directory. Non-interactive shells
+Setup never inspects or connects the current directory. After setup, an agent
+can discover OpenLog projects without a local folder. Non-interactive shells
 should use the individual commands instead.
 
 ## Project init
 
-Run init separately from every Git project you want OpenLog agents to use:
+Run init inside any local folder you want OpenLog agents to identify automatically:
 
 ```bash
-cd <project>
+cd <folder>
 npx -y @openloghq/cli@latest init
 ```
 
-The interactive flow finds the Git root, checks a local or repository binding,
-asks for a workspace and Capture Mode, and writes `openlog.projectId` to the
-repository's local `.git/config`. Git is required; an origin remote is not. No
-tracked OpenLog config or agent-instruction file is created.
+The interactive flow shows the detected folder type and asks whether to connect
+it. Git repositories keep `openlog.projectId` in local `.git/config`. General
+folders use `.openlog/project.json` with a versioned project ID. A session
+started from a descendant of a general folder resolves the nearest parent
+binding. OpenLog does not inspect the folder contents.
 
-One workspace may contain multiple repository or local Git projects. A user's
-same normalized repository can be connected only once. If the server connection
-is created but writing `.git/config` fails, init rolls the new connection back.
+Init can create a new OpenLog project or bind the folder to an existing project
+in the selected workspace. One workspace may contain Git, general-folder, and
+directory-free projects. A user's same normalized repository can be connected
+only once. If the server project is created but writing the local binding fails,
+init rolls the new project back.
+
+`start_openlog_session` accepts a local `projectPath`, an explicit `projectId`,
+or no selector. With no selector it starts automatically only when exactly one
+project exists. With multiple projects it returns `selection_required` so the
+agent asks the user and retries with the selected ID. With no projects, agents
+with write permission can preview and confirm `create_workspace_project`; this
+does not require or create a local directory.
 
 Each workspace owns one editable English Markdown Agent Guide. The MCP server's
 `start_openlog_session` and `get_workspace_agent_guide` tools return the latest
@@ -101,7 +112,8 @@ openlog mcp permissions reset
 MCP tool groups:
 
 - Account and posts: authentication, notifications, authored/liked posts, image upload, post detail, and confirmed publishing
-- Workspace context: project session start, workspace discovery, activity, working brief, tasks, logs, todos, memories, outputs, and graph links
+- Workspace context: project session start, workspace and project discovery, activity, working brief, tasks, logs, todos, memories, outputs, and graph links
+- Project creation: confirmed `create_workspace_project` without a required local directory
 - Safe writes: create/update, todo completion, link creation, image upload, and confirmed output/post publishing
 - Full-only writes: individual workspace-document/link deletes and working-brief clear
 

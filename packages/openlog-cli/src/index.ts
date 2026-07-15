@@ -122,7 +122,7 @@ function printHelp(): void {
   console.log(dim("Setup"));
   console.log(`  openlog                     Guided setup (login → agent → permissions)`);
   console.log(`  openlog setup               Same as above`);
-  console.log(`  openlog init                Connect the current Git project`);
+  console.log(`  openlog init                Connect the current folder to a project`);
   console.log("");
   console.log(dim("Auth"));
   console.log(`  openlog login              Sign in from the terminal`);
