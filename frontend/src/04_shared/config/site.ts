@@ -1,6 +1,8 @@
 export const SITE_NAME = "OpenLog";
+/** Search / share snippet — English one-liner; MCP as proper noun. */
 export const SITE_DESCRIPTION =
-  "Keep the context behind the code, then turn it into durable developer knowledge.";
+  "A workspace for AI agents. Capture tasks, logs, and memories, then connect them over MCP so context stays reusable.";
+export const SITE_TITLE_DEFAULT = `${SITE_NAME} — Workspace for AI agents`;
 export const SITE_URL = resolveSiteUrl();
 
 function resolveSiteUrl(): string {

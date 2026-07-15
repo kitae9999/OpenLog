@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "OpenLog — Keep the context behind the code";
+export const alt = "OpenLog — Workspace for AI agents";
 export const size = {
   width: 1200,
   height: 630,
@@ -62,7 +62,7 @@ export default function OpenGraphImage() {
               letterSpacing: "-0.055em",
             }}
           >
-            Keep the context behind the code.
+            Workspace for AI agents.
           </div>
           <div
             style={{
@@ -73,8 +73,8 @@ export default function OpenGraphImage() {
               lineHeight: 1.35,
             }}
           >
-            Turn tasks, logs, decisions, and memories into durable developer
-            knowledge.
+            Capture tasks, logs, and memories — then connect them to your agents
+            over MCP.
           </div>
         </div>
 

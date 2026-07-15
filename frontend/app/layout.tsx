@@ -3,6 +3,7 @@ import { Geist_Mono } from "next/font/google";
 import {
   SITE_DESCRIPTION,
   SITE_NAME,
+  SITE_TITLE_DEFAULT,
   SITE_URL,
 } from "@/shared/config/site";
 import { OPENLOG_MARK_ASSET } from "@/shared/config/brand";
@@ -18,19 +19,20 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   applicationName: SITE_NAME,
   title: {
-    default: `${SITE_NAME} — Keep the context behind the code`,
+    default: SITE_TITLE_DEFAULT,
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   keywords: [
+    "AI agent",
+    "agent workspace",
+    "MCP",
     "developer knowledge",
     "engineering log",
-    "AI coding agent",
-    "technical writing",
     "knowledge graph",
-    "개발 지식",
+    "에이전트 워크스페이스",
     "개발 로그",
-    "기술 블로그",
+    "개발 지식",
   ],
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   creator: SITE_NAME,
@@ -48,14 +50,14 @@ export const metadata: Metadata = {
     type: "website",
     url: "/",
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Keep the context behind the code`,
+    title: SITE_TITLE_DEFAULT,
     description: SITE_DESCRIPTION,
     locale: "en_US",
     alternateLocale: ["ko_KR"],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — Keep the context behind the code`,
+    title: SITE_TITLE_DEFAULT,
     description: SITE_DESCRIPTION,
   },
   robots: {
