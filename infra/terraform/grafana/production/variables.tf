@@ -38,7 +38,7 @@ variable "synthetic_monitoring_url" {
 }
 
 variable "synthetic_monitoring_access_token" {
-  description = "Grafana Cloud access policy token with Synthetic Monitoring write permissions."
+  description = "Grafana Cloud Synthetic Monitoring access token generated from the Synthetics configuration page."
   type        = string
   sensitive   = true
 }
