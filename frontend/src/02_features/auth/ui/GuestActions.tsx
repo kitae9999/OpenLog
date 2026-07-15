@@ -29,7 +29,7 @@ export type AuthModalControls = {
 };
 
 const modalButtonClassName =
-  "flex h-12 w-full items-center justify-center gap-3 rounded-[14px] text-[16px] font-medium tracking-[-0.02em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20";
+  "flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-[14px] text-[16px] font-medium tracking-[-0.02em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20";
 
 const authContent: Record<AuthMode, AuthContent> = {
   login: {
