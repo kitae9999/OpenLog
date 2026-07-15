@@ -49,7 +49,22 @@ if includes_service "debezium" "$@"; then
     exit 1
   fi
 
+  ./debezium/ensure-openlog-postgres-publication.sh >/dev/null
   ./debezium/register-openlog-postgres-connector.sh >/dev/null
+
+  cdc_ready=false
+  for _ in {1..60}; do
+    if ./debezium/check-openlog-postgres-cdc.sh >/dev/null 2>&1; then
+      cdc_ready=true
+      break
+    fi
+    sleep 2
+  done
+
+  if [[ "$cdc_ready" != "true" ]]; then
+    ./debezium/check-openlog-postgres-cdc.sh
+    exit 1
+  fi
 fi
 
 if includes_service "backend" "$@" || includes_service "nginx" "$@"; then
