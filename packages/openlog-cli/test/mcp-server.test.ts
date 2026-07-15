@@ -8,7 +8,7 @@ import type {
   McpPermissionProfile,
   ResolvedMcpPermissions,
 } from "../src/mcp-permissions.js";
-import type { ProjectGit } from "../src/project-git.js";
+import type { ProjectBinding } from "../src/project-binding.js";
 
 type RecordedCall = {
   method: string;
@@ -25,6 +25,7 @@ test("exposes tools according to the active permission profile", async (t) => {
   assert.ok(readOnlyTools.tools.some((tool) => tool.name === "get_workspace_project"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "create_workspace_task"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "update_workspace_agent_guide"));
+  assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "create_workspace_project"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "update_workspace_project_capture_mode"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "publish_post"));
   assert.ok(!readOnlyTools.tools.some((tool) => tool.name === "delete_workspace_task"));
@@ -33,6 +34,7 @@ test("exposes tools according to the active permission profile", async (t) => {
   const safeWriteTools = await safeWrite.client.listTools();
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "create_workspace_task"));
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "update_workspace_agent_guide"));
+  assert.ok(safeWriteTools.tools.some((tool) => tool.name === "create_workspace_project"));
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "update_workspace_project_capture_mode"));
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "publish_workspace_output"));
   assert.ok(!safeWriteTools.tools.some((tool) => tool.name === "delete_workspace_task"));
@@ -73,7 +75,7 @@ test("advertises session instructions and document selection criteria", async (t
 
 test("starts a read-only project session from the supplied project path", async (t) => {
   const session = await createSession(t, "read-only", {
-    projectGit: projectGitFixture(42),
+    projectBinding: projectBindingFixture(42),
   });
 
   const context = await callJson(session.client, "start_openlog_session", {
@@ -91,7 +93,7 @@ test("starts a read-only project session from the supplied project path", async 
 
 test("does not guess a workspace for uninitialized or stale projects", async (t) => {
   const uninitialized = await createSession(t, "read-only", {
-    projectGit: projectGitFixture(null),
+    projectBinding: projectBindingFixture(null),
   });
   const missing = await callJson(uninitialized.client, "start_openlog_session", {
     projectPath: "/work/openlog",
@@ -101,7 +103,7 @@ test("does not guess a workspace for uninitialized or stale projects", async (t)
   assert.deepEqual(uninitialized.api.calls, []);
 
   const stale = await createSession(t, "read-only", {
-    projectGit: projectGitFixture(99),
+    projectBinding: projectBindingFixture(99),
   });
   stale.api.failures.set(
     "/workspace-projects/99/agent-context",
@@ -112,6 +114,74 @@ test("does not guess a workspace for uninitialized or stale projects", async (t)
   });
   assert.equal(staleResult.status, "stale");
   assert.match(String(staleResult.initCommand), /openloghq\/cli@latest init/);
+});
+
+test("discovers pathless projects without guessing among multiple choices", async (t) => {
+  const session = await createSession(t, "read-only");
+
+  const noProjects = await callJson(
+    session.client,
+    "start_openlog_session",
+    {},
+  );
+  assert.equal(noProjects.status, "no_projects");
+  assert.deepEqual(session.api.calls, [{ method: "GET", path: "/workspaces" }]);
+
+  session.api.calls.length = 0;
+  session.api.workspaces = [workspaceResponse([workspaceProjectResponse("ASK")])];
+  const onlyProject = await callJson(
+    session.client,
+    "start_openlog_session",
+    {},
+  );
+  assert.equal(onlyProject.status, "ready");
+  assert.deepEqual(session.api.calls, [
+    { method: "GET", path: "/workspaces" },
+    { method: "GET", path: "/workspace-projects/42/agent-context" },
+  ]);
+
+  session.api.calls.length = 0;
+  session.api.workspaces = [
+    workspaceResponse([
+      workspaceProjectResponse("ASK"),
+      workspaceProjectResponse("AUTO", { id: 43, displayName: "Notes" }),
+    ]),
+  ];
+  const selection = await callJson(
+    session.client,
+    "start_openlog_session",
+    {},
+  );
+  assert.equal(selection.status, "selection_required");
+  assert.deepEqual(
+    (selection.projects as Array<Record<string, unknown>>).map(
+      (project) => project.projectId,
+    ),
+    [42, 43],
+  );
+  assert.deepEqual(session.api.calls, [{ method: "GET", path: "/workspaces" }]);
+});
+
+test("starts a pathless session from an explicitly selected project ID", async (t) => {
+  const session = await createSession(t, "read-only");
+
+  const context = await callJson(session.client, "start_openlog_session", {
+    projectId: 42,
+  });
+  assert.equal(context.status, "ready");
+  assert.equal("projectRoot" in context, false);
+  assert.deepEqual(session.api.calls, [
+    { method: "GET", path: "/workspace-projects/42/agent-context" },
+  ]);
+
+  session.api.calls.length = 0;
+  const invalid = await session.client.callTool({
+    name: "start_openlog_session",
+    arguments: { projectPath: "/work/openlog", projectId: 42 },
+  });
+  assert.equal(invalid.isError, true);
+  assert.match(readText(invalid), /not both/);
+  assert.deepEqual(session.api.calls, []);
 });
 
 test("maps workspace read and safe-write tools to their REST endpoints", async (t) => {
@@ -378,6 +448,43 @@ test("previews capture mode updates before the confirmed PATCH", async (t) => {
   ]);
 });
 
+test("previews directory-free project creation before creating and starting it", async (t) => {
+  const session = await createSession(t, "safe-write");
+
+  const preview = await callJson(session.client, "create_workspace_project", {
+    workspaceId: 1,
+    displayName: "Research notes",
+    captureMode: "AUTO",
+  });
+  assert.equal(preview.requiresConfirmation, true);
+  assert.deepEqual(preview.preview, {
+    workspaceId: 1,
+    displayName: "Research notes",
+    captureMode: "AUTO",
+  });
+  assert.deepEqual(session.api.calls, []);
+
+  const created = await callJson(session.client, "create_workspace_project", {
+    workspaceId: 1,
+    displayName: "Research notes",
+    captureMode: "AUTO",
+    confirm: true,
+  });
+  assert.equal(created.status, "ready");
+  assert.deepEqual(session.api.calls, [
+    {
+      method: "POST",
+      path: "/workspaces/1/projects",
+      body: {
+        displayName: "Research notes",
+        repositoryFullName: null,
+        captureMode: "AUTO",
+      },
+    },
+    { method: "GET", path: "/workspace-projects/42/agent-context" },
+  ]);
+});
+
 test("executes full-profile delete tools immediately", async (t) => {
   const session = await createSession(t, "full");
   const cases: Array<[string, Record<string, unknown>, string]> = [
@@ -453,10 +560,14 @@ test("checks capability again when a registered tool is invoked", async (t) => {
 class RecordingApiClient {
   readonly calls: RecordedCall[] = [];
   readonly failures = new Map<string, Error>();
+  workspaces: ReturnType<typeof workspaceResponse>[] = [];
 
   async get<T>(path: string): Promise<T> {
     this.record("GET", path);
     this.throwFailure(path);
+    if (path === "/workspaces") {
+      return this.workspaces as T;
+    }
     if (path === "/workspaces/1/outputs/6") {
       return outputResponse(null) as T;
     }
@@ -481,6 +592,15 @@ class RecordingApiClient {
     this.throwFailure(path);
     if (path === "/workspaces/1/outputs/6/publish") {
       return outputResponse({ authorUsername: "owner", slug: "output-post" }) as T;
+    }
+    if (path === "/workspaces/1/projects") {
+      const captureMode =
+        body && typeof body === "object" && "captureMode" in body
+          ? String((body as { captureMode: unknown }).captureMode)
+          : "ASK";
+      return workspaceProjectResponse(
+        captureMode as "AUTO" | "ASK" | "EXPLICIT",
+      ) as T;
     }
     return { ok: true, path } as T;
   }
@@ -536,7 +656,7 @@ class RecordingApiClient {
 async function createSession(
   t: test.TestContext,
   profileOrPermissions: McpPermissionProfile | ResolvedMcpPermissions,
-  options: { projectGit?: ProjectGit } = {},
+  options: { projectBinding?: ProjectBinding } = {},
 ) {
   const permissions =
     typeof profileOrPermissions === "string"
@@ -549,7 +669,7 @@ async function createSession(
       api as unknown as OpenLogApiClient,
     readAuth: async () => null,
     webBaseUrl: "https://openlog.test",
-    projectGit: options.projectGit,
+    projectBinding: options.projectBinding,
   });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "openlog-test", version: "1.0.0" });
@@ -564,17 +684,18 @@ async function createSession(
   return { api, client, server: created.server, permissions };
 }
 
-function projectGitFixture(projectId: number | null): ProjectGit {
+function projectBindingFixture(projectId: number | null): ProjectBinding {
   return {
     inspect: async (projectPath) => ({
       root: projectPath,
       displayName: "openlog",
+      kind: "git",
+      bindingPath: `${projectPath}/.git/config`,
       remoteUrl: "git@github.com:openlog/openlog.git",
       repositoryFullName: "openlog/openlog",
       projectId,
     }),
     writeProjectId: async () => {},
-    clearProjectId: async () => {},
   };
 }
 
@@ -617,13 +738,35 @@ function agentGuideResponse(revision: number, content: string) {
   };
 }
 
-function workspaceProjectResponse(captureMode: "AUTO" | "ASK" | "EXPLICIT") {
+function workspaceProjectResponse(
+  captureMode: "AUTO" | "ASK" | "EXPLICIT",
+  overrides: Partial<{
+    id: number;
+    workspaceId: number;
+    displayName: string;
+    repositoryFullName: string | null;
+  }> = {},
+) {
   return {
     id: 42,
     workspaceId: 1,
     displayName: "OpenLog",
     repositoryFullName: "openlog/openlog",
     captureMode,
+    createdAt: "2026-07-13T00:00:00",
+    updatedAt: "2026-07-14T00:00:00",
+    ...overrides,
+  };
+}
+
+function workspaceResponse(
+  projects: ReturnType<typeof workspaceProjectResponse>[] = [],
+) {
+  return {
+    id: 1,
+    name: "OpenLog",
+    slug: "openlog",
+    projects,
     createdAt: "2026-07-13T00:00:00",
     updatedAt: "2026-07-14T00:00:00",
   };

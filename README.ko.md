@@ -74,11 +74,31 @@ npx -y @openloghq/cli@latest
 
 온보딩 위저드가 로그인, Codex·Claude Code·Cursor 또는 모든 지원 client의
 OpenLog MCP 등록, 로컬 MCP 권한 프로필 선택을 차례로 안내합니다. 위저드는
-언제든 다시 실행할 수 있습니다.
+현재 디렉토리를 검사하거나 연결하지 않으며, 설정이 끝나면 로컬 폴더 없이도
+에이전트가 OpenLog 프로젝트를 찾을 수 있습니다. 위저드는 언제든 다시 실행할
+수 있습니다.
 
 ```bash
 npx -y @openloghq/cli@latest setup
 ```
+
+경로로 프로젝트를 자동 식별하고 싶다면 원하는 폴더 안에서 init을 실행합니다.
+
+```bash
+cd <folder>
+npx -y @openloghq/cli@latest init
+```
+
+`openlog init`은 현재 폴더가 Git 저장소인지 일반 폴더인지 보여주고 연결 여부를
+묻습니다. Git 저장소는 로컬 `.git/config`의 `openlog.projectId`를 사용하고,
+일반 폴더는 버전이 포함된 `.openlog/project.json`을 사용합니다. 일반 폴더의
+하위 경로에서 세션을 시작하면 가장 가까운 상위 바인딩을 찾습니다. 폴더 내부
+파일은 검사하지 않습니다.
+
+경로 없이 `start_openlog_session`을 호출하면 프로젝트가 정확히 하나일 때만
+자동으로 시작합니다. 여러 개면 에이전트가 사용자에게 물을 수 있도록 목록을
+반환합니다. `create_workspace_project`는 디렉토리를 만들지 않고 프로젝트를
+생성·시작하며, 나중에 `openlog init`으로 로컬 폴더를 연결할 수 있습니다.
 
 비대화형 환경이나 수동 설정에서는 개별 명령을 사용하세요.
 
@@ -91,6 +111,7 @@ npx -y @openloghq/cli@latest mcp
 - `openlog login`: device login을 시작하고 브라우저에서 승인 화면을 엽니다.
 - `openlog whoami`: 로컬에 로그인된 계정을 확인합니다.
 - `openlog logout`: 로컬 OpenLog session을 삭제합니다.
+- `openlog init`: 현재 폴더를 OpenLog 프로젝트에 연결합니다.
 - `openlog mcp`: stdio 기반 MCP server를 실행합니다.
 
 전역으로 설치하면 `openlog` 명령을 바로 사용할 수 있습니다.
@@ -151,7 +172,7 @@ openlog mcp permissions reset
 | --- | --- |
 | 권한과 계정 | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts` |
 | 공개 게시글 | `get_post_detail`, `upload_post_image`, `publish_post` |
-| 워크스페이스와 활동 | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_project`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
+| 워크스페이스와 활동 | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_project`, `create_workspace_project`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
 | Agent Guide | `update_workspace_agent_guide` |
 | Capture Mode | `update_workspace_project_capture_mode` |
 | Task와 Log | workspace task와 log의 list/get/create/update tool |
@@ -160,7 +181,7 @@ openlog mcp permissions reset
 | Graph link | `list_workspace_links`와 task/log/cross-link 생성 tool |
 | Full 삭제 | working brief 초기화와 task/log/todo/memory/output/link 개별 삭제 tool |
 
-`publish_post`, `publish_workspace_output`, `update_workspace_agent_guide`, `update_workspace_project_capture_mode`는 기본적으로 미리보기만 반환합니다. 실제 반영에는 `confirm: true`가 필요하며, 사용자가 추가 확인 없이 쓰라고 명시한 경우에만 `skipConfirmation: true`를 사용할 수 있습니다.
+`create_workspace_project`, `publish_post`, `publish_workspace_output`, `update_workspace_agent_guide`, `update_workspace_project_capture_mode`는 기본적으로 미리보기만 반환합니다. 실제 반영에는 `confirm: true`가 필요하며, 사용자가 추가 확인 없이 쓰라고 명시한 경우에만 `skipConfirmation: true`를 사용할 수 있습니다.
 
 ### 로컬 서버 연결
 
