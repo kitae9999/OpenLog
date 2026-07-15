@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
+import { useSidebarOpenState } from "@/shared/lib/useSidebarOpenState";
 import type { WorkspaceWorkItem } from "@/entities/workspace/model/data";
 import { TaskDetailView } from "@/pages/tasks/ui/TaskDetailView";
 import { HomeSidebar } from "@/widgets/app-shell/ui/HomeFeedShell";
@@ -27,25 +28,11 @@ export function TaskDetailShell({
   profileHref?: string;
   footer: ReactNode;
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } = useSidebarOpenState();
   const task = workspaceData
     ? initialTask
     : mergeTaskWithOverrides(initialTask);
 
-  useEffect(() => {
-    const query = window.matchMedia("(min-width: 1024px)");
-
-    function syncSidebar(event: MediaQueryList | MediaQueryListEvent) {
-      setIsSidebarOpen(event.matches);
-    }
-
-    syncSidebar(query);
-    query.addEventListener("change", syncSidebar);
-
-    return () => {
-      query.removeEventListener("change", syncSidebar);
-    };
-  }, []);
 
   return (
     <div className="flex min-h-dvh flex-col bg-app text-zinc-950">
@@ -75,11 +62,7 @@ export function TaskDetailShell({
           isOpen={isSidebarOpen}
           workspaces={workspaces}
           workspaceData={workspaceData}
-          onNavigate={() => {
-            if (!window.matchMedia("(min-width: 1024px)").matches) {
-              setIsSidebarOpen(false);
-            }
-          }}
+          onNavigate={closeSidebarIfMobile}
         />
 
         <main

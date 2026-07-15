@@ -2,13 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Header } from "@/widgets/chrome/ui";
 import type {
   RecentPostCursorPage,
@@ -16,6 +10,7 @@ import type {
 } from "@/entities/post/api/getRecentPosts";
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
+import { useSidebarOpenState } from "@/shared/lib/useSidebarOpenState";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import { LockIcon } from "@/shared/ui/icons";
 import {
@@ -116,7 +111,7 @@ export function HomeFeedShell({
   workspaceActivity?: WorkspaceActivity | null;
   footer: ReactNode;
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } = useSidebarOpenState();
   const [exploreSubTab, setExploreSubTab] = useState<ExploreSubTab>("recent");
   const [homePosts, setHomePosts] = useState<FeedPost[]>(() =>
     initialHomePosts.map(toFeedPost),
@@ -178,36 +173,7 @@ export function HomeFeedShell({
     activeTab === "liked" ||
     activeTab === "explore";
 
-  useEffect(() => {
-    const query = window.matchMedia("(min-width: 1024px)");
 
-    function syncSidebar(event: MediaQueryList | MediaQueryListEvent) {
-      setIsSidebarOpen(event.matches);
-    }
-
-    syncSidebar(query);
-    query.addEventListener("change", syncSidebar);
-
-    return () => {
-      query.removeEventListener("change", syncSidebar);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isSidebarOpen || window.matchMedia("(min-width: 1024px)").matches) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    const previousOverscrollBehaviorY = document.body.style.overscrollBehaviorY;
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehaviorY = "none";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.overscrollBehaviorY = previousOverscrollBehaviorY;
-    };
-  }, [isSidebarOpen]);
 
   useEffect(() => {
     setHomePosts(initialHomePosts.map(toFeedPost));
@@ -377,11 +343,7 @@ export function HomeFeedShell({
           isOpen={isSidebarOpen}
           workspaces={workspaces}
           workspaceData={workspaceData}
-          onNavigate={() => {
-            if (!window.matchMedia("(min-width: 1024px)").matches) {
-              setIsSidebarOpen(false);
-            }
-          }}
+          onNavigate={closeSidebarIfMobile}
         />
 
         <main

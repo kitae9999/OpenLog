@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
+import { useSidebarOpenState } from "@/shared/lib/useSidebarOpenState";
 import { HomeSidebar } from "@/widgets/app-shell/ui/HomeFeedShell";
 import { ManageView } from "@/pages/workspace-manage/ui/ManageView";
 import type { ManagedWorkspace } from "@/entities/workspace/model/workspaceTypes";
@@ -20,22 +21,8 @@ export function ManageShell({
   workspaces: ManagedWorkspace[];
   footer: ReactNode;
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } = useSidebarOpenState();
 
-  useEffect(() => {
-    const query = window.matchMedia("(min-width: 1024px)");
-
-    function syncSidebar(event: MediaQueryList | MediaQueryListEvent) {
-      setIsSidebarOpen(event.matches);
-    }
-
-    syncSidebar(query);
-    query.addEventListener("change", syncSidebar);
-
-    return () => {
-      query.removeEventListener("change", syncSidebar);
-    };
-  }, []);
 
   return (
     <div className="flex min-h-dvh flex-col bg-app text-zinc-950">
@@ -64,11 +51,7 @@ export function ManageShell({
           isOpen={isSidebarOpen}
           settingsNav="manage"
           workspaces={workspaces}
-          onNavigate={() => {
-            if (!window.matchMedia("(min-width: 1024px)").matches) {
-              setIsSidebarOpen(false);
-            }
-          }}
+          onNavigate={closeSidebarIfMobile}
         />
 
         <main
