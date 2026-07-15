@@ -191,49 +191,6 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
           </p>
         </GuideSection>
 
-        <GuideSection title={copy.sections.local.title}>
-          <p>{copy.sections.local.body}</p>
-          <CodeBlock locale={locale}>{mcpGuideCommands.localDev}</CodeBlock>
-          <dl className="grid gap-2 text-[12.5px] text-zinc-600 sm:grid-cols-1">
-            <div>
-              <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
-                OPENLOG_API_BASE_URL
-              </dt>
-              <dd>{copy.sections.local.envApi}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
-                OPENLOG_WEB_BASE_URL
-              </dt>
-              <dd>{copy.sections.local.envWeb}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
-                OPENLOG_AUTH_FILE
-              </dt>
-              <dd>
-                {copy.sections.local.envAuthBefore}{" "}
-                <code className="font-mono text-[11px]">
-                  ~/.openlog/auth.json
-                </code>
-                {copy.sections.local.envAuthAfter}
-              </dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[11.5px] font-semibold text-zinc-500">
-                OPENLOG_MCP_CONFIG_FILE
-              </dt>
-              <dd>
-                {copy.sections.local.envMcpBefore}{" "}
-                <code className="font-mono text-[11px]">
-                  ~/.openlog/mcp-config.json
-                </code>
-                {copy.sections.local.envMcpAfter}
-              </dd>
-            </div>
-          </dl>
-        </GuideSection>
-
         <GuideSection title={copy.sections.troubleshooting.title}>
           <ul className="list-disc space-y-2 pl-5 text-[13.5px] text-zinc-600">
             {copy.sections.troubleshooting.items.map((item) => (

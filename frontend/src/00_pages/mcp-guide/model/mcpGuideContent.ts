@@ -234,18 +234,8 @@ export const mcpGuideCopy = {
         footnote:
           "start_openlog_session loads the latest Workspace Guide and Capture Mode from the project's local binding. Publishing, Agent Guide, and Capture Mode update tools return a preview first. Pass confirm: true after review, or use skipConfirmation: true only when the user explicitly requested the write without another confirmation.",
       },
-      local: {
-        title: "7. Local development",
-        body: "Point the CLI at a local API and web origin:",
-        envApi: "API base URL the CLI and MCP call.",
-        envWeb: "Web origin used in published-post response URLs.",
-        envAuthBefore: "Optional path instead of default",
-        envAuthAfter: ".",
-        envMcpBefore: "Optional permission config path instead of default",
-        envMcpAfter: ".",
-      },
       troubleshooting: {
-        title: "8. Troubleshooting",
+        title: "7. Troubleshooting",
         items: [
           {
             label: "Not authenticated",
@@ -318,18 +308,8 @@ export const mcpGuideCopy = {
         footnote:
           "start_openlog_session은 프로젝트의 로컬 연결을 통해 최신 Workspace Guide와 Capture Mode를 불러옵니다. 발행·Agent Guide·Capture Mode 수정 tool은 먼저 미리보기를 반환합니다. 검토 후 confirm: true를 전달하세요. 사용자가 추가 확인 없이 쓰라고 명시한 경우에만 skipConfirmation: true를 사용할 수 있습니다.",
       },
-      local: {
-        title: "7. 로컬 개발",
-        body: "로컬 API와 web origin을 지정합니다:",
-        envApi: "CLI와 MCP가 호출하는 API base URL.",
-        envWeb: "게시글 발행 응답 URL에 쓰는 web origin.",
-        envAuthBefore: "기본",
-        envAuthAfter: " 대신 쓸 인증 파일 경로(선택).",
-        envMcpBefore: "기본",
-        envMcpAfter: " 대신 쓸 권한 설정 파일 경로(선택).",
-      },
       troubleshooting: {
-        title: "8. 문제 해결",
+        title: "7. 문제 해결",
         items: [
           {
             label: "인증되지 않음",
@@ -380,9 +360,6 @@ npx -y @openloghq/cli@latest init`,
   permissions: `npx -y @openloghq/cli@latest mcp permissions
 npx -y @openloghq/cli@latest mcp permissions set read-only|safe-write|full
 npx -y @openloghq/cli@latest mcp permissions reset`,
-  localDev: `OPENLOG_API_BASE_URL=http://localhost:8080/api \\
-OPENLOG_WEB_BASE_URL=http://localhost:3030 \\
-npx -y @openloghq/cli@latest mcp`,
 } as const;
 
 export function parseMcpGuideLocale(value: string | null): McpGuideLocale {
