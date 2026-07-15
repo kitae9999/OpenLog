@@ -7,3 +7,9 @@ openlog_authorized_key_files:
 openlog_public_tcp_ports:
   - "80"
   - "443"
+openlog_environment: production
+grafana_cloud_metrics_url: "{{ lookup('ansible.builtin.env', 'GRAFANA_CLOUD_METRICS_URL') }}"
+grafana_cloud_metrics_user: "{{ lookup('ansible.builtin.env', 'GRAFANA_CLOUD_METRICS_USER') }}"
+grafana_cloud_logs_url: "{{ lookup('ansible.builtin.env', 'GRAFANA_CLOUD_LOGS_URL') }}"
+grafana_cloud_logs_user: "{{ lookup('ansible.builtin.env', 'GRAFANA_CLOUD_LOGS_USER') }}"
+grafana_cloud_token: "{{ lookup('ansible.builtin.env', 'GRAFANA_CLOUD_TOKEN') }}"

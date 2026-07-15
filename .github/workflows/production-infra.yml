@@ -1,0 +1,47 @@
+name: Production Infrastructure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-infrastructure
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+      - name: Add VM to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.PRODUCTION_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y ansible-core
+          ansible-galaxy collection install -r infra/ansible/requirements.yml
+
+      - name: Provision production VM
+        env:
+          GRAFANA_CLOUD_METRICS_URL: ${{ secrets.GRAFANA_CLOUD_METRICS_URL }}
+          GRAFANA_CLOUD_METRICS_USER: ${{ secrets.GRAFANA_CLOUD_METRICS_USER }}
+          GRAFANA_CLOUD_LOGS_URL: ${{ secrets.GRAFANA_CLOUD_LOGS_URL }}
+          GRAFANA_CLOUD_LOGS_USER: ${{ secrets.GRAFANA_CLOUD_LOGS_USER }}
+          GRAFANA_CLOUD_TOKEN: ${{ secrets.GRAFANA_CLOUD_TOKEN }}
+        run: |
+          ./infra/ansible/provision.sh \
+            --extra-vars "ansible_host=${{ secrets.PRODUCTION_SSH_HOST }}" \
+            --extra-vars "ansible_user=${{ secrets.PRODUCTION_SSH_USER }}"
