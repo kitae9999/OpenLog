@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import { highlightCodeBlock } from "@/shared/lib/markdown/highlightCode";
 import { MarkdownCodeBlock } from "./MarkdownCodeBlock";
+import { MarkdownMermaidBlock } from "./MarkdownMermaidBlock";
 
 type MarkdownBlock =
   | { type: "heading"; level: HeadingLevel; text: string }
@@ -153,6 +154,16 @@ export function MarkdownContent({
               </ol>
             );
           case "code": {
+            if (block.language.toLowerCase() === "mermaid") {
+              return (
+                <MarkdownMermaidBlock
+                  key={key}
+                  code={block.code}
+                  variant={variant}
+                />
+              );
+            }
+
             const highlighted = highlightCodeBlock(block.code, block.language);
             return (
               <MarkdownCodeBlock
