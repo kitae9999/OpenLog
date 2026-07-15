@@ -8,6 +8,7 @@
 - 기능 코드 디렉토리(`backend/`, `frontend/`, `src/`)에 문서를 신규 생성하지 않는다.
 - 사용자가 예외 경로를 명시한 경우에만 해당 경로를 사용하되, 해당 문서 유형의 템플릿 구조는 유지한다.
 - 커밋·PR·문서에 Cursor 작성자/서명을 넣지 않는다 (`Co-authored-by: Cursor`, `Made with Cursor` 등). 상세: `.cursor/rules/no-cursor-attribution.mdc`
+- `gh auth status`, `gh pr` 등 GitHub API 명령이 샌드박스에서 인증 실패를 반환해도 토큰 만료로 단정하지 않는다. 동일 명령을 `sandbox_permissions: "require_escalated"`로 재실행하고, 외부 실행에서도 인증이 실패할 때만 `gh auth login`을 요청한다.
 
 ## 요청별 지침 라우팅
 - PR 문서 작성/자동 생성/PR 템플릿 작성: `_docs/PR/INSTRUCTIONS.md`만 읽는다.
