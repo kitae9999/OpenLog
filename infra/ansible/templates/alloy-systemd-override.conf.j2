@@ -1,3 +1,7 @@
+[Unit]
+After=containerd.service docker.service
+PartOf=containerd.service docker.service
+
 [Service]
 User=alloy
 Group=alloy

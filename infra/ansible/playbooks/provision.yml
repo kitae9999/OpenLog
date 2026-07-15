@@ -172,6 +172,22 @@
         group: root
         mode: "0755"
 
+    - name: Create containerd systemd override directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/containerd.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Preserve Alloy access to the containerd socket
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/containerd-alloy-access.conf.j2"
+        dest: /etc/systemd/system/containerd.service.d/10-openlog-alloy-access.conf
+        owner: root
+        group: root
+        mode: "0644"
+
     - name: Attach Grafana Cloud credentials to Alloy service
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../templates/alloy-systemd-override.conf.j2"
