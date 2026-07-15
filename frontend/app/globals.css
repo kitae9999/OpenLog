@@ -166,6 +166,27 @@ body {
   font-weight: 700;
 }
 
+.markdown-mermaid {
+  color: #3f3f46;
+  background: #fafafa;
+  border-color: #e4e4e7;
+}
+
+.markdown-mermaid .mermaid-diagram svg {
+  display: block;
+  height: auto;
+  max-width: none !important;
+  margin-inline: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdown-mermaid {
+    color: #d4d4d8;
+    background: #18181b;
+    border-color: #3f3f46;
+  }
+}
+
 @keyframes preview-replay-enter {
   from {
     opacity: 0;
