@@ -217,6 +217,16 @@ deploy/                 운영 배포 설정
 _docs/                  Plan, Worklog, Task, Issue, PR 기록
 ```
 
+## 저작권과 저장소 이용
+
+Copyright © 2026 OpenLog. All rights reserved.
+
+이 저장소는 포트폴리오와 기술 검토를 목적으로 공개되어 있지만 오픈소스가 아닙니다. GitHub 이용약관 또는 관련 법률이 허용하는 범위를 제외하고, 사전 서면 허가 없이 코드나 문서를 사용, 복제, 수정, 재배포하거나 상업적으로 이용할 수 없습니다. 저장소 공개는 저작권 포기 또는 추가 라이선스 부여를 의미하지 않습니다.
+
+## 기여 안내
+
+현재 외부 코드 기여는 받지 않습니다. Issue를 통한 버그 제보와 기능 제안은 환영합니다. 사전 협의 없이 생성된 Pull Request는 병합되지 않을 수 있습니다. 향후 기여 정책과 기여자 라이선스 동의서(Contributor License Agreement, CLA)를 제공할 수 있습니다.
+
 ## Release
 
 변경 내용과 버전 기록은 [OpenLog Releases](https://github.com/kitae9999/OpenLog/releases)에서 확인할 수 있습니다.

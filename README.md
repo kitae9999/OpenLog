@@ -245,6 +245,16 @@ deploy/                 Production deployment assets
 _docs/                  Plans, worklogs, tasks, issues, and PR records
 ```
 
+## Copyright and repository use
+
+Copyright © 2026 OpenLog. All rights reserved.
+
+This repository is publicly available for portfolio and technical review purposes, but it is not open source. Except as permitted by the GitHub Terms of Service or applicable law, you may not use, copy, modify, redistribute, or commercially exploit any code or documentation without prior written permission. Public availability does not waive any copyright or grant any additional license.
+
+## Contributions
+
+OpenLog is not currently accepting external code contributions. Bug reports and feature suggestions submitted through Issues are welcome. Pull requests opened without prior discussion may not be merged. A contribution policy and Contributor License Agreement (CLA) may be provided in the future.
+
 ## Release
 
 See [OpenLog releases](https://github.com/kitae9999/OpenLog/releases) for release notes and version history.
