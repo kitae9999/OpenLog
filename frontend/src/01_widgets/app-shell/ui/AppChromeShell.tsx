@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Header } from "@/widgets/chrome/ui";
 import { cn } from "@/shared/lib/cn";
+import { useSidebarOpenState } from "@/shared/lib/useSidebarOpenState";
 import { HomeSidebar } from "@/widgets/app-shell/ui/HomeFeedShell";
 import type { TabKey } from "@/entities/workspace/model/data";
 import type { ManagedWorkspace, WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
@@ -40,38 +41,9 @@ export function AppChromeShell({
   workspaceData?: WorkspaceUiData | null;
   showWriteAction?: boolean;
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } = useSidebarOpenState();
 
-  useEffect(() => {
-    const query = window.matchMedia("(min-width: 1024px)");
 
-    function syncSidebar(event: MediaQueryList | MediaQueryListEvent) {
-      setIsSidebarOpen(event.matches);
-    }
-
-    syncSidebar(query);
-    query.addEventListener("change", syncSidebar);
-
-    return () => {
-      query.removeEventListener("change", syncSidebar);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isSidebarOpen || window.matchMedia("(min-width: 1024px)").matches) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    const previousOverscrollBehaviorY = document.body.style.overscrollBehaviorY;
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehaviorY = "none";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.overscrollBehaviorY = previousOverscrollBehaviorY;
-    };
-  }, [isSidebarOpen]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-app text-zinc-950">
@@ -103,11 +75,7 @@ export function AppChromeShell({
           isOpen={isSidebarOpen}
           workspaces={workspaces}
           workspaceData={workspaceData}
-          onNavigate={() => {
-            if (!window.matchMedia("(min-width: 1024px)").matches) {
-              setIsSidebarOpen(false);
-            }
-          }}
+          onNavigate={closeSidebarIfMobile}
         />
 
         <main
