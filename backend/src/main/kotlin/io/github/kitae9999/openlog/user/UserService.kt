@@ -34,6 +34,46 @@ class UserService(
     private val postMapper: PostMapper,
 ) {
     @Transactional
+    fun getAuthoredPosts(userId: Long, cursor: String?, size: Int): RecentPostCursorResponse {
+        val safeSize = size.coerceIn(1, AUTHORED_POSTS_PAGE_SIZE)
+        val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
+        val authoredPosts = if (cursorMarker == null) {
+            postRepository.findAllByAuthorIdOrderByCreatedAtDescIdDesc(
+                authorId = userId,
+                pageable = PageRequest.of(0, safeSize + 1),
+            )
+        } else {
+            postRepository.findAuthoredPostsAfterCursor(
+                authorId = userId,
+                createdAt = cursorMarker.createdAt,
+                id = cursorMarker.id,
+                pageable = PageRequest.of(0, safeSize + 1),
+            )
+        }
+        val hasNext = authoredPosts.size > safeSize
+        val pageItems = authoredPosts.take(safeSize)
+        val postIds = pageItems.mapNotNull { it.id }
+        val likeCounts = getPostLikeCounts(postIds)
+        val commentCounts = getPostCommentCounts(postIds)
+
+        return RecentPostCursorResponse(
+            posts = pageItems.map { post ->
+                val postId = requireNotNull(post.id)
+                postMapper.toRecentPostResponse(
+                    post = post,
+                    likeCount = likeCounts[postId] ?: 0,
+                    commentCount = commentCounts[postId] ?: 0,
+                )
+            },
+            size = safeSize,
+            nextCursor = pageItems.lastOrNull()
+                ?.takeIf { hasNext }
+                ?.let { post -> DateTimeIdCursorCodec.encode(post.createdAt, requireNotNull(post.id)) },
+            hasNext = hasNext,
+        )
+    }
+
+    @Transactional
     fun getFollowingPosts(userId: Long, cursor: String?, size: Int): RecentPostCursorResponse {
         val safeSize = size.coerceIn(1, FOLLOWING_POSTS_PAGE_SIZE)
         val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
@@ -231,6 +271,7 @@ class UserService(
     }
 
     private companion object {
+        const val AUTHORED_POSTS_PAGE_SIZE = 10
         const val FOLLOWING_POSTS_PAGE_SIZE = 10
         const val LIKED_POSTS_PAGE_SIZE = 10
     }

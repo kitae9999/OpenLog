@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Header } from "@/widgets/chrome/ui";
 import type {
   RecentPostCursorPage,
@@ -77,9 +83,12 @@ function getExploreEmptyMessage(subTab: ExploreSubTab, isLoggedIn: boolean) {
 export function HomeFeedShell({
   activeTab,
   isLoggedIn,
-  initialHomePosts,
-  initialHomeNextCursor,
-  initialHomeHasNext,
+  initialAuthoredPosts,
+  initialAuthoredNextCursor,
+  initialAuthoredHasNext,
+  initialRecentPosts,
+  initialRecentNextCursor,
+  initialRecentHasNext,
   initialFollowingPosts,
   initialFollowingNextCursor,
   initialFollowingHasNext,
@@ -95,9 +104,12 @@ export function HomeFeedShell({
 }: {
   activeTab: TabKey;
   isLoggedIn: boolean;
-  initialHomePosts: RecentPostSummary[];
-  initialHomeNextCursor: string | null;
-  initialHomeHasNext: boolean;
+  initialAuthoredPosts: RecentPostSummary[];
+  initialAuthoredNextCursor: string | null;
+  initialAuthoredHasNext: boolean;
+  initialRecentPosts: RecentPostSummary[];
+  initialRecentNextCursor: string | null;
+  initialRecentHasNext: boolean;
   initialFollowingPosts: RecentPostSummary[];
   initialFollowingNextCursor: string | null;
   initialFollowingHasNext: boolean;
@@ -111,10 +123,14 @@ export function HomeFeedShell({
   workspaceActivity?: WorkspaceActivity | null;
   footer: ReactNode;
 }) {
-  const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } = useSidebarOpenState();
+  const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } =
+    useSidebarOpenState();
   const [exploreSubTab, setExploreSubTab] = useState<ExploreSubTab>("recent");
-  const [homePosts, setHomePosts] = useState<FeedPost[]>(() =>
-    initialHomePosts.map(toFeedPost),
+  const [authoredPosts, setAuthoredPosts] = useState<FeedPost[]>(() =>
+    initialAuthoredPosts.map(toFeedPost),
+  );
+  const [recentPosts, setRecentPosts] = useState<FeedPost[]>(() =>
+    initialRecentPosts.map(toFeedPost),
   );
   const [followingFeedPosts, setFollowingFeedPosts] = useState<FeedPost[]>(() =>
     initialFollowingPosts.map(toFeedPost),
@@ -122,8 +138,11 @@ export function HomeFeedShell({
   const [likedFeedPosts, setLikedFeedPosts] = useState<FeedPost[]>(() =>
     initialLikedPosts.map(toFeedPost),
   );
-  const [homeNextCursor, setHomeNextCursor] = useState<string | null>(
-    initialHomeNextCursor,
+  const [authoredNextCursor, setAuthoredNextCursor] = useState<string | null>(
+    initialAuthoredNextCursor,
+  );
+  const [recentNextCursor, setRecentNextCursor] = useState<string | null>(
+    initialRecentNextCursor,
   );
   const [followingNextCursor, setFollowingNextCursor] = useState<string | null>(
     initialFollowingNextCursor,
@@ -131,7 +150,11 @@ export function HomeFeedShell({
   const [likedNextCursor, setLikedNextCursor] = useState<string | null>(
     initialLikedNextCursor,
   );
-  const [hasNextHomePage, setHasNextHomePage] = useState(initialHomeHasNext);
+  const [hasNextAuthoredPage, setHasNextAuthoredPage] = useState(
+    initialAuthoredHasNext,
+  );
+  const [hasNextRecentPage, setHasNextRecentPage] =
+    useState(initialRecentHasNext);
   const [hasNextFollowingPage, setHasNextFollowingPage] = useState(
     initialFollowingHasNext,
   );
@@ -141,46 +164,58 @@ export function HomeFeedShell({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const isLoadingMoreRef = useRef(false);
   const activeFeed =
-    activeTab === "home" ||
-    (activeTab === "explore" && (!isLoggedIn || exploreSubTab === "recent"))
-      ? "recent"
-      : activeTab === "following" ||
-          (activeTab === "explore" && exploreSubTab === "following")
-        ? "following"
-        : activeTab === "liked" ||
-            (activeTab === "explore" && exploreSubTab === "liked")
-          ? "liked"
-          : null;
+    activeTab === "home" && isLoggedIn
+      ? "authored"
+      : activeTab === "home" ||
+          (activeTab === "explore" &&
+            (!isLoggedIn || exploreSubTab === "recent"))
+        ? "recent"
+        : activeTab === "following" ||
+            (activeTab === "explore" && exploreSubTab === "following")
+          ? "following"
+          : activeTab === "liked" ||
+              (activeTab === "explore" && exploreSubTab === "liked")
+            ? "liked"
+            : null;
   const posts =
-    activeFeed === "recent"
-      ? homePosts
-      : activeFeed === "following"
-        ? followingFeedPosts
-        : activeFeed === "liked"
-          ? likedFeedPosts
-          : feedPosts;
+    activeFeed === "authored"
+      ? authoredPosts
+      : activeFeed === "recent"
+        ? recentPosts
+        : activeFeed === "following"
+          ? followingFeedPosts
+          : activeFeed === "liked"
+            ? likedFeedPosts
+            : feedPosts;
   const hasNextActivePage =
-    activeFeed === "recent"
-      ? hasNextHomePage
-      : activeFeed === "following"
-        ? hasNextFollowingPage
-        : activeFeed === "liked"
-          ? hasNextLikedPage
-          : false;
+    activeFeed === "authored"
+      ? hasNextAuthoredPage
+      : activeFeed === "recent"
+        ? hasNextRecentPage
+        : activeFeed === "following"
+          ? hasNextFollowingPage
+          : activeFeed === "liked"
+            ? hasNextLikedPage
+            : false;
   const supportsInfiniteScroll =
     activeTab === "home" ||
     activeTab === "following" ||
     activeTab === "liked" ||
     activeTab === "explore";
 
-
+  useEffect(() => {
+    setAuthoredPosts(initialAuthoredPosts.map(toFeedPost));
+    setAuthoredNextCursor(initialAuthoredNextCursor);
+    setHasNextAuthoredPage(initialAuthoredHasNext);
+    setLoadError(null);
+  }, [initialAuthoredPosts, initialAuthoredNextCursor, initialAuthoredHasNext]);
 
   useEffect(() => {
-    setHomePosts(initialHomePosts.map(toFeedPost));
-    setHomeNextCursor(initialHomeNextCursor);
-    setHasNextHomePage(initialHomeHasNext);
+    setRecentPosts(initialRecentPosts.map(toFeedPost));
+    setRecentNextCursor(initialRecentNextCursor);
+    setHasNextRecentPage(initialRecentHasNext);
     setLoadError(null);
-  }, [initialHomePosts, initialHomeNextCursor, initialHomeHasNext]);
+  }, [initialRecentPosts, initialRecentNextCursor, initialRecentHasNext]);
 
   useEffect(() => {
     setLikedFeedPosts(initialLikedPosts.map(toFeedPost));
@@ -202,21 +237,25 @@ export function HomeFeedShell({
 
   const loadMorePosts = useCallback(async () => {
     const endpoint =
-      activeFeed === "recent"
-        ? "/api/posts"
-        : activeFeed === "following"
-          ? "/api/users/me/following/posts"
-          : activeFeed === "liked"
-            ? "/api/users/me/liked-posts"
-            : null;
+      activeFeed === "authored"
+        ? "/api/users/me/posts"
+        : activeFeed === "recent"
+          ? "/api/posts"
+          : activeFeed === "following"
+            ? "/api/users/me/following/posts"
+            : activeFeed === "liked"
+              ? "/api/users/me/liked-posts"
+              : null;
     const cursor =
-      activeFeed === "recent"
-        ? homeNextCursor
-        : activeFeed === "following"
-          ? followingNextCursor
-          : activeFeed === "liked"
-            ? likedNextCursor
-            : null;
+      activeFeed === "authored"
+        ? authoredNextCursor
+        : activeFeed === "recent"
+          ? recentNextCursor
+          : activeFeed === "following"
+            ? followingNextCursor
+            : activeFeed === "liked"
+              ? likedNextCursor
+              : null;
 
     if (
       !endpoint ||
@@ -244,10 +283,20 @@ export function HomeFeedShell({
 
       const page = (await response.json()) as RecentPostCursorPage;
 
-      if (activeFeed === "recent") {
-        setHomePosts((current) => [...current, ...page.posts.map(toFeedPost)]);
-        setHomeNextCursor(page.nextCursor);
-        setHasNextHomePage(page.hasNext);
+      if (activeFeed === "authored") {
+        setAuthoredPosts((current) => [
+          ...current,
+          ...page.posts.map(toFeedPost),
+        ]);
+        setAuthoredNextCursor(page.nextCursor);
+        setHasNextAuthoredPage(page.hasNext);
+      } else if (activeFeed === "recent") {
+        setRecentPosts((current) => [
+          ...current,
+          ...page.posts.map(toFeedPost),
+        ]);
+        setRecentNextCursor(page.nextCursor);
+        setHasNextRecentPage(page.hasNext);
       } else if (activeFeed === "following") {
         setFollowingFeedPosts((current) => [
           ...current,
@@ -271,10 +320,11 @@ export function HomeFeedShell({
     }
   }, [
     activeFeed,
+    authoredNextCursor,
     followingNextCursor,
     hasNextActivePage,
-    homeNextCursor,
     likedNextCursor,
+    recentNextCursor,
   ]);
 
   useEffect(() => {

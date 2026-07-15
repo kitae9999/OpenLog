@@ -1,5 +1,6 @@
 import { Footer } from "@/widgets/chrome/ui";
 import { getDefaultTab, type TabKey } from "@/entities/workspace/model/data";
+import { getAuthoredPosts } from "@/entities/post/api/getAuthoredPosts";
 import { getFollowingPosts } from "@/entities/post/api/getFollowingPosts";
 import { getLikedPosts } from "@/entities/post/api/getLikedPosts";
 import { getRecentPosts } from "@/entities/post/api/getRecentPosts";
@@ -57,8 +58,12 @@ export async function HomeFeed({
     );
   }
 
+  const authoredPosts =
+    resolvedTab === "home" && data
+      ? await getAuthoredPosts(null, 10)
+      : undefined;
   const recentPosts =
-    resolvedTab === "home" || resolvedTab === "explore"
+    resolvedTab === "explore" || (resolvedTab === "home" && !data)
       ? await getRecentPosts(null, 10)
       : undefined;
   const followingPosts =
@@ -74,9 +79,12 @@ export async function HomeFeed({
     <HomeFeedShell
       activeTab={resolvedTab}
       isLoggedIn={isLoggedIn}
-      initialHomePosts={recentPosts?.posts ?? []}
-      initialHomeNextCursor={recentPosts?.nextCursor ?? null}
-      initialHomeHasNext={recentPosts?.hasNext ?? false}
+      initialAuthoredPosts={authoredPosts?.posts ?? []}
+      initialAuthoredNextCursor={authoredPosts?.nextCursor ?? null}
+      initialAuthoredHasNext={authoredPosts?.hasNext ?? false}
+      initialRecentPosts={recentPosts?.posts ?? []}
+      initialRecentNextCursor={recentPosts?.nextCursor ?? null}
+      initialRecentHasNext={recentPosts?.hasNext ?? false}
       initialFollowingPosts={followingPosts?.posts ?? []}
       initialFollowingNextCursor={followingPosts?.nextCursor ?? null}
       initialFollowingHasNext={followingPosts?.hasNext ?? false}

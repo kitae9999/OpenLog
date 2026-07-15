@@ -32,6 +32,29 @@ interface PostRepository: JpaRepository<Post, Long> {
     fun findAllByOrderByCreatedAtDescIdDesc(pageable: Pageable): List<Post>
 
     @EntityGraph(attributePaths = ["author"])
+    fun findAllByAuthorIdOrderByCreatedAtDescIdDesc(authorId: Long, pageable: Pageable): List<Post>
+
+    @EntityGraph(attributePaths = ["author"])
+    @Query(
+        """
+        select p
+        from Post p
+        where p.author.id = :authorId
+          and (
+            p.createdAt < :createdAt
+            or (p.createdAt = :createdAt and p.id < :id)
+          )
+        order by p.createdAt desc, p.id desc
+        """
+    )
+    fun findAuthoredPostsAfterCursor(
+        @Param("authorId") authorId: Long,
+        @Param("createdAt") createdAt: LocalDateTime,
+        @Param("id") id: Long,
+        pageable: Pageable,
+    ): List<Post>
+
+    @EntityGraph(attributePaths = ["author"])
     @Query(
         """
         select p

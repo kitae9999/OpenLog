@@ -1,4 +1,7 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { ImageResponse } from "next/og";
+import { OPENLOG_WORDMARK_ASSET } from "@/shared/config/brand";
 
 export const alt = "OpenLog — Workspace for AI agents";
 export const size = {
@@ -7,7 +10,15 @@ export const size = {
 };
 export const contentType = "image/png";
 
-export default function OpenGraphImage() {
+export default async function OpenGraphImage() {
+  const logoPath = join(
+    process.cwd(),
+    "public",
+    OPENLOG_WORDMARK_ASSET.replace(/^\//, ""),
+  );
+  const logoFile = await readFile(logoPath);
+  const logoSrc = `data:image/png;base64,${logoFile.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -23,32 +34,28 @@ export default function OpenGraphImage() {
           fontFamily: "sans-serif",
         }}
       >
+        {/* Crop matches OpenLogLogo wordmark framing (PNG has large padding). */}
         <div
           style={{
             display: "flex",
-            alignItems: "center",
-            gap: "18px",
-            fontSize: 30,
-            fontWeight: 700,
-            letterSpacing: "-0.03em",
+            width: 360,
+            height: 90,
+            overflow: "hidden",
+            position: "relative",
           }}
         >
-          <div
+          <img
+            src={logoSrc}
+            width={560}
+            height={280}
             style={{
-              width: 48,
-              height: 48,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 14,
-              background: "#18181b",
-              color: "#fafafa",
-              fontSize: 27,
+              position: "absolute",
+              left: "-29.19%",
+              top: "-102.09%",
+              width: "155.48%",
+              height: "309.06%",
             }}
-          >
-            O
-          </div>
-          OpenLog
+          />
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
