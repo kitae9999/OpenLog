@@ -171,7 +171,23 @@ jobs:
                   "delete=\([$actions[] | select(. == ["delete"])] | length)"
                 '
             } 2>/dev/null)"
+            changed_resources="$({
+              terraform show -json production.tfplan |
+                jq -r '
+                  .resource_changes[]? |
+                  select(
+                    .change.actions == ["create"] or
+                    .change.actions == ["update"] or
+                    .change.actions == ["delete"] or
+                    .change.actions == ["delete", "create"] or
+                    .change.actions == ["create", "delete"]
+                  ) |
+                  "\(.address)=\(.change.actions | join(","))"
+                ' |
+                paste -sd ';' -
+            } 2>/dev/null)"
             echo "::notice::Terraform detected production changes: $summary"
+            echo "::notice::Changed Terraform resources: $changed_resources"
           else
             echo "::notice::Terraform plan completed with no changes."
           fi
