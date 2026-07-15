@@ -30,12 +30,10 @@ test.describe("SEO metadata and crawler controls", () => {
       "noindex, nofollow, noarchive, nosnippet",
     );
 
-    await expect(page).toHaveTitle(
-      "OpenLog — Keep the context behind the code",
-    );
+    await expect(page).toHaveTitle("OpenLog — Workspace for AI agents");
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
-      "Keep the context behind the code, then turn it into durable developer knowledge.",
+      "A workspace for AI agents. Capture tasks, logs, and memories, then connect them over MCP so context stays reusable.",
     );
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
@@ -45,5 +43,31 @@ test.describe("SEO metadata and crawler controls", () => {
       "content",
       "OpenLog",
     );
+  });
+
+  test("marks tabbed home URLs as noindex with canonical root", async ({
+    page,
+  }) => {
+    await page.goto("/?tab=explore");
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      "https://openlog.kr",
+    );
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      /noindex/,
+    );
+  });
+
+  test("includes website JSON-LD on the home page", async ({ page }) => {
+    await page.goto("/");
+    const jsonLd = page.locator('script[type="application/ld+json"]');
+    await expect(jsonLd).toHaveCount(1);
+    const payload = JSON.parse(await jsonLd.textContent() ?? "{}") as {
+      "@graph"?: Array<{ "@type"?: string }>;
+    };
+    const types = (payload["@graph"] ?? []).map((node) => node["@type"]);
+    expect(types).toContain("WebSite");
+    expect(types).toContain("Organization");
   });
 });

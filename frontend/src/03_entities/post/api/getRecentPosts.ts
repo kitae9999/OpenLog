@@ -22,7 +22,16 @@ export type RecentPostCursorPage = {
   hasNext: boolean;
 };
 
-export function getRecentPosts(cursor?: string | null, size = 10) {
+type GetRecentPostsOptions = {
+  cache?: RequestCache;
+  next?: { revalidate?: number };
+};
+
+export function getRecentPosts(
+  cursor?: string | null,
+  size = 10,
+  options?: GetRecentPostsOptions,
+) {
   const params = new URLSearchParams({
     size: String(size),
   });
@@ -33,7 +42,8 @@ export function getRecentPosts(cursor?: string | null, size = 10) {
   return apiClient<RecentPostCursorPage>(
     `${API_CONFIG.baseURL}/posts?${params}`,
     {
-      cache: "no-store",
+      cache: options?.cache ?? "no-store",
+      next: options?.next,
     },
   );
 }

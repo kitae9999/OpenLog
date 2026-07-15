@@ -10,7 +10,8 @@ import { getPostSuggestions } from "@/entities/post/api/getPostSuggestions";
 import { getPostEntry, contributors } from "@/entities/post/model";
 import { getUser } from "@/features/auth/api/getUser";
 import { assets } from "@/shared/config/assets";
-import { SITE_NAME } from "@/shared/config/site";
+import { SITE_NAME, SITE_URL } from "@/shared/config/site";
+import { toJsonLdScript } from "@/shared/lib/jsonLd";
 import { formatPostVersionLabel } from "@/shared/lib/postVersion";
 import {
   buildPublicProfilePath,
@@ -125,6 +126,25 @@ export default async function PublicPostPage({
       detail.slug,
     );
     const isOwner = viewer?.username === detail.authorUsername;
+    const articleDescription = toMetaDescription(detail.description);
+    const articleJsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: detail.title,
+      description: articleDescription,
+      url: new URL(articleHref, `${SITE_URL}/`).toString(),
+      author: {
+        "@type": "Person",
+        name: detail.authorName,
+        url: new URL(authorHref, `${SITE_URL}/`).toString(),
+      },
+      isPartOf: {
+        "@type": "WebSite",
+        name: SITE_NAME,
+        url: SITE_URL,
+      },
+      inLanguage: "en",
+    };
 
     return (
       <AppChromeShell
@@ -136,6 +156,10 @@ export default async function PublicPostPage({
         workspaceData={chrome.workspaceData}
         footer={<Footer />}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: toJsonLdScript(articleJsonLd) }}
+        />
         <div className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
           <PostArticle
             post={{
@@ -200,6 +224,25 @@ export default async function PublicPostPage({
     authorUsername,
     canonicalPostSlug,
   );
+  const entryDescription = toMetaDescription(entry.post.description);
+  const entryJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: entry.post.title,
+    description: entryDescription,
+    url: new URL(articleHref, `${SITE_URL}/`).toString(),
+    author: {
+      "@type": "Person",
+      name: entry.post.authorName,
+      url: new URL(authorHref, `${SITE_URL}/`).toString(),
+    },
+    isPartOf: {
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+    inLanguage: "en",
+  };
 
   return (
     <AppChromeShell
@@ -211,6 +254,10 @@ export default async function PublicPostPage({
       workspaceData={chrome.workspaceData}
       footer={<Footer />}
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdScript(entryJsonLd) }}
+      />
       <div className="mx-auto w-full max-w-[1083px] px-4 pb-16 pt-6 sm:px-8">
         <PostArticle
           post={entry.post}

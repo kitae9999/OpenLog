@@ -1,7 +1,30 @@
+import type { Metadata } from "next";
 import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 import { HomeFeed } from "@/pages/home/ui";
 import { LandingPage } from "@/widgets/landing/ui";
 import { getDefaultTab, type TabKey } from "@/entities/workspace/model/data";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+} from "@/shared/config/site";
+import { toJsonLdScript } from "@/shared/lib/jsonLd";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string }>;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  if (sp?.tab) {
+    return {
+      alternates: { canonical: "/" },
+      robots: { index: false, follow: true },
+    };
+  }
+
+  return {};
+}
 
 export default async function Home({
   searchParams,
@@ -13,11 +36,43 @@ export default async function Home({
   const isLoggedIn = !!user;
   const tab = normalizeTab(sp?.tab, isLoggedIn);
 
-  if (!isLoggedIn && !sp?.tab) {
-    return <LandingPage />;
-  }
+  const siteJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: SITE_NAME,
+        description: SITE_DESCRIPTION,
+        inLanguage: "en",
+        publisher: { "@id": `${SITE_URL}/#organization` },
+      },
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
+        name: SITE_NAME,
+        url: SITE_URL,
+      },
+    ],
+  };
 
-  return <HomeFeed activeTab={tab} viewer={user} />;
+  const content =
+    !isLoggedIn && !sp?.tab ? (
+      <LandingPage />
+    ) : (
+      <HomeFeed activeTab={tab} viewer={user} />
+    );
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdScript(siteJsonLd) }}
+      />
+      {content}
+    </>
+  );
 }
 
 function normalizeTab(value: string | undefined, isLoggedIn: boolean): TabKey {
