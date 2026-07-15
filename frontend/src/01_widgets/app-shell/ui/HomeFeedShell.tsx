@@ -483,7 +483,7 @@ export function HomeFeedShell({
                     : loadError
                       ? loadError
                       : posts.length === 0
-                        ? "No posts yet."
+                        ? ""
                         : hasNextActivePage
                           ? ""
                           : "No more posts."}
@@ -753,7 +753,7 @@ function SidebarLogsGroup({
         href={getLogsHref(logsFilter)}
         onClick={onNavigate}
         className={cn(
-          "flex h-8 w-full items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+          "flex h-8 w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
           active
             ? "bg-zinc-100 font-semibold text-zinc-950"
             : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
@@ -778,7 +778,7 @@ function SidebarLogsGroup({
             event.stopPropagation();
             setIsOpen((current) => !current);
           }}
-          className="grid size-6 shrink-0 place-items-center rounded-md text-zinc-400 transition hover:bg-zinc-200/70 hover:text-zinc-700"
+          className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition hover:bg-zinc-200/70 hover:text-zinc-700"
         >
           <IconChevronDown
             className={cn(
@@ -803,7 +803,7 @@ function SidebarLogsGroup({
                 href={getLogsHref(item.key)}
                 onClick={onNavigate}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-[9px] py-[5px] text-[12.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+                  "flex cursor-pointer items-center gap-2 rounded-lg px-[9px] py-[5px] text-[12.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
                   active && logsFilter === item.key
                     ? "bg-zinc-100 font-semibold text-zinc-950"
                     : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
@@ -862,7 +862,7 @@ function SidebarLink({
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}
       className={cn(
-        "flex h-8 items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        "flex h-8 cursor-pointer items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
         active
           ? "bg-zinc-100 font-semibold text-zinc-950"
           : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",

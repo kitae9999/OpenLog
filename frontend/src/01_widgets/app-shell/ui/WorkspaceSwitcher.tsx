@@ -115,7 +115,7 @@ export function WorkspaceSwitcher({
         <Link
           href={getNewWorkspaceHref()}
           onClick={onNavigate}
-          className="flex w-full items-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white px-3 py-2.5 text-[13px] font-semibold text-zinc-600 transition hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white px-3 py-2.5 text-[13px] font-semibold text-zinc-600 transition hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
         >
           <span className="grid size-6 shrink-0 place-items-center rounded-lg border border-dashed border-zinc-300 text-zinc-400">
             <IconPlus className="size-3.5" />
@@ -154,7 +154,7 @@ export function WorkspaceSwitcher({
                   aria-checked={isActive}
                   onClick={() => selectWorkspace(workspace.id)}
                   className={cn(
-                    "flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20",
+                    "flex w-full cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20",
                     isActive ? "bg-zinc-50" : "hover:bg-zinc-50",
                   )}
                 >
@@ -190,7 +190,7 @@ export function WorkspaceSwitcher({
                 setOpen(false);
                 onNavigate?.();
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-[13px] font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20"
+              className="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2.5 text-[13px] font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20"
             >
               <span className="grid size-6 shrink-0 place-items-center rounded-lg border border-dashed border-zinc-300 text-zinc-400">
                 <IconPlus className="size-3.5" />
@@ -232,7 +232,7 @@ function WorkspaceSwitcherTrigger({
       onClick={onClick}
       className={cn(
         "flex w-full items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-        disabled ? "cursor-default" : "hover:bg-zinc-50",
+        disabled ? "cursor-default" : "cursor-pointer hover:bg-zinc-50",
       )}
     >
       <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-zinc-100 text-[13px] font-bold text-zinc-600">
