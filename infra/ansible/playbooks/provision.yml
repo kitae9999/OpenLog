@@ -13,10 +13,25 @@
           - ansible_distribution_version is version("22.04", ">=")
         fail_msg: "OpenLog production provisioning supports Ubuntu 22.04 or newer."
 
+    - name: Verify Grafana Cloud credentials are provided
+      ansible.builtin.assert:
+        that:
+          - grafana_cloud_metrics_url | length > 0
+          - grafana_cloud_metrics_user | length > 0
+          - grafana_cloud_logs_url | length > 0
+          - grafana_cloud_logs_user | length > 0
+          - grafana_cloud_token | length > 0
+        fail_msg: >-
+          Set GRAFANA_CLOUD_METRICS_URL, GRAFANA_CLOUD_METRICS_USER,
+          GRAFANA_CLOUD_LOGS_URL, GRAFANA_CLOUD_LOGS_USER, and
+          GRAFANA_CLOUD_TOKEN before provisioning.
+      no_log: true
+
   tasks:
     - name: Install base packages
       ansible.builtin.apt:
         name:
+          - acl
           - ca-certificates
           - curl
           - gnupg
@@ -65,6 +80,44 @@
           - docker-compose-plugin
         state: present
 
+    - name: Install Grafana APT signing key
+      ansible.builtin.get_url:
+        url: https://apt.grafana.com/gpg.key
+        dest: /etc/apt/keyrings/grafana.asc
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Configure Grafana APT repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [signed-by=/etc/apt/keyrings/grafana.asc]
+          https://apt.grafana.com stable main
+        filename: grafana
+        state: present
+        update_cache: true
+
+    - name: Install Grafana Alloy
+      ansible.builtin.apt:
+        name: alloy
+        state: present
+
+    - name: Restrict Grafana Alloy configuration directory
+      ansible.builtin.file:
+        path: /etc/alloy
+        state: directory
+        owner: root
+        group: alloy
+        mode: "0750"
+
+    - name: Configure Grafana Alloy persistent data directory
+      ansible.builtin.file:
+        path: /var/lib/alloy
+        state: directory
+        owner: alloy
+        group: alloy
+        mode: "0750"
+
     - name: Configure Docker log rotation
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../templates/docker-daemon.json.j2"
@@ -86,6 +139,91 @@
         groups:
           - docker
         append: true
+
+    - name: Add Alloy user to Docker group
+      ansible.builtin.user:
+        name: alloy
+        groups:
+          - docker
+        append: true
+
+    - name: Configure Grafana Alloy
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/alloy-config.alloy.j2"
+        dest: /etc/alloy/config.alloy
+        owner: root
+        group: alloy
+        mode: "0640"
+
+    - name: Configure Grafana Cloud credentials for Alloy
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/alloy-credentials.env.j2"
+        dest: /etc/alloy/credentials.env
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    - name: Create Alloy systemd override directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/alloy.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Attach Grafana Cloud credentials to Alloy service
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/alloy-systemd-override.conf.j2"
+        dest: /etc/systemd/system/alloy.service.d/10-openlog.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install Alloy Docker access refresh command
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../files/openlog-refresh-alloy-access"
+        dest: /usr/local/sbin/openlog-refresh-alloy-access
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Allow deployment user to refresh Alloy Docker access
+      ansible.builtin.copy:
+        content: >-
+          {{ openlog_deploy_user }} ALL=(root) NOPASSWD:
+          /usr/local/sbin/openlog-refresh-alloy-access
+        dest: /etc/sudoers.d/openlog-alloy
+        owner: root
+        group: root
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+
+    - name: Validate Grafana Alloy configuration
+      ansible.builtin.command:
+        cmd: /usr/bin/alloy validate /etc/alloy/config.alloy
+      environment:
+        OPENLOG_ENVIRONMENT: "{{ openlog_environment }}"
+        OPENLOG_HOST: "{{ ansible_hostname }}"
+        GRAFANA_CLOUD_METRICS_URL: "{{ grafana_cloud_metrics_url }}"
+        GRAFANA_CLOUD_METRICS_USER: "{{ grafana_cloud_metrics_user }}"
+        GRAFANA_CLOUD_LOGS_URL: "{{ grafana_cloud_logs_url }}"
+        GRAFANA_CLOUD_LOGS_USER: "{{ grafana_cloud_logs_user }}"
+        GRAFANA_CLOUD_TOKEN: "{{ grafana_cloud_token }}"
+      changed_when: false
+      no_log: true
+
+    - name: Enable Grafana Alloy service
+      ansible.builtin.systemd_service:
+        name: alloy
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Grant Alloy read access to Docker state
+      ansible.builtin.command:
+        cmd: /usr/local/sbin/openlog-refresh-alloy-access
+      changed_when: false
 
     - name: Create deployment user SSH directory
       ansible.builtin.file:

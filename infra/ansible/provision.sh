@@ -9,8 +9,8 @@ if ! command -v ansible-playbook >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ -z "${ANSIBLE_PRIVATE_KEY_FILE:-}" ]]; then
-  echo "set ANSIBLE_PRIVATE_KEY_FILE to the OCI VM private key" >&2
+if [[ -z "${ANSIBLE_PRIVATE_KEY_FILE:-}" && -z "${SSH_AUTH_SOCK:-}" ]]; then
+  echo "set ANSIBLE_PRIVATE_KEY_FILE or start an SSH agent with the OCI VM private key" >&2
   exit 1
 fi
 

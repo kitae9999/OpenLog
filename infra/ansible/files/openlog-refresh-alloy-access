@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ -d /var/lib/docker ]]; then
+  setfacl -R -m d:u:alloy:rx /var/lib/docker
+  setfacl -R -m u:alloy:rx /var/lib/docker
+fi
+
+systemctl restart alloy.service

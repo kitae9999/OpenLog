@@ -60,4 +60,8 @@ if includes_service "backend" "$@" || includes_service "nginx" "$@"; then
     restart nginx
 fi
 
+if [[ -x /usr/local/sbin/openlog-refresh-alloy-access ]]; then
+  sudo -n /usr/local/sbin/openlog-refresh-alloy-access
+fi
+
 docker image prune -f >/dev/null 2>&1 || true

@@ -1,0 +1,242 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+prometheus.exporter.unix "host" {
+  include_exporter_metrics = true
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  forward_to      = [prometheus.relabel.host.receiver]
+  job_name        = "openlog-host"
+  scrape_interval = "30s"
+}
+
+prometheus.relabel "host" {
+  forward_to = [prometheus.relabel.metrics.receiver]
+
+  rule {
+    target_label = "environment"
+    replacement  = sys.env("OPENLOG_ENVIRONMENT")
+  }
+
+  rule {
+    target_label = "host"
+    replacement  = sys.env("OPENLOG_HOST")
+  }
+
+  rule {
+    source_labels = ["fstype"]
+    regex         = "(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|efivarfs|fusectl|hugetlbfs|mqueue|nsfs|overlay|proc|pstore|securityfs|sysfs|tracefs)"
+    action        = "drop"
+  }
+}
+
+prometheus.exporter.cadvisor "containers" {
+  docker_only            = true
+  store_container_labels = false
+  allowlisted_container_labels = [
+    "com.docker.compose.project",
+    "com.docker.compose.service",
+  ]
+}
+
+prometheus.scrape "containers" {
+  targets         = prometheus.exporter.cadvisor.containers.targets
+  forward_to      = [prometheus.relabel.containers.receiver]
+  job_name        = "openlog-containers"
+  scrape_interval = "30s"
+}
+
+prometheus.relabel "containers" {
+  forward_to = [prometheus.relabel.metrics.receiver]
+
+  rule {
+    source_labels = ["container_label_com_docker_compose_project"]
+    regex         = "openlog"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+
+  rule {
+    target_label = "environment"
+    replacement  = sys.env("OPENLOG_ENVIRONMENT")
+  }
+
+  rule {
+    target_label = "host"
+    replacement  = sys.env("OPENLOG_HOST")
+  }
+}
+
+prometheus.scrape "spring" {
+  targets = [{
+    "__address__" = "127.0.0.1:9090",
+  }]
+  forward_to      = [prometheus.relabel.spring.receiver]
+  job_name        = "openlog-backend"
+  metrics_path    = "/actuator/prometheus"
+  scrape_interval = "30s"
+}
+
+prometheus.relabel "spring" {
+  forward_to = [prometheus.relabel.metrics.receiver]
+
+  rule {
+    target_label = "environment"
+    replacement  = sys.env("OPENLOG_ENVIRONMENT")
+  }
+
+  rule {
+    target_label = "host"
+    replacement  = sys.env("OPENLOG_HOST")
+  }
+}
+
+prometheus.scrape "alloy" {
+  targets = [{
+    "__address__" = "127.0.0.1:12345",
+  }]
+  forward_to      = [prometheus.relabel.alloy.receiver]
+  job_name        = "openlog-alloy"
+  metrics_path    = "/metrics"
+  scrape_interval = "30s"
+}
+
+prometheus.relabel "alloy" {
+  forward_to = [prometheus.relabel.metrics.receiver]
+
+  rule {
+    target_label = "environment"
+    replacement  = sys.env("OPENLOG_ENVIRONMENT")
+  }
+
+  rule {
+    target_label = "host"
+    replacement  = sys.env("OPENLOG_HOST")
+  }
+}
+
+prometheus.relabel "metrics" {
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "(up|alloy_build_info|node_boot_time_seconds|node_cpu_seconds_total|node_filesystem_avail_bytes|node_filesystem_size_bytes|node_load1|node_memory_MemAvailable_bytes|node_memory_MemTotal_bytes|node_network_receive_bytes_total|node_network_transmit_bytes_total|container_cpu_usage_seconds_total|container_fs_limit_bytes|container_fs_usage_bytes|container_last_seen|container_memory_usage_bytes|container_memory_working_set_bytes|container_network_receive_bytes_total|container_network_transmit_bytes_total|container_start_time_seconds|hikaricp_connections_active|hikaricp_connections_max|http_server_requests_seconds_(bucket|count|sum|max)|jvm_gc_pause_seconds_(count|sum|max)|jvm_memory_max_bytes|jvm_memory_used_bytes|process_cpu_usage|process_uptime_seconds)"
+    action        = "keep"
+  }
+}
+
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_CLOUD_METRICS_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_CLOUD_METRICS_USER")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+}
+
+discovery.docker "openlog" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+}
+
+discovery.relabel "openlog_logs" {
+  targets = discovery.docker.openlog.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    regex         = "openlog"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+    replacement   = "$1"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+
+}
+
+loki.source.docker "openlog" {
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.relabel.openlog_logs.output
+  forward_to       = [loki.process.openlog.receiver]
+  refresh_interval = "5s"
+}
+
+loki.process "openlog" {
+  forward_to = [loki.write.grafana_cloud.receiver]
+
+  stage.drop {
+    expression          = "\"uri\":\"/healthz\".*\"status\":200"
+    drop_counter_reason = "successful_health_check"
+  }
+
+  stage.replace {
+    expression = "(?i)Bearer\\s+([A-Za-z0-9._~+/=-]+)"
+    replace    = "[REDACTED]"
+  }
+
+  stage.replace {
+    expression = "(https?://[^\\s?\"]+\\?[^\\s\"]+)"
+    replace    = "[REDACTED_URL]"
+  }
+
+  stage.replace {
+    expression = "(?i)(authorization[=: ]+[^\\s,;\"]+|cookie[=: ]+[^\\s,;\"]+|set-cookie[=: ]+[^\\s,;\"]+)"
+    replace    = "[REDACTED_HEADER]"
+  }
+
+  stage.replace {
+    expression = "(?i)(access_token=[^&\\s\"]+|refresh_token=[^&\\s\"]+|id_token=[^&\\s\"]+|token=[^&\\s\"]+|code=[^&\\s\"]+|state=[^&\\s\"]+|signature=[^&\\s\"]+|x-amz-signature=[^&\\s\"]+)"
+    replace    = "[REDACTED_TOKEN]"
+  }
+
+  stage.replace {
+    expression = "(?i)(eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+)"
+    replace    = "[REDACTED_JWT]"
+  }
+
+  stage.json {
+    expressions = {
+      level = "\"log.level\"",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+}
+
+loki.write "grafana_cloud" {
+  external_labels = {
+    environment = sys.env("OPENLOG_ENVIRONMENT"),
+    host        = sys.env("OPENLOG_HOST"),
+  }
+
+  endpoint {
+    url = sys.env("GRAFANA_CLOUD_LOGS_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_CLOUD_LOGS_USER")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+}
