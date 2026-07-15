@@ -20,7 +20,7 @@ interface WorkspaceLogRepository : JpaRepository<WorkspaceLog, Long> {
     ): List<WorkspaceLog>
 
     @EntityGraph(attributePaths = ["author", "task"])
-    fun findAllByWorkspaceIdOrderByCreatedAtDescIdDesc(
+    fun findAllByWorkspaceIdOrderByUpdatedAtDescIdDesc(
         workspaceId: Long,
         pageable: Pageable,
     ): List<WorkspaceLog>
@@ -32,21 +32,21 @@ interface WorkspaceLogRepository : JpaRepository<WorkspaceLog, Long> {
         from WorkspaceLog l
         where l.workspace.id = :workspaceId
           and (
-            l.createdAt < :createdAt
-            or (l.createdAt = :createdAt and l.id < :id)
+            l.updatedAt < :updatedAt
+            or (l.updatedAt = :updatedAt and l.id < :id)
           )
-        order by l.createdAt desc, l.id desc
+        order by l.updatedAt desc, l.id desc
         """
     )
     fun findWorkspaceLogsAfterCursor(
         @Param("workspaceId") workspaceId: Long,
-        @Param("createdAt") createdAt: LocalDateTime,
+        @Param("updatedAt") updatedAt: LocalDateTime,
         @Param("id") id: Long,
         pageable: Pageable,
     ): List<WorkspaceLog>
 
     @EntityGraph(attributePaths = ["author", "task"])
-    fun findAllByTaskIdOrderByCreatedAtDescIdDesc(
+    fun findAllByTaskIdOrderByUpdatedAtDescIdDesc(
         taskId: Long,
         pageable: Pageable,
     ): List<WorkspaceLog>
@@ -58,15 +58,15 @@ interface WorkspaceLogRepository : JpaRepository<WorkspaceLog, Long> {
         from WorkspaceLog l
         where l.task.id = :taskId
           and (
-            l.createdAt < :createdAt
-            or (l.createdAt = :createdAt and l.id < :id)
+            l.updatedAt < :updatedAt
+            or (l.updatedAt = :updatedAt and l.id < :id)
           )
-        order by l.createdAt desc, l.id desc
+        order by l.updatedAt desc, l.id desc
         """
     )
     fun findTaskLogsAfterCursor(
         @Param("taskId") taskId: Long,
-        @Param("createdAt") createdAt: LocalDateTime,
+        @Param("updatedAt") updatedAt: LocalDateTime,
         @Param("id") id: Long,
         pageable: Pageable,
     ): List<WorkspaceLog>

@@ -59,6 +59,7 @@ class WorkspaceMapper {
             authorProfileImageUrl = author.profileImageUrl,
             taskId = log.task?.id,
             createdAt = log.createdAt.toString(),
+            updatedAt = log.updatedAt.toString(),
         )
     }
 
