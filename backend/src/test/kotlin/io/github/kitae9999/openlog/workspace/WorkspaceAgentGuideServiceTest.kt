@@ -13,6 +13,7 @@ import org.mockito.BDDMockito.given
 import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.test.util.ReflectionTestUtils
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
@@ -35,6 +36,7 @@ class WorkspaceAgentGuideServiceTest {
         val owner = User(id = 1L, username = "alice")
         val workspace = Workspace(id = 10L, owner = owner, slug = "default", name = "Default")
         val guide = WorkspaceAgentGuide(workspace, "Initial guide")
+        ReflectionTestUtils.setField(guide, "workspaceId", 10L)
         given(workspaceAccessResolver.requireOwnedWorkspace(1L, 10L)).willReturn(workspace)
         given(guideRepository.findById(10L)).willReturn(Optional.of(guide))
 

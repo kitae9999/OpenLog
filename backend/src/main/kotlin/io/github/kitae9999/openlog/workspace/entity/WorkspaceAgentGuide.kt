@@ -18,8 +18,10 @@ class WorkspaceAgentGuide(
 ) {
     @Id
     @Column(name = "workspace_id")
-    val workspaceId: Long? = workspace.id
+    var workspaceId: Long? = null
+        protected set
 
+    // 신규 엔티티는 ID를 null로 유지해 JpaRepository가 persist를 사용하게 하고, @MapsId가 workspace ID를 채운다.
     @MapsId
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "workspace_id", nullable = false)
