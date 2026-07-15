@@ -471,24 +471,26 @@ export function HomeFeedShell({
                 }
               />
             ) : activeTab === "home" && isLoggedIn ? (
-              <>
-                <PostsView posts={posts} />
-                <div
-                  ref={sentinelRef}
-                  className="mt-6 flex min-h-16 items-center pl-5 text-sm text-zinc-500"
-                  aria-live="polite"
-                >
-                  {isLoadingMore
-                    ? "Loading posts..."
-                    : loadError
-                      ? loadError
-                      : posts.length === 0
-                        ? ""
-                        : hasNextActivePage
+              <PostsView
+                posts={posts}
+                loadMore={
+                  <div
+                    ref={sentinelRef}
+                    className="mt-6 flex min-h-16 items-center pl-5 text-sm text-zinc-500"
+                    aria-live="polite"
+                  >
+                    {isLoadingMore
+                      ? "Loading posts..."
+                      : loadError
+                        ? loadError
+                        : posts.length === 0
                           ? ""
-                          : "No more posts."}
-                </div>
-              </>
+                          : hasNextActivePage
+                            ? ""
+                            : "No more posts."}
+                  </div>
+                }
+              />
             ) : (
               <div className="mx-auto w-full max-w-[920px]">
                 <div>
@@ -888,7 +890,13 @@ function SidebarLink({
   );
 }
 
-function PostsView({ posts }: { posts: FeedPost[] }) {
+function PostsView({
+  posts,
+  loadMore,
+}: {
+  posts: FeedPost[];
+  loadMore?: ReactNode;
+}) {
   return (
     <div className="mx-auto w-full max-w-[920px]">
       <header className="pb-6">
@@ -940,6 +948,7 @@ function PostsView({ posts }: { posts: FeedPost[] }) {
           ))}
         </ul>
       )}
+      {loadMore}
     </div>
   );
 }
