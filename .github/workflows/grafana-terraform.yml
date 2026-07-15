@@ -1,0 +1,287 @@
+name: Grafana Terraform
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - ".github/workflows/grafana-terraform.yml"
+      - "deploy/production/monitoring/openlog-operations-dashboard.json"
+      - "infra/terraform/grafana/production/**"
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Terraform operation to run from the develop branch
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - apply
+
+permissions:
+  contents: read
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TERRAFORM_VERSION: "1.15.8"
+  TERRAFORM_WORKING_DIRECTORY: infra/terraform/grafana/production
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Initialize without remote state
+        run: terraform init -backend=false -input=false -lockfile=readonly
+
+      - name: Validate configuration
+        run: terraform validate -no-color
+
+  validate-deployment-ref:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Require develop branch
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/develop" ]]; then
+            echo "::error::Grafana Terraform deployment must run from the develop branch."
+            exit 1
+          fi
+
+  plan:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: grafana-terraform-state
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+    env:
+      OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+      OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+      OCI_REGION: ap-tokyo-1
+      OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+      OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+      TF_VAR_discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      TF_VAR_grafana_service_account_token: ${{ secrets.GRAFANA_SERVICE_ACCOUNT_TOKEN }}
+      TF_VAR_grafana_url: ${{ vars.GRAFANA_URL }}
+      TF_VAR_synthetic_monitoring_access_token: ${{ secrets.GRAFANA_SYNTHETIC_MONITORING_ACCESS_TOKEN }}
+      TF_VAR_synthetic_monitoring_url: ${{ vars.GRAFANA_SYNTHETIC_MONITORING_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Verify required configuration
+        run: |
+          required=(
+            OCI_FINGERPRINT
+            OCI_PRIVATE_KEY
+            OCI_TENANCY_OCID
+            OCI_USER_OCID
+            TF_VAR_discord_webhook_url
+            TF_VAR_grafana_service_account_token
+            TF_VAR_grafana_url
+            TF_VAR_synthetic_monitoring_access_token
+            TF_VAR_synthetic_monitoring_url
+          )
+          missing=0
+
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::$name is not configured in the production environment."
+              missing=1
+            fi
+          done
+
+          exit "$missing"
+
+      - name: Configure OCI API key
+        run: |
+          install -d -m 700 "$HOME/.oci"
+          umask 077
+          printf '%s\n' "$OCI_PRIVATE_KEY" > "$HOME/.oci/oci_api_key.pem"
+          {
+            printf '[DEFAULT]\n'
+            printf 'user=%s\n' "$OCI_USER_OCID"
+            printf 'fingerprint=%s\n' "$OCI_FINGERPRINT"
+            printf 'tenancy=%s\n' "$OCI_TENANCY_OCID"
+            printf 'region=%s\n' "$OCI_REGION"
+            printf 'key_file=%s\n' "$HOME/.oci/oci_api_key.pem"
+          } > "$HOME/.oci/config"
+
+      - name: Initialize remote state
+        run: terraform init -input=false -lockfile=readonly
+
+      - name: Plan production changes
+        run: |
+          set +e
+          terraform plan \
+            -detailed-exitcode \
+            -input=false \
+            -lock-timeout=5m \
+            -no-color \
+            -out=production.tfplan \
+            >terraform-plan.log 2>&1
+          status=$?
+          set -e
+
+          if [[ "$status" -eq 1 ]]; then
+            echo "::error::Terraform plan failed. Detailed output is withheld because it may contain sensitive data."
+            exit 1
+          elif [[ "$status" -eq 2 ]]; then
+            summary="$({
+              terraform show -json production.tfplan |
+                jq -r '
+                  [.resource_changes[]?.change.actions] as $actions |
+                  "create=\([$actions[] | select(. == ["create"])] | length) " +
+                  "update=\([$actions[] | select(. == ["update"])] | length) " +
+                  "replace=\([$actions[] | select(. == ["delete", "create"] or . == ["create", "delete"])] | length) " +
+                  "delete=\([$actions[] | select(. == ["delete"])] | length)"
+                '
+            } 2>/dev/null)"
+            echo "::notice::Terraform detected production changes: $summary"
+          else
+            echo "::notice::Terraform plan completed with no changes."
+          fi
+
+      - name: Remove temporary credentials and plan
+        if: always()
+        run: >-
+          rm -f "$HOME/.oci/config" "$HOME/.oci/oci_api_key.pem"
+          production.tfplan terraform-plan.log
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch'
+    needs:
+      - validate
+      - validate-deployment-ref
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: grafana-terraform-state
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+    env:
+      OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+      OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+      OCI_REGION: ap-tokyo-1
+      OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+      OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+      TF_VAR_discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      TF_VAR_grafana_service_account_token: ${{ secrets.GRAFANA_SERVICE_ACCOUNT_TOKEN }}
+      TF_VAR_grafana_url: ${{ vars.GRAFANA_URL }}
+      TF_VAR_synthetic_monitoring_access_token: ${{ secrets.GRAFANA_SYNTHETIC_MONITORING_ACCESS_TOKEN }}
+      TF_VAR_synthetic_monitoring_url: ${{ vars.GRAFANA_SYNTHETIC_MONITORING_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Verify required configuration
+        run: |
+          required=(
+            OCI_FINGERPRINT
+            OCI_PRIVATE_KEY
+            OCI_TENANCY_OCID
+            OCI_USER_OCID
+            TF_VAR_discord_webhook_url
+            TF_VAR_grafana_service_account_token
+            TF_VAR_grafana_url
+            TF_VAR_synthetic_monitoring_access_token
+            TF_VAR_synthetic_monitoring_url
+          )
+          missing=0
+
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::$name is not configured in the production environment."
+              missing=1
+            fi
+          done
+
+          exit "$missing"
+
+      - name: Configure OCI API key
+        run: |
+          install -d -m 700 "$HOME/.oci"
+          umask 077
+          printf '%s\n' "$OCI_PRIVATE_KEY" > "$HOME/.oci/oci_api_key.pem"
+          {
+            printf '[DEFAULT]\n'
+            printf 'user=%s\n' "$OCI_USER_OCID"
+            printf 'fingerprint=%s\n' "$OCI_FINGERPRINT"
+            printf 'tenancy=%s\n' "$OCI_TENANCY_OCID"
+            printf 'region=%s\n' "$OCI_REGION"
+            printf 'key_file=%s\n' "$HOME/.oci/oci_api_key.pem"
+          } > "$HOME/.oci/config"
+
+      - name: Initialize remote state
+        run: terraform init -input=false -lockfile=readonly
+
+      - name: Create production plan
+        run: |
+          if ! terraform plan \
+              -input=false \
+              -lock-timeout=5m \
+              -no-color \
+              -out=production.tfplan \
+              >terraform-plan.log 2>&1; then
+            echo "::error::Terraform plan failed. Detailed output is withheld because it may contain sensitive data."
+            exit 1
+          fi
+
+          echo "::notice::Production plan created without publishing its contents."
+
+      - name: Apply production plan
+        if: inputs.operation == 'apply'
+        run: terraform apply -input=false -no-color production.tfplan
+
+      - name: Report plan-only run
+        if: inputs.operation == 'plan'
+        run: echo "::notice::Plan-only run completed; no Grafana resources were changed."
+
+      - name: Remove temporary credentials and plan
+        if: always()
+        run: >-
+          rm -f "$HOME/.oci/config" "$HOME/.oci/oci_api_key.pem"
+          production.tfplan terraform-plan.log
