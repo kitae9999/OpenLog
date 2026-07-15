@@ -203,6 +203,7 @@ function ActivityDayCell({
   return (
     <Link
       href={getActivityHref(day.date)}
+      prefetch={false}
       aria-label={`${dateLabel}, ${logLabel}`}
       aria-current={selected ? "date" : undefined}
       className={cellClassName}
