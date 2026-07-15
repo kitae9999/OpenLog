@@ -981,6 +981,453 @@
       ],
       "title": "API 30일 가용성 SLO (목표 99.5%)",
       "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      },
+      "id": 17,
+      "panels": [],
+      "title": "접속 지역 및 IP 분석",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 52
+      },
+      "id": 18,
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "기본 지도",
+          "type": "default"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": true,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.7,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "field": "요청 수",
+                  "fixed": 5,
+                  "max": 30,
+                  "min": 4
+                }
+              }
+            },
+            "location": {
+              "gazetteer": "public/gazetteer/countries.json",
+              "mode": "lookup"
+            },
+            "name": "국가별 요청",
+            "tooltip": true,
+            "type": "markers"
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "allLayers": true,
+          "id": "zero",
+          "lat": 20,
+          "lon": 0,
+          "zoom": 1
+        }
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (geoip_country_code) (increase(openlog_nginx_geo_requests_total{job=\"openlog-alloy\",geoip_country_code!=\"\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "{{geoip_country_code}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "국가별 요청 분포",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value": "요청 수",
+              "geoip_country_code": "lookup"
+            }
+          }
+        }
+      ],
+      "type": "geomap"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 52
+      },
+      "id": 19,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "topk(10, sum by (geoip_country_code) (increase(openlog_nginx_geo_requests_total{job=\"openlog-alloy\",geoip_country_code!=\"\"}[$__range])))",
+          "instant": true,
+          "legendFormat": "{{geoip_country_code}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "요청 상위 국가 Top 10",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "선택한 대시보드 기간의 국가별 전체 요청 대비 4xx·5xx 비율입니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 62
+      },
+      "id": 20,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "topk(10, 100 * sum by (geoip_country_code) (increase(openlog_nginx_geo_4xx_total{job=\"openlog-alloy\",geoip_country_code!=\"\"}[$__range])) / clamp_min(sum by (geoip_country_code) (increase(openlog_nginx_geo_requests_total{job=\"openlog-alloy\",geoip_country_code!=\"\"}[$__range])), 1))",
+          "instant": true,
+          "legendFormat": "{{geoip_country_code}} · 4xx",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "topk(10, 100 * sum by (geoip_country_code) (increase(openlog_nginx_geo_5xx_total{job=\"openlog-alloy\",geoip_country_code!=\"\"}[$__range])) / clamp_min(sum by (geoip_country_code) (increase(openlog_nginx_geo_requests_total{job=\"openlog-alloy\",geoip_country_code!=\"\"}[$__range])), 1))",
+          "instant": true,
+          "legendFormat": "{{geoip_country_code}} · 5xx",
+          "range": false,
+          "refId": "B"
+        }
+      ],
+      "title": "오류율 상위 국가 (4xx / 5xx)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "도시 structured metadata를 최근 24시간만 집계해 Loki 조회 비용을 제한합니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 70
+      },
+      "id": 21,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "topk(20, sum by (geoip_country_code, geoip_city_name) (count_over_time({environment=\"production\",compose_service=\"nginx\"} | geoip_city_name != \"\" | keep geoip_country_code, geoip_city_name [24h])))",
+          "instant": true,
+          "legendFormat": "{{geoip_country_code}} / {{geoip_city_name}}",
+          "queryType": "instant",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "최근 24시간 요청 도시 Top 20",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "geoip_country_code": 0,
+              "geoip_city_name": 1,
+              "Value": 2
+            },
+            "renameByName": {
+              "Value": "요청 수",
+              "geoip_city_name": "도시",
+              "geoip_country_code": "국가"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "IP는 Loki 라벨이 아니라 structured metadata로 유지하며, 최근 1시간 오류만 Top 20으로 집계합니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 70
+      },
+      "id": 22,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "topk(20, sum by (client_ip, geoip_country_code, geoip_city_name) (count_over_time({environment=\"production\",compose_service=\"nginx\"} | json | status >= 400 and status < 600 | client_ip != \"\" | keep client_ip, geoip_country_code, geoip_city_name [1h])))",
+          "instant": true,
+          "legendFormat": "{{client_ip}} / {{geoip_country_code}} / {{geoip_city_name}}",
+          "queryType": "instant",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "최근 1시간 오류 IP Top 20 (4xx + 5xx)",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "client_ip": 0,
+              "geoip_country_code": 1,
+              "geoip_city_name": 2,
+              "Value": 3
+            },
+            "renameByName": {
+              "Value": "오류 수",
+              "client_ip": "클라이언트 IP",
+              "geoip_city_name": "도시",
+              "geoip_country_code": "국가"
+            }
+          }
+        }
+      ],
+      "type": "table"
     }
   ],
   "refresh": "30s",
@@ -1001,6 +1448,6 @@
   "timezone": "browser",
   "title": "OpenLog Operations",
   "uid": "openlog-operations",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
