@@ -45,12 +45,12 @@ class WorkspaceLogService(
             size = size,
             findFirstPage = { pageable ->
                 if (taskId == null) {
-                    workspaceLogRepository.findAllByWorkspaceIdOrderByCreatedAtDescIdDesc(
+                    workspaceLogRepository.findAllByWorkspaceIdOrderByUpdatedAtDescIdDesc(
                         workspaceId = workspaceId,
                         pageable = pageable,
                     )
                 } else {
-                    workspaceLogRepository.findAllByTaskIdOrderByCreatedAtDescIdDesc(
+                    workspaceLogRepository.findAllByTaskIdOrderByUpdatedAtDescIdDesc(
                         taskId = taskId,
                         pageable = pageable,
                     )
@@ -60,14 +60,14 @@ class WorkspaceLogService(
                 if (taskId == null) {
                     workspaceLogRepository.findWorkspaceLogsAfterCursor(
                         workspaceId = workspaceId,
-                        createdAt = cursorMarker.createdAt,
+                        updatedAt = cursorMarker.createdAt,
                         id = cursorMarker.id,
                         pageable = pageable,
                     )
                 } else {
                     workspaceLogRepository.findTaskLogsAfterCursor(
                         taskId = taskId,
-                        createdAt = cursorMarker.createdAt,
+                        updatedAt = cursorMarker.createdAt,
                         id = cursorMarker.id,
                         pageable = pageable,
                     )
@@ -203,7 +203,7 @@ class WorkspaceLogService(
             size = safeSize,
             nextCursor = pageLogs.lastOrNull()
                 ?.takeIf { hasNext }
-                ?.let { log -> DateTimeIdCursorCodec.encode(log.createdAt, requireNotNull(log.id)) },
+                ?.let { log -> DateTimeIdCursorCodec.encode(log.updatedAt, requireNotNull(log.id)) },
             hasNext = hasNext,
         )
     }

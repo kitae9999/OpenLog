@@ -39,6 +39,8 @@ export type WorkspaceLogItem = {
   /** Markdown recipe body. Falls back to generated content from description/recipe. */
   body?: string;
   createdAt?: string;
+  /** Last edit time; Recent logs / list sort by this when present. */
+  updatedAt?: string;
 };
 
 export type WorkspaceMetric = {
@@ -708,7 +710,7 @@ export function getTaskMeta(taskId: string): WorkspaceTaskMeta {
 
 /**
  * Started = task creation.
- * Updated = latest of task.updatedAt and linked log createdAt (log add / task edit).
+ * Updated = latest of task.updatedAt and linked log updatedAt/createdAt (log add / task edit).
  * Demo tasks without timestamps fall back to hardcoded meta / log meta labels.
  */
 export function resolveTaskActivityMeta(
@@ -730,7 +732,7 @@ export function resolveTaskActivityMeta(
     : "—";
   const latestActivity = pickLatestIso([
     task.updatedAt,
-    ...logs.map((log) => log.createdAt),
+    ...logs.flatMap((log) => [log.updatedAt, log.createdAt]),
   ]);
 
   return {

@@ -13,6 +13,7 @@ data class WorkspaceLogResponse(
     val authorProfileImageUrl: String?,
     val taskId: Long?,
     val createdAt: String,
+    val updatedAt: String,
 )
 
 data class WorkspaceLogDetailResponse(

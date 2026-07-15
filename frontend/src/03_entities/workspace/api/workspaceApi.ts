@@ -79,11 +79,11 @@ type WorkspaceLogResponse = {
   summary: string | null;
   taskId: number | null;
   createdAt: string;
+  updatedAt: string;
 };
 
 type WorkspaceLogDetailResponse = WorkspaceLogResponse & {
   content: string;
-  updatedAt: string;
   closedAt: string | null;
 };
 
@@ -465,7 +465,6 @@ export async function getWorkspaceActivityDayLogs(
     return response.logs.map((log) => mapLog({
       ...log,
       content: log.summary ?? "",
-      updatedAt: log.createdAt,
       closedAt: null,
     }));
   } catch {
@@ -730,6 +729,7 @@ function mapLog(
     taskId: log.taskId ? String(log.taskId) : undefined,
     body: content,
     createdAt: log.createdAt,
+    updatedAt: log.updatedAt,
   };
 }
 
@@ -826,15 +826,16 @@ function mapOutputStatus(status: OutputStatus): WorkspaceOutputStatus {
 }
 
 function buildLogMeta(log: WorkspaceLogResponse | WorkspaceLogDetailResponse) {
+  const activityAt = log.updatedAt || log.createdAt;
   if (log.status === "OPEN") {
-    return `open · ${formatWorkspaceDateLabel(log.createdAt)}`;
+    return `open · ${formatWorkspaceDateLabel(activityAt)}`;
   }
   if (log.status === "CLOSED") {
     const closedAt = "closedAt" in log ? log.closedAt : null;
-    return `closed · ${formatWorkspaceDateLabel(closedAt ?? log.createdAt)}`;
+    return `closed · ${formatWorkspaceDateLabel(closedAt ?? activityAt)}`;
   }
 
-  return formatWorkspaceDateLabel(log.createdAt);
+  return formatWorkspaceDateLabel(activityAt);
 }
 
 function excerpt(content: string, maxLength = 120) {
