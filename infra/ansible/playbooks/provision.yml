@@ -21,10 +21,13 @@
           - grafana_cloud_logs_url | length > 0
           - grafana_cloud_logs_user | length > 0
           - grafana_cloud_token | length > 0
+          - maxmind_account_id | length > 0
+          - maxmind_license_key | length > 0
         fail_msg: >-
           Set GRAFANA_CLOUD_METRICS_URL, GRAFANA_CLOUD_METRICS_USER,
           GRAFANA_CLOUD_LOGS_URL, GRAFANA_CLOUD_LOGS_USER, and
-          GRAFANA_CLOUD_TOKEN before provisioning.
+          GRAFANA_CLOUD_TOKEN, MAXMIND_ACCOUNT_ID, and MAXMIND_LICENSE_KEY
+          before provisioning.
       no_log: true
 
   tasks:
@@ -35,6 +38,7 @@
           - ca-certificates
           - curl
           - gnupg
+          - geoipupdate
           - jq
           - python3-apt
           - rsync
@@ -118,6 +122,68 @@
         group: alloy
         mode: "0750"
 
+    - name: Configure GeoLite2 database directory
+      ansible.builtin.file:
+        path: "{{ geoip_database_directory }}"
+        state: directory
+        owner: root
+        group: alloy
+        mode: "0750"
+
+    - name: Configure MaxMind GeoIP Update credentials
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/geoipupdate.conf.j2"
+        dest: /etc/GeoIP.conf
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    - name: Configure OpenLog GeoIP update service
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/openlog-geoipupdate.service.j2"
+        dest: /etc/systemd/system/openlog-geoipupdate.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Configure OpenLog GeoIP update timer
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/openlog-geoipupdate.timer.j2"
+        dest: /etc/systemd/system/openlog-geoipupdate.timer
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Download current GeoLite2 City database
+      ansible.builtin.systemd_service:
+        name: openlog-geoipupdate.service
+        daemon_reload: true
+        state: started
+      no_log: true
+
+    - name: Verify GeoLite2 City database is installed
+      ansible.builtin.stat:
+        path: "{{ geoip_database_path }}"
+      register: geoip_database
+
+    - name: Require a readable GeoLite2 City database
+      ansible.builtin.assert:
+        that:
+          - geoip_database.stat.exists
+          - geoip_database.stat.isreg
+          - geoip_database.stat.size > 0
+        fail_msg: >-
+          geoipupdate did not install {{ geoip_database_path }}.
+          Verify the MaxMind account, license key, and GeoLite2 City access.
+
+    - name: Enable automatic GeoLite2 City updates
+      ansible.builtin.systemd_service:
+        name: openlog-geoipupdate.timer
+        daemon_reload: true
+        enabled: true
+        state: started
+
     - name: Configure Docker log rotation
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../templates/docker-daemon.json.j2"
@@ -154,6 +220,7 @@
         owner: root
         group: alloy
         mode: "0640"
+      notify: Restart Alloy
 
     - name: Configure Grafana Cloud credentials for Alloy
       ansible.builtin.template:
@@ -313,4 +380,9 @@
     - name: Restart Docker
       ansible.builtin.systemd_service:
         name: docker
+        state: restarted
+
+    - name: Restart Alloy
+      ansible.builtin.systemd_service:
+        name: alloy
         state: restarted

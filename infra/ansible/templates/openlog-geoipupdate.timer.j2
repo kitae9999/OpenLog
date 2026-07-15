@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh the OpenLog GeoLite2 City database twice weekly
+
+[Timer]
+OnCalendar=Mon,Thu *-*-* 04:15:00
+RandomizedDelaySec=2h
+Persistent=true
+Unit=openlog-geoipupdate.service
+
+[Install]
+WantedBy=timers.target
