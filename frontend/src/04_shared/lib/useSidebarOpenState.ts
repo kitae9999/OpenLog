@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "openlog.sidebar.desktopOpen";
 const LG_QUERY = "(min-width: 1024px)";
@@ -8,6 +8,14 @@ const LG_QUERY = "(min-width: 1024px)";
 /** Survives shell remounts during client navigations. */
 let desktopOpenMemory: boolean | null = null;
 let mobileOpenMemory = false;
+
+const listeners = new Set<() => void>();
+
+function emitChange() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
 
 function isLgViewport() {
   return window.matchMedia(LG_QUERY).matches;
@@ -46,11 +54,40 @@ function writeDesktopOpen(open: boolean) {
   }
 }
 
-function readCurrentOpen(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
+function getSnapshot(): boolean {
   return isLgViewport() ? readDesktopOpen() : mobileOpenMemory;
+}
+
+function getServerSnapshot(): boolean {
+  return false;
+}
+
+function subscribe(onStoreChange: () => void) {
+  listeners.add(onStoreChange);
+
+  const query = window.matchMedia(LG_QUERY);
+  const onViewportChange = () => {
+    if (!query.matches) {
+      mobileOpenMemory = false;
+    }
+    emitChange();
+  };
+  query.addEventListener("change", onViewportChange);
+
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== STORAGE_KEY) {
+      return;
+    }
+    desktopOpenMemory = null;
+    emitChange();
+  };
+  window.addEventListener("storage", onStorage);
+
+  return () => {
+    listeners.delete(onStoreChange);
+    query.removeEventListener("change", onViewportChange);
+    window.removeEventListener("storage", onStorage);
+  };
 }
 
 /**
@@ -58,25 +95,11 @@ function readCurrentOpen(): boolean {
  * Desktop preference is persisted; mobile overlay stays ephemeral.
  */
 export function useSidebarOpenState() {
-  const [isSidebarOpen, setIsSidebarOpenState] = useState(readCurrentOpen);
-
-  useEffect(() => {
-    // Align after SSR hydrate without forcing open on every remount.
-    setIsSidebarOpenState(readCurrentOpen());
-
-    const query = window.matchMedia(LG_QUERY);
-    const onViewportChange = () => {
-      if (query.matches) {
-        setIsSidebarOpenState(readDesktopOpen());
-      } else {
-        mobileOpenMemory = false;
-        setIsSidebarOpenState(false);
-      }
-    };
-
-    query.addEventListener("change", onViewportChange);
-    return () => query.removeEventListener("change", onViewportChange);
-  }, []);
+  const isSidebarOpen = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   useEffect(() => {
     if (!isSidebarOpen || isLgViewport()) {
@@ -96,15 +119,14 @@ export function useSidebarOpenState() {
 
   const setIsSidebarOpen = useCallback(
     (next: boolean | ((prev: boolean) => boolean)) => {
-      setIsSidebarOpenState((prev) => {
-        const value = typeof next === "function" ? next(prev) : next;
-        if (isLgViewport()) {
-          writeDesktopOpen(value);
-        } else {
-          mobileOpenMemory = value;
-        }
-        return value;
-      });
+      const prev = getSnapshot();
+      const value = typeof next === "function" ? next(prev) : next;
+      if (isLgViewport()) {
+        writeDesktopOpen(value);
+      } else {
+        mobileOpenMemory = value;
+      }
+      emitChange();
     },
     [],
   );
