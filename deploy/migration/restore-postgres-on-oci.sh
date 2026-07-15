@@ -56,7 +56,11 @@ compose exec -T postgres sh -c \
 compose exec -T postgres sh -c \
   'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -c "UPDATE media_assets SET bucket = '\''openlog-media'\'' WHERE bucket = '\''openlog_prod'\'';"'
 
-compose up -d
+# Keep public traffic closed until the restored database has a fresh CDC slot.
+compose up -d redis kafka debezium backend
+CONFIRM_CDC_RECOVERY=reset-openlog-cdc \
+  "$DEPLOY_PATH/debezium/recover-openlog-postgres-connector.sh"
+compose up -d nginx
 
 target_ready=false
 for _ in {1..60}; do
@@ -73,4 +77,4 @@ if [[ "$target_ready" != "true" ]]; then
   exit 1
 fi
 
-echo "restored PostgreSQL backup, updated media bucket references, and verified the target stack"
+echo "restored PostgreSQL backup, recovered CDC, updated media bucket references, and verified the target stack"
