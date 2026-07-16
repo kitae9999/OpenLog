@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Post } from "@/entities/post/model";
 import { cn } from "@/shared/lib/cn";
+import { OfficialBadge } from "@/shared/ui/OfficialBadge";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
 import { PostTabs } from "./PostTabs";
 
@@ -11,6 +12,7 @@ export type SuggestionListItem = {
   title: string;
   activityLabel: string;
   authorName: string;
+  authorIsOpenLogOfficial: boolean;
   commentCount: number;
   status: "open" | "outdated" | "closed" | "merged" | "rejected";
 };
@@ -148,8 +150,13 @@ export function PostSuggests({
                             {suggestion.numberLabel}
                           </span>
                           <span>{suggestion.activityLabel} by</span>
-                          <span className="font-medium text-zinc-500">
-                            {suggestion.authorName}
+                          <span className="inline-flex items-center gap-1">
+                            <span className="font-medium text-zinc-500">
+                              {suggestion.authorName}
+                            </span>
+                            {suggestion.authorIsOpenLogOfficial ? (
+                              <OfficialBadge size="sm" />
+                            ) : null}
                           </span>
                         </div>
                       </div>

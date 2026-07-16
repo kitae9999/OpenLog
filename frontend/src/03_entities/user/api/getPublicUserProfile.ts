@@ -7,6 +7,7 @@ export type PublicUserProfile = {
   username: string;
   nickname: string | null;
   profileImageUrl: string | null;
+  isOpenLogOfficial: boolean;
   bio: string | null;
   location: string | null;
   websiteUrl: string | null;

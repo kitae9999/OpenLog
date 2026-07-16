@@ -12,6 +12,7 @@ export type Post = {
   description?: string;
   authorName: string;
   authorAvatarSrc: string;
+  authorIsOpenLogOfficial: boolean;
   publishedAtLabel: string;
   versionLabel?: string;
   readTimeLabel?: string;
@@ -24,6 +25,7 @@ export type Post = {
 export type SuggestionComment = {
   authorName: string;
   authorAvatarSrc: string;
+  authorIsOpenLogOfficial: boolean;
   commentedAtLabel: string;
   message: string;
 };
@@ -32,6 +34,7 @@ export type DiscussionComment = {
   id: string;
   authorName: string;
   authorAvatarSrc: string;
+  authorIsOpenLogOfficial: boolean;
   commentedAtLabel: string;
   message: string;
   canManage: boolean;
@@ -51,6 +54,7 @@ export type Suggestion = {
   activityLabel: string;
   authorName: string;
   authorAvatarSrc: string;
+  authorIsOpenLogOfficial: boolean;
   commentCount: number;
   status: "open" | "outdated" | "closed" | "merged" | "rejected";
   baseVersionLabel?: string;
@@ -117,6 +121,7 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
         title: "The Future of CSS: Tailwind v4",
         authorName: "Kent C. Dodds",
         authorAvatarSrc: assets.avatarA,
+        authorIsOpenLogOfficial: false,
         publishedAtLabel: "2026. 2. 25.",
         readTimeLabel: "5 min read",
         tags: ["CSS", "Tooling"],
@@ -133,12 +138,14 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           activityLabel: "opened 2026. 3. 11.",
           authorName: "Kent C. Dodds",
           authorAvatarSrc: assets.avatarA,
+          authorIsOpenLogOfficial: false,
           commentCount: 2,
           status: "open",
           baseVersionLabel: "v1",
           comment: {
             authorName: "Kent C. Dodds",
             authorAvatarSrc: assets.avatarA,
+            authorIsOpenLogOfficial: false,
             commentedAtLabel: "2026. 3. 11.",
             message:
               "I rewrote the upgrade note so the token migration reads as truly zero-config in the common case, while keeping the edge-case caveat.",
@@ -190,12 +197,14 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           activityLabel: "closed 2026. 3. 9.",
           authorName: "Dan Abramov",
           authorAvatarSrc: assets.avatarB,
+          authorIsOpenLogOfficial: false,
           commentCount: 1,
           status: "closed",
           baseVersionLabel: "v2",
           comment: {
             authorName: "Dan Abramov",
             authorAvatarSrc: assets.avatarB,
+            authorIsOpenLogOfficial: false,
             commentedAtLabel: "2026. 3. 9.",
             message:
               "This removes the old PostCSS warning and keeps the setup guide aligned with the current default toolchain.",
@@ -230,6 +239,7 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
         title: "Understanding React Server Components",
         authorName: "Sarah Drasner",
         authorAvatarSrc: assets.avatarB,
+        authorIsOpenLogOfficial: false,
         publishedAtLabel: "2026. 2. 28.",
         readTimeLabel: "8 min read",
         tags: ["React", "Web Development", "Performance"],
@@ -245,12 +255,14 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           activityLabel: "opened 2026. 3. 11.",
           authorName: "Kent C. Dodds",
           authorAvatarSrc: assets.avatarA,
+          authorIsOpenLogOfficial: false,
           commentCount: 0,
           status: "open",
           baseVersionLabel: "v1",
           comment: {
             authorName: "Kent C. Dodds",
             authorAvatarSrc: assets.avatarA,
+            authorIsOpenLogOfficial: false,
             commentedAtLabel: "2026. 3. 11.",
             message:
               "I clarified the section on bundle size to mention dependencies, and fixed a minor phrasing issue.",
@@ -314,12 +326,14 @@ const postEntries: Record<string, Record<string, PostEntry>> = {
           activityLabel: "accepted 2026. 3. 10.",
           authorName: "Dan Abramov",
           authorAvatarSrc: assets.avatarB,
+          authorIsOpenLogOfficial: false,
           commentCount: 0,
           status: "merged",
           baseVersionLabel: "v2",
           comment: {
             authorName: "Dan Abramov",
             authorAvatarSrc: assets.avatarB,
+            authorIsOpenLogOfficial: false,
             commentedAtLabel: "2026. 3. 10.",
             message:
               "Added a useful comment above the code block to help beginners understand context.",

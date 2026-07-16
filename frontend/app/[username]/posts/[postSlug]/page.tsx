@@ -167,6 +167,7 @@ export default async function PublicPostPage({
               description: detail.description,
               authorName: detail.authorName,
               authorAvatarSrc: detail.authorAvatarSrc ?? assets.defaultAvatar,
+              authorIsOpenLogOfficial: detail.authorIsOpenLogOfficial,
               publishedAtLabel: detail.publishedAtLabel,
               versionLabel: formatPostVersionLabel(detail.version),
               tags: detail.topics,

@@ -23,6 +23,7 @@ import {
 } from "@/features/profile/api/profileActions";
 import { assets } from "@/shared/config/assets";
 import { buildPublicProfilePath } from "@/shared/lib/publicRoutes";
+import { OfficialBadge } from "@/shared/ui/OfficialBadge";
 
 type FieldName = "nickname" | "bio" | "location" | "websiteUrl";
 
@@ -321,9 +322,12 @@ export function EditableProfileHeader({
 
         <div className="mt-5 w-full min-w-0">
           <div className="flex items-start justify-between gap-3">
-            <h1 className="min-w-0 text-[26px] font-bold leading-[1.15] tracking-tight text-zinc-950">
-              {profileName}
-            </h1>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <h1 className="min-w-0 text-[26px] font-bold leading-[1.15] tracking-tight text-zinc-950">
+                {profileName}
+              </h1>
+              {currentProfile.isOpenLogOfficial ? <OfficialBadge /> : null}
+            </div>
             {isViewer ? (
               <button
                 type="button"
@@ -541,9 +545,14 @@ function FollowListContent({
                 height={40}
                 className="size-10 rounded-full object-cover"
               />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-zinc-950">
-                  {name}
+              <span className="min-w-0 flex-1">
+                <span className="flex min-w-0 items-center gap-1">
+                  <span className="truncate text-sm font-semibold text-zinc-950">
+                    {name}
+                  </span>
+                  {user.isOpenLogOfficial ? (
+                    <OfficialBadge size="sm" />
+                  ) : null}
                 </span>
                 <span className="block truncate text-sm text-zinc-500">
                   @{user.username}

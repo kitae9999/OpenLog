@@ -7,6 +7,7 @@ export type FollowUser = {
   username: string;
   nickname: string | null;
   profileImageUrl: string | null;
+  isOpenLogOfficial: boolean;
 };
 
 export async function getUserFollowList(

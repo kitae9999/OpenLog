@@ -6,6 +6,7 @@ export type Comment = {
   id: number;
   authorName: string;
   authorProfileImageUrl: string | null;
+  authorIsOpenLogOfficial: boolean;
   content: string;
   createdAt: string;
   canManage: boolean;

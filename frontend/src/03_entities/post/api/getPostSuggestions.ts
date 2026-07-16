@@ -15,6 +15,7 @@ export type ApiSuggestionSummary = {
   status: ApiSuggestionStatus;
   authorName: string;
   authorProfileImageUrl: string | null;
+  authorIsOpenLogOfficial: boolean;
   createdAt: string;
   updatedAt: string;
   commentCount: number;

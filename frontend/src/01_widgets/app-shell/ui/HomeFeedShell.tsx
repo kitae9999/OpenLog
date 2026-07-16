@@ -1107,6 +1107,7 @@ function toFeedPost(post: RecentPostSummary): FeedPost {
     id: String(post.id),
     nickname: post.authorName,
     profileImageSrc: post.authorAvatarSrc || assets.defaultAvatar,
+    authorIsOpenLogOfficial: post.authorIsOpenLogOfficial,
     title: post.title,
     description: post.description,
     dateLabel: post.publishedAtLabel,
