@@ -12,9 +12,11 @@ import io.github.kitae9999.openlog.workspace.repository.WorkspaceLogRepository
 import io.github.kitae9999.openlog.workspace.repository.WorkspaceRepository
 import io.github.kitae9999.openlog.workspace.repository.WorkspaceTaskRepository
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import kotlin.jvm.optionals.getOrNull
 
 @Component
+@Transactional(readOnly = true)
 class WorkspaceAccessResolver(
     private val workspaceRepository: WorkspaceRepository,
     private val workspaceTaskRepository: WorkspaceTaskRepository,
