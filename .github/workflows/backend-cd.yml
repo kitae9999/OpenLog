@@ -104,7 +104,7 @@ jobs:
     needs:
       - changes
       - build-and-push
-    environment: production
+    environment: production-runtime
     steps:
       - name: Checkout
         uses: actions/checkout@v5
