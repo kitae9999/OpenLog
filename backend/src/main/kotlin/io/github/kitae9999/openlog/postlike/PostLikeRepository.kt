@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.postlike
 
 import io.github.kitae9999.openlog.postlike.entity.PostLike
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
@@ -71,6 +72,46 @@ interface PostLikeRepository : JpaRepository<PostLike, Long> {
     )
     fun findLikedPostsAfterCursor(
         @Param("userId") userId: Long,
+        @Param("createdAt") createdAt: LocalDateTime,
+        @Param("id") id: Long,
+        pageable: Pageable,
+    ): List<PostLike>
+
+    @Query(
+        """
+        select pl
+        from PostLike pl
+        join fetch pl.post p
+        join fetch p.author
+        where pl.user.id = :userId
+          and p.status = :status
+        order by pl.createdAt desc, pl.id desc
+        """
+    )
+    fun findPublishedLikedPostsByUserId(
+        @Param("userId") userId: Long,
+        @Param("status") status: PostStatus,
+        pageable: Pageable,
+    ): List<PostLike>
+
+    @Query(
+        """
+        select pl
+        from PostLike pl
+        join fetch pl.post p
+        join fetch p.author
+        where pl.user.id = :userId
+          and p.status = :status
+          and (
+            pl.createdAt < :createdAt
+            or (pl.createdAt = :createdAt and pl.id < :id)
+          )
+        order by pl.createdAt desc, pl.id desc
+        """
+    )
+    fun findPublishedLikedPostsAfterCursor(
+        @Param("userId") userId: Long,
+        @Param("status") status: PostStatus,
         @Param("createdAt") createdAt: LocalDateTime,
         @Param("id") id: Long,
         pageable: Pageable,

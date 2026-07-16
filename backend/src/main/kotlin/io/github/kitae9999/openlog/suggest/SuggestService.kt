@@ -5,6 +5,7 @@ import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.discussion.repository.DiscussionRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.suggest.dto.SuggestionDetailResponse
 import io.github.kitae9999.openlog.suggest.dto.SuggestionSummaryResponse
 import io.github.kitae9999.openlog.suggest.entity.Suggestion
@@ -25,6 +26,7 @@ class SuggestService(
 ) {
     @Transactional
     fun getPostSuggestions(postId: Long): List<SuggestionSummaryResponse> {
+        requirePublishedPost(postId)
         val suggestions = suggestionRepository.findAllWithUserByPostId(postId)
 
         return suggestions.map { suggestion ->
@@ -43,7 +45,8 @@ class SuggestService(
         description: String,
         content: String
     ){
-        val postToSuggest = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("포스트가 존재하지 않습니다.")
+        val postToSuggest = postRepository.findByIdAndStatus(postId, PostStatus.PUBLISHED)
+            ?: throw NotFoundException("포스트가 존재하지 않습니다.")
         suggestionRepository.save(
             Suggestion(
                 post = postToSuggest,
@@ -63,6 +66,7 @@ class SuggestService(
         suggestionId: Long,
         currentUserId: Long?,
     ): SuggestionDetailResponse {
+        requirePublishedPost(postId)
         val suggestion = suggestionRepository.findDetailWithUserByIdAndPostId(suggestionId, postId)
             ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
         val discussions = discussionRepository.findAllWithUserBySuggestionId(suggestionId)
@@ -172,8 +176,11 @@ class SuggestService(
     }
 
     private fun lockPostForSuggestionManagement(postId: Long) {
-        postRepository.findByIdForUpdate(postId)
+        val post = postRepository.findByIdForUpdate(postId)
             ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
+        if (post.status != PostStatus.PUBLISHED) {
+            throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
+        }
     }
 
     @Transactional
@@ -192,5 +199,11 @@ class SuggestService(
             description = description,
             content = content
         )
+    }
+
+    private fun requirePublishedPost(postId: Long) {
+        if (!postRepository.existsByIdAndStatus(postId, PostStatus.PUBLISHED)) {
+            throw NotFoundException("포스트가 존재하지 않습니다.")
+        }
     }
 }

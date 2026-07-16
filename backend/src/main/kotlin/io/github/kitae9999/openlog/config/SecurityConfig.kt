@@ -62,6 +62,7 @@ class SecurityConfig(
 
                     // posts — GET 공개, 생성/수정/삭제 인증 필요
                     .requestMatchers(HttpMethod.GET, "/posts").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/posts/*").authenticated()
                     .requestMatchers(HttpMethod.GET, "/posts/*/comments").permitAll()
                     .requestMatchers(HttpMethod.GET, "/posts/*/suggestions").permitAll()
                     .requestMatchers(HttpMethod.GET, "/posts/*/suggestions/*").permitAll()

@@ -5,6 +5,7 @@ import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.discussion.DiscussionMapper
 import io.github.kitae9999.openlog.discussion.repository.DiscussionRepository
 import io.github.kitae9999.openlog.post.entity.Post
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.suggest.entity.Suggestion
 import io.github.kitae9999.openlog.suggest.entity.SuggestionAction
@@ -198,6 +199,7 @@ class SuggestServiceTest {
             title = "Hello OpenLog",
             description = "post description",
             content = "base content",
+            status = PostStatus.PUBLISHED,
         )
 
         return Suggestion(

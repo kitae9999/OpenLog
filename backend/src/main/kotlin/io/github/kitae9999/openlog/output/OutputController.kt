@@ -3,7 +3,6 @@ package io.github.kitae9999.openlog.output
 import io.github.kitae9999.openlog.output.dto.CreateOutputRequest
 import io.github.kitae9999.openlog.output.dto.OutputDetailResponse
 import io.github.kitae9999.openlog.output.dto.OutputResponse
-import io.github.kitae9999.openlog.output.dto.PublishOutputRequest
 import io.github.kitae9999.openlog.output.dto.UpdateOutputRequest
 import io.github.kitae9999.openlog.output.entity.OutputStatus
 import io.github.kitae9999.openlog.user.entity.User
@@ -80,19 +79,16 @@ class OutputController(
         )
     }
 
-    @PostMapping("/{workspaceId}/outputs/{outputId}/publish")
-    fun publishOutput(
+    @PostMapping("/{workspaceId}/outputs/{outputId}/post-draft")
+    fun createPostDraft(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
         @PathVariable outputId: Long,
-        @Valid @RequestBody request: PublishOutputRequest,
     ): OutputDetailResponse {
-        return outputService.publishOutput(
+        return outputService.createPostDraft(
             user = user,
             workspaceId = workspaceId,
             outputId = outputId,
-            description = request.description,
-            topics = request.topics,
         )
     }
 
