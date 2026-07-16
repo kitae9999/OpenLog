@@ -12,7 +12,7 @@ class WorkspaceOutputTest {
     private val workspace = Workspace(owner = user, slug = "default", name = "Default")
 
     @Test
-    fun `draft output can be published`() {
+    fun `draft output can be exported`() {
         val output = WorkspaceOutput(
             workspace = workspace,
             author = user,
@@ -20,14 +20,14 @@ class WorkspaceOutputTest {
             content = "What changed and why.",
         )
 
-        output.markPublished()
+        output.markExported()
 
-        assertEquals(OutputStatus.PUBLISHED, output.status)
-        assertNotNull(output.publishedAt)
+        assertEquals(OutputStatus.EXPORTED, output.status)
+        assertNotNull(output.exportedAt)
     }
 
     @Test
-    fun `published output cannot be updated`() {
+    fun `exported output cannot be updated`() {
         val output = WorkspaceOutput(
             workspace = workspace,
             author = user,
@@ -35,7 +35,7 @@ class WorkspaceOutputTest {
             content = "Draft content.",
         )
 
-        output.markPublished()
+        output.markExported()
 
         assertFailsWith<IllegalArgumentException> {
             output.update("Next", "Next content.")

@@ -585,19 +585,15 @@ export async function updateWorkspaceOutput(input: {
   });
 }
 
-export async function publishWorkspaceOutput(input: {
+export async function createPostDraftFromOutput(input: {
   workspaceId: string;
   outputId: string;
 }): Promise<WorkspaceActionResult> {
   return mutateWorkspace(async (cookie) => {
     const output = await requestJson<{
-      publishedPost: { authorUsername: string; slug: string } | null;
-    }>(`/workspaces/${input.workspaceId}/outputs/${input.outputId}/publish`, cookie, {
+      linkedPost: { id: number } | null;
+    }>(`/workspaces/${input.workspaceId}/outputs/${input.outputId}/post-draft`, cookie, {
       method: "POST",
-      body: JSON.stringify({
-        description: "Published from OpenLog output.",
-        topics: [],
-      }),
     });
 
     revalidatePath(`/outputs/${input.outputId}`);
@@ -605,8 +601,8 @@ export async function publishWorkspaceOutput(input: {
     revalidatePath("/");
     return {
       ok: true,
-      href: output.publishedPost
-        ? `/@${output.publishedPost.authorUsername}/posts/${output.publishedPost.slug}`
+      href: output.linkedPost
+        ? `/posts/${output.linkedPost.id}/edit`
         : undefined,
     };
   });

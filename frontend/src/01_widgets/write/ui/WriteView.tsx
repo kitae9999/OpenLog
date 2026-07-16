@@ -11,6 +11,7 @@ import {
   useEffectEvent,
   useRef,
   useState,
+  useTransition,
   type ClipboardEvent,
   type DragEvent,
   type KeyboardEvent,
@@ -50,6 +51,7 @@ type WriteAction = (
   prevState: WriteActionState,
   formData: FormData,
 ) => Promise<WriteActionState>;
+type DeleteAction = () => Promise<{ ok: boolean; message?: string }>;
 
 export type WriteViewInitialValues = {
   title: string;
@@ -92,6 +94,8 @@ export function WriteView({
   profileImageUrl,
   profileHref,
   mode: writeMode = "create",
+  postStatus,
+  initialFormError,
   action = submitPost,
   initialValues = EMPTY_WRITE_VALUES,
   authoredPosts = [],
@@ -99,6 +103,9 @@ export function WriteView({
   draftStorageKey = DRAFT_STORAGE_KEY,
   backHref = "/",
   backLabel = "Back to feed",
+  sourceOutputHref,
+  deleteAction,
+  deleteRedirectHref = "/?tab=home&status=drafts",
   submitLabel = "Publish",
   pendingSubmitLabel = "Publishing...",
   workspaces = [],
@@ -108,6 +115,8 @@ export function WriteView({
   profileImageUrl?: string | null;
   profileHref?: string;
   mode?: WriteViewMode;
+  postStatus?: "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
+  initialFormError?: string;
   action?: WriteAction;
   initialValues?: WriteViewInitialValues;
   authoredPosts?: WriteViewPostReference[];
@@ -115,6 +124,9 @@ export function WriteView({
   draftStorageKey?: string;
   backHref?: string;
   backLabel?: string;
+  sourceOutputHref?: string;
+  deleteAction?: DeleteAction;
+  deleteRedirectHref?: string;
   submitLabel?: string;
   pendingSubmitLabel?: string;
   workspaces?: ManagedWorkspace[];
@@ -147,14 +159,20 @@ export function WriteView({
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
   const [submitErrors, setSubmitErrors] = useState<WriteActionState["errors"]>(
-    () => ({ ...initialWriteActionState.errors }),
+    () => ({
+      ...initialWriteActionState.errors,
+      ...(initialFormError ? { form: initialFormError } : {}),
+    }),
   );
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   const [titleCaretLeft, setTitleCaretLeft] = useState(0);
   const [isTitleCaretVisible, setIsTitleCaretVisible] = useState(false);
+  const [isDeleting, startDeleteTransition] = useTransition();
   const [actionState, formAction] = useActionState(
     action,
-    initialWriteActionState,
+    {
+      errors: initialFormError ? { form: initialFormError } : {},
+    },
   );
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -305,16 +323,36 @@ export function WriteView({
     });
   }
 
-  function handleSaveDraft() {
-    persistDraft("manual");
-  }
-
   function clearError(name: keyof WriteActionState["errors"]) {
     setSubmitErrors((current) => ({
       ...current,
       [name]: undefined,
       form: undefined,
     }));
+  }
+
+  function handleDeletePost() {
+    if (!deleteAction || isDeleting) {
+      return;
+    }
+    if (!window.confirm("Delete this post permanently?")) {
+      return;
+    }
+
+    startDeleteTransition(async () => {
+      const result = await deleteAction();
+      if (!result.ok) {
+        setSubmitErrors((current) => ({
+          ...current,
+          form: result.message ?? "Could not delete this post.",
+        }));
+        return;
+      }
+
+      window.localStorage.removeItem(draftStorageKey);
+      router.replace(deleteRedirectHref);
+      router.refresh();
+    });
   }
 
   function handleTitleChange(nextValue: string) {
@@ -817,6 +855,14 @@ export function WriteView({
                 <IconArrowLeft className="size-4" />
                 {backLabel}
               </Link>
+              {sourceOutputHref ? (
+                <Link
+                  href={sourceOutputHref}
+                  className="ml-4 inline-flex text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                >
+                  View source output
+                </Link>
+              ) : null}
 
               <div className="mt-4 space-y-2">
                 <label className="relative block">
@@ -923,17 +969,30 @@ export function WriteView({
                 </div>
 
                 <button
-                  type="button"
-                  onClick={handleSaveDraft}
+                  type="submit"
+                  name="intent"
+                  value={postStatus === "PUBLISHED" ? "unpublish" : "draft"}
                   className="inline-flex h-9 items-center justify-center gap-1.5 px-2.5 text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                 >
                   <IconSave className="size-3.5" />
-                  Save draft
+                  {postStatus === "PUBLISHED" ? "Unpublish" : "Save draft"}
                 </button>
+
+                {deleteAction ? (
+                  <button
+                    type="button"
+                    onClick={handleDeletePost}
+                    disabled={isDeleting}
+                    className="inline-flex h-9 items-center justify-center px-2.5 text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/20 disabled:cursor-not-allowed disabled:text-rose-300"
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </button>
+                ) : null}
 
                 <PublishButton
                   label={submitLabel}
                   pendingLabel={pendingSubmitLabel}
+                  intent={postStatus === "PUBLISHED" ? "save" : "publish"}
                 />
               </div>
 
@@ -1093,15 +1152,19 @@ function ModeButton({
 function PublishButton({
   label,
   pendingLabel,
+  intent,
 }: {
   label: string;
   pendingLabel: string;
+  intent: "publish" | "save";
 }) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
+      name="intent"
+      value={intent}
       disabled={pending}
       className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 disabled:cursor-not-allowed disabled:bg-zinc-400"
     >

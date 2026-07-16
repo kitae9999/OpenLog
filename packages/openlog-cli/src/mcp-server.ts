@@ -64,7 +64,7 @@ export async function createOpenLogMcpServer(
   const server = new McpServer(
     {
       name: "openlog",
-      version: "1.0.0",
+      version: "2.0.0",
     },
     { instructions: OPENLOG_MCP_INSTRUCTIONS },
   );
@@ -253,30 +253,35 @@ export async function createOpenLogMcpServer(
       title: "List My OpenLog Posts",
       description: "Return posts authored by the authenticated OpenLog user.",
       inputSchema: {
-        size: z.number().int().min(1).max(100).default(20),
+        statuses: z
+          .array(z.enum(["DRAFT", "PUBLISHED", "UNPUBLISHED"]))
+          .default(["PUBLISHED"]),
+        cursor: z.string().optional(),
+        size: z.number().int().min(1).max(20).default(10),
       },
       annotations: READ_TOOL_ANNOTATIONS,
     },
-    async (client, { size }) => {
-      const me = await client.get<{ username?: string | null }>("/auth/me");
-      const username = me.username?.trim();
-
-      if (!username) {
-        throw new Error("Complete OpenLog onboarding before listing your posts.");
+    (client, { statuses, cursor, size }) => {
+      const params = new URLSearchParams({ size: String(size) });
+      statuses.forEach((status) => params.append("status", status));
+      if (cursor) {
+        params.set("cursor", cursor);
       }
-
-      const posts = await client.get<unknown[]>(
-        `/users/${encodeURIComponent(username)}/posts`,
-      );
-
-      return {
-        username,
-        total: posts.length,
-        size,
-        hasMore: posts.length > size,
-        posts: posts.slice(0, size),
-      };
+      return client.get(`/users/me/posts?${params}`);
     },
+  );
+
+  registry.registerAuthenticated(
+    "get_my_post",
+    "read",
+    {
+      title: "Get My OpenLog Post",
+      description:
+        "Return one owned Post by ID, including private draft state and source Output.",
+      inputSchema: { postId: z.number().int().positive() },
+      annotations: READ_TOOL_ANNOTATIONS,
+    },
+    (client, { postId }) => client.get(`/posts/${postId}`),
   );
 
   registry.registerAuthenticated(
@@ -300,68 +305,66 @@ export async function createOpenLogMcpServer(
   );
 
   registry.registerAuthenticated(
+    "create_post_draft",
+    "write",
+    {
+      title: "Create OpenLog Post Draft",
+      description:
+        "Create a server Post draft. At least one of title, description, or content is required.",
+      inputSchema: postDraftInputSchema(),
+      annotations: WRITE_TOOL_ANNOTATIONS,
+    },
+    (client, input) => client.post("/posts", normalizePostDraftInput(input)),
+  );
+
+  registry.registerAuthenticated(
+    "update_post",
+    "write",
+    {
+      title: "Update My OpenLog Post",
+      description:
+        "Update an owned Post by ID. Published Posts must keep title, description, and content populated.",
+      inputSchema: {
+        postId: z.number().int().positive(),
+        ...postDraftInputSchema(),
+      },
+      annotations: WRITE_TOOL_ANNOTATIONS,
+    },
+    (client, { postId, ...input }) =>
+      client.put(`/posts/${postId}`, normalizePostDraftInput(input)),
+  );
+
+  registry.registerAuthenticated(
     "publish_post",
     "publish",
     {
-      title: "Publish OpenLog Post",
+      title: "Publish My OpenLog Post",
       description:
-        "Publish a new post. Requires confirm: true unless skipConfirmation: true is explicitly provided.",
+        "Preview and publish an owned Post draft by ID. Requires confirm: true unless skipConfirmation: true is explicitly provided.",
       inputSchema: {
-        title: z.string().min(1),
-        description: z.string().min(1),
-        content: z.string().min(1),
-        topics: z.array(z.string()).default([]),
-        links: z
-          .array(
-            z.object({
-              label: z.string().min(1),
-              targetSlug: z.string().min(1),
-            }),
-          )
-          .default([]),
+        postId: z.number().int().positive(),
         confirm: z.boolean().optional(),
         skipConfirmation: z.boolean().optional(),
       },
       annotations: WRITE_TOOL_ANNOTATIONS,
     },
-    async (
-      client,
-      {
-        title,
-        description,
-        content,
-        topics,
-        links,
-        confirm,
-        skipConfirmation,
-      },
-    ) => {
-      const post = normalizePostInput({
-        title,
-        description,
-        content,
-        topics,
-        links,
-      });
+    async (client, { postId, confirm, skipConfirmation }) => {
+      const post = await client.get<OwnedPostResponse>(`/posts/${postId}`);
 
       // 명시적 확인 전에는 POST를 실행하지 않고 실제 발행 입력의 미리보기만 반환한다.
+      // 2.0 계약에서는 기존 Post 초안의 상태 전이 입력을 미리 보여준다.
       if (confirm !== true && skipConfirmation !== true) {
         return {
           requiresConfirmation: true,
-          preview: {
-            title: post.title,
-            description: post.description,
-            contentPreview: createContentPreview(post.content),
-            contentLength: post.content.length,
-            topics: post.topics,
-            links: post.links,
-          },
+          preview: createPostTransitionPreview(post, "PUBLISHED"),
           nextStep:
             "Call publish_post again with confirm: true, or skipConfirmation: true if the user explicitly requested publishing without confirmation.",
         };
       }
 
-      const published = await client.post<PostWriteResponse>("/posts", post);
+      const published = await client.post<PostWriteResponse>(
+        `/posts/${postId}/publish`,
+      );
       const postPath = buildPublicPostPath(
         published.authorUsername,
         published.slug,
@@ -371,6 +374,45 @@ export async function createOpenLogMcpServer(
         ...published,
         path: postPath,
         url: new URL(postPath, `${webBaseUrl}/`).toString(),
+      };
+    },
+  );
+
+  registry.registerAuthenticated(
+    "unpublish_post",
+    "publish",
+    {
+      title: "Unpublish My OpenLog Post",
+      description:
+        "Preview and unpublish an owned Post by ID while preserving participation data. Requires confirm: true unless skipConfirmation: true is explicitly provided.",
+      inputSchema: {
+        postId: z.number().int().positive(),
+        confirm: z.boolean().optional(),
+        skipConfirmation: z.boolean().optional(),
+      },
+      annotations: WRITE_TOOL_ANNOTATIONS,
+    },
+    async (client, { postId, confirm, skipConfirmation }) => {
+      const post = await client.get<OwnedPostResponse>(`/posts/${postId}`);
+
+      if (confirm !== true && skipConfirmation !== true) {
+        return {
+          requiresConfirmation: true,
+          preview: createPostTransitionPreview(post, "UNPUBLISHED"),
+          nextStep:
+            "Call unpublish_post again with confirm: true, or skipConfirmation: true if the user explicitly requested unpublishing without confirmation.",
+        };
+      }
+
+      const unpublished = await client.post<PostWriteResponse>(
+        `/posts/${postId}/unpublish`,
+      );
+      const path = `/posts/${postId}/edit`;
+
+      return {
+        ...unpublished,
+        path,
+        url: new URL(path, `${webBaseUrl}/`).toString(),
       };
     },
   );
@@ -469,8 +511,18 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 type PostWriteResponse = {
+  id: number;
+  status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
   authorUsername: string;
   slug: string;
+};
+
+type OwnedPostResponse = PostWriteResponse & {
+  title: string;
+  description: string;
+  content: string;
+  topics: string[];
+  sourceOutput?: { id: number; workspaceId: number } | null;
 };
 
 type SessionWorkspace = {
@@ -497,19 +549,30 @@ type PostWriteInput = {
   links: PostLinkInput[];
 };
 
-function normalizePostInput(input: PostWriteInput): PostWriteInput {
+function postDraftInputSchema() {
+  return {
+    title: z.string().default(""),
+    description: z.string().default(""),
+    content: z.string().default(""),
+    topics: z.array(z.string()).default([]),
+    links: z
+      .array(
+        z.object({
+          label: z.string().min(1),
+          targetSlug: z.string().min(1),
+        }),
+      )
+      .default([]),
+  };
+}
+
+function normalizePostDraftInput(input: PostWriteInput): PostWriteInput {
   const title = input.title.trim();
   const description = input.description.trim();
   const content = input.content.trim();
 
-  if (!title) {
-    throw new Error("title is required.");
-  }
-  if (!description) {
-    throw new Error("description is required.");
-  }
-  if (!content) {
-    throw new Error("content is required.");
+  if (!title && !description && !content) {
+    throw new Error("At least one of title, description, or content is required.");
   }
 
   return {
@@ -518,6 +581,23 @@ function normalizePostInput(input: PostWriteInput): PostWriteInput {
     content,
     topics: normalizeTopics(input.topics),
     links: normalizeLinks(input.links),
+  };
+}
+
+function createPostTransitionPreview(
+  post: OwnedPostResponse,
+  nextStatus: "PUBLISHED" | "UNPUBLISHED",
+) {
+  return {
+    id: post.id,
+    currentStatus: post.status,
+    nextStatus,
+    title: post.title,
+    description: post.description,
+    contentPreview: createContentPreview(post.content),
+    contentLength: post.content.length,
+    topics: post.topics,
+    sourceOutput: post.sourceOutput ?? null,
   };
 }
 

@@ -22,6 +22,11 @@ export function FeedArticleCard({ post }: { post: FeedPost }) {
               className="size-[22px] rounded-full border border-zinc-200 object-cover"
             />
             <span className="font-medium text-zinc-700">{post.nickname}</span>
+            {post.status && post.status !== "published" ? (
+              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-zinc-500">
+                {post.status === "unpublished" ? "Unpublished" : "Draft"}
+              </span>
+            ) : null}
           </div>
 
           <div

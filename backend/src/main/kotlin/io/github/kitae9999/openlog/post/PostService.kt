@@ -2,6 +2,8 @@ package io.github.kitae9999.openlog.post
 
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
+import io.github.kitae9999.openlog.common.exception.BadRequestException
+import io.github.kitae9999.openlog.common.exception.ConflictException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.common.event.payload.PostPublishedAuthorPayload
@@ -12,9 +14,11 @@ import io.github.kitae9999.openlog.media.MediaService
 import io.github.kitae9999.openlog.output.entity.WorkspaceOutput
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
+import io.github.kitae9999.openlog.post.dto.OwnedPostResponse
 import io.github.kitae9999.openlog.post.entity.PostLink
 import io.github.kitae9999.openlog.post.dto.PostWriteResponse
 import io.github.kitae9999.openlog.post.entity.Post
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.postlike.PostLikeRepository
@@ -48,10 +52,14 @@ class PostService(
         val safeSize = size.coerceIn(1, RECENT_POSTS_PAGE_SIZE)
         val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
         val recentPosts = if (cursorMarker == null) {
-            postRepository.findAllByOrderByCreatedAtDescIdDesc(PageRequest.of(0, safeSize + 1))
+            postRepository.findAllByStatusOrderByPublishedAtDescIdDesc(
+                PostStatus.PUBLISHED,
+                PageRequest.of(0, safeSize + 1),
+            )
         } else {
-            postRepository.findRecentPostsAfterCursor(
-                createdAt = cursorMarker.createdAt,
+            postRepository.findPublishedPostsAfterCursor(
+                status = PostStatus.PUBLISHED,
+                publishedAt = cursorMarker.createdAt,
                 id = cursorMarker.id,
                 pageable = PageRequest.of(0, safeSize + 1),
             )
@@ -74,37 +82,39 @@ class PostService(
             size = safeSize,
             nextCursor = posts.lastOrNull()
                 ?.takeIf { hasNext }
-                ?.let { post -> DateTimeIdCursorCodec.encode(post.createdAt, requireNotNull(post.id)) },
+                ?.let { post ->
+                    DateTimeIdCursorCodec.encode(
+                        requireNotNull(post.publishedAt),
+                        requireNotNull(post.id),
+                    )
+                },
             hasNext = hasNext,
         )
     }
 
-
     @Transactional
     fun createPost(user: User, postWriteCommand: PostWriteCommand): PostWriteResponse {
-        return createPublishedPost(user, postWriteCommand)
+        return createPostDraft(user, postWriteCommand)
     }
 
     @Transactional
     fun createPostFromOutput(
         user: User,
         output: WorkspaceOutput,
-        description: String,
-        topics: List<String>,
     ): PostWriteResponse {
-        return createPublishedPost(
+        return createPostDraft(
             user = user,
             postWriteCommand = PostWriteCommand(
                 title = output.title,
-                description = description,
+                description = "",
                 content = output.content,
-                topics = topics,
+                topics = emptyList(),
             ),
             output = output,
         )
     }
 
-    private fun createPublishedPost(
+    private fun createPostDraft(
         user: User,
         postWriteCommand: PostWriteCommand,
         output: WorkspaceOutput? = null,
@@ -115,6 +125,7 @@ class PostService(
             throw NotFoundException("username이 설정된 사용자를 찾을 수 없습니다.")
         }
         val (title, description, content, topics) = postWriteCommand
+        validateDraftContent(title, description, content)
         val slug = generateUniqueSlug(userId, title)
 
         val savedPost = postRepository.save(
@@ -125,6 +136,7 @@ class PostService(
                 description = description,
                 content = content,
                 output = output,
+                status = PostStatus.DRAFT,
             )
         )
 
@@ -150,38 +162,56 @@ class PostService(
             )
         }
 
-        val postId = requireNotNull(savedPost.id)
-        val eventCreatedAt = Instant.now()
-
-        outboxEventWriter.write(
-            eventDomain = "post",
-            entityId = postId.toString(),
-            eventType = "POST_PUBLISHED",
-            payload = PostPublishedEventPayload(
-                post = PostPublishedPostPayload(
-                    id = postId,
-                    title = savedPost.title,
-                    slug = savedPost.slug,
-                ),
-                author = PostPublishedAuthorPayload(
-                    id = userId,
-                    username = authorUsername,
-                    nickname = user.nickname,
-                    profileImageUrl = user.profileImageUrl,
-                ),
-                eventCreatedAt = eventCreatedAt,
-            ),
-            occurredAt = eventCreatedAt,
-        )
-
         return postMapper.toWriteResponse(savedPost, authorUsername)
+    }
+
+    @Transactional(readOnly = true)
+    fun getOwnedPost(userId: Long, postId: Long): OwnedPostResponse {
+        val post = requireOwnedPost(userId, postId)
+        val topics = postTopicRepository.findAllByPostId(postId)
+            .map { it.topic.name }
+            .sorted()
+        val wikiLinks = postLinkRepository.findAllBySourcePostId(postId)
+            .map(postMapper::toWikiLinkResponse)
+            .distinctBy { "${it.targetSlug}\u0000${it.label}" }
+
+        return postMapper.toOwnedResponse(post, topics, wikiLinks)
+    }
+
+    @Transactional
+    fun publishPost(userId: Long, postId: Long): PostWriteResponse {
+        val post = requireOwnedPost(userId, postId)
+        if (post.status == PostStatus.PUBLISHED) {
+            throw ConflictException("이미 발행된 포스트입니다.")
+        }
+        validatePublishable(post.title, post.description, post.content)
+
+        val shouldNotifyFollowers = post.publish()
+        if (shouldNotifyFollowers) {
+            writePublishedEvent(post)
+        }
+
+        return postMapper.toWriteResponse(post, requireNotNull(post.author.username))
+    }
+
+    @Transactional
+    fun unpublishPost(userId: Long, postId: Long): PostWriteResponse {
+        val post = requireOwnedPost(userId, postId)
+        if (post.status != PostStatus.PUBLISHED) {
+            throw ConflictException("발행된 포스트만 발행 취소할 수 있습니다.")
+        }
+
+        post.unpublish()
+        return postMapper.toWriteResponse(post, requireNotNull(post.author.username))
     }
 
     @Transactional
     fun deletePost(userId: Long, postId: Long) {
-        val postToDelete = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("존재하지 않는 포스트입니다.")
-        if (userId != postToDelete.author.id){
-            throw ForbiddenException("권한이 없습니다.")
+        val postToDelete = requireOwnedPost(userId, postId)
+        postToDelete.output?.let { output ->
+            if (output.status == io.github.kitae9999.openlog.output.entity.OutputStatus.EXPORTED) {
+                output.restoreDraft()
+            }
         }
 
         postRepository.delete(postToDelete)
@@ -189,15 +219,16 @@ class PostService(
 
     @Transactional
     fun updatePost(userId: Long, postId: Long, postWriteCommand: PostWriteCommand): PostWriteResponse {
-        val post = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("존재하지 않는 포스트입니다.")
-        if (userId != post.author.id) {
-            throw ForbiddenException("권한이 없습니다.")
-        }
+        val post = requireOwnedPost(userId, postId)
         val authorUsername = post.author.username?.trim().orEmpty()
         if (authorUsername.isBlank()) {
             throw NotFoundException("username이 설정된 사용자를 찾을 수 없습니다.")
         }
         val (title, description, content, topics) = postWriteCommand
+        validateDraftContent(title, description, content)
+        if (post.status == PostStatus.PUBLISHED) {
+            validatePublishable(title, description, content)
+        }
         val nextSlug = if (title == post.title) {
             post.slug
         } else {
@@ -218,6 +249,62 @@ class PostService(
         }
 
         return postMapper.toWriteResponse(post, authorUsername)
+    }
+
+    private fun requireOwnedPost(userId: Long, postId: Long): Post {
+        val post = postRepository.findById(postId).getOrNull()
+            ?: throw NotFoundException("존재하지 않는 포스트입니다.")
+        if (userId != post.author.id) {
+            throw ForbiddenException("권한이 없습니다.")
+        }
+        return post
+    }
+
+    private fun validateDraftContent(title: String, description: String, content: String) {
+        if (title.isBlank() && description.isBlank() && content.isBlank()) {
+            throw BadRequestException("제목, 설명, 본문 중 하나 이상을 입력해주세요.")
+        }
+    }
+
+    private fun validatePublishable(title: String, description: String, content: String) {
+        if (title.isBlank()) {
+            throw BadRequestException("제목은 필수입니다.")
+        }
+        if (description.isBlank()) {
+            throw BadRequestException("설명은 필수입니다.")
+        }
+        if (content.isBlank()) {
+            throw BadRequestException("본문은 필수입니다.")
+        }
+    }
+
+    private fun writePublishedEvent(post: Post) {
+        val postId = requireNotNull(post.id)
+        val author = post.author
+        val authorId = requireNotNull(author.id)
+        val authorUsername = requireNotNull(author.username)
+        val eventCreatedAt = Instant.now()
+
+        outboxEventWriter.write(
+            eventDomain = "post",
+            entityId = postId.toString(),
+            eventType = "POST_PUBLISHED",
+            payload = PostPublishedEventPayload(
+                post = PostPublishedPostPayload(
+                    id = postId,
+                    title = post.title,
+                    slug = post.slug,
+                ),
+                author = PostPublishedAuthorPayload(
+                    id = authorId,
+                    username = authorUsername,
+                    nickname = author.nickname,
+                    profileImageUrl = author.profileImageUrl,
+                ),
+                eventCreatedAt = eventCreatedAt,
+            ),
+            occurredAt = eventCreatedAt,
+        )
     }
 
     private fun syncPostLinks(post: Post, postWriteCommand: PostWriteCommand): Boolean {
@@ -249,6 +336,7 @@ class PostService(
         val nextLinks = activeLabels.mapNotNull { label ->
             val submittedTarget = submittedLinksByLabel[label]
                 ?.let { targetSlug -> postRepository.findByAuthorIdAndSlug(authorId, targetSlug) }
+                ?.takeIf { it.status == PostStatus.PUBLISHED }
             val targetPost = submittedTarget ?: resolvePostByExactTitle(authorId, label)
             val targetPostId = targetPost?.id ?: return@mapNotNull null
 
@@ -287,6 +375,7 @@ class PostService(
 
     private fun resolvePostByExactTitle(authorId: Long, label: String): Post? {
         val matches = postRepository.findAllByAuthorIdAndTitle(authorId, label)
+            .filter { it.status == PostStatus.PUBLISHED }
         return matches.singleOrNull()
     }
 

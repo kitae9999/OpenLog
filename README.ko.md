@@ -177,17 +177,17 @@ openlog mcp permissions reset
 | 영역 | 도구 |
 | --- | --- |
 | 권한과 계정 | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts` |
-| 공개 게시글 | `get_post_detail`, `upload_post_image`, `publish_post` |
+| Post | `list_my_posts`, `get_my_post`, `create_post_draft`, `update_post`, `publish_post`, `unpublish_post`, `get_post_detail`, `upload_post_image` |
 | 워크스페이스와 활동 | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_project`, `create_workspace_project`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
 | Agent Guide | `update_workspace_agent_guide` |
 | Capture Mode | `update_workspace_project_capture_mode` |
 | Task와 Log | workspace task와 log의 조회·생성·수정 도구 |
 | Todo와 Memory | todo 조회·생성·완료 도구, memory 조회·생성·log 변환·수정 도구 |
-| Output | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `publish_workspace_output` |
+| Output | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `create_post_draft_from_output` |
 | Graph 연결 | `list_workspace_links`와 task/log/cross-link 생성 도구 |
 | `full` 삭제 | working brief 초기화와 task/log/todo/memory/output/link 개별 삭제 도구 |
 
-`create_workspace_project`, `publish_post`, `publish_workspace_output`,
+`create_workspace_project`, `create_post_draft_from_output`, `publish_post`, `unpublish_post`,
 `update_workspace_agent_guide`, `update_workspace_project_capture_mode`는 먼저
 미리보기를 보여줘요. 실제로 반영하려면 `confirm: true`가 필요해요. 사용자가
 추가 확인 없이 진행해 달라고 직접 요청한 경우에만 `skipConfirmation: true`를

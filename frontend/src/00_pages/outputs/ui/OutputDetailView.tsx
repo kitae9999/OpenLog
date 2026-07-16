@@ -39,7 +39,7 @@ import {
   subscribeOutputOverrides,
 } from "@/features/document-overrides/model/outputOverrides";
 import {
-  publishWorkspaceOutput,
+  createPostDraftFromOutput,
   updateWorkspaceOutput,
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
@@ -217,7 +217,7 @@ export function OutputDetailView({
     router.refresh();
   }
 
-  async function publishOutput() {
+  async function createPostDraft() {
     if (!output || !canMutate || isSaving) {
       return;
     }
@@ -226,7 +226,7 @@ export function OutputDetailView({
     setError(null);
 
     if (workspaceData) {
-      const result = await publishWorkspaceOutput({
+      const result = await createPostDraftFromOutput({
         workspaceId: workspaceData.workspaceId,
         outputId: output.id,
       });
@@ -234,7 +234,7 @@ export function OutputDetailView({
       setIsSaving(false);
 
       if (!result.ok) {
-        setError(result.message ?? "Failed to publish output.");
+        setError(result.message ?? "Failed to create post draft.");
         return;
       }
 
@@ -246,9 +246,11 @@ export function OutputDetailView({
 
     const nextOutput = {
       ...output,
-      status: "published" as const,
+      status: "exported" as const,
       updatedLabel: "Just now",
-      publishedHref: "/@kitae9999/posts/output-preview",
+      linkedPostId: "preview",
+      linkedPostStatus: "draft" as const,
+      postEditHref: "/write",
     };
     saveOutputOverride(nextOutput);
     setIsEditing(false);
@@ -343,12 +345,20 @@ export function OutputDetailView({
             {canMutate ? (
               <button
                 type="button"
-                onClick={publishOutput}
+                onClick={createPostDraft}
                 disabled={isSaving}
                 className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
               >
-                {isSaving ? "Publishing..." : "Publish"}
+                {isSaving ? "Creating post..." : "Create post"}
               </button>
+            ) : null}
+            {output.postEditHref ? (
+              <Link
+                href={output.postEditHref}
+                className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+              >
+                Edit post
+              </Link>
             ) : null}
             {output.publishedHref ? (
               <Link
@@ -363,6 +373,11 @@ export function OutputDetailView({
 
         {error && !isEditing ? (
           <p className="mt-3 text-[12.5px] font-medium text-rose-600">{error}</p>
+        ) : null}
+        {!canMutate && output.linkedPostId ? (
+          <p className="mt-3 text-[12.5px] text-zinc-500">
+            Post created. This output is now read-only and kept as its source.
+          </p>
         ) : null}
       </header>
 

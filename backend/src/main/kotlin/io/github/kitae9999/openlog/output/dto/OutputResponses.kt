@@ -1,6 +1,7 @@
 package io.github.kitae9999.openlog.output.dto
 
 import io.github.kitae9999.openlog.output.entity.OutputStatus
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.workspace.entity.LogKind
 import io.github.kitae9999.openlog.workspace.entity.LogStatus
 import io.github.kitae9999.openlog.workspace.entity.TaskStatus
@@ -16,7 +17,7 @@ data class OutputResponse(
     val logIds: List<Long>,
     val createdAt: String,
     val updatedAt: String,
-    val publishedAt: String?,
+    val exportedAt: String?,
 )
 
 data class OutputDetailResponse(
@@ -27,10 +28,10 @@ data class OutputDetailResponse(
     val authorName: String,
     val tasks: List<OutputTaskSourceResponse>,
     val logs: List<OutputLogSourceResponse>,
-    val publishedPost: PublishedOutputPostResponse?,
+    val linkedPost: LinkedOutputPostResponse?,
     val createdAt: String,
     val updatedAt: String,
-    val publishedAt: String?,
+    val exportedAt: String?,
 )
 
 data class OutputTaskSourceResponse(
@@ -47,7 +48,9 @@ data class OutputLogSourceResponse(
     val taskId: Long?,
 )
 
-data class PublishedOutputPostResponse(
+data class LinkedOutputPostResponse(
+    val id: Long,
+    val status: PostStatus,
     val authorUsername: String,
     val slug: String,
 )

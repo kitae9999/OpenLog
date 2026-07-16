@@ -82,6 +82,7 @@ function getExploreEmptyMessage(subTab: ExploreSubTab, isLoggedIn: boolean) {
 
 export function HomeFeedShell({
   activeTab,
+  activePostStatus,
   isLoggedIn,
   initialAuthoredPosts,
   initialAuthoredNextCursor,
@@ -103,6 +104,7 @@ export function HomeFeedShell({
   footer,
 }: {
   activeTab: TabKey;
+  activePostStatus: "published" | "drafts";
   isLoggedIn: boolean;
   initialAuthoredPosts: RecentPostSummary[];
   initialAuthoredNextCursor: string | null;
@@ -275,6 +277,13 @@ export function HomeFeedShell({
         cursor,
         size: "10",
       });
+      if (activeFeed === "authored") {
+        const statuses =
+          activePostStatus === "drafts"
+            ? ["DRAFT", "UNPUBLISHED"]
+            : ["PUBLISHED"];
+        statuses.forEach((status) => params.append("status", status));
+      }
       const response = await fetch(`${endpoint}?${params}`);
 
       if (!response.ok) {
@@ -320,6 +329,7 @@ export function HomeFeedShell({
     }
   }, [
     activeFeed,
+    activePostStatus,
     authoredNextCursor,
     followingNextCursor,
     hasNextActivePage,
@@ -473,6 +483,7 @@ export function HomeFeedShell({
             ) : activeTab === "home" && isLoggedIn ? (
               <PostsView
                 posts={posts}
+                activeStatus={activePostStatus}
                 loadMore={
                   <div
                     ref={sentinelRef}
@@ -892,9 +903,11 @@ function SidebarLink({
 
 function PostsView({
   posts,
+  activeStatus,
   loadMore,
 }: {
   posts: FeedPost[];
+  activeStatus: "published" | "drafts";
   loadMore?: ReactNode;
 }) {
   return (
@@ -904,7 +917,7 @@ function PostsView({
           Posts
         </h1>
         <p className="mt-1.5 text-[13px] text-zinc-500">
-          {posts.length} published
+          {posts.length} {activeStatus === "published" ? "published" : "drafts"}
         </p>
       </header>
 
@@ -913,12 +926,12 @@ function PostsView({
         aria-label="Post filters"
         className="flex flex-wrap items-end gap-1 border-b border-zinc-200"
       >
-        {["Published", "Drafts"].map((tab, index) => {
-          const active = index === 0;
+        {(["published", "drafts"] as const).map((status) => {
+          const active = activeStatus === status;
           return (
-            <button
-              key={tab}
-              type="button"
+            <Link
+              key={status}
+              href={`/?tab=home&status=${status}`}
               role="tab"
               aria-selected={active}
               className={cn(
@@ -926,13 +939,13 @@ function PostsView({
                 active ? "text-zinc-950" : "text-zinc-500 hover:text-zinc-950",
               )}
             >
-              {tab}
+              {status === "published" ? "Published" : "Drafts"}
               {active ? (
                 <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
               ) : (
                 <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-300 opacity-0 transition group-hover:opacity-100" />
               )}
-            </button>
+            </Link>
           );
         })}
       </div>
@@ -1103,17 +1116,23 @@ function ExploreView({
 }
 
 function toFeedPost(post: RecentPostSummary): FeedPost {
+  const status = post.status.toLowerCase() as FeedPost["status"];
   return {
     id: String(post.id),
+    status,
     nickname: post.authorName,
     profileImageSrc: post.authorAvatarSrc || assets.defaultAvatar,
-    title: post.title,
-    description: post.description,
+    title: post.title || "Untitled draft",
+    description:
+      post.description || (status === "published" ? "" : "No summary yet."),
     dateLabel: post.publishedAtLabel,
     commentCount: formatCompactCount(post.comments),
     likeCount: formatCompactCount(post.likes),
     thumbnailSrc: post.thumbnailSrc,
-    href: buildPublicPostPath(post.authorUsername, post.slug),
+    href:
+      status === "published"
+        ? buildPublicPostPath(post.authorUsername, post.slug)
+        : `/posts/${post.id}/edit`,
   };
 }
 
