@@ -42,6 +42,60 @@ test.describe("Memory and activity UI", () => {
     await expect(future).not.toHaveAttribute("href");
     await future.hover();
     await expect(future.getByRole("tooltip")).toContainText("Planned");
+
+    const activityLevels = [
+      { name: "Apr 2, 2026, 2 logs", level: "1" },
+      { name: "May 4, 2026, 5 logs", level: "2" },
+      { name: "Jun 24, 2026, 9 logs", level: "3" },
+      { name: "Jul 3, 2026, 10 logs", level: "4" },
+    ];
+    for (const activityLevel of activityLevels) {
+      await expect(
+        page.getByRole("link", { name: activityLevel.name }),
+      ).toHaveAttribute("data-activity-level", activityLevel.level);
+    }
+
+    for (const label of [
+      "No logs",
+      "1–2 logs",
+      "3–5 logs",
+      "6–9 logs",
+      "10+ logs",
+    ]) {
+      await expect(page.getByRole("img", { name: label })).toBeVisible();
+    }
+  });
+
+  test("starts an overflowing activity grid at the latest dates", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.reload();
+
+    await expect
+      .poll(() =>
+        page
+          .locator("[data-activity-scroll]")
+          .evaluate(
+            (element) =>
+              element.scrollWidth - element.clientWidth - element.scrollLeft,
+          ),
+      )
+      .toBe(0);
+
+    const scrollPosition = await page
+      .locator("[data-activity-scroll]")
+      .evaluate((element) => ({
+        clientWidth: element.clientWidth,
+        scrollLeft: element.scrollLeft,
+        scrollWidth: element.scrollWidth,
+      }));
+    expect(scrollPosition.scrollWidth).toBeGreaterThan(
+      scrollPosition.clientWidth,
+    );
+    expect(scrollPosition.scrollLeft).toBe(
+      scrollPosition.scrollWidth - scrollPosition.clientWidth,
+    );
   });
 
   test("shows date tooltip and keeps each month in its own group", async ({

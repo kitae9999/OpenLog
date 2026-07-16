@@ -2,13 +2,14 @@ import Link from "next/link";
 import { cn } from "@/shared/lib/cn";
 import { getActivityHref } from "@/entities/workspace/model/data";
 import type { WorkspaceActivity } from "@/entities/workspace/model/workspaceTypes";
+import { ActivityScrollArea } from "@/widgets/activity-calendar/ui/ActivityScrollArea";
 
 const LEVELS = [
-  "bg-zinc-100",
-  "bg-[#fce8e0]",
-  "bg-[#f0c4b0]",
-  "bg-[#da7756]",
-  "bg-[#a85638]",
+  { className: "bg-zinc-100", label: "No logs" },
+  { className: "bg-[#fce8e0]", label: "1–2 logs" },
+  { className: "bg-[#f0c4b0]", label: "3–5 logs" },
+  { className: "bg-[#da7756]", label: "6–9 logs" },
+  { className: "bg-[#a85638]", label: "10+ logs" },
 ] as const;
 const FUTURE_LEVEL =
   "border border-dashed border-orange-200/70 bg-orange-50/40";
@@ -61,10 +62,7 @@ export function ActivityYearGrid({
               </span>
             ))}
           </div>
-          <div
-            data-activity-scroll
-            className="openlog-scroll min-w-0 flex-1 overflow-x-auto overflow-y-visible pb-8 pt-14"
-          >
+          <ActivityScrollArea fromDate={activity.from} toDate={activity.to}>
             <div data-activity-months className="flex w-max">
               {months.map((month, monthIndex) => (
                 <div
@@ -129,13 +127,19 @@ export function ActivityYearGrid({
                 </div>
               ))}
             </div>
-          </div>
+          </ActivityScrollArea>
         </div>
       </div>
       <div className="flex items-center justify-end gap-1.5 pt-2 text-[10px] text-zinc-400">
         <span>Less</span>
-        {LEVELS.map((tone) => (
-          <span key={tone} className={cn("size-[11px] rounded-[2px]", tone)} />
+        {LEVELS.map((level) => (
+          <span
+            key={level.label}
+            role="img"
+            aria-label={level.label}
+            title={level.label}
+            className={cn("size-[11px] rounded-[2px]", level.className)}
+          />
         ))}
         <span>More</span>
       </div>
@@ -162,7 +166,9 @@ function ActivityDayCell({
     : `${day.logCount} log${day.logCount === 1 ? "" : "s"}`;
   const cellClassName = cn(
     "pointer-events-auto group relative rounded-[3px] transition-transform duration-150 hover:z-20 hover:scale-125 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/40",
-    day.isFuture ? FUTURE_LEVEL : LEVELS[getLevel(day.logCount)],
+    day.isFuture
+      ? FUTURE_LEVEL
+      : LEVELS[getActivityLevel(day.logCount)].className,
     selected
       ? "ring-2 ring-zinc-800 ring-offset-1"
       : isToday && "ring-1 ring-[#a85638] ring-offset-1 ring-offset-white",
@@ -206,6 +212,7 @@ function ActivityDayCell({
       prefetch={false}
       aria-label={`${dateLabel}, ${logLabel}`}
       aria-current={selected ? "date" : undefined}
+      data-activity-level={getActivityLevel(day.logCount)}
       className={cellClassName}
       style={{ width: CELL_SIZE_PX, height: CELL_SIZE_PX }}
     >
@@ -314,11 +321,11 @@ function getMonthWidth(month: ReturnType<typeof buildMonthGrid>) {
   );
 }
 
-function getLevel(count: number) {
+function getActivityLevel(count: number) {
   if (count <= 0) return 0;
-  if (count === 1) return 1;
-  if (count === 2) return 2;
-  if (count === 3) return 3;
+  if (count <= 2) return 1;
+  if (count <= 5) return 2;
+  if (count <= 9) return 3;
   return 4;
 }
 
