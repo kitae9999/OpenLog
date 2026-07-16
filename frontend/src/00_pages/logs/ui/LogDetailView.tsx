@@ -32,17 +32,28 @@ import {
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
 
+type IssueLogStatus = "OPEN" | "CLOSED";
+
+const ISSUE_STATUS_OPTIONS = [
+  { status: "OPEN", label: "Open" },
+  { status: "CLOSED", label: "Closed" },
+] as const;
+
 export function LogDetailView({
   log,
   workspaceData,
   isLoggedIn = true,
   assignTaskOverride,
+  changeStatusOverride,
 }: {
   log: WorkspaceLogItem;
   workspaceData?: WorkspaceUiData | null;
   isLoggedIn?: boolean;
   assignTaskOverride?: (
     taskId: string | null,
+  ) => Promise<WorkspaceActionResult>;
+  changeStatusOverride?: (
+    status: IssueLogStatus,
   ) => Promise<WorkspaceActionResult>;
 }) {
   const router = useRouter();
@@ -51,6 +62,11 @@ export function LogDetailView({
   );
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [issueStatus, setIssueStatus] = useState<IssueLogStatus>(
+    log.status === "CLOSED" ? "CLOSED" : "OPEN",
+  );
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const initialBody = getLogBody(log);
   const [localBody, setLocalBody] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -77,10 +93,20 @@ export function LogDetailView({
     : undefined;
   const outputs = getOutputsForLog(log.id, workspaceData?.outputs ?? []);
   const hasBody = body.trim().length > 0;
-  const metaLabel = log.meta.split(" · ")[0] ?? log.meta;
   const typeLabel = log.label;
-  const statusLabel =
-    log.status === "OPEN" ? "Open" : log.status === "CLOSED" ? "Closed" : null;
+  const isIssueLog =
+    log.kind === "ISSUE" || log.status === "OPEN" || log.status === "CLOSED";
+  const metaParts = log.meta.split(" · ");
+  const firstMetaPart = metaParts[0] ?? log.meta;
+  const metaLabel =
+    isIssueLog && /^(open|closed)$/i.test(firstMetaPart)
+      ? metaParts.slice(1).join(" · ") || firstMetaPart
+      : firstMetaPart;
+  const statusLabel = isIssueLog
+    ? issueStatus === "OPEN"
+      ? "Open"
+      : "Closed"
+    : null;
   const existingMemory = workspaceData?.memories.find(
     (memory) => memory.originLog?.id === log.id,
   );
@@ -150,7 +176,7 @@ export function LogDetailView({
   }
 
   async function saveContent() {
-    if (isSaving) {
+    if (isSaving || isUpdatingStatus) {
       return;
     }
 
@@ -165,7 +191,7 @@ export function LogDetailView({
         content: draftBody,
         summary: log.summary ?? log.description,
         taskId: assignedTaskId,
-        status: log.status ?? "NONE",
+        status: isIssueLog ? issueStatus : (log.status ?? "NONE"),
       });
 
       setIsSaving(false);
@@ -195,7 +221,7 @@ export function LogDetailView({
   }
 
   async function assignTask(nextTaskId: string | null) {
-    if (isAssigning || nextTaskId === assignedTaskId) {
+    if (isAssigning || isUpdatingStatus || nextTaskId === assignedTaskId) {
       return;
     }
 
@@ -212,7 +238,7 @@ export function LogDetailView({
             content: body,
             summary: log.summary ?? log.description,
             taskId: nextTaskId,
-            status: log.status ?? "NONE",
+            status: isIssueLog ? issueStatus : (log.status ?? "NONE"),
           });
 
       setIsAssigning(false);
@@ -234,6 +260,44 @@ export function LogDetailView({
     });
     setAssignedTaskId(nextTaskId);
     setIsAssigning(false);
+  }
+
+  async function changeIssueStatus(nextStatus: IssueLogStatus) {
+    if (
+      !isIssueLog ||
+      isUpdatingStatus ||
+      isAssigning ||
+      isSaving ||
+      nextStatus === issueStatus ||
+      (!workspaceData && !changeStatusOverride)
+    ) {
+      return;
+    }
+
+    setIsUpdatingStatus(true);
+    setStatusError(null);
+
+    const result = changeStatusOverride
+      ? await changeStatusOverride(nextStatus)
+      : await updateWorkspaceLog({
+          workspaceId: workspaceData!.workspaceId,
+          logId: log.id,
+          title: log.title,
+          content: body,
+          summary: log.summary ?? log.description,
+          taskId: assignedTaskId,
+          status: nextStatus,
+        });
+
+    setIsUpdatingStatus(false);
+
+    if (!result.ok) {
+      setStatusError(result.message ?? "Failed to update issue status.");
+      return;
+    }
+
+    setIssueStatus(nextStatus);
+    router.refresh();
   }
 
   async function deleteLog() {
@@ -434,10 +498,10 @@ export function LogDetailView({
                     <button
                       type="button"
                       onClick={saveContent}
-                      disabled={isSaving}
+                      disabled={isSaving || isUpdatingStatus}
                       className={cn(
                         "text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
-                        !isSaving
+                        !isSaving && !isUpdatingStatus
                           ? "text-zinc-950 hover:text-zinc-700"
                           : "cursor-not-allowed text-zinc-400",
                       )}
@@ -538,7 +602,7 @@ export function LogDetailView({
             <TaskSwitcher
               selected={task}
               openTasks={openTasks}
-              disabled={isAssigning}
+              disabled={isAssigning || isUpdatingStatus}
               onSelect={assignTask}
             />
             {task ? (
@@ -553,6 +617,26 @@ export function LogDetailView({
               <p className="mt-2 text-[12px] text-rose-600">{assignError}</p>
             ) : null}
           </SidebarField>
+
+          {isIssueLog ? (
+            <SidebarField label="Status">
+              <IssueStatusSwitcher
+                selected={issueStatus}
+                disabled={
+                  isUpdatingStatus ||
+                  isAssigning ||
+                  isSaving ||
+                  (!workspaceData && !changeStatusOverride)
+                }
+                onSelect={changeIssueStatus}
+              />
+              {statusError ? (
+                <p className="mt-2 text-[12px] text-rose-600" role="alert">
+                  {statusError}
+                </p>
+              ) : null}
+            </SidebarField>
+          ) : null}
 
           {log.branch ? (
             <SidebarField label="Branch">
@@ -595,6 +679,118 @@ export function LogDetailView({
         </aside>
       </div>
     </div>
+  );
+}
+
+function IssueStatusSwitcher({
+  selected,
+  disabled,
+  onSelect,
+}: {
+  selected: IssueLogStatus;
+  disabled?: boolean;
+  onSelect: (status: IssueLogStatus) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative" data-testid="issue-status-switcher">
+      <button
+        type="button"
+        disabled={disabled}
+        aria-label="Issue status"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={() => setOpen((current) => !current)}
+        className={cn(
+          "flex h-9 w-full items-center justify-between gap-2 border-0 border-b border-zinc-200 bg-transparent py-1.5 pr-1 text-left transition hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+          open && "border-zinc-900",
+          disabled && "cursor-not-allowed opacity-60",
+        )}
+      >
+        <span className="inline-flex min-w-0 items-center gap-2 text-[13.5px] font-medium text-zinc-900">
+          <IssueStatusDot status={selected} />
+          {selected === "OPEN" ? "Open" : "Closed"}
+        </span>
+        <IconChevronDown
+          className={cn(
+            "size-3.5 shrink-0 text-zinc-400 transition",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+
+      {open ? (
+        <div
+          role="listbox"
+          aria-label="Issue status options"
+          className="absolute left-0 right-0 z-20 mt-1.5 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-[0_8px_24px_rgba(24,24,27,0.12)]"
+        >
+          {ISSUE_STATUS_OPTIONS.map((option) => {
+            const isSelected = option.status === selected;
+            return (
+              <button
+                key={option.status}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => {
+                  setOpen(false);
+                  onSelect(option.status);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] transition hover:bg-zinc-50",
+                  isSelected
+                    ? "bg-zinc-50 font-semibold text-zinc-950"
+                    : "font-medium text-zinc-700",
+                )}
+              >
+                <IssueStatusDot status={option.status} />
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function IssueStatusDot({ status }: { status: IssueLogStatus }) {
+  return (
+    <span
+      className={cn(
+        "size-[7px] shrink-0 rounded-full",
+        status === "OPEN" ? "border-2 border-amber-500" : "bg-emerald-600",
+      )}
+      aria-hidden="true"
+    />
   );
 }
 
