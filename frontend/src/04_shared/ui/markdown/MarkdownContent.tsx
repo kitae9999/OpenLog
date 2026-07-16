@@ -10,10 +10,19 @@ type MarkdownBlock =
   | { type: "quote"; lines: string[] }
   | { type: "unordered-list"; items: string[] }
   | { type: "ordered-list"; items: string[] }
+  | {
+      type: "table";
+      header: string[];
+      alignments: TableAlignment[];
+      rows: string[][];
+    }
   | { type: "code"; language: string; code: string };
 
 type HeadingLevel = 1 | 2 | 3 | 4 | 5;
 type HeadingTag = `h${HeadingLevel}`;
+type TableAlignment = "left" | "center" | "right";
+
+const TABLE_DELIMITER_PATTERN = /^:?-{3,}:?$/;
 
 const headingClassNamesByVariant: Record<
   "default" | "compact" | "dense",
@@ -153,6 +162,18 @@ export function MarkdownContent({
                 ))}
               </ol>
             );
+          case "table":
+            return (
+              <MarkdownTable
+                key={key}
+                header={block.header}
+                alignments={block.alignments}
+                rows={block.rows}
+                variant={variant}
+                keyPrefix={key}
+                wikiLinksByLabel={wikiLinksByLabel}
+              />
+            );
           case "code": {
             if (block.language.toLowerCase() === "mermaid") {
               return (
@@ -269,13 +290,21 @@ function parseMarkdown(markdown: string): MarkdownBlock[] {
       continue;
     }
 
+    const table = parseTable(lines, index);
+    if (table) {
+      blocks.push(table.block);
+      index = table.nextIndex;
+      continue;
+    }
+
     const paragraphLines = [line.trim()];
     index += 1;
 
     while (
       index < lines.length &&
       lines[index].trim() &&
-      !isStructuredMarkdownLine(lines[index])
+      !isStructuredMarkdownLine(lines[index]) &&
+      !isTableStart(lines, index)
     ) {
       paragraphLines.push(lines[index].trim());
       index += 1;
@@ -288,6 +317,214 @@ function parseMarkdown(markdown: string): MarkdownBlock[] {
   }
 
   return blocks;
+}
+
+function MarkdownTable({
+  header,
+  alignments,
+  rows,
+  variant,
+  keyPrefix,
+  wikiLinksByLabel,
+}: {
+  header: string[];
+  alignments: TableAlignment[];
+  rows: string[][];
+  variant: "default" | "compact" | "dense";
+  keyPrefix: string;
+  wikiLinksByLabel: Map<string, MarkdownWikiLink>;
+}) {
+  const cellPadding = variant === "dense" ? "px-3 py-1.5" : "px-4 py-2.5";
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-zinc-200">
+      <table className="w-max min-w-full border-collapse text-[0.94em] leading-6">
+        <thead className="bg-zinc-50 text-zinc-950">
+          <tr>
+            {header.map((cell, cellIndex) => (
+              <th
+                key={`${keyPrefix}-header-${cellIndex}`}
+                scope="col"
+                className={cn(
+                  cellPadding,
+                  "border-b border-zinc-200 font-semibold",
+                  cellIndex > 0 && "border-l border-zinc-200",
+                  tableAlignmentClassNames[alignments[cellIndex]],
+                )}
+              >
+                {renderInlineContent(
+                  cell,
+                  `${keyPrefix}-header-${cellIndex}`,
+                  wikiLinksByLabel,
+                )}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-200">
+          {rows.map((row, rowIndex) => (
+            <tr key={`${keyPrefix}-row-${rowIndex}`}>
+              {row.map((cell, cellIndex) => (
+                <td
+                  key={`${keyPrefix}-row-${rowIndex}-${cellIndex}`}
+                  className={cn(
+                    cellPadding,
+                    cellIndex > 0 && "border-l border-zinc-200",
+                    tableAlignmentClassNames[alignments[cellIndex]],
+                  )}
+                >
+                  {renderInlineContent(
+                    cell,
+                    `${keyPrefix}-row-${rowIndex}-${cellIndex}`,
+                    wikiLinksByLabel,
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const tableAlignmentClassNames: Record<TableAlignment, string> = {
+  left: "text-left",
+  center: "text-center",
+  right: "text-right",
+};
+
+function parseTable(
+  lines: string[],
+  startIndex: number,
+): {
+  block: Extract<MarkdownBlock, { type: "table" }>;
+  nextIndex: number;
+} | null {
+  const header = parseTableRow(lines[startIndex]);
+  const alignments = parseTableDelimiterRow(lines[startIndex + 1]);
+
+  if (!header || !alignments || header.length !== alignments.length) {
+    return null;
+  }
+
+  const rows: string[][] = [];
+  let nextIndex = startIndex + 2;
+
+  while (nextIndex < lines.length && lines[nextIndex].trim()) {
+    const row = parseTableRow(lines[nextIndex]);
+    if (!row) {
+      break;
+    }
+
+    rows.push(normalizeTableRow(row, header.length));
+    nextIndex += 1;
+  }
+
+  return {
+    block: { type: "table", header, alignments, rows },
+    nextIndex,
+  };
+}
+
+function parseTableDelimiterRow(
+  line: string | undefined,
+): TableAlignment[] | null {
+  if (!line) {
+    return null;
+  }
+
+  const cells = parseTableRow(line);
+  if (!cells || cells.some((cell) => !TABLE_DELIMITER_PATTERN.test(cell))) {
+    return null;
+  }
+
+  return cells.map((cell): TableAlignment => {
+    const leftAligned = cell.startsWith(":");
+    const rightAligned = cell.endsWith(":");
+
+    if (leftAligned && rightAligned) {
+      return "center";
+    }
+
+    return rightAligned ? "right" : "left";
+  });
+}
+
+function parseTableRow(line: string | undefined): string[] | null {
+  if (!line) {
+    return null;
+  }
+
+  const trimmed = line.trim();
+  if (!hasUnescapedPipe(trimmed)) {
+    return null;
+  }
+
+  const startsWithPipe = trimmed.startsWith("|");
+  const lastIndex = trimmed.length - 1;
+  const endsWithPipe =
+    trimmed.endsWith("|") && !isEscapedCharacter(trimmed, lastIndex);
+  const content = trimmed.slice(
+    startsWithPipe ? 1 : 0,
+    endsWithPipe ? lastIndex : trimmed.length,
+  );
+  const cells: string[] = [];
+  let currentCell = "";
+
+  for (let index = 0; index < content.length; index += 1) {
+    const character = content[index];
+
+    if (character === "|" && !isEscapedCharacter(content, index)) {
+      cells.push(currentCell.trim());
+      currentCell = "";
+      continue;
+    }
+
+    if (character === "|" && isEscapedCharacter(content, index)) {
+      currentCell = `${currentCell.slice(0, -1)}|`;
+      continue;
+    }
+
+    currentCell += character;
+  }
+
+  cells.push(currentCell.trim());
+  return cells;
+}
+
+function normalizeTableRow(row: string[], columnCount: number): string[] {
+  return Array.from({ length: columnCount }, (_, index) => row[index] ?? "");
+}
+
+function isTableStart(lines: string[], index: number) {
+  const header = parseTableRow(lines[index]);
+  const alignments = parseTableDelimiterRow(lines[index + 1]);
+  return Boolean(header && alignments && header.length === alignments.length);
+}
+
+function hasUnescapedPipe(line: string) {
+  for (let index = 0; index < line.length; index += 1) {
+    if (line[index] === "|" && !isEscapedCharacter(line, index)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isEscapedCharacter(value: string, index: number) {
+  let precedingBackslashes = 0;
+
+  for (
+    let cursor = index - 1;
+    cursor >= 0 && value[cursor] === "\\";
+    cursor -= 1
+  ) {
+    precedingBackslashes += 1;
+  }
+
+  return precedingBackslashes % 2 === 1;
 }
 
 function renderInlineContent(
