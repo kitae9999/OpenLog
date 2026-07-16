@@ -28,6 +28,8 @@ class User(
     location: String? = null,
 
     websiteUrl : String? = null,
+
+    isOpenLogOfficial: Boolean = false,
 ){
     @Column(unique = true)
     var username: String? = username
@@ -55,6 +57,10 @@ class User(
 
     @Column(name = "website_url")
     var websiteUrl: String? = websiteUrl
+        protected set
+
+    @Column(name = "is_openlog_official", nullable = false)
+    var isOpenLogOfficial: Boolean = isOpenLogOfficial
         protected set
 
     @Column(name = "created_at", nullable = false)

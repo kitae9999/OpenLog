@@ -12,6 +12,7 @@ data class RecentPostResponse(
     val authorUsername: String,
     val authorName: String,
     val authorAvatarSrc: String?,
+    val authorIsOpenLogOfficial: Boolean,
     val thumbnailSrc: String?,
     val likes: Int,
     val comments: Int,

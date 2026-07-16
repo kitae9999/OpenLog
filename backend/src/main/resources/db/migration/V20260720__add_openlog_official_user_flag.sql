@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE public.users
+    ADD COLUMN IF NOT EXISTS is_openlog_official BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMIT;

@@ -14,6 +14,7 @@ export type ApiSuggestionDetail = {
   authorId: number;
   authorName: string;
   authorProfileImageUrl: string | null;
+  authorIsOpenLogOfficial: boolean;
   createdAt: string;
   postBaseVersion: number;
   discussions: ApiDiscussion[];
@@ -23,6 +24,7 @@ export type ApiDiscussion = {
   id: number;
   authorName: string;
   authorProfileImageUrl: string | null;
+  authorIsOpenLogOfficial: boolean;
   content: string;
   createdAt: string;
   canManage: boolean;

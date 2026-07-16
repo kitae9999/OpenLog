@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/shared/lib/cn";
 import type { FeedPost } from "@/entities/workspace/model/data";
+import { OfficialBadge } from "@/shared/ui/OfficialBadge";
 
 export function FeedArticleCard({ post }: { post: FeedPost }) {
   const thumbnailSrc = post.thumbnailSrc;
@@ -21,7 +22,14 @@ export function FeedArticleCard({ post }: { post: FeedPost }) {
               height={22}
               className="size-[22px] rounded-full border border-zinc-200 object-cover"
             />
-            <span className="font-medium text-zinc-700">{post.nickname}</span>
+            <span className="inline-flex min-w-0 items-center gap-1">
+              <span className="truncate font-medium text-zinc-700">
+                {post.nickname}
+              </span>
+              {post.authorIsOpenLogOfficial ? (
+                <OfficialBadge size="sm" />
+              ) : null}
+            </span>
             {post.status && post.status !== "published" ? (
               <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-zinc-500">
                 {post.status === "unpublished" ? "Unpublished" : "Draft"}

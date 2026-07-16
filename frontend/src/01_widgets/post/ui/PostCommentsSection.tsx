@@ -11,6 +11,7 @@ import {
 } from "@/features/comment/api/commentActions";
 import { DiscussionComposer } from "@/features/discussion-composer/ui";
 import { assets } from "@/shared/config/assets";
+import { OfficialBadge } from "@/shared/ui/OfficialBadge";
 import { MarkdownContent } from "@/shared/ui/markdown";
 
 const COMMENTS_SECTION_ID = "post-comments";
@@ -230,8 +231,13 @@ function CommentCard({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-            <span className="font-semibold text-zinc-950">
-              {comment.authorName}
+            <span className="inline-flex items-center gap-1">
+              <span className="font-semibold text-zinc-950">
+                {comment.authorName}
+              </span>
+              {comment.authorIsOpenLogOfficial ? (
+                <OfficialBadge size="sm" />
+              ) : null}
             </span>
             <span className="text-zinc-400">
               {formatCommentedAtLabel(comment.createdAt)}

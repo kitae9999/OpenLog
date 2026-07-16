@@ -4,6 +4,7 @@ data class PublicUserProfileResponse(
     val username: String,
     val nickname: String?,
     val profileImageUrl: String?,
+    val isOpenLogOfficial: Boolean,
     val bio: String?,
     val location: String?,
     val websiteUrl: String?,

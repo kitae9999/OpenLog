@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Comment } from "@/entities/comment/api/getPostComments";
 import type { Contributor, Post } from "@/entities/post/model";
+import { OfficialBadge } from "@/shared/ui/OfficialBadge";
 import { PostCommentsSection } from "./PostCommentsSection";
 import { PostLikeButton } from "./PostLikeButton";
 import { PostOwnerActions } from "./PostOwnerActions";
@@ -119,18 +120,23 @@ export function PostArticle({
                 )}
 
                 <div className="min-w-0">
-                  {authorHref ? (
-                    <Link
-                      href={authorHref}
-                      className="truncate text-[16px] font-semibold tracking-tight text-zinc-950 transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                    >
-                      {post.authorName}
-                    </Link>
-                  ) : (
-                    <p className="truncate text-[16px] font-semibold tracking-tight text-zinc-950">
-                      {post.authorName}
-                    </p>
-                  )}
+                  <div className="flex min-w-0 items-center gap-1">
+                    {authorHref ? (
+                      <Link
+                        href={authorHref}
+                        className="min-w-0 truncate text-[16px] font-semibold tracking-tight text-zinc-950 transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                      >
+                        {post.authorName}
+                      </Link>
+                    ) : (
+                      <p className="min-w-0 truncate text-[16px] font-semibold tracking-tight text-zinc-950">
+                        {post.authorName}
+                      </p>
+                    )}
+                    {post.authorIsOpenLogOfficial ? (
+                      <OfficialBadge size="sm" />
+                    ) : null}
+                  </div>
                   <p className="mt-0.5 flex items-center gap-2 text-sm text-zinc-500">
                     <span>{post.publishedAtLabel}</span>
                     {post.versionLabel ? (

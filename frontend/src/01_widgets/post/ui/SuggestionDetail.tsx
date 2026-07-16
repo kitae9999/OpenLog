@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Post, Suggestion } from "@/entities/post/model";
 import { cn } from "@/shared/lib/cn";
+import { OfficialBadge } from "@/shared/ui/OfficialBadge";
 import { GitPullRequestIcon } from "@/shared/ui/icons";
 import { MarkdownContent } from "@/shared/ui/markdown";
 import { SuggestionDiscussionSection } from "./SuggestionDiscussionSection";
@@ -78,8 +79,13 @@ export function SuggestionDetail({
             {statusLabel}
           </span>
           <span className="text-zinc-300">·</span>
-          <span className="font-semibold text-zinc-950">
-            {suggestion.authorName}
+          <span className="inline-flex items-center gap-1">
+            <span className="font-semibold text-zinc-950">
+              {suggestion.authorName}
+            </span>
+            {suggestion.authorIsOpenLogOfficial ? (
+              <OfficialBadge size="sm" />
+            ) : null}
           </span>
           <span>
             suggested an edit
@@ -186,8 +192,13 @@ function SuggestionLeadComment({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-            <span className="font-semibold text-zinc-950">
-              {suggestion.comment.authorName}
+            <span className="inline-flex items-center gap-1">
+              <span className="font-semibold text-zinc-950">
+                {suggestion.comment.authorName}
+              </span>
+              {suggestion.comment.authorIsOpenLogOfficial ? (
+                <OfficialBadge size="sm" />
+              ) : null}
             </span>
             <span className="text-zinc-400">
               commented on {suggestion.comment.commentedAtLabel}

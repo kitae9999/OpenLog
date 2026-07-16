@@ -90,6 +90,7 @@ export default async function PublicPostSuggestsPage({
               description: detail.description,
               authorName: detail.authorName,
               authorAvatarSrc: detail.authorAvatarSrc ?? assets.defaultAvatar,
+              authorIsOpenLogOfficial: detail.authorIsOpenLogOfficial,
               publishedAtLabel: detail.publishedAtLabel,
               versionLabel: formatPostVersionLabel(detail.version),
               tags: detail.topics,
@@ -187,6 +188,7 @@ function toSuggestionListItem(
       ),
     ),
     authorName: suggestion.authorName,
+    authorIsOpenLogOfficial: suggestion.authorIsOpenLogOfficial,
     commentCount: suggestion.commentCount,
     status: toSuggestionListStatus(suggestion.status),
   };

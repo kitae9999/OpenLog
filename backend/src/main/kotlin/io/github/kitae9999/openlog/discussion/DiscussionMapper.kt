@@ -15,6 +15,7 @@ class DiscussionMapper {
             id = requireNotNull(discussion.id),
             authorName = resolveAuthorName(author),
             authorProfileImageUrl = author.profileImageUrl,
+            authorIsOpenLogOfficial = author.isOpenLogOfficial,
             content = discussion.content,
             createdAt = discussion.createdAt.toString(),
             canManage = currentUserId == authorId,

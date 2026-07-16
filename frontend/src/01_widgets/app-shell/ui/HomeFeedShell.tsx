@@ -1122,6 +1122,7 @@ function toFeedPost(post: RecentPostSummary): FeedPost {
     status,
     nickname: post.authorName,
     profileImageSrc: post.authorAvatarSrc || assets.defaultAvatar,
+    authorIsOpenLogOfficial: post.authorIsOpenLogOfficial,
     title: post.title || "Untitled draft",
     description:
       post.description || (status === "published" ? "" : "No summary yet."),

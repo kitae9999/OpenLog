@@ -23,6 +23,7 @@ class UserMapper {
             username = requireNotNull(user.username),
             nickname = user.nickname,
             profileImageUrl = user.profileImageUrl,
+            isOpenLogOfficial = user.isOpenLogOfficial,
             bio = user.bio,
             location = user.location,
             websiteUrl = user.websiteUrl,

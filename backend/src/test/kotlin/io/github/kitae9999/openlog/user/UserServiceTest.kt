@@ -205,6 +205,32 @@ class UserServiceTest {
         assertThat(response.hasNext).isFalse()
     }
 
+    @Test
+    fun `updateProfile preserves official account status`() {
+        val officialUser = User(
+            id = 9L,
+            username = "openlog",
+            nickname = "OpenLog",
+            isOpenLogOfficial = true,
+        )
+        given(userRepository.findByUsername("openlog")).willReturn(officialUser)
+        given(followRepository.countByFollowedUser_Id(9L)).willReturn(3L)
+        given(followRepository.countByFollowingUser_Id(9L)).willReturn(2L)
+
+        val response = userService.updateProfile(
+            userId = 9L,
+            username = "openlog",
+            nickname = "Team OpenLog",
+            bio = "Official OpenLog account",
+            location = null,
+            websiteUrl = null,
+        )
+
+        assertThat(response.nickname).isEqualTo("Team OpenLog")
+        assertThat(response.isOpenLogOfficial).isTrue()
+        assertThat(officialUser.isOpenLogOfficial).isTrue()
+    }
+
     private fun createPost(
         id: Long,
         author: User,

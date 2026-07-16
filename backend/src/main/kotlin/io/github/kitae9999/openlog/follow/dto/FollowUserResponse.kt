@@ -4,4 +4,5 @@ data class FollowUserResponse(
     val username: String,
     val nickname: String?,
     val profileImageUrl: String?,
+    val isOpenLogOfficial: Boolean,
 )
