@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.26.2",
   "scripts": {
     "dev": "next dev --webpack -p 3030",
-    "dev:e2e": "NEXT_DIST_DIR=.next-e2e next dev --webpack -p 3031",
+    "dev:e2e": "ENABLE_E2E_ROUTES=true NEXT_DIST_DIR=.next-e2e next dev --webpack -p 3031",
     "dev:turbopack": "next dev -p 3030",
     "build": "next build --webpack",
     "start": "next start",
