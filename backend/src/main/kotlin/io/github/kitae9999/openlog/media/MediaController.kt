@@ -57,7 +57,7 @@ class MediaController(
         @AuthenticationPrincipal user: User,
         @PathVariable assetId: UUID,
     ): ResponseEntity<Void> {
-        mediaService.markUploadCompleted(assetId, user)
+        mediaService.markUploadCompleted(assetId, user, buildAssetUrl(assetId))
 
         return ResponseEntity.noContent().build()
     }
@@ -76,11 +76,14 @@ class MediaController(
         return CreateMediaUploadUrlResponse(
             assetId = assetId,
             uploadUrl = uploadUrl,
-            markdownUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/media/assets/{assetId}")
-                .buildAndExpand(assetId)
-                .toUriString(),
+            markdownUrl = buildAssetUrl(assetId),
             headers = headers,
         )
     }
+
+    private fun buildAssetUrl(assetId: UUID): String =
+        ServletUriComponentsBuilder.fromCurrentContextPath()
+            .path("/media/assets/{assetId}")
+            .buildAndExpand(assetId)
+            .toUriString()
 }

@@ -75,7 +75,10 @@ class MediaService(
             throw NotFoundException("이미지를 찾을 수 없습니다.")
         }
 
-        if (mediaAsset.post == null && mediaAsset.owner.id != viewerUserId) {
+        val isPublicProfileImage =
+            mediaAsset.purpose == MediaPurpose.PROFILE_IMAGE && mediaAsset.status == MediaStatus.ATTACHED
+
+        if (!isPublicProfileImage && mediaAsset.post == null && mediaAsset.owner.id != viewerUserId) {
             throw ForbiddenException("이미지에 접근할 권한이 없습니다.")
         }
 
@@ -87,7 +90,7 @@ class MediaService(
     }
 
     @Transactional
-    fun markUploadCompleted(assetId: UUID, currentUser: User) {
+    fun markUploadCompleted(assetId: UUID, currentUser: User, assetUrl: String) {
         val mediaAsset = findByPublicId(assetId)
 
         if (mediaAsset.owner.id != currentUser.id) {
@@ -100,6 +103,11 @@ class MediaService(
         }
 
         mediaAsset.markUploaded()
+
+        if (mediaAsset.purpose == MediaPurpose.PROFILE_IMAGE) {
+            mediaAsset.attachToProfile()
+            mediaAsset.owner.updateProfileImage(assetUrl)
+        }
     }
 
     @Transactional

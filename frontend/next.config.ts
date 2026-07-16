@@ -5,6 +5,10 @@ const NO_INDEX_HEADER = {
   value: "noindex, nofollow, noarchive, nosnippet",
 };
 
+const apiBaseUrl =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ??
+  "http://localhost:8080";
+
 const PRIVATE_ROUTE_PREFIXES = [
   "api",
   "auth",
@@ -36,6 +40,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "avatars.githubusercontent.com",
       },
+      new URL(`${apiBaseUrl}/media/assets/**`),
     ],
   },
   async headers() {

@@ -454,12 +454,18 @@ export function WriteView({
     selectionEnd: number,
   ) {
     return (
-      source.slice(0, selectionStart) + insertedText + source.slice(selectionEnd)
+      source.slice(0, selectionStart) +
+      insertedText +
+      source.slice(selectionEnd)
     );
   }
 
-  function insertMarkdownAtSelection(markdown: string, textarea = editorRef.current) {
-    const { selectionStart, selectionEnd } = getCurrentEditorSelection(textarea);
+  function insertMarkdownAtSelection(
+    markdown: string,
+    textarea = editorRef.current,
+  ) {
+    const { selectionStart, selectionEnd } =
+      getCurrentEditorSelection(textarea);
     const currentBody = textarea?.value ?? body;
     const insertion = buildStandaloneMarkdownInsertion(
       currentBody,
@@ -542,7 +548,9 @@ export function WriteView({
       }, current),
     );
 
-    const failedCount = results.filter((result) => result.status === "rejected").length;
+    const failedCount = results.filter(
+      (result) => result.status === "rejected",
+    ).length;
     if (failedCount > 0) {
       showImageUploadStatus(
         "error",
@@ -972,7 +980,7 @@ export function WriteView({
                   type="submit"
                   name="intent"
                   value={postStatus === "PUBLISHED" ? "unpublish" : "draft"}
-                  className="inline-flex h-9 items-center justify-center gap-1.5 px-2.5 text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                  className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 px-2.5 text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                 >
                   <IconSave className="size-3.5" />
                   {postStatus === "PUBLISHED" ? "Unpublish" : "Save draft"}
@@ -1021,10 +1029,7 @@ export function WriteView({
           <section>
             {composerMode === "edit" ? (
               <div className="border-b border-zinc-200/70 pb-2">
-                <MarkdownToolbar
-                  disabled={false}
-                  onAction={insertFormatting}
-                />
+                <MarkdownToolbar disabled={false} onAction={insertFormatting} />
               </div>
             ) : null}
 
@@ -1036,10 +1041,7 @@ export function WriteView({
                     name="content"
                     value={body}
                     onChange={(event) =>
-                      handleBodyChange(
-                        event.target.value,
-                        event.currentTarget,
-                      )
+                      handleBodyChange(event.target.value, event.currentTarget)
                     }
                     onClick={(event) => syncWikiMenu(event.currentTarget)}
                     onDragEnter={handleEditorDragEnter}
@@ -1137,7 +1139,7 @@ function ModeButton({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 items-center gap-1.5 border-b-2 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+        "inline-flex h-9 cursor-pointer items-center gap-1.5 border-b-2 px-2.5 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
         active
           ? "border-zinc-950 text-zinc-950"
           : "border-transparent text-zinc-500 hover:text-zinc-950",
@@ -1166,7 +1168,7 @@ function PublishButton({
       name="intent"
       value={intent}
       disabled={pending}
-      className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 disabled:cursor-not-allowed disabled:bg-zinc-400"
+      className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 disabled:cursor-not-allowed disabled:bg-zinc-400"
     >
       {pending ? pendingLabel : label}
     </button>
@@ -1464,7 +1466,9 @@ function getImageFiles(files: FileList) {
 
 function hasImageTransfer(dataTransfer: DataTransfer) {
   const items = Array.from(dataTransfer.items ?? []);
-  if (items.some((item) => item.kind === "file" && item.type.startsWith("image/"))) {
+  if (
+    items.some((item) => item.kind === "file" && item.type.startsWith("image/"))
+  ) {
     return true;
   }
 

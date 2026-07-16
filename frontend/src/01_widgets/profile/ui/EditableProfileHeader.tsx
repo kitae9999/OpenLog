@@ -4,9 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  useRef,
   useOptimistic,
   useState,
   useTransition,
+  type ChangeEvent,
   type FormEvent,
 } from "react";
 import type { PublicUserProfile } from "@/entities/user/api/getPublicUserProfile";
@@ -21,6 +23,7 @@ import {
   type UpdateProfileActionState,
   type UpdateProfileValues,
 } from "@/features/profile/api/profileActions";
+import { uploadProfileImage } from "@/features/media/api/uploadMarkdownImage";
 import { assets } from "@/shared/config/assets";
 import { buildPublicProfilePath } from "@/shared/lib/publicRoutes";
 import { OfficialBadge } from "@/shared/ui/OfficialBadge";
@@ -67,6 +70,10 @@ export function EditableProfileHeader({
   const [followListUsers, setFollowListUsers] = useState<FollowUser[]>([]);
   const [isFollowListLoading, setIsFollowListLoading] = useState(false);
   const [followListError, setFollowListError] = useState<string | null>(null);
+  const [isProfileImageUploading, setIsProfileImageUploading] = useState(false);
+  const [profileImageError, setProfileImageError] = useState<string | null>(
+    null,
+  );
 
   const profileName = currentProfile.nickname ?? currentProfile.username;
 
@@ -219,11 +226,41 @@ export function EditableProfileHeader({
     }
   }
 
+  async function handleProfileImageSelect(file: File) {
+    if (isProfileImageUploading) {
+      return;
+    }
+
+    setIsProfileImageUploading(true);
+    setProfileImageError(null);
+
+    try {
+      const profileImageUrl = await uploadProfileImage(file);
+      setCurrentProfile((current) => ({
+        ...current,
+        profileImageUrl,
+      }));
+      router.refresh();
+    } catch (error) {
+      setProfileImageError(
+        error instanceof Error
+          ? error.message
+          : "프로필 사진을 변경하지 못했습니다.",
+      );
+    } finally {
+      setIsProfileImageUploading(false);
+    }
+  }
+
   if (isEditing) {
     return (
       <section>
         <form onSubmit={handleSubmit}>
-          <input type="hidden" name="username" value={currentProfile.username} />
+          <input
+            type="hidden"
+            name="username"
+            value={currentProfile.username}
+          />
 
           <div className="mb-6 flex items-center justify-between gap-4">
             <p className="text-sm text-zinc-500">Edit profile</p>
@@ -237,6 +274,9 @@ export function EditableProfileHeader({
               profile={currentProfile}
               profileName={profileName}
               onOpenFollowList={handleOpenFollowList}
+              onImageSelect={handleProfileImageSelect}
+              imageUploadPending={isProfileImageUploading}
+              imageUploadError={profileImageError}
             />
           </div>
 
@@ -394,21 +434,83 @@ function ProfileAvatar({
   profile,
   profileName,
   onOpenFollowList,
+  onImageSelect,
+  imageUploadPending = false,
+  imageUploadError,
 }: {
   profile: PublicUserProfile;
   profileName: string;
   onOpenFollowList: (type: FollowListType) => void;
+  onImageSelect?: (file: File) => void;
+  imageUploadPending?: boolean;
+  imageUploadError?: string | null;
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (file) {
+      onImageSelect?.(file);
+    }
+  }
+
+  const avatar = (
+    <Image
+      src={profile.profileImageUrl ?? assets.defaultAvatar}
+      alt={`${profileName} avatar`}
+      width={112}
+      height={112}
+      className={`size-24 rounded-full object-cover sm:size-28 ${
+        onImageSelect
+          ? "cursor-inherit transition duration-200 group-hover:brightness-75 group-focus-visible:brightness-75"
+          : ""
+      }`}
+      priority
+    />
+  );
+
   return (
     <div className="flex w-full flex-col items-start gap-3">
-      <Image
-        src={profile.profileImageUrl ?? assets.defaultAvatar}
-        alt={`${profileName} avatar`}
-        width={112}
-        height={112}
-        className="size-24 rounded-full object-cover sm:size-28"
-        priority
-      />
+      {onImageSelect ? (
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            className="sr-only"
+            disabled={imageUploadPending}
+            onChange={handleFileChange}
+          />
+          <button
+            type="button"
+            className="group relative block cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30 focus-visible:ring-offset-2 disabled:cursor-wait"
+            disabled={imageUploadPending}
+            aria-label={
+              imageUploadPending
+                ? "Uploading profile photo"
+                : "Change profile photo"
+            }
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {avatar}
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-zinc-950/0 text-white opacity-0 transition duration-200 group-hover:bg-zinc-950/25 group-hover:opacity-100 group-focus-visible:bg-zinc-950/25 group-focus-visible:opacity-100 group-disabled:opacity-100">
+              <span className="flex flex-col items-center gap-1 text-[11px] font-semibold">
+                <IconCamera className="size-5" />
+                {imageUploadPending ? "Uploading..." : "Change"}
+              </span>
+            </span>
+          </button>
+          {imageUploadError ? (
+            <p className="mt-2 max-w-56 text-sm font-medium text-rose-600">
+              {imageUploadError}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        avatar
+      )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-400">
         <button
           type="button"
@@ -675,7 +777,34 @@ function IconPencil({ className }: { className?: string }) {
   );
 }
 
-function toUpdateProfileValues(profile: PublicUserProfile): UpdateProfileValues {
+function IconCamera({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M8.5 5.5 10 3.5h4l1.5 2H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2h3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx="12"
+        cy="12.5"
+        r="3.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function toUpdateProfileValues(
+  profile: PublicUserProfile,
+): UpdateProfileValues {
   return {
     username: profile.username,
     nickname: profile.nickname ?? "",
