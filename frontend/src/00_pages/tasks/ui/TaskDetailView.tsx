@@ -410,14 +410,31 @@ export function TaskDetailView({
                   <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
                     Description
                   </h2>
-                  <button
-                    type="button"
-                    onClick={startEditing}
-                    className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                  >
-                    Edit
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={startEditing}
+                      className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                    >
+                      Edit
+                    </button>
+                    {workspaceData ? (
+                      <button
+                        type="button"
+                        onClick={deleteTask}
+                        disabled={isDeleting}
+                        className="cursor-pointer text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isDeleting ? "Deleting..." : "Delete"}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
+                {deleteError ? (
+                  <p className="mt-2 text-right text-[12.5px] font-medium text-rose-600">
+                    {deleteError}
+                  </p>
+                ) : null}
                 <div className="mt-4">
                   {hasBody ? (
                     <div className="max-w-[68ch]">
@@ -442,10 +459,7 @@ export function TaskDetailView({
             )}
           </section>
 
-          <div
-            className="my-8 h-px w-full bg-zinc-200"
-            aria-hidden="true"
-          />
+          <div className="my-8 h-px w-full bg-zinc-200" aria-hidden="true" />
 
           <section data-testid="task-logs-block">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -495,30 +509,6 @@ export function TaskDetailView({
               + Log to this task
             </Link>
           </section>
-
-          {workspaceData ? (
-            <>
-              <div
-                className="my-8 h-px w-full bg-zinc-200"
-                aria-hidden="true"
-              />
-              <div>
-              {deleteError ? (
-                <p className="mb-3 text-[12.5px] font-medium text-rose-600">
-                  {deleteError}
-                </p>
-              ) : null}
-              <button
-                type="button"
-                onClick={deleteTask}
-                disabled={isDeleting}
-                className="text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isDeleting ? "Deleting..." : "Delete task"}
-              </button>
-              </div>
-            </>
-          ) : null}
         </div>
 
         <aside className="space-y-6 border-t border-zinc-200/80 pt-6 lg:sticky lg:top-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-10">
@@ -593,7 +583,7 @@ export function TaskDetailView({
                   <li key={output.id}>
                     <Link
                       href={getOutputHref(output.id)}
-                      className="text-[13px] font-medium leading-5 text-zinc-800 transition hover:text-zinc-950"
+                      className="text-[13px] font-medium leading-5 text-zinc-800 underline-offset-2 transition hover:text-zinc-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                     >
                       {output.title}
                     </Link>
@@ -604,7 +594,7 @@ export function TaskDetailView({
             {status === "done" ? (
               <Link
                 href={getNewOutputHref(task.id)}
-                className="mt-2 inline-flex text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950"
+                className="mt-2 inline-flex text-[13px] font-medium text-zinc-500 underline-offset-2 transition hover:text-zinc-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 + New output
               </Link>

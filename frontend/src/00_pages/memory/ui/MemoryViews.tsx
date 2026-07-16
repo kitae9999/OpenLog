@@ -188,38 +188,32 @@ export function MemoryDetailView({ memory, workspaceData }: { memory: WorkspaceM
               <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
                 Content
               </h2>
-              <Link
-                href={`/memory/${memory.id}/edit`}
-                className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-              >
-                Edit
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/memory/${memory.id}/edit`}
+                  className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                >
+                  Edit
+                </Link>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={removeMemory}
+                  className="cursor-pointer text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
             </div>
+            {error ? (
+              <p className="mt-2 text-right text-[12.5px] font-medium text-rose-600">
+                {error}
+              </p>
+            ) : null}
             <div className="mt-4 max-w-[68ch] text-[15px] leading-7 text-zinc-800">
               <MarkdownContent markdown={memory.content} variant="dense" />
             </div>
           </section>
-
-          <div
-            className="my-8 h-px w-full bg-zinc-200"
-            aria-hidden="true"
-          />
-
-          <div>
-            {error ? (
-              <p className="mb-3 text-[12.5px] font-medium text-rose-600">
-                {error}
-              </p>
-            ) : null}
-            <button
-              type="button"
-              disabled={isDeleting}
-              onClick={removeMemory}
-              className="text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </button>
-          </div>
         </div>
 
         <aside className="space-y-6 border-t border-zinc-200/80 pt-6 lg:sticky lg:top-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-10">
@@ -227,7 +221,7 @@ export function MemoryDetailView({ memory, workspaceData }: { memory: WorkspaceM
             {memory.task ? (
               <Link
                 href={getTaskHref(memory.task.id)}
-                className="text-[13.5px] font-medium leading-5 text-zinc-800 transition hover:text-zinc-950"
+                className="text-[13.5px] font-medium leading-5 text-zinc-800 underline-offset-2 transition hover:text-zinc-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 {memory.task.title}
               </Link>
@@ -240,7 +234,7 @@ export function MemoryDetailView({ memory, workspaceData }: { memory: WorkspaceM
             {memory.originLog ? (
               <Link
                 href={getLogHref(memory.originLog.id)}
-                className="text-[13.5px] font-medium leading-5 text-zinc-800 transition hover:text-zinc-950"
+                className="text-[13.5px] font-medium leading-5 text-zinc-800 underline-offset-2 transition hover:text-zinc-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 {memory.originLog.title}
               </Link>

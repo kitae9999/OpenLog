@@ -39,6 +39,7 @@ import {
   subscribeOutputOverrides,
 } from "@/features/document-overrides/model/outputOverrides";
 import {
+  deleteWorkspaceDocuments,
   publishWorkspaceOutput,
   updateWorkspaceOutput,
 } from "@/features/workspace-actions/api/workspaceActions";
@@ -78,6 +79,8 @@ export function OutputDetailView({
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
   if (!output) {
@@ -218,7 +221,7 @@ export function OutputDetailView({
   }
 
   async function publishOutput() {
-    if (!output || !canMutate || isSaving) {
+    if (!output || !canMutate || isSaving || isDeleting) {
       return;
     }
 
@@ -254,6 +257,35 @@ export function OutputDetailView({
     setIsEditing(false);
     setMode("write");
     setIsSaving(false);
+  }
+
+  async function deleteOutput() {
+    if (
+      !workspaceData ||
+      !output ||
+      isDeleting ||
+      isSaving ||
+      !window.confirm("Delete this output? Published posts will be kept.")
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    const result = await deleteWorkspaceDocuments({
+      workspaceId: workspaceData.workspaceId,
+      documentType: "outputs",
+      ids: [output.id],
+    });
+    setIsDeleting(false);
+
+    if (!result.ok) {
+      setDeleteError(result.message ?? "Failed to delete output.");
+      return;
+    }
+
+    router.push(getOutputsHref());
+    router.refresh();
   }
 
   return (
@@ -335,17 +367,27 @@ export function OutputDetailView({
               <button
                 type="button"
                 onClick={startEditing}
-                className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 Edit
+              </button>
+            ) : null}
+            {workspaceData && !isEditing ? (
+              <button
+                type="button"
+                onClick={deleteOutput}
+                disabled={isDeleting || isSaving}
+                className="cursor-pointer text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
               </button>
             ) : null}
             {canMutate ? (
               <button
                 type="button"
                 onClick={publishOutput}
-                disabled={isSaving}
-                className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
+                disabled={isSaving || isDeleting}
+                className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
               >
                 {isSaving ? "Publishing..." : "Publish"}
               </button>
@@ -361,8 +403,10 @@ export function OutputDetailView({
           </div>
         </div>
 
-        {error && !isEditing ? (
-          <p className="mt-3 text-[12.5px] font-medium text-rose-600">{error}</p>
+        {(deleteError || error) && !isEditing ? (
+          <p className="mt-3 text-[12.5px] font-medium text-rose-600">
+            {deleteError ?? error}
+          </p>
         ) : null}
       </header>
 
@@ -463,7 +507,7 @@ export function OutputDetailView({
                     <button
                       type="button"
                       onClick={startEditing}
-                      className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                      className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                     >
                       Edit
                     </button>
@@ -549,7 +593,7 @@ export function OutputDetailView({
                   <li key={task.id}>
                     <Link
                       href={getTaskHref(task.id)}
-                      className="text-[13px] font-medium leading-5 text-zinc-800 transition hover:text-zinc-950"
+                      className="text-[13px] font-medium leading-5 text-zinc-800 underline-offset-2 transition hover:text-zinc-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                     >
                       {task.title}
                     </Link>
@@ -573,7 +617,7 @@ export function OutputDetailView({
                   <li key={log.id}>
                     <Link
                       href={getLogHref(log.id)}
-                      className="text-[13px] font-medium leading-5 text-zinc-800 transition hover:text-zinc-950"
+                      className="text-[13px] font-medium leading-5 text-zinc-800 underline-offset-2 transition hover:text-zinc-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                     >
                       {log.title}
                     </Link>

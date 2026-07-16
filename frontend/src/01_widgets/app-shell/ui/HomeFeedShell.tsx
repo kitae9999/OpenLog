@@ -768,7 +768,7 @@ function SidebarLogsGroup({
           )}
         />
         <span className="min-w-0 flex-1 truncate text-left">Logs</span>
-        <span className="rounded-full bg-zinc-100 px-2 text-[11px] font-semibold tabular-nums text-zinc-500">
+        <span className="text-[11px] font-semibold tabular-nums text-zinc-400">
           {logsCount}
         </span>
         <button
@@ -813,7 +813,7 @@ function SidebarLogsGroup({
               >
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
                 {badge ? (
-                  <span className="rounded-full bg-amber-50 px-[7px] text-[10.5px] font-semibold tabular-nums text-amber-700">
+                  <span className="text-[10.5px] font-semibold tabular-nums text-amber-700">
                     {badge}
                   </span>
                 ) : null}
@@ -877,12 +877,7 @@ function SidebarLink({
       </span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {badge ? (
-        <span
-          className={cn(
-            "rounded-full px-2 text-[11px] font-semibold tabular-nums",
-            active ? "bg-white text-zinc-500" : "bg-zinc-100 text-zinc-500",
-          )}
-        >
+        <span className="text-[11px] font-semibold tabular-nums text-zinc-400">
           {badge}
         </span>
       ) : null}

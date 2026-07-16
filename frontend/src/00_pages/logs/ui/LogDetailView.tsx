@@ -68,8 +68,8 @@ export function LogDetailView({
   const body = localBody ?? initialBody;
   const tasks = workspaceData?.tasks ?? [];
   const openTasks = useMemo(
-    () => tasks.filter((task) => task.status !== "done"),
-    [tasks],
+    () => (workspaceData?.tasks ?? []).filter((task) => task.status !== "done"),
+    [workspaceData?.tasks],
   );
   const task = assignedTaskId
     ? (tasks.find((item) => item.id === assignedTaskId) ??
@@ -453,14 +453,31 @@ export function LogDetailView({
                   <h2 className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
                     Content
                   </h2>
-                  <button
-                    type="button"
-                    onClick={startEditing}
-                    className="text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
-                  >
-                    Edit
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={startEditing}
+                      className="cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                    >
+                      Edit
+                    </button>
+                    {workspaceData ? (
+                      <button
+                        type="button"
+                        onClick={deleteLog}
+                        disabled={isDeleting}
+                        className="cursor-pointer text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isDeleting ? "Deleting..." : "Delete"}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
+                {deleteError ? (
+                  <p className="mt-2 text-right text-[12.5px] font-medium text-rose-600">
+                    {deleteError}
+                  </p>
+                ) : null}
                 <div className="mt-4">
                   {hasBody ? (
                     <div className="max-w-[68ch]">
@@ -514,30 +531,6 @@ export function LogDetailView({
               </section>
             </>
           ) : null}
-
-          {workspaceData ? (
-            <>
-              <div
-                className="my-8 h-px w-full bg-zinc-200"
-                aria-hidden="true"
-              />
-              <div>
-                {deleteError ? (
-                  <p className="mb-3 text-[12.5px] font-medium text-rose-600">
-                    {deleteError}
-                  </p>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={deleteLog}
-                  disabled={isDeleting}
-                  className="text-[13px] font-medium text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/20 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isDeleting ? "Deleting..." : "Delete log"}
-                </button>
-              </div>
-            </>
-          ) : null}
         </div>
 
         <aside className="space-y-6 border-t border-zinc-200/80 pt-6 lg:sticky lg:top-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-10">
@@ -551,7 +544,7 @@ export function LogDetailView({
             {task ? (
               <Link
                 href={getTaskHref(task.id)}
-                className="mt-2 inline-flex text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950"
+                className="mt-2 inline-flex text-[13px] font-medium text-zinc-500 underline-offset-2 transition hover:text-zinc-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 Open task →
               </Link>
@@ -590,7 +583,7 @@ export function LogDetailView({
                   <li key={output.id}>
                     <Link
                       href={getOutputHref(output.id)}
-                      className="text-[13px] font-medium leading-5 text-zinc-800 transition hover:text-zinc-950"
+                      className="text-[13px] font-medium leading-5 text-zinc-800 underline-offset-2 transition hover:text-zinc-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                     >
                       {output.title}
                     </Link>
