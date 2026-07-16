@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder
+import java.util.UUID
 
 @RestController
 @RequestMapping("/users")
@@ -100,6 +102,14 @@ class UserController(
             bio = request.bio,
             location = request.location,
             websiteUrl = request.websiteUrl,
+            profileImageAssetId = request.profileImageAssetId,
+            profileImageAssetUrl = request.profileImageAssetId?.let(::buildProfileImageAssetUrl),
         )
     }
+
+    private fun buildProfileImageAssetUrl(assetId: UUID): String =
+        ServletUriComponentsBuilder.fromCurrentContextPath()
+            .path("/media/assets/{assetId}")
+            .buildAndExpand(assetId)
+            .toUriString()
 }

@@ -6,6 +6,7 @@ import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.follow.FollowRepository
 import io.github.kitae9999.openlog.follow.entity.FollowId
+import io.github.kitae9999.openlog.media.MediaService
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
 import io.github.kitae9999.openlog.post.PostMapper
@@ -21,6 +22,7 @@ import io.github.kitae9999.openlog.user.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
+import java.util.UUID
 
 @Service
 class UserService(
@@ -31,6 +33,7 @@ class UserService(
     private val postLikeRepository: PostLikeRepository,
     private val commentRepository: CommentRepository,
     private val followRepository: FollowRepository,
+    private val mediaService: MediaService,
     private val userMapper: UserMapper,
     private val postMapper: PostMapper,
 ) {
@@ -287,6 +290,8 @@ class UserService(
         bio: String?,
         location: String?,
         websiteUrl: String?,
+        profileImageAssetId: UUID? = null,
+        profileImageAssetUrl: String? = null,
     ): PublicUserProfileResponse {
         val user = userRepository.findByUsername(username)
             ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
@@ -301,6 +306,14 @@ class UserService(
             location = location?.trim()?.takeIf { it.isNotEmpty() },
             websiteUrl = websiteUrl?.trim()?.takeIf { it.isNotEmpty() },
         )
+
+        if (profileImageAssetId != null) {
+            mediaService.attachProfileImage(
+                assetId = profileImageAssetId,
+                currentUser = user,
+                assetUrl = requireNotNull(profileImageAssetUrl),
+            )
+        }
 
         return userMapper.toPublicProfileResponse(
             user = user,

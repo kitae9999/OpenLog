@@ -27,6 +27,11 @@ export type UploadedMarkdownImage = {
   altText: string;
 };
 
+export type UploadedProfileImage = {
+  assetId: string;
+  imageUrl: string;
+};
+
 export async function uploadMarkdownImage(file: File) {
   const prepared = await prepareImageFile(file);
   const uploadTarget = await requestUploadUrl(prepared.file, {
@@ -89,9 +94,16 @@ export async function uploadProfileImage(file: File) {
     throw new Error("Upload completed without an image URL.");
   }
 
+  if (uploadTarget.assetId === undefined) {
+    throw new Error("Upload completed without an asset ID.");
+  }
+
   await completeUpload(uploadTarget.assetId);
 
-  return imageUrl;
+  return {
+    assetId: String(uploadTarget.assetId),
+    imageUrl,
+  } satisfies UploadedProfileImage;
 }
 
 async function completeUpload(assetId: UploadUrlResponse["assetId"]) {

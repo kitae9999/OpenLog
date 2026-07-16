@@ -4,6 +4,7 @@ import io.github.kitae9999.openlog.comment.repository.CommentCount
 import io.github.kitae9999.openlog.comment.repository.CommentRepository
 import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.follow.FollowRepository
+import io.github.kitae9999.openlog.media.MediaService
 import io.github.kitae9999.openlog.post.PostMapper
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.entity.PostStatus
@@ -19,9 +20,11 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.BDDMockito.given
+import org.mockito.Mockito.verify
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageRequest
+import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
 class UserServiceTest {
@@ -46,6 +49,9 @@ class UserServiceTest {
     @Mock
     private lateinit var followRepository: FollowRepository
 
+    @Mock
+    private lateinit var mediaService: MediaService
+
     private lateinit var userService: UserService
 
     @BeforeEach
@@ -58,6 +64,7 @@ class UserServiceTest {
             postLikeRepository = postLikeRepository,
             commentRepository = commentRepository,
             followRepository = followRepository,
+            mediaService = mediaService,
             userMapper = UserMapper(),
             postMapper = PostMapper(),
         )
@@ -229,6 +236,27 @@ class UserServiceTest {
         assertThat(response.nickname).isEqualTo("Team OpenLog")
         assertThat(response.isOpenLogOfficial).isTrue()
         assertThat(officialUser.isOpenLogOfficial).isTrue()
+    }
+
+    @Test
+    fun `updateProfile applies an uploaded profile image only when saving`() {
+        val user = User(id = 9L, username = "alice", nickname = "Alice")
+        val assetId = UUID.randomUUID()
+        val assetUrl = "https://api.openlog.dev/media/assets/$assetId"
+        given(userRepository.findByUsername("alice")).willReturn(user)
+
+        userService.updateProfile(
+            userId = 9L,
+            username = "alice",
+            nickname = "Alice",
+            bio = null,
+            location = null,
+            websiteUrl = null,
+            profileImageAssetId = assetId,
+            profileImageAssetUrl = assetUrl,
+        )
+
+        verify(mediaService).attachProfileImage(assetId, user, assetUrl)
     }
 
     private fun createPost(

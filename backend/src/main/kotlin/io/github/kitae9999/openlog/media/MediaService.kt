@@ -90,7 +90,7 @@ class MediaService(
     }
 
     @Transactional
-    fun markUploadCompleted(assetId: UUID, currentUser: User, assetUrl: String) {
+    fun markUploadCompleted(assetId: UUID, currentUser: User) {
         val mediaAsset = findByPublicId(assetId)
 
         if (mediaAsset.owner.id != currentUser.id) {
@@ -103,11 +103,22 @@ class MediaService(
         }
 
         mediaAsset.markUploaded()
+    }
 
-        if (mediaAsset.purpose == MediaPurpose.PROFILE_IMAGE) {
-            mediaAsset.attachToProfile()
-            mediaAsset.owner.updateProfileImage(assetUrl)
+    @Transactional
+    fun attachProfileImage(assetId: UUID, currentUser: User, assetUrl: String) {
+        val mediaAsset = findByPublicId(assetId)
+
+        if (mediaAsset.owner.id != currentUser.id) {
+            throw ForbiddenException("이미지를 수정할 권한이 없습니다.")
         }
+
+        if (mediaAsset.purpose != MediaPurpose.PROFILE_IMAGE || mediaAsset.status != MediaStatus.UPLOADED) {
+            throw BadRequestException("저장할 수 없는 프로필 이미지입니다.")
+        }
+
+        mediaAsset.attachToProfile()
+        mediaAsset.owner.updateProfileImage(assetUrl)
     }
 
     @Transactional

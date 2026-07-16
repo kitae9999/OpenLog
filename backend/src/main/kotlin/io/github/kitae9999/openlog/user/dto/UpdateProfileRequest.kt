@@ -2,6 +2,7 @@ package io.github.kitae9999.openlog.user.dto
 
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import java.util.UUID
 
 data class UpdateProfileRequest(
     @field:NotBlank(message = "닉네임은 필수입니다.")
@@ -16,4 +17,6 @@ data class UpdateProfileRequest(
 
     @field:Size(max = 2048, message = "website URL은 2048자 이하로 입력해주세요.")
     val websiteUrl: String? = null,
+
+    val profileImageAssetId: UUID? = null,
 )
