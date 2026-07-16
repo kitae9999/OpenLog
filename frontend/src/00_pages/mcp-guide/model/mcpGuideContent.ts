@@ -8,7 +8,12 @@ export const MCP_GUIDE_LOCALES: Array<{ key: McpGuideLocale; label: string }> =
 
 export const mcpGuideCopyButtonLabels = {
   en: { copy: "Copy", copied: "Copied", retry: "Retry", aria: "Copy code" },
-  ko: { copy: "복사", copied: "복사됨", retry: "다시", aria: "코드 복사" },
+  ko: {
+    copy: "복사하기",
+    copied: "복사했어요",
+    retry: "다시 시도",
+    aria: "코드 복사하기",
+  },
 } as const;
 
 export const mcpGuidePermissionProfiles = [
@@ -16,21 +21,21 @@ export const mcpGuidePermissionProfiles = [
     name: "read-only",
     description: {
       en: "Authentication status and all read tools.",
-      ko: "인증 상태와 모든 조회 tool을 허용합니다.",
+      ko: "인증 상태를 확인하고 모든 조회 도구를 사용할 수 있어요.",
     },
   },
   {
     name: "safe-write",
     description: {
       en: "Read, create, update, link, upload, and confirmed publish tools. This is the default.",
-      ko: "조회, 생성, 수정, 연결, 이미지 업로드, 확인 후 발행 tool을 허용합니다. 기본 프로필입니다.",
+      ko: "조회, 생성, 수정, 연결, 이미지 업로드, 확인 후 발행 도구를 사용할 수 있어요. 기본 프로필이에요.",
     },
   },
   {
     name: "full",
     description: {
       en: "Everything in safe-write, plus immediate single-item deletes and working-brief clear.",
-      ko: "safe-write 기능에 개별 즉시 삭제와 working brief 초기화를 추가합니다.",
+      ko: "safe-write 기능에 개별 항목 즉시 삭제와 working brief 초기화가 더해져요.",
     },
   },
 ] as const;
@@ -181,9 +186,9 @@ export const mcpGuideAccessLabels = {
     full: "full only",
   },
   ko: {
-    readOnly: "read-only 이상",
-    safeWrite: "safe-write 이상",
-    full: "full 전용",
+    readOnly: "read-only부터",
+    safeWrite: "safe-write부터",
+    full: "full에서만",
   },
 } as const;
 
@@ -193,7 +198,7 @@ export const mcpGuideCopy = {
     breadcrumbCurrent: "MCP Guide",
     title: "MCP Guide",
     subtitle:
-      "Connect Codex, Claude Code, Cursor, or any MCP client to OpenLog. Run setup once for sign-in, client registration, and permissions, then init inside each Git project.",
+      "Connect Codex, Claude Code, Cursor, or any MCP client to OpenLog. Run setup once for sign-in, client registration, and permissions. A local folder is optional; bind one later with init when path-based project discovery is useful.",
     sections: {
       setup: {
         title: "1. Run guided setup",
@@ -202,9 +207,10 @@ export const mcpGuideCopy = {
         footnoteAfter: " to reopen the wizard later.",
       },
       project: {
-        title: "2. Connect a Git project",
-        body: "From a Git project, run init separately. Choose a workspace and per-project Capture Mode. OpenLog stores only openlog.projectId in the repository's local .git/config; an origin remote is optional and no tracked agent instruction file is created.",
-        footnote: "AUTO may create or update Task, Log, and Output drafts when the Workspace Guide says they matter. ASK confirms first and is the default. EXPLICIT acts only after a direct request. MCP permissions take precedence, while publish and delete keep separate confirmation rules.",
+        title: "2. Bind a folder (optional)",
+        body: "Run init inside any folder you want OpenLog to recognize. The wizard identifies whether it is a Git repository or a regular folder, then lets you create or choose a project and set Capture Mode. Git repositories store openlog.projectId in local .git/config; regular folders store a versioned .openlog/project.json. OpenLog does not inspect files inside the folder.",
+        footnote:
+          "Without a folder binding, start_openlog_session works pathlessly. It starts automatically when only one project exists and returns choices when there are several so the agent can ask. create_workspace_project can create and start a project without a directory.",
       },
       register: {
         title: "3. Register a client manually (optional)",
@@ -232,7 +238,7 @@ export const mcpGuideCopy = {
         colTools: "Tools",
         colAccess: "Available from",
         footnote:
-          "start_openlog_session loads the latest Workspace Guide and Capture Mode from the project's local binding. Publishing, Agent Guide, and Capture Mode update tools return a preview first. Pass confirm: true after review, or use skipConfirmation: true only when the user explicitly requested the write without another confirmation.",
+          "start_openlog_session loads the latest Workspace Guide and Capture Mode from a folder binding or an explicitly selected project. Publishing, Agent Guide, and Capture Mode update tools return a preview first. Pass confirm: true after review, or use skipConfirmation: true only when the user explicitly requested the write without another confirmation.",
       },
       troubleshooting: {
         title: "7. Troubleshooting",
@@ -250,8 +256,8 @@ export const mcpGuideCopy = {
             body: "run `npx -y @openloghq/cli@latest setup` and finish the guided setup.",
           },
           {
-            label: "Project not initialized or stale",
-            body: "change to the Git project and run `npx -y @openloghq/cli@latest init`. The agent will not guess a workspace binding.",
+            label: "Folder not initialized or binding is stale",
+            body: "change to the folder and run `npx -y @openloghq/cli@latest init`. The agent will not guess a project when the binding is missing or stale.",
           },
           {
             label: "Invalid permission config",
@@ -263,73 +269,74 @@ export const mcpGuideCopy = {
     footerPackage: "Package:",
   },
   ko: {
-    breadcrumbSettings: "Settings",
-    breadcrumbCurrent: "MCP Guide",
-    title: "MCP Guide",
+    breadcrumbSettings: "설정",
+    breadcrumbCurrent: "MCP 가이드",
+    title: "MCP 연결하기",
     subtitle:
-      "Codex, Claude Code, Cursor 등 MCP client를 OpenLog에 연결하는 방법입니다. setup으로 로그인·client 등록·권한 설정을 마친 뒤 각 Git 프로젝트에서 init을 실행합니다.",
+      "Codex, Claude Code, Cursor 같은 MCP 클라이언트에 OpenLog를 연결해 보세요. 처음 한 번만 설정하면 로그인, 클라이언트 등록, 권한 설정이 끝나요. 폴더 연결은 필요할 때 추가하면 돼요.",
     sections: {
       setup: {
-        title: "1. 대화형 설정 실행",
-        body: "대화형 터미널에서 명령 하나를 실행하세요. 온보딩 위저드가 로그인, Codex·Claude Code·Cursor 또는 모든 지원 client의 OpenLog 등록, 로컬 MCP 권한 프로필 선택을 차례로 안내합니다. setup은 현재 디렉터리를 탐색하거나 연결하지 않습니다.",
-        footnoteBefore: "나중에 위저드를 다시 열려면",
-        footnoteAfter: "을 실행하세요.",
+        title: "1. OpenLog MCP를 설정해요",
+        body: "대화형 터미널에서 아래 명령을 실행해 주세요. 온보딩 위저드가 로그인부터 Codex·Claude Code·Cursor 연결, 로컬 MCP 권한 선택까지 차례로 도와드려요. 지금 열어 둔 폴더는 살펴보거나 연결하지 않아요.",
+        footnoteBefore: "설정을 다시 열고 싶다면",
+        footnoteAfter: "을 실행해 주세요.",
       },
       project: {
-        title: "2. Git 프로젝트 연결",
-        body: "Git 프로젝트로 이동해 init을 별도로 실행하세요. 워크스페이스와 프로젝트별 Capture Mode를 선택하면 OpenLog는 로컬 .git/config에 openlog.projectId만 저장합니다. origin remote는 선택 사항이며 추적 파일이나 에이전트 지침 파일은 만들지 않습니다.",
-        footnote: "AUTO는 Workspace Guide 기준으로 Task·Log·Output 초안을 생성·수정할 수 있습니다. ASK는 먼저 확인하며 기본값입니다. EXPLICIT은 명시 요청 후에만 실행합니다. MCP 권한이 우선하고 발행·삭제 확인 정책은 별도로 유지됩니다.",
+        title: "2. 폴더를 연결해요 (선택)",
+        body: "OpenLog가 폴더 경로로 프로젝트를 찾게 하려면 해당 폴더에서 init을 실행해 주세요. Git 저장소인지 일반 폴더인지 확인한 뒤 새 프로젝트를 만들거나 기존 프로젝트를 고르고 Capture Mode를 정할 수 있어요. Git 저장소에는 로컬 .git/config의 openlog.projectId를, 일반 폴더에는 버전이 담긴 .openlog/project.json을 저장해요. 폴더 안의 파일은 살펴보지 않아요.",
+        footnote:
+          "폴더를 연결하지 않아도 사용할 수 있어요. 프로젝트가 하나면 바로 시작하고, 여러 개면 에이전트가 어떤 프로젝트를 쓸지 물어봐요. create_workspace_project는 폴더 없이 프로젝트를 만들고 시작해요.",
       },
       register: {
-        title: "3. client 수동 등록(선택)",
-        body: "위저드에서 client 등록을 건너뛰었거나 설정을 직접 구성하려면 MCP client에 OpenLog를 추가하세요:",
+        title: "3. MCP 클라이언트를 직접 연결해요 (선택)",
+        body: "위저드에서 클라이언트 연결을 건너뛰었거나 직접 설정하고 싶다면 MCP 클라이언트에 OpenLog를 추가해 주세요:",
         installers:
-          "명령으로 모든 지원 client를 한 번에 등록하거나 필요한 client만 선택할 수도 있습니다:",
+          "지원하는 클라이언트를 한 번에 모두 연결하거나 필요한 것만 골라도 돼요:",
       },
       manual: {
-        title: "4. server 수동 실행",
-        body: "대부분의 client가 server를 자동으로 띄웁니다. 디버깅용으로 직접 실행하려면:",
+        title: "4. MCP 서버를 직접 실행해요",
+        body: "대부분의 클라이언트는 MCP 서버를 자동으로 실행해요. 디버깅할 때 직접 실행하려면 아래 명령을 사용해 주세요:",
         footnote:
-          "server가 실행 중이면 해당 터미널은 MCP 프로토콜 전용입니다. 별도 설정이 없으면 https://api.openlog.kr/api에 연결합니다.",
+          "MCP 서버가 실행되는 동안 이 터미널은 프로토콜 통신에만 사용해요. 따로 주소를 설정하지 않으면 https://api.openlog.kr/api에 연결해요.",
       },
       permissions: {
-        title: "5. 로컬 권한 확인·변경",
-        body: "위저드가 로컬 권한 프로필을 설정합니다. MCP server가 노출할 tool 범위를 확인하거나 변경하려면 다음 명령을 실행하세요:",
+        title: "5. 사용할 권한을 확인해요",
+        body: "온보딩 위저드에서 고른 로컬 권한을 살펴보거나 바꾸려면 아래 명령을 실행해 주세요:",
         colProfile: "프로필",
-        colCapability: "허용 기능",
+        colCapability: "사용할 수 있는 기능",
         footnote:
-          "변경 사항은 MCP server를 재시작한 뒤 반영됩니다. 이 설정은 로컬 에이전트 안전 정책이며, OpenLog API의 인증과 소유권 검사는 그대로 적용됩니다.",
+          "MCP 서버를 다시 시작하면 바뀐 권한이 적용돼요. 이 설정은 에이전트가 사용할 수 있는 도구 범위를 정해요. OpenLog API의 인증과 소유권 검사는 별도로 계속 적용돼요.",
       },
       tools: {
-        title: "6. 사용 가능한 tool",
+        title: "6. 사용할 수 있는 도구를 살펴봐요",
         colArea: "영역",
-        colTools: "Tool",
+        colTools: "도구",
         colAccess: "사용 가능 프로필",
         footnote:
-          "start_openlog_session은 프로젝트의 로컬 연결을 통해 최신 Workspace Guide와 Capture Mode를 불러옵니다. 발행·Agent Guide·Capture Mode 수정 tool은 먼저 미리보기를 반환합니다. 검토 후 confirm: true를 전달하세요. 사용자가 추가 확인 없이 쓰라고 명시한 경우에만 skipConfirmation: true를 사용할 수 있습니다.",
+          "start_openlog_session은 연결된 폴더나 선택한 프로젝트에서 최신 Workspace Guide와 Capture Mode를 불러와요. 발행, Agent Guide 수정, Capture Mode 변경은 먼저 미리보기를 보여줘요. 내용을 확인한 뒤 confirm: true를 전달해 주세요. 사용자가 추가 확인 없이 진행해 달라고 직접 요청한 경우에만 skipConfirmation: true를 사용할 수 있어요.",
       },
       troubleshooting: {
-        title: "7. 문제 해결",
+        title: "7. 연결이 안 될 때 확인해요",
         items: [
           {
-            label: "인증되지 않음",
-            body: "`npx -y @openloghq/cli@latest login`을 다시 실행하고 브라우저 승인을 완료하세요.",
+            label: "로그인이 풀렸어요",
+            body: "`npx -y @openloghq/cli@latest login`을 다시 실행하고 브라우저에서 승인해 주세요.",
           },
           {
-            label: "client가 npx를 찾지 못함",
-            body: "`command`에 npx 전체 경로를 넣거나 `npm i -g @openloghq/cli`로 전역 설치하세요.",
+            label: "클라이언트에서 npx를 찾지 못해요",
+            body: "`command`에 npx 전체 경로를 넣거나 `npm i -g @openloghq/cli`로 전역 설치해 주세요.",
           },
           {
-            label: "온보딩 미완료",
-            body: "`npx -y @openloghq/cli@latest setup`을 실행해 대화형 설정을 완료하세요.",
+            label: "설정을 끝내지 못했어요",
+            body: "`npx -y @openloghq/cli@latest setup`을 실행하고 남은 설정을 마쳐 주세요.",
           },
           {
-            label: "프로젝트 미초기화 또는 stale 연결",
-            body: "Git 프로젝트로 이동해 `npx -y @openloghq/cli@latest init`을 실행하세요. 에이전트는 워크스페이스 연결을 임의로 추정하지 않습니다.",
+            label: "폴더 연결이 없거나 오래됐어요",
+            body: "연결할 폴더에서 `npx -y @openloghq/cli@latest init`을 실행해 주세요. 연결 정보가 없거나 오래되면 에이전트가 프로젝트를 임의로 고르지 않아요.",
           },
           {
-            label: "잘못된 권한 설정",
-            body: "`npx -y @openloghq/cli@latest mcp permissions reset`을 실행한 뒤 MCP server를 재시작하세요.",
+            label: "권한 설정을 읽지 못해요",
+            body: "`npx -y @openloghq/cli@latest mcp permissions reset`을 실행한 뒤 MCP 서버를 다시 시작해 주세요.",
           },
         ],
       },
@@ -350,7 +357,7 @@ export const mcpClientConfig = `{
 export const mcpGuideCommands = {
   setup: "npx -y @openloghq/cli@latest",
   setupAgain: "npx -y @openloghq/cli@latest setup",
-  init: `cd <project>
+  init: `cd <folder>
 npx -y @openloghq/cli@latest init`,
   mcp: "npx -y @openloghq/cli@latest mcp",
   installAll: "npx -y @openloghq/cli@latest mcp install all",

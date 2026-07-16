@@ -50,11 +50,13 @@ test("exposes tools according to the active permission profile", async (t) => {
 
 test("advertises session instructions and document selection criteria", async (t) => {
   const session = await createSession(t, "safe-write");
-  assert.match(session.client.getInstructions() ?? "", /call start_openlog_session/);
-  assert.match(session.client.getInstructions() ?? "", /Do not guess a workspace/);
+  assert.match(session.client.getInstructions() ?? "", /작업을 시작하기 전에 start_openlog_session/);
+  assert.match(session.client.getInstructions() ?? "", /임의로 고르면 안 돼요/);
+  assert.match(session.client.getInstructions() ?? "", /selection_required/);
+  assert.match(session.client.getInstructions() ?? "", /create_workspace_project/);
   assert.match(session.client.getInstructions() ?? "", /update_workspace_agent_guide/);
   assert.match(session.client.getInstructions() ?? "", /update_workspace_project_capture_mode/);
-  assert.match(session.client.getInstructions() ?? "", /Publishing, Agent Guide updates, Capture Mode updates, and deletion/);
+  assert.match(session.client.getInstructions() ?? "", /발행, Agent Guide 수정, Capture Mode 변경, 삭제/);
 
   const tools = await session.client.listTools();
   const task = tools.tools.find((tool) => tool.name === "create_workspace_task");

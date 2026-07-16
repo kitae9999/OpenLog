@@ -22,15 +22,16 @@ import {
   type ProjectBinding,
 } from "./project-binding.js";
 
-export const OPENLOG_MCP_INSTRUCTIONS = `Before substantive work, call start_openlog_session. Supply projectPath when the agent knows the local working folder; otherwise call it without arguments.
-If a pathless call returns selection_required, ask the user which listed project to use and call start_openlog_session again with that projectId. Never choose among multiple projects without the user.
-If it returns no_projects, offer create_workspace_project. That tool creates an OpenLog project without requiring a local directory; a folder can be bound later with openlog init.
-Use the returned workspace Agent Guide and Capture Mode when deciding whether to create or update OpenLog Tasks, Logs, and Outputs.
-AUTO allows proactive draft creation or updates when the Guide says the work is worth recording. ASK requires user confirmation before those writes. EXPLICIT permits those writes only after an explicit user request.
-When the user agrees to lasting behavior or recording policy changes during a session, update the Agent Guide with update_workspace_agent_guide after preview confirmation; keep one-off knowledge in NOTE Logs instead.
-When the user wants to change Capture Mode during a session, use update_workspace_project_capture_mode after preview confirmation, then re-read the project or restart the session so the new mode applies.
-Do not guess a workspace or project. If a path-based start_openlog_session returns not_initialized or stale, show its init command to the user.
-Publishing, Agent Guide updates, Capture Mode updates, and deletion keep their own confirmation requirements regardless of Capture Mode. The active MCP permission profile always takes precedence.`;
+export const OPENLOG_MCP_INSTRUCTIONS = `본격적인 작업을 시작하기 전에 start_openlog_session을 호출해요.
+로컬 작업 폴더를 알고 있다면 projectPath를 넘겨요. 경로를 모를 때는 인자 없이 호출하면 돼요.
+경로 없이 호출했을 때 selection_required가 돌아오면 프로젝트 목록을 보여주고 어떤 프로젝트를 사용할지 물어봐요. 여러 프로젝트 중 하나를 임의로 고르면 안 돼요.
+no_projects가 돌아오면 create_workspace_project를 제안해요. 이 도구는 로컬 폴더 없이 OpenLog 프로젝트를 만들어요. 필요하면 나중에 openlog init으로 폴더를 연결할 수 있어요.
+세션에서 받은 Workspace Agent Guide와 Capture Mode를 살펴보고 OpenLog Task, Log, Output 초안을 만들거나 수정할지 정해요.
+AUTO에서는 Guide가 기록할 만한 작업이라고 안내할 때 초안을 먼저 만들거나 수정해도 돼요. ASK에서는 쓰기 전에 사용자에게 물어봐요. EXPLICIT에서는 사용자가 직접 요청했을 때만 써요.
+앞으로도 계속 적용할 행동 규칙이나 기록 정책에 사용자가 동의했다면, 먼저 변경 내용을 보여주고 확인받은 뒤 update_workspace_agent_guide로 Agent Guide를 수정해요. 한 번만 필요한 정보는 Agent Guide가 아니라 NOTE Log에 남겨요.
+사용자가 Capture Mode를 바꾸고 싶어 하면, 먼저 변경 내용을 보여주고 확인받은 뒤 update_workspace_project_capture_mode를 호출해요. 새 설정을 적용하려면 프로젝트를 다시 읽거나 세션을 다시 시작해요.
+워크스페이스나 프로젝트를 짐작해서 고르지 마세요. projectPath로 호출한 start_openlog_session이 not_initialized 또는 stale을 반환하면, 함께 받은 init 명령을 사용자에게 보여줘요.
+발행, Agent Guide 수정, Capture Mode 변경, 삭제에는 Capture Mode와 관계없이 각 도구의 확인 규칙이 적용돼요. 현재 MCP 권한 설정이 언제나 우선해요.`;
 
 type CreateOpenLogMcpServerOptions = {
   permissions?: ResolvedMcpPermissions;
