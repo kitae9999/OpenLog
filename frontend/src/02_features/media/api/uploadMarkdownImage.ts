@@ -8,7 +8,7 @@ const SUPPORTED_SOURCE_TYPES = new Set([
   "image/avif",
 ]);
 
-type UploadPurpose = "POST_BODY_IMAGE";
+type UploadPurpose = "POST_BODY_IMAGE" | "PROFILE_IMAGE";
 
 type UploadUrlResponse = {
   assetId?: string | number;
@@ -28,7 +28,7 @@ export type UploadedMarkdownImage = {
 };
 
 export async function uploadMarkdownImage(file: File) {
-  const prepared = await preparePostImageFile(file);
+  const prepared = await prepareImageFile(file);
   const uploadTarget = await requestUploadUrl(prepared.file, {
     purpose: "POST_BODY_IMAGE",
     originalFileName: file.name,
@@ -56,10 +56,42 @@ export async function uploadMarkdownImage(file: File) {
 
   return {
     assetId:
-      uploadTarget.assetId === undefined ? undefined : String(uploadTarget.assetId),
+      uploadTarget.assetId === undefined
+        ? undefined
+        : String(uploadTarget.assetId),
     markdownUrl,
     altText: prepared.altText,
   } satisfies UploadedMarkdownImage;
+}
+
+export async function uploadProfileImage(file: File) {
+  const prepared = await prepareImageFile(file);
+  const uploadTarget = await requestUploadUrl(prepared.file, {
+    purpose: "PROFILE_IMAGE",
+    originalFileName: file.name,
+  });
+
+  const uploadResponse = await fetch(uploadTarget.uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": prepared.file.type,
+      ...uploadTarget.headers,
+    },
+    body: prepared.file,
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("Image upload failed.");
+  }
+
+  const imageUrl = getMarkdownUrl(uploadTarget);
+  if (!imageUrl) {
+    throw new Error("Upload completed without an image URL.");
+  }
+
+  await completeUpload(uploadTarget.assetId);
+
+  return imageUrl;
 }
 
 async function completeUpload(assetId: UploadUrlResponse["assetId"]) {
@@ -117,7 +149,7 @@ async function requestUploadUrl(
   return data;
 }
 
-async function preparePostImageFile(file: File) {
+async function prepareImageFile(file: File) {
   validateSourceImage(file);
 
   const altText = getUploadImageAltText(file);

@@ -102,6 +102,11 @@ class MediaAsset(
         attachedAt = LocalDateTime.now()
     }
 
+    fun attachToProfile() {
+        status = MediaStatus.ATTACHED
+        attachedAt = LocalDateTime.now()
+    }
+
     fun markDeleted() {
         status = MediaStatus.DELETED
         deletedAt = LocalDateTime.now()

@@ -87,6 +87,15 @@ class User(
         this.updatedAt = LocalDateTime.now()
     }
 
+    fun updateProfileImage(profileImageUrl: String) {
+        if (this.profileImageUrl == profileImageUrl) {
+            return
+        }
+
+        this.profileImageUrl = profileImageUrl
+        this.updatedAt = LocalDateTime.now()
+    }
+
     fun completeOnboarding(
         nickname: String,
         username: String,
