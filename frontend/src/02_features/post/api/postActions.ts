@@ -7,6 +7,8 @@ import { API_CONFIG } from "@/shared/api";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 
 type PostWriteResponse = {
+  id: number;
+  status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
   authorUsername: string;
   slug: string;
 };
@@ -29,11 +31,20 @@ export type DeletePostResult =
 
 export async function updatePostAction(
   postId: number,
+  currentStatus: "DRAFT" | "PUBLISHED" | "UNPUBLISHED",
   _prevState: WriteActionState,
   formData: FormData,
 ): Promise<WriteActionState> {
+  const intent = String(formData.get("intent") ?? "save");
+  if (intent === "unpublish") {
+    return changePostPublication(postId, "unpublish");
+  }
+
   const { title, description, content, topics, links, errors } =
-    parsePostWriteForm(formData);
+    parsePostWriteForm(
+      formData,
+      intent === "publish" || currentStatus === "PUBLISHED",
+    );
 
   if (Object.keys(errors).length > 0) {
     return { errors };
@@ -57,10 +68,13 @@ export async function updatePostAction(
   });
 
   if (response.ok) {
-    const payload = (await response.json()) as PostWriteResponse;
+    const saved = (await response.json()) as PostWriteResponse;
+    if (intent === "publish" && currentStatus !== "PUBLISHED") {
+      return changePostPublication(postId, "publish");
+    }
     return {
       errors: {},
-      redirectTo: buildPublicPostPath(payload.authorUsername, payload.slug),
+      redirectTo: `/posts/${saved.id}/edit`,
     };
   }
 
@@ -107,7 +121,7 @@ export async function deletePostAction(
   };
 }
 
-function parsePostWriteForm(formData: FormData) {
+function parsePostWriteForm(formData: FormData, requirePublishable: boolean) {
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const content = String(formData.get("content") ?? "").trim();
@@ -120,18 +134,22 @@ function parsePostWriteForm(formData: FormData) {
 
   const errors: WriteActionState["errors"] = {};
 
-  if (!title) {
-    errors.title = "제목은 필수입니다.";
-  }
-
-  if (!description) {
-    errors.description = "설명은 필수입니다.";
-  } else if (description.length > DESCRIPTION_MAX_LENGTH) {
+  if (description.length > DESCRIPTION_MAX_LENGTH) {
     errors.description = `설명은 ${DESCRIPTION_MAX_LENGTH}자 이하여야 합니다.`;
   }
 
-  if (!content) {
-    errors.content = "본문은 필수입니다.";
+  if (requirePublishable) {
+    if (!title) {
+      errors.title = "제목은 필수입니다.";
+    }
+    if (!description) {
+      errors.description = "설명은 필수입니다.";
+    }
+    if (!content) {
+      errors.content = "본문은 필수입니다.";
+    }
+  } else if (!title && !description && !content) {
+    errors.form = "제목, 설명, 본문 중 하나 이상을 입력해주세요.";
   }
 
   return {
@@ -141,6 +159,49 @@ function parsePostWriteForm(formData: FormData) {
     topics,
     links,
     errors,
+  };
+}
+
+async function changePostPublication(
+  postId: number,
+  transition: "publish" | "unpublish",
+): Promise<WriteActionState> {
+  const headerStore = await headers();
+  const response = await fetch(
+    `${API_CONFIG.baseURL}/posts/${postId}/${transition}`,
+    {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        cookie: headerStore.get("cookie") ?? "",
+      },
+    },
+  );
+
+  if (response.ok) {
+    const payload = (await response.json()) as PostWriteResponse;
+    return {
+      errors: {},
+      redirectTo:
+        transition === "publish"
+          ? buildPublicPostPath(payload.authorUsername, payload.slug)
+          : `/posts/${payload.id}/edit`,
+    };
+  }
+
+  if (response.status === 401) {
+    redirect("/");
+  }
+
+  return {
+    errors: {
+      form: await getErrorMessage(
+        response,
+        transition === "publish"
+          ? "글을 발행하는 중 문제가 발생했습니다."
+          : "발행을 취소하는 중 문제가 발생했습니다.",
+      ),
+    },
   };
 }
 

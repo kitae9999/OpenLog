@@ -1,7 +1,7 @@
 import { OutputsListFeed } from "@/pages/outputs/ui/OutputsListFeed";
 import type { WorkspaceOutputStatus } from "@/entities/workspace/model/data";
 
-const allowedStatuses: WorkspaceOutputStatus[] = ["draft", "published"];
+const allowedStatuses: WorkspaceOutputStatus[] = ["draft", "exported"];
 
 export default async function OutputsPage({
   searchParams,

@@ -3,6 +3,7 @@ import { apiClient } from "@/shared/api/apiClient";
 
 export type RecentPostSummary = {
   id: number;
+  status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
   slug: string;
   title: string;
   description: string;

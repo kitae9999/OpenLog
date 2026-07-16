@@ -29,7 +29,7 @@ export async function generateMetadata({
 export default async function Home({
   searchParams,
 }: {
-  searchParams?: Promise<{ tab?: string }>; // 객체 구조 분해할당, searchParams는 Next가 자동으로 넘겨줌
+  searchParams?: Promise<{ tab?: string; status?: string }>; // 객체 구조 분해할당, searchParams는 Next가 자동으로 넘겨줌
 }) {
   const sp = await searchParams;
   const user = await getUserOrRedirectToOnboarding();
@@ -61,7 +61,11 @@ export default async function Home({
     !isLoggedIn && !sp?.tab ? (
       <LandingPage />
     ) : (
-      <HomeFeed activeTab={tab} viewer={user} />
+      <HomeFeed
+        activeTab={tab}
+        activePostStatus={sp?.status === "drafts" ? "drafts" : "published"}
+        viewer={user}
+      />
     );
 
   return (

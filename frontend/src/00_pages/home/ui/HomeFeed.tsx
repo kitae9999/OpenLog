@@ -25,9 +25,11 @@ function getSeoulIsoDate(date: Date) {
 
 export async function HomeFeed({
   activeTab,
+  activePostStatus = "published",
   viewer,
 }: {
   activeTab?: TabKey;
+  activePostStatus?: "published" | "drafts";
   viewer?: User | null;
 }) {
   const data =
@@ -60,7 +62,13 @@ export async function HomeFeed({
 
   const authoredPosts =
     resolvedTab === "home" && data
-      ? await getAuthoredPosts(null, 10)
+      ? await getAuthoredPosts(
+          null,
+          10,
+          activePostStatus === "drafts"
+            ? ["DRAFT", "UNPUBLISHED"]
+            : ["PUBLISHED"],
+        )
       : undefined;
   const recentPosts =
     resolvedTab === "explore" || (resolvedTab === "home" && !data)
@@ -78,6 +86,7 @@ export async function HomeFeed({
   return (
     <HomeFeedShell
       activeTab={resolvedTab}
+      activePostStatus={activePostStatus}
       isLoggedIn={isLoggedIn}
       initialAuthoredPosts={authoredPosts?.posts ?? []}
       initialAuthoredNextCursor={authoredPosts?.nextCursor ?? null}
