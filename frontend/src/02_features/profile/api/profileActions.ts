@@ -37,6 +37,9 @@ export async function updateProfileAction(
     location: String(formData.get("location") ?? "").trim(),
     websiteUrl: String(formData.get("websiteUrl") ?? "").trim(),
   };
+  const profileImageAssetId = String(
+    formData.get("profileImageAssetId") ?? "",
+  ).trim();
   const errors: UpdateProfileActionState["errors"] = {};
 
   if (!values.nickname) {
@@ -76,6 +79,7 @@ export async function updateProfileAction(
         bio: values.bio || null,
         location: values.location || null,
         websiteUrl: values.websiteUrl || null,
+        profileImageAssetId: profileImageAssetId || null,
       }),
     },
   );

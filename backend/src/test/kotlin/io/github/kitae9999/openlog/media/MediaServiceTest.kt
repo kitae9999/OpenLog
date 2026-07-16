@@ -38,15 +38,29 @@ class MediaServiceTest {
     }
 
     @Test
-    fun `completing a profile image upload attaches it and updates the owner`() {
+    fun `completing a profile image upload does not apply it to the owner`() {
         val assetId = UUID.randomUUID()
         val owner = User(id = 7L, username = "alice", nickname = "Alice")
         val asset = profileImageAsset(assetId, owner)
-        val assetUrl = "https://api.openlog.dev/media/assets/$assetId"
         given(mediaAssetRepository.findByPublicId(assetId)).willReturn(asset)
         given(mediaStorage.exists(asset.bucket, asset.objectKey)).willReturn(true)
 
-        mediaService.markUploadCompleted(assetId, owner, assetUrl)
+        mediaService.markUploadCompleted(assetId, owner)
+
+        assertThat(asset.status).isEqualTo(MediaStatus.UPLOADED)
+        assertThat(asset.attachedAt).isNull()
+        assertThat(owner.profileImageUrl).isNull()
+    }
+
+    @Test
+    fun `saving an uploaded profile image attaches it and updates the owner`() {
+        val assetId = UUID.randomUUID()
+        val owner = User(id = 7L, username = "alice", nickname = "Alice")
+        val asset = profileImageAsset(assetId, owner).also { it.markUploaded() }
+        val assetUrl = "https://api.openlog.dev/media/assets/$assetId"
+        given(mediaAssetRepository.findByPublicId(assetId)).willReturn(asset)
+
+        mediaService.attachProfileImage(assetId, owner, assetUrl)
 
         assertThat(asset.status).isEqualTo(MediaStatus.ATTACHED)
         assertThat(asset.attachedAt).isNotNull()

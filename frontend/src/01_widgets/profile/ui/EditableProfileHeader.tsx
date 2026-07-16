@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  useEffect,
   useRef,
   useOptimistic,
   useState,
@@ -29,6 +30,11 @@ import { buildPublicProfilePath } from "@/shared/lib/publicRoutes";
 import { OfficialBadge } from "@/shared/ui/OfficialBadge";
 
 type FieldName = "nickname" | "bio" | "location" | "websiteUrl";
+
+type PendingProfileImage = {
+  assetId: string;
+  previewUrl: string;
+};
 
 export function EditableProfileHeader({
   profile,
@@ -74,6 +80,18 @@ export function EditableProfileHeader({
   const [profileImageError, setProfileImageError] = useState<string | null>(
     null,
   );
+  const [pendingProfileImage, setPendingProfileImage] =
+    useState<PendingProfileImage | null>(null);
+
+  useEffect(() => {
+    const previewUrl = pendingProfileImage?.previewUrl;
+
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [pendingProfileImage?.previewUrl]);
 
   const profileName = currentProfile.nickname ?? currentProfile.username;
 
@@ -140,6 +158,8 @@ export function EditableProfileHeader({
     setValues(toUpdateProfileValues(currentProfile));
     setClientErrors({});
     setServerErrors({});
+    setPendingProfileImage(null);
+    setProfileImageError(null);
     setEditing(false);
   }
 
@@ -178,6 +198,8 @@ export function EditableProfileHeader({
         setValues(toUpdateProfileValues(result.profile));
         setClientErrors({});
         setServerErrors({});
+        setPendingProfileImage(null);
+        setProfileImageError(null);
         setEditing(false);
         router.refresh();
         return;
@@ -233,15 +255,16 @@ export function EditableProfileHeader({
 
     setIsProfileImageUploading(true);
     setProfileImageError(null);
+    const previewUrl = URL.createObjectURL(file);
 
     try {
-      const profileImageUrl = await uploadProfileImage(file);
-      setCurrentProfile((current) => ({
-        ...current,
-        profileImageUrl,
-      }));
-      router.refresh();
+      const uploadedImage = await uploadProfileImage(file);
+      setPendingProfileImage({
+        assetId: uploadedImage.assetId,
+        previewUrl,
+      });
     } catch (error) {
+      URL.revokeObjectURL(previewUrl);
       setProfileImageError(
         error instanceof Error
           ? error.message
@@ -261,17 +284,33 @@ export function EditableProfileHeader({
             name="username"
             value={currentProfile.username}
           />
+          <input
+            type="hidden"
+            name="profileImageAssetId"
+            value={pendingProfileImage?.assetId ?? ""}
+          />
 
           <div className="mb-6 flex items-center justify-between gap-4">
             <p className="text-sm text-zinc-500">Edit profile</p>
             {isViewer ? (
-              <EditActions onCancel={handleCancel} pending={isPending} />
+              <EditActions
+                onCancel={handleCancel}
+                pending={isPending}
+                disabled={isPending || isProfileImageUploading}
+              />
             ) : null}
           </div>
 
           <div className="mb-8">
             <ProfileAvatar
-              profile={currentProfile}
+              profile={
+                pendingProfileImage
+                  ? {
+                      ...currentProfile,
+                      profileImageUrl: pendingProfileImage.previewUrl,
+                    }
+                  : currentProfile
+              }
               profileName={profileName}
               onOpenFollowList={handleOpenFollowList}
               onImageSelect={handleProfileImageSelect}
@@ -726,23 +765,25 @@ function Field({
 function EditActions({
   onCancel,
   pending,
+  disabled,
 }: {
   onCancel: () => void;
   pending: boolean;
+  disabled: boolean;
 }) {
   return (
     <div className="flex items-center gap-3 self-start">
       <button
         type="button"
         onClick={onCancel}
-        disabled={pending}
+        disabled={disabled}
         className="text-sm font-medium text-zinc-400 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
       >
         Cancel
       </button>
       <button
         type="submit"
-        disabled={pending}
+        disabled={disabled}
         className="text-sm font-semibold text-zinc-950 transition hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-not-allowed disabled:text-zinc-300"
       >
         {pending ? "Saving..." : "Save"}

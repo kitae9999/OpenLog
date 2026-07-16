@@ -57,7 +57,7 @@ class MediaController(
         @AuthenticationPrincipal user: User,
         @PathVariable assetId: UUID,
     ): ResponseEntity<Void> {
-        mediaService.markUploadCompleted(assetId, user, buildAssetUrl(assetId))
+        mediaService.markUploadCompleted(assetId, user)
 
         return ResponseEntity.noContent().build()
     }
