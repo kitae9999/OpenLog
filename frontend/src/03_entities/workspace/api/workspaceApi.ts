@@ -53,7 +53,8 @@ export type WorkspacePageData = {
 type TaskStatus = "TODO" | "DOING" | "DONE";
 type LogKind = "ISSUE" | "FIX" | "DECISION" | "NOTE";
 type LogStatus = "NONE" | "OPEN" | "CLOSED";
-type OutputStatus = "DRAFT" | "EXPORTED" | "PUBLISHED";
+type OutputStatus = "DRAFT" | "EXPORTED";
+type PostStatus = "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
 
 type WorkspaceTaskResponse = {
   id: number;
@@ -133,7 +134,7 @@ type OutputResponse = {
   taskIds?: number[];
   logIds?: number[];
   updatedAt: string;
-  publishedAt: string | null;
+  exportedAt: string | null;
 };
 
 type OutputDetailResponse = {
@@ -149,9 +150,14 @@ type OutputDetailResponse = {
     status: LogStatus;
     taskId: number | null;
   }>;
-  publishedPost: { authorUsername: string; slug: string } | null;
+  linkedPost: {
+    id: number;
+    status: PostStatus;
+    authorUsername: string;
+    slug: string;
+  } | null;
   updatedAt: string;
-  publishedAt: string | null;
+  exportedAt: string | null;
 };
 
 type WorkspaceApiSnapshot = {
@@ -762,11 +768,21 @@ function mapOutput(
     ].join(" · "),
     content: isDetail ? output.content : "",
     updatedLabel: formatWorkspaceDateLabel(output.updatedAt),
+    linkedPostId:
+      isDetail && output.linkedPost ? String(output.linkedPost.id) : undefined,
+    linkedPostStatus:
+      isDetail && output.linkedPost
+        ? output.linkedPost.status.toLowerCase() as Lowercase<PostStatus>
+        : undefined,
+    postEditHref:
+      isDetail && output.linkedPost
+        ? `/posts/${output.linkedPost.id}/edit`
+        : undefined,
     publishedHref:
-      isDetail && output.publishedPost
+      isDetail && output.linkedPost?.status === "PUBLISHED"
         ? buildPublicPostPath(
-            output.publishedPost.authorUsername,
-            output.publishedPost.slug,
+            output.linkedPost.authorUsername,
+            output.linkedPost.slug,
           )
         : undefined,
   };
@@ -822,7 +838,7 @@ function mapLogTone(kind: LogKind): WorkspaceLogItem["tone"] {
 }
 
 function mapOutputStatus(status: OutputStatus): WorkspaceOutputStatus {
-  return status === "PUBLISHED" ? "published" : "draft";
+  return status === "EXPORTED" ? "exported" : "draft";
 }
 
 function buildLogMeta(log: WorkspaceLogResponse | WorkspaceLogDetailResponse) {
@@ -849,4 +865,3 @@ function excerpt(content: string, maxLength = 120) {
     ? plain
     : `${plain.slice(0, maxLength).trim()}...`;
 }
-

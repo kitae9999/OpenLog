@@ -6,6 +6,7 @@ import io.github.kitae9999.openlog.common.cursor.DateTimeIdCursorCodec
 import io.github.kitae9999.openlog.follow.FollowRepository
 import io.github.kitae9999.openlog.post.PostMapper
 import io.github.kitae9999.openlog.post.entity.Post
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.postlike.PostLikeCount
@@ -80,22 +81,31 @@ class UserServiceTest {
         }
         val pagePostIds = (1L..10L).toList()
         given(
-            postRepository.findAllByAuthorIdOrderByCreatedAtDescIdDesc(
+            postRepository.findAllByAuthorIdAndStatusOrderByPublishedAtDescIdDesc(
                 9L,
+                PostStatus.PUBLISHED,
                 PageRequest.of(0, 11),
             )
         ).willReturn(authoredPosts)
         given(postLikeRepository.countAllByPostIdIn(pagePostIds)).willReturn(emptyList())
         given(commentRepository.countAllByPostIdIn(pagePostIds)).willReturn(emptyList())
 
-        val response = userService.getAuthoredPosts(userId = 9L, cursor = null, size = 30)
+        val response = userService.getAuthoredPosts(
+            userId = 9L,
+            statuses = setOf(PostStatus.PUBLISHED),
+            cursor = null,
+            size = 30,
+        )
 
         assertThat(response.size).isEqualTo(10)
         assertThat(response.posts).hasSize(10)
         assertThat(response.posts).allMatch { it.authorUsername == "alice" }
         assertThat(response.hasNext).isTrue()
         assertThat(response.nextCursor).isEqualTo(
-            DateTimeIdCursorCodec.encode(authoredPosts[9].createdAt, requireNotNull(authoredPosts[9].id))
+            DateTimeIdCursorCodec.encode(
+                requireNotNull(authoredPosts[9].publishedAt),
+                requireNotNull(authoredPosts[9].id),
+            )
         )
     }
 
@@ -117,7 +127,13 @@ class UserServiceTest {
             )
         }
         val pagePostIds = (1L..10L).toList()
-        given(postRepository.findFollowingPostsByUserId(9L, PageRequest.of(0, 11)))
+        given(
+            postRepository.findPublishedFollowingPostsByUserId(
+                9L,
+                PostStatus.PUBLISHED,
+                PageRequest.of(0, 11),
+            )
+        )
             .willReturn(followingPosts)
         given(postLikeRepository.countAllByPostIdIn(pagePostIds)).willReturn(
             listOf(object : PostLikeCount {
@@ -138,7 +154,10 @@ class UserServiceTest {
         assertThat(response.posts).hasSize(10)
         assertThat(response.hasNext).isTrue()
         assertThat(response.nextCursor).isEqualTo(
-            DateTimeIdCursorCodec.encode(followingPosts[9].createdAt, requireNotNull(followingPosts[9].id))
+            DateTimeIdCursorCodec.encode(
+                requireNotNull(followingPosts[9].publishedAt),
+                requireNotNull(followingPosts[9].id),
+            )
         )
         val summary = response.posts.first()
         assertThat(summary.id).isEqualTo(1L)
@@ -166,11 +185,12 @@ class UserServiceTest {
             slug = "next-post",
             title = "Next Post",
         )
-        val cursor = DateTimeIdCursorCodec.encode(cursorPost.createdAt, 20L)
+        val cursor = DateTimeIdCursorCodec.encode(requireNotNull(cursorPost.publishedAt), 20L)
         given(
-            postRepository.findFollowingPostsAfterCursor(
+            postRepository.findPublishedFollowingPostsAfterCursor(
                 9L,
-                cursorPost.createdAt,
+                PostStatus.PUBLISHED,
+                requireNotNull(cursorPost.publishedAt),
                 20L,
                 PageRequest.of(0, 6),
             )
@@ -183,6 +203,32 @@ class UserServiceTest {
         assertThat(response.posts.single().id).isEqualTo(19L)
         assertThat(response.nextCursor).isNull()
         assertThat(response.hasNext).isFalse()
+    }
+
+    @Test
+    fun `updateProfile preserves official account status`() {
+        val officialUser = User(
+            id = 9L,
+            username = "openlog",
+            nickname = "OpenLog",
+            isOpenLogOfficial = true,
+        )
+        given(userRepository.findByUsername("openlog")).willReturn(officialUser)
+        given(followRepository.countByFollowedUser_Id(9L)).willReturn(3L)
+        given(followRepository.countByFollowingUser_Id(9L)).willReturn(2L)
+
+        val response = userService.updateProfile(
+            userId = 9L,
+            username = "openlog",
+            nickname = "Team OpenLog",
+            bio = "Official OpenLog account",
+            location = null,
+            websiteUrl = null,
+        )
+
+        assertThat(response.nickname).isEqualTo("Team OpenLog")
+        assertThat(response.isOpenLogOfficial).isTrue()
+        assertThat(officialUser.isOpenLogOfficial).isTrue()
     }
 
     private fun createPost(
@@ -199,6 +245,7 @@ class UserServiceTest {
             title = title,
             description = "$title description",
             content = content,
+            status = PostStatus.PUBLISHED,
         )
     }
 }

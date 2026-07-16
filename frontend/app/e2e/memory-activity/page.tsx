@@ -26,16 +26,27 @@ const workspaceData: WorkspaceUiData = {
 };
 
 const activity: WorkspaceActivity = {
-  from: "2026-06-22",
+  from: "2026-04-01",
   to: "2026-07-13",
-  totalLogCount: 5,
-  days: Array.from({ length: 22 }, (_, index) => {
-    const date = new Date(Date.UTC(2026, 5, 22 + index))
+  totalLogCount: 29,
+  days: Array.from({ length: 104 }, (_, index) => {
+    const date = new Date(Date.UTC(2026, 3, 1 + index))
       .toISOString()
       .slice(0, 10);
     return {
       date,
-      logCount: date === "2026-07-10" ? 3 : date === "2026-06-24" || date === "2026-07-03" ? 1 : 0,
+      logCount:
+        date === "2026-04-02"
+          ? 2
+          : date === "2026-05-04"
+            ? 5
+            : date === "2026-06-24"
+              ? 9
+              : date === "2026-07-03"
+                ? 10
+                : date === "2026-07-10"
+                  ? 3
+                  : 0,
     };
   }),
 };

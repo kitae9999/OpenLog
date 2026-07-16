@@ -10,6 +10,9 @@ export async function GET(request: NextRequest) {
   if (cursor) {
     params.set("cursor", cursor);
   }
+  request.nextUrl.searchParams
+    .getAll("status")
+    .forEach((status) => params.append("status", status));
 
   const response = await fetch(
     `${API_CONFIG.baseURL}/users/me/posts?${params}`,

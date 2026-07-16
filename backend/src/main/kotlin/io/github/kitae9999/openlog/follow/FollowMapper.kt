@@ -11,6 +11,7 @@ class FollowMapper {
             username = requireNotNull(user.username),
             nickname = user.nickname,
             profileImageUrl = user.profileImageUrl,
+            isOpenLogOfficial = user.isOpenLogOfficial,
         )
     }
 }

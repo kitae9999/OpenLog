@@ -15,7 +15,6 @@ import { toJsonLdScript } from "@/shared/lib/jsonLd";
 import { formatPostVersionLabel } from "@/shared/lib/postVersion";
 import {
   buildPublicProfilePath,
-  buildPublicPostEditPath,
   buildPublicPostPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
@@ -117,10 +116,7 @@ export default async function PublicPostPage({
     ]);
     const authorHref = buildPublicProfilePath(detail.authorUsername);
     const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
-    const editHref = buildPublicPostEditPath(
-      detail.authorUsername,
-      detail.slug,
-    );
+    const editHref = `/posts/${detail.id}/edit`;
     const suggestsHref = buildPublicSuggestsPath(
       detail.authorUsername,
       detail.slug,
@@ -167,6 +163,7 @@ export default async function PublicPostPage({
               description: detail.description,
               authorName: detail.authorName,
               authorAvatarSrc: detail.authorAvatarSrc ?? assets.defaultAvatar,
+              authorIsOpenLogOfficial: detail.authorIsOpenLogOfficial,
               publishedAtLabel: detail.publishedAtLabel,
               versionLabel: formatPostVersionLabel(detail.version),
               tags: detail.topics,

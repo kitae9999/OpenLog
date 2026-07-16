@@ -2,6 +2,7 @@ package io.github.kitae9999.openlog.user
 
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.user.dto.PublicUserPostGraphResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserPostSummaryResponse
 import io.github.kitae9999.openlog.user.dto.PublicUserProfileResponse
@@ -25,10 +26,16 @@ class UserController(
     @GetMapping("/me/posts")
     fun getAuthoredPosts(
         @AuthenticationPrincipal user: User,
+        @RequestParam(required = false) status: Set<PostStatus>?,
         @RequestParam(required = false) cursor: String?,
         @RequestParam(defaultValue = "10") size: Int,
     ): RecentPostCursorResponse {
-        return userService.getAuthoredPosts(requireNotNull(user.id), cursor, size)
+        return userService.getAuthoredPosts(
+            requireNotNull(user.id),
+            status.orEmpty(),
+            cursor,
+            size,
+        )
     }
 
     @GetMapping("/me/following/posts")

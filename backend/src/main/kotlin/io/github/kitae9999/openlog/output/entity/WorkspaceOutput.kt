@@ -58,8 +58,8 @@ class WorkspaceOutput(
     var updatedAt: LocalDateTime = LocalDateTime.now()
         protected set
 
-    @Column(name = "published_at")
-    var publishedAt: LocalDateTime? = null
+    @Column(name = "exported_at")
+    var exportedAt: LocalDateTime? = null
         protected set
 
     fun update(title: String, content: String) {
@@ -78,17 +78,18 @@ class WorkspaceOutput(
         }
 
         status = OutputStatus.EXPORTED
-        updatedAt = LocalDateTime.now()
+        val now = LocalDateTime.now()
+        exportedAt = now
+        updatedAt = now
     }
 
-    fun markPublished() {
-        require(status == OutputStatus.DRAFT) {
-            "Only draft outputs can be published."
+    fun restoreDraft() {
+        require(status == OutputStatus.EXPORTED) {
+            "Only exported outputs can be restored."
         }
 
-        status = OutputStatus.PUBLISHED
-        publishedAt = LocalDateTime.now()
+        status = OutputStatus.DRAFT
+        exportedAt = null
         updatedAt = LocalDateTime.now()
     }
-
 }

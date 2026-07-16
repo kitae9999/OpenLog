@@ -3,6 +3,7 @@ import { apiClient } from "@/shared/api/apiClient";
 
 export type RecentPostSummary = {
   id: number;
+  status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
   slug: string;
   title: string;
   description: string;
@@ -10,6 +11,7 @@ export type RecentPostSummary = {
   authorUsername: string;
   authorName: string;
   authorAvatarSrc: string | null;
+  authorIsOpenLogOfficial: boolean;
   thumbnailSrc: string | null;
   likes: number;
   comments: number;

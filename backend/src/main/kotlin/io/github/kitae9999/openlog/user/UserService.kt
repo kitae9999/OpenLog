@@ -9,6 +9,7 @@ import io.github.kitae9999.openlog.follow.entity.FollowId
 import io.github.kitae9999.openlog.post.dto.PostDetailResponse
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
 import io.github.kitae9999.openlog.post.PostMapper
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.postlike.PostLikeRepository
@@ -34,21 +35,48 @@ class UserService(
     private val postMapper: PostMapper,
 ) {
     @Transactional
-    fun getAuthoredPosts(userId: Long, cursor: String?, size: Int): RecentPostCursorResponse {
+    fun getAuthoredPosts(
+        userId: Long,
+        statuses: Set<PostStatus>,
+        cursor: String?,
+        size: Int,
+    ): RecentPostCursorResponse {
         val safeSize = size.coerceIn(1, AUTHORED_POSTS_PAGE_SIZE)
         val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
+        val resolvedStatuses = statuses.ifEmpty { setOf(PostStatus.PUBLISHED) }
+        val publishedOnly = resolvedStatuses == setOf(PostStatus.PUBLISHED)
         val authoredPosts = if (cursorMarker == null) {
-            postRepository.findAllByAuthorIdOrderByCreatedAtDescIdDesc(
-                authorId = userId,
-                pageable = PageRequest.of(0, safeSize + 1),
-            )
+            if (publishedOnly) {
+                postRepository.findAllByAuthorIdAndStatusOrderByPublishedAtDescIdDesc(
+                    authorId = userId,
+                    status = PostStatus.PUBLISHED,
+                    pageable = PageRequest.of(0, safeSize + 1),
+                )
+            } else {
+                postRepository.findAllByAuthorIdAndStatusInOrderByUpdatedAtDescIdDesc(
+                    authorId = userId,
+                    statuses = resolvedStatuses,
+                    pageable = PageRequest.of(0, safeSize + 1),
+                )
+            }
         } else {
-            postRepository.findAuthoredPostsAfterCursor(
-                authorId = userId,
-                createdAt = cursorMarker.createdAt,
-                id = cursorMarker.id,
-                pageable = PageRequest.of(0, safeSize + 1),
-            )
+            if (publishedOnly) {
+                postRepository.findPublishedAuthoredPostsAfterCursor(
+                    authorId = userId,
+                    status = PostStatus.PUBLISHED,
+                    publishedAt = cursorMarker.createdAt,
+                    id = cursorMarker.id,
+                    pageable = PageRequest.of(0, safeSize + 1),
+                )
+            } else {
+                postRepository.findPrivateAuthoredPostsAfterCursor(
+                    authorId = userId,
+                    statuses = resolvedStatuses,
+                    updatedAt = cursorMarker.createdAt,
+                    id = cursorMarker.id,
+                    pageable = PageRequest.of(0, safeSize + 1),
+                )
+            }
         }
         val hasNext = authoredPosts.size > safeSize
         val pageItems = authoredPosts.take(safeSize)
@@ -68,7 +96,12 @@ class UserService(
             size = safeSize,
             nextCursor = pageItems.lastOrNull()
                 ?.takeIf { hasNext }
-                ?.let { post -> DateTimeIdCursorCodec.encode(post.createdAt, requireNotNull(post.id)) },
+                ?.let { post ->
+                    DateTimeIdCursorCodec.encode(
+                        if (publishedOnly) requireNotNull(post.publishedAt) else post.updatedAt,
+                        requireNotNull(post.id),
+                    )
+                },
             hasNext = hasNext,
         )
     }
@@ -78,14 +111,16 @@ class UserService(
         val safeSize = size.coerceIn(1, FOLLOWING_POSTS_PAGE_SIZE)
         val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
         val followingPosts = if (cursorMarker == null) {
-            postRepository.findFollowingPostsByUserId(
+            postRepository.findPublishedFollowingPostsByUserId(
                 userId = userId,
+                status = PostStatus.PUBLISHED,
                 pageable = PageRequest.of(0, safeSize + 1),
             )
         } else {
-            postRepository.findFollowingPostsAfterCursor(
+            postRepository.findPublishedFollowingPostsAfterCursor(
                 userId = userId,
-                createdAt = cursorMarker.createdAt,
+                status = PostStatus.PUBLISHED,
+                publishedAt = cursorMarker.createdAt,
                 id = cursorMarker.id,
                 pageable = PageRequest.of(0, safeSize + 1),
             )
@@ -108,7 +143,12 @@ class UserService(
             size = safeSize,
             nextCursor = pageItems.lastOrNull() // 가져온 목록의 마지막 포스트, 없을 시 에러 반환
                 ?.takeIf { hasNext }
-                ?.let { post -> DateTimeIdCursorCodec.encode(post.createdAt, requireNotNull(post.id)) },
+                ?.let { post ->
+                    DateTimeIdCursorCodec.encode(
+                        requireNotNull(post.publishedAt),
+                        requireNotNull(post.id),
+                    )
+                },
             hasNext = hasNext,
         )
     }
@@ -119,13 +159,15 @@ class UserService(
         val cursorMarker = cursor?.let(DateTimeIdCursorCodec::decode)
 
         val postLikes = if (cursorMarker == null) {
-            postLikeRepository.findLikedPostsByUserId(
+            postLikeRepository.findPublishedLikedPostsByUserId(
                 userId = userId,
+                status = PostStatus.PUBLISHED,
                 pageable = PageRequest.of(0, safeSize + 1),
             )
         } else {
-            postLikeRepository.findLikedPostsAfterCursor(
+            postLikeRepository.findPublishedLikedPostsAfterCursor(
                 userId = userId,
+                status = PostStatus.PUBLISHED,
                 createdAt = cursorMarker.createdAt,
                 id = cursorMarker.id,
                 pageable = PageRequest.of(0, safeSize + 1),
@@ -177,7 +219,10 @@ class UserService(
         val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val authorId = requireNotNull(user.id)
 
-        return postRepository.findAllByAuthorIdOrderByCreatedAtDesc(authorId).map { post ->
+        return postRepository.findAllByAuthorIdAndStatusOrderByPublishedAtDesc(
+            authorId,
+            PostStatus.PUBLISHED,
+        ).map { post ->
             userMapper.toPublicPostSummaryResponse(post)
         }
     }
@@ -186,13 +231,19 @@ class UserService(
     fun getPublicPostGraph(username: String): PublicUserPostGraphResponse {
         val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
         val authorId = requireNotNull(user.id)
-        val posts = postRepository.findAllByAuthorIdOrderByCreatedAtDesc(authorId)
+        val posts = postRepository.findAllByAuthorIdAndStatusOrderByPublishedAtDesc(
+            authorId,
+            PostStatus.PUBLISHED,
+        )
         val postIds = posts.mapNotNull { it.id }
         val links = if (postIds.isEmpty()) {
             emptyList()
         } else {
             postLinkRepository.findAllBySourcePostIdIn(postIds)
-                .filter { link -> link.targetPost.author.id == authorId }
+                .filter { link ->
+                    link.targetPost.author.id == authorId &&
+                        link.targetPost.status == PostStatus.PUBLISHED
+                }
         }
 
         return PublicUserPostGraphResponse(
@@ -204,13 +255,18 @@ class UserService(
     @Transactional
     fun getPublicPostDetail(username: String, slug: String, viewerId: Long?): PostDetailResponse {
         val user = userRepository.findByUsername(username) ?: throw NotFoundException("사용자를 찾을 수 없습니다.")
-        val post = postRepository.findByAuthorIdAndSlug(requireNotNull(user.id), slug)
+        val post = postRepository.findByAuthorIdAndSlugAndStatus(
+            requireNotNull(user.id),
+            slug,
+            PostStatus.PUBLISHED,
+        )
             ?: throw NotFoundException("글을 찾을 수 없습니다.")
         val postId = requireNotNull(post.id)
         val topics = postTopicRepository.findAllByPostId(postId)
             .map { it.topic.name }
             .sorted()
         val wikiLinks = postLinkRepository.findAllBySourcePostId(postId)
+            .filter { it.targetPost.status == PostStatus.PUBLISHED }
             .map(postMapper::toWikiLinkResponse)
             .distinctBy { "${it.targetSlug}\u0000${it.label}" }
 

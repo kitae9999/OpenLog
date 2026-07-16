@@ -8,8 +8,10 @@ export type TabKey = "workspace" | "explore" | "home" | "following" | "liked";
 
 export type FeedPost = {
   id: string;
+  status?: "draft" | "published" | "unpublished";
   nickname: string;
   profileImageSrc: string;
+  authorIsOpenLogOfficial: boolean;
   title: string;
   description: string;
   dateLabel: string;
@@ -585,7 +587,7 @@ export function getTaskExcerpt(body: string, maxLength = 100) {
   return `${firstLine.slice(0, maxLength).trim()}…`;
 }
 
-export type WorkspaceOutputStatus = "draft" | "published";
+export type WorkspaceOutputStatus = "draft" | "exported";
 
 export type WorkspaceTaskOutput = {
   id: string;
@@ -599,6 +601,9 @@ export type WorkspaceTaskOutput = {
   description: string;
   content: string;
   updatedLabel: string;
+  linkedPostId?: string;
+  linkedPostStatus?: "draft" | "published" | "unpublished";
+  postEditHref?: string;
   publishedHref?: string;
 };
 
@@ -648,7 +653,7 @@ export function getNewOutputHref(taskId?: string) {
 }
 
 export function getOutputStatusLabel(status: WorkspaceOutputStatus) {
-  return status === "draft" ? "Draft" : "Published";
+  return status === "draft" ? "Draft" : "Post created";
 }
 
 export function getOutputsFiltered(status: WorkspaceOutputStatus | "all") {
@@ -1060,6 +1065,7 @@ export const feedPosts: FeedPost[] = [
     id: "operational-notes",
     nickname: "Mina Park",
     profileImageSrc: assets.avatarA,
+    authorIsOpenLogOfficial: false,
     title: "Operational Notes That Survive the Sprint",
     description:
       "A practical way to turn short-lived implementation details into durable context for the next person reading the system.",
@@ -1073,6 +1079,7 @@ export const feedPosts: FeedPost[] = [
     id: "review-cadence",
     nickname: "Jinwoo Lee",
     profileImageSrc: assets.avatarB,
+    authorIsOpenLogOfficial: false,
     title: "The Review Cadence That Keeps Product Debt Visible",
     description:
       "Most teams only notice product debt when it blocks release. A lightweight weekly ritual makes the tradeoffs visible earlier.",
@@ -1086,6 +1093,7 @@ export const feedPosts: FeedPost[] = [
     id: "knowledge-graph",
     nickname: "Hannah Kim",
     profileImageSrc: assets.defaultAvatar,
+    authorIsOpenLogOfficial: false,
     title: "Designing a Knowledge Graph People Actually Use",
     description:
       "The useful graph is not the densest one. It is the one that connects decisions, owners, and follow-up work without ceremony.",
@@ -1099,6 +1107,7 @@ export const feedPosts: FeedPost[] = [
     id: "quiet-interfaces",
     nickname: "Alex Cho",
     profileImageSrc: assets.avatarA,
+    authorIsOpenLogOfficial: false,
     title: "Quiet Interfaces for Repeated Work",
     description:
       "A look at dense, predictable screens that respect operators by staying out of the way after the first week.",

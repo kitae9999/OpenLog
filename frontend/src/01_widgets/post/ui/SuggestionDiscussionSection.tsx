@@ -12,6 +12,7 @@ import {
 } from "@/features/discussion/api/discussionActions";
 import { DiscussionComposer } from "@/features/discussion-composer/ui";
 import { assets } from "@/shared/config/assets";
+import { OfficialBadge } from "@/shared/ui/OfficialBadge";
 import { MarkdownContent } from "@/shared/ui/markdown";
 
 const DISCUSSION_DATE_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
@@ -224,8 +225,13 @@ function DiscussionCard({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-            <span className="font-semibold text-zinc-950">
-              {comment.authorName}
+            <span className="inline-flex items-center gap-1">
+              <span className="font-semibold text-zinc-950">
+                {comment.authorName}
+              </span>
+              {comment.authorIsOpenLogOfficial ? (
+                <OfficialBadge size="sm" />
+              ) : null}
             </span>
             <span className="text-zinc-400">
               commented on {comment.commentedAtLabel}
@@ -281,6 +287,7 @@ function toDiscussionComment(discussion: ApiDiscussion): DiscussionComment {
     id: String(discussion.id),
     authorName: discussion.authorName,
     authorAvatarSrc: discussion.authorProfileImageUrl ?? assets.defaultAvatar,
+    authorIsOpenLogOfficial: discussion.authorIsOpenLogOfficial,
     commentedAtLabel: formatDiscussionDateLabel(discussion.createdAt),
     message: discussion.content,
     canManage: discussion.canManage,

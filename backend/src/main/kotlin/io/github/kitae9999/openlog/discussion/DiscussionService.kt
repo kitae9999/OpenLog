@@ -5,6 +5,7 @@ import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.discussion.dto.DiscussionResponse
 import io.github.kitae9999.openlog.discussion.entity.Discussion
 import io.github.kitae9999.openlog.discussion.repository.DiscussionRepository
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.user.entity.User
 import org.springframework.stereotype.Service
@@ -25,6 +26,9 @@ class DiscussionService (
     ): DiscussionResponse {
         val suggestion = suggestionRepository.findByIdAndPostId(suggestionId, postId)
             ?: throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
+        if (suggestion.post.status != PostStatus.PUBLISHED) {
+            throw NotFoundException("포스트에 존재하지 않는 Suggestion입니다.")
+        }
 
         val discussion = discussionRepository.save(
             Discussion(
@@ -72,6 +76,10 @@ class DiscussionService (
             suggestionId = suggestionId,
             postId = postId,
         ) ?: throw NotFoundException("Discussion을 찾을 수 없습니다.")
+
+        if (discussion.suggestion.post.status != PostStatus.PUBLISHED) {
+            throw NotFoundException("Discussion을 찾을 수 없습니다.")
+        }
 
         if (discussion.user.id != userId) {
             throw ForbiddenException("권한이 없습니다.")

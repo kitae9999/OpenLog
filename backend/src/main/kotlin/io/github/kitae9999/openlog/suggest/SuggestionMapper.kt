@@ -20,6 +20,7 @@ class SuggestionMapper(
                 ?: suggestion.user.username
                 ?: "Unknown",
             authorProfileImageUrl = suggestion.user.profileImageUrl,
+            authorIsOpenLogOfficial = suggestion.user.isOpenLogOfficial,
             createdAt = suggestion.createdAt,
             updatedAt = suggestion.updatedAt,
             commentCount = commentCount,
@@ -43,6 +44,7 @@ class SuggestionMapper(
                 ?: suggestion.user.username
                 ?: "Unknown",
             authorProfileImageUrl = suggestion.user.profileImageUrl,
+            authorIsOpenLogOfficial = suggestion.user.isOpenLogOfficial,
             createdAt = suggestion.createdAt,
             postBaseVersion = suggestion.postBaseVersion,
             discussions = discussions.map { discussion ->

@@ -14,6 +14,7 @@ data class SuggestionDetailResponse(
     val authorId: Long,
     val authorName: String,
     val authorProfileImageUrl: String?,
+    val authorIsOpenLogOfficial: Boolean,
     val createdAt: LocalDateTime,
     val postBaseVersion: Long,
     val discussions: List<DiscussionResponse>,

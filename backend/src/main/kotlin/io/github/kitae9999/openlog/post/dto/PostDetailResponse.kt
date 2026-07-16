@@ -9,6 +9,7 @@ data class PostDetailResponse(
     val authorUsername: String,
     val authorName: String,
     val authorAvatarSrc: String?,
+    val authorIsOpenLogOfficial: Boolean,
     val publishedAtLabel: String,
     val version: Long,
     val topics: List<String>,

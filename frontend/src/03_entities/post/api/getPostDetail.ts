@@ -12,6 +12,7 @@ export type ApiPostDetail = {
   authorUsername: string;
   authorName: string;
   authorAvatarSrc: string | null;
+  authorIsOpenLogOfficial: boolean;
   publishedAtLabel: string;
   version: number;
   topics: string[];

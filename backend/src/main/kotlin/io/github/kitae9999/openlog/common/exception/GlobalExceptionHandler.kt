@@ -36,6 +36,16 @@ class GlobalExceptionHandler {
         )
     }
 
+    @ExceptionHandler(ConflictException::class)
+    fun handleConflictException(e: ConflictException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+            ErrorResponse(
+                code = "CONFLICT",
+                message = e.message ?: "요청이 현재 리소스 상태와 충돌합니다.",
+            )
+        )
+    }
+
     @ExceptionHandler(NotFoundException::class)
     fun handleNotFoundException(e: NotFoundException): ResponseEntity<ErrorResponse> {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(

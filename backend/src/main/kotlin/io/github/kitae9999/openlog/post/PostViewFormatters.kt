@@ -5,7 +5,8 @@ import java.time.format.DateTimeFormatter
 
 private val PUBLISHED_AT_FORMATTER = DateTimeFormatter.ofPattern("yyyy. M. d.")
 
-fun formatPublishedAtLabel(post: Post): String = post.createdAt.format(PUBLISHED_AT_FORMATTER)
+fun formatPublishedAtLabel(post: Post): String =
+    (post.publishedAt ?: post.createdAt).format(PUBLISHED_AT_FORMATTER)
 
 fun extractFirstMarkdownImageSrc(content: String): String? {
     val imageSrc = MARKDOWN_IMAGE_PATTERN.find(content)
