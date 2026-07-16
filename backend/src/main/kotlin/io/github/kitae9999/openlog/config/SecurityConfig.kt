@@ -92,6 +92,7 @@ class SecurityConfig(
 
                     // workspace — logs/tasks 전부 인증 필요 (owner 검사는 WorkspaceAccessResolver)
                     .requestMatchers("/workspaces", "/workspaces/**").authenticated()
+                    .requestMatchers("/workspace-projects/**").authenticated()
                     .requestMatchers("/*/logs", "/*/logs/**").authenticated()
                     .requestMatchers("/*/tasks", "/*/tasks/**").authenticated()
 
