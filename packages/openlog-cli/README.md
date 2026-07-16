@@ -52,8 +52,17 @@ with write permission can preview and confirm `create_workspace_project`; this
 does not require or create a local directory.
 
 The MCP server sends its built-in session instructions in Korean. Tool names,
-input fields, Capture Mode values, and response status values remain unchanged.
+input fields, Capture Mode values, and response status values use the server API contract.
 Workspace Agent Guides are managed separately as workspace-owned Markdown.
+
+## Post lifecycle tools (2.0)
+
+Post creation now starts with a server draft. Use `create_post_draft`,
+`get_my_post`, and `update_post` for draft work, then call the ID-based
+`publish_post` after preview confirmation. `unpublish_post` hides a published
+Post without deleting comments, likes, or suggestions. Converting an Output is
+handled by `create_post_draft_from_output`; the source Output becomes read-only
+and the new Post draft is edited independently.
 
 Each workspace owns one editable English Markdown Agent Guide. The MCP server's
 `start_openlog_session` and `get_workspace_agent_guide` tools return the latest
@@ -115,10 +124,10 @@ openlog mcp permissions reset
 
 MCP tool groups:
 
-- Account and posts: authentication, notifications, authored/liked posts, image upload, post detail, and confirmed publishing
+- Account and posts: authentication, notifications, authored/liked posts, image upload, Post drafts, and confirmed publish/unpublish
 - Workspace context: project session start, workspace and project discovery, activity, working brief, tasks, logs, todos, memories, outputs, and graph links
 - Project creation: confirmed `create_workspace_project` without a required local directory
-- Safe writes: create/update, todo completion, link creation, image upload, and confirmed output/post publishing
+- Safe writes: create/update, todo completion, link creation, image upload, confirmed Output conversion, and Post publish/unpublish
 - Full-only writes: individual workspace-document/link deletes and working-brief clear
 
 MCP client configuration:

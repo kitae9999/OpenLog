@@ -18,7 +18,7 @@ const ISO_DATE = z
 const TASK_STATUS = z.enum(["TODO", "DOING", "DONE"]);
 const LOG_KIND = z.enum(["ISSUE", "FIX", "DECISION", "NOTE"]);
 const LOG_STATUS = z.enum(["NONE", "OPEN", "CLOSED"]);
-const OUTPUT_STATUS = z.enum(["DRAFT", "EXPORTED", "PUBLISHED"]);
+const OUTPUT_STATUS = z.enum(["DRAFT", "EXPORTED"]);
 const TASK_LINK_RELATION = z.enum(["PRECEDES", "BLOCKS", "RELATES_TO"]);
 const LOG_LINK_RELATION = z.enum(["FIXES", "RELATES_TO", "SUPERSEDES"]);
 const WORKSPACE_NODE_TYPE = z.enum(["TASK", "LOG", "OUTPUT", "MEMORY"]);
@@ -72,7 +72,9 @@ type OutputDetailResponse = {
   content: string;
   tasks: Array<{ id: number; title: string }>;
   logs: Array<{ id: number; title: string }>;
-  publishedPost?: {
+  linkedPost?: {
+    id: number;
+    status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
     authorUsername: string;
     slug: string;
   } | null;
@@ -819,17 +821,15 @@ function registerOutputTools(
   );
 
   registry.registerAuthenticated(
-    "publish_workspace_output",
+    "create_post_draft_from_output",
     "publish",
     {
-      title: "Publish OpenLog Workspace Output",
+      title: "Create OpenLog Post Draft From Output",
       description:
-        "Preview and publish a draft output. Requires confirm: true unless skipConfirmation is explicitly requested.",
+        "Preview a draft Output and convert it to a server Post draft. The Output becomes read-only after conversion. Requires confirm: true unless skipConfirmation is explicitly requested.",
       inputSchema: {
         workspaceId: POSITIVE_ID,
         outputId: POSITIVE_ID,
-        description: z.string().min(1),
-        topics: z.array(z.string()).default([]),
         confirm: z.boolean().optional(),
         skipConfirmation: z.boolean().optional(),
       },
@@ -840,13 +840,12 @@ function registerOutputTools(
       {
         workspaceId,
         outputId,
-        description,
-        topics,
         confirm,
         skipConfirmation,
       },
     ) => {
       // 확인 전 호출은 output 조회만 수행하며 발행 endpoint는 호출하지 않는다.
+      // 2.0 계약에서 발행 endpoint는 Post 초안 변환 endpoint다.
       if (confirm !== true && skipConfirmation !== true) {
         const output = await client.get<OutputDetailResponse>(
           `/workspaces/${workspaceId}/outputs/${outputId}`,
@@ -861,29 +860,23 @@ function registerOutputTools(
             contentLength: output.content.length,
             taskIds: output.tasks.map((task) => task.id),
             logIds: output.logs.map((log) => log.id),
-            description: description.trim(),
-            topics: normalizeTopics(topics),
           },
           nextStep:
-            "Call publish_workspace_output again with confirm: true, or skipConfirmation: true if the user explicitly requested publishing without confirmation.",
+            "Call create_post_draft_from_output again with confirm: true, or skipConfirmation: true if the user explicitly requested conversion without confirmation.",
         };
       }
 
-      const published = await client.post<OutputDetailResponse>(
-        `/workspaces/${workspaceId}/outputs/${outputId}/publish`,
-        {
-          description: description.trim(),
-          topics: normalizeTopics(topics),
-        },
+      const converted = await client.post<OutputDetailResponse>(
+        `/workspaces/${workspaceId}/outputs/${outputId}/post-draft`,
       );
-      const post = published.publishedPost;
+      const post = converted.linkedPost;
       if (!post) {
-        return published;
+        return converted;
       }
 
-      const path = buildPublicPostPath(post.authorUsername, post.slug);
+      const path = `/posts/${post.id}/edit`;
       return {
-        ...published,
+        ...converted,
         path,
         url: new URL(path, `${webBaseUrl}/`).toString(),
       };
@@ -1133,20 +1126,6 @@ function withQuery(
   }
   const query = params.toString();
   return query ? `${path}?${query}` : path;
-}
-
-function normalizeTopics(topics: string[]): string[] {
-  return [
-    ...new Set(
-      topics
-        .map((topic) => topic.trim().toLowerCase())
-        .filter((topic) => topic.length > 0),
-    ),
-  ];
-}
-
-function buildPublicPostPath(username: string, slug: string): string {
-  return `/@${encodeURIComponent(username)}/posts/${encodeURIComponent(slug)}`;
 }
 
 function isValidIsoDate(value: string): boolean {

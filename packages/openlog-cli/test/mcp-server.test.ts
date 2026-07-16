@@ -36,7 +36,11 @@ test("exposes tools according to the active permission profile", async (t) => {
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "update_workspace_agent_guide"));
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "create_workspace_project"));
   assert.ok(safeWriteTools.tools.some((tool) => tool.name === "update_workspace_project_capture_mode"));
-  assert.ok(safeWriteTools.tools.some((tool) => tool.name === "publish_workspace_output"));
+  assert.ok(safeWriteTools.tools.some((tool) => tool.name === "create_post_draft_from_output"));
+  assert.ok(safeWriteTools.tools.some((tool) => tool.name === "create_post_draft"));
+  assert.ok(safeWriteTools.tools.some((tool) => tool.name === "publish_post"));
+  assert.ok(safeWriteTools.tools.some((tool) => tool.name === "unpublish_post"));
+  assert.ok(!safeWriteTools.tools.some((tool) => tool.name === "publish_workspace_output"));
   assert.ok(!safeWriteTools.tools.some((tool) => tool.name === "delete_workspace_task"));
 
   const full = await createSession(t, "full");
@@ -344,33 +348,69 @@ test("maps workspace read and safe-write tools to their REST endpoints", async (
   }
 });
 
-test("previews workspace output publishing before the confirmed POST", async (t) => {
+test("previews workspace output conversion before the confirmed POST", async (t) => {
   const session = await createSession(t, "safe-write");
 
-  const preview = await callJson(session.client, "publish_workspace_output", {
+  const preview = await callJson(session.client, "create_post_draft_from_output", {
     workspaceId: 1,
     outputId: 6,
-    description: "Release notes",
-    topics: [" Kotlin ", "kotlin"],
   });
   assert.equal(preview.requiresConfirmation, true);
   assert.deepEqual(session.api.calls, [{ method: "GET", path: "/workspaces/1/outputs/6" }]);
 
   session.api.calls.length = 0;
-  const published = await callJson(session.client, "publish_workspace_output", {
+  const converted = await callJson(session.client, "create_post_draft_from_output", {
     workspaceId: 1,
     outputId: 6,
-    description: "Release notes",
-    topics: [" Kotlin ", "kotlin"],
     confirm: true,
   });
-  assert.equal(published.url, "https://openlog.test/@owner/posts/output-post");
+  assert.equal(converted.url, "https://openlog.test/posts/80/edit");
   assert.deepEqual(session.api.calls, [
     {
       method: "POST",
-      path: "/workspaces/1/outputs/6/publish",
-      body: { description: "Release notes", topics: ["kotlin"] },
+      path: "/workspaces/1/outputs/6/post-draft",
     },
+  ]);
+});
+
+test("creates post drafts and confirms ID-based publish transitions", async (t) => {
+  const session = await createSession(t, "safe-write");
+
+  const draft = await callJson(session.client, "create_post_draft", {
+    title: " Draft title ",
+    description: "",
+    content: " Body ",
+    topics: [" Kotlin ", "kotlin"],
+  });
+  assert.equal(draft.status, "DRAFT");
+  assert.deepEqual(session.api.calls, [
+    {
+      method: "POST",
+      path: "/posts",
+      body: {
+        title: "Draft title",
+        description: "",
+        content: "Body",
+        topics: ["kotlin"],
+        links: [],
+      },
+    },
+  ]);
+
+  session.api.calls.length = 0;
+  const preview = await callJson(session.client, "publish_post", { postId: 9 });
+  assert.equal(preview.requiresConfirmation, true);
+  assert.deepEqual(session.api.calls, [{ method: "GET", path: "/posts/9" }]);
+
+  session.api.calls.length = 0;
+  const published = await callJson(session.client, "publish_post", {
+    postId: 9,
+    confirm: true,
+  });
+  assert.equal(published.url, "https://openlog.test/@owner/posts/draft-title");
+  assert.deepEqual(session.api.calls, [
+    { method: "GET", path: "/posts/9" },
+    { method: "POST", path: "/posts/9/publish" },
   ]);
 });
 
@@ -573,6 +613,9 @@ class RecordingApiClient {
     if (path === "/workspaces/1/outputs/6") {
       return outputResponse(null) as T;
     }
+    if (path === "/posts/9") {
+      return ownedPostResponse() as T;
+    }
     if (path === "/workspaces/1/agent-guide") {
       return agentGuideResponse(3, "# Workspace Agent Guide") as T;
     }
@@ -592,8 +635,22 @@ class RecordingApiClient {
   async post<T>(path: string, body?: unknown): Promise<T> {
     this.record("POST", path, body);
     this.throwFailure(path);
-    if (path === "/workspaces/1/outputs/6/publish") {
-      return outputResponse({ authorUsername: "owner", slug: "output-post" }) as T;
+    if (path === "/workspaces/1/outputs/6/post-draft") {
+      return outputResponse({
+        id: 80,
+        status: "DRAFT",
+        authorUsername: "owner",
+        slug: "output-post",
+      }) as T;
+    }
+    if (path === "/posts") {
+      return ownedPostResponse() as T;
+    }
+    if (path === "/posts/9/publish") {
+      return ownedPostResponse("PUBLISHED") as T;
+    }
+    if (path === "/posts/9/unpublish") {
+      return ownedPostResponse("UNPUBLISHED") as T;
     }
     if (path === "/workspaces/1/projects") {
       const captureMode =
@@ -716,17 +773,34 @@ function permissionsFor(profile: McpPermissionProfile): ResolvedMcpPermissions {
   };
 }
 
-function outputResponse(
-  publishedPost: { authorUsername: string; slug: string } | null,
-) {
+function outputResponse(linkedPost: {
+  id: number;
+  status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
+  authorUsername: string;
+  slug: string;
+} | null) {
   return {
     id: 6,
-    status: publishedPost ? "PUBLISHED" : "DRAFT",
+    status: linkedPost ? "EXPORTED" : "DRAFT",
     title: "Output",
     content: "Draft output content",
     tasks: [{ id: 2, title: "Task" }],
     logs: [{ id: 3, title: "Log" }],
-    publishedPost,
+    linkedPost,
+  };
+}
+
+function ownedPostResponse(status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED" = "DRAFT") {
+  return {
+    id: 9,
+    status,
+    authorUsername: "owner",
+    slug: "draft-title",
+    title: "Draft title",
+    description: "Description",
+    content: "Body",
+    topics: ["kotlin"],
+    sourceOutput: null,
   };
 }
 

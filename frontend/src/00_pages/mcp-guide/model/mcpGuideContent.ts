@@ -57,8 +57,15 @@ export const mcpGuideTools = [
     access: "readOnly",
   },
   {
-    area: { en: "Public post publishing", ko: "공개 게시글 발행" },
-    tools: ["upload_post_image", "publish_post"],
+    area: { en: "Post lifecycle", ko: "Post 초안·발행 관리" },
+    tools: [
+      "get_my_post",
+      "create_post_draft",
+      "update_post",
+      "upload_post_image",
+      "publish_post",
+      "unpublish_post",
+    ],
     access: "safeWrite",
   },
   {
@@ -140,11 +147,11 @@ export const mcpGuideTools = [
     access: "readOnly",
   },
   {
-    area: { en: "Outputs — write", ko: "Output 생성·수정·발행" },
+    area: { en: "Outputs — write", ko: "Output 생성·수정·Post 초안 전환" },
     tools: [
       "create_workspace_output",
       "update_workspace_output",
-      "publish_workspace_output",
+      "create_post_draft_from_output",
     ],
     access: "safeWrite",
   },
