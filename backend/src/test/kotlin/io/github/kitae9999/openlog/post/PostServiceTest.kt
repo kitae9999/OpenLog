@@ -116,6 +116,7 @@ class PostServiceTest {
             username = "alice",
             nickname = "Alice",
             profileImageUrl = "https://example.com/alice.png",
+            isOpenLogOfficial = true,
         )
         val post = Post(
             id = 10L,
@@ -151,6 +152,7 @@ class PostServiceTest {
         assertThat(summary.authorUsername).isEqualTo("alice")
         assertThat(summary.authorName).isEqualTo("Alice")
         assertThat(summary.authorAvatarSrc).isEqualTo("https://example.com/alice.png")
+        assertThat(summary.authorIsOpenLogOfficial).isTrue()
         assertThat(summary.thumbnailSrc).isEqualTo("https://example.com/cover.webp")
         assertThat(summary.likes).isEqualTo(3)
         assertThat(summary.comments).isEqualTo(2)

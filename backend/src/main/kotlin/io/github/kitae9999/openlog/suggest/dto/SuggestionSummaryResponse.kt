@@ -9,6 +9,7 @@ data class SuggestionSummaryResponse(
     val status: SuggestionStatus,
     val authorName: String,
     val authorProfileImageUrl: String?,
+    val authorIsOpenLogOfficial: Boolean,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
     val commentCount: Int = 0,

@@ -15,6 +15,7 @@ class CommentMapper {
             id = requireNotNull(comment.id),
             authorName = resolveAuthorName(author),
             authorProfileImageUrl = author.profileImageUrl,
+            authorIsOpenLogOfficial = author.isOpenLogOfficial,
             content = comment.content,
             createdAt = comment.createdAt.toString(),
             canManage = userId == authorId,

@@ -4,6 +4,7 @@ data class CommentResponse(
     val id: Long,
     val authorName: String,
     val authorProfileImageUrl: String?,
+    val authorIsOpenLogOfficial: Boolean,
     val content: String,
     val createdAt: String,
     val canManage: Boolean,
