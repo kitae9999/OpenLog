@@ -5,13 +5,22 @@ import {
   getLogById,
   workspaceLogs,
   workspaceWorkItems,
+  type WorkspaceLogItem,
 } from "@/entities/workspace/model/data";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
 
-const log =
+const fixtureLog =
   getLogById("turbopack-pnpm") ??
   workspaceLogs.find((item) => item.id === "turbopack-pnpm") ??
   workspaceLogs[0];
+
+const log: WorkspaceLogItem = {
+  ...fixtureLog,
+  kind: "ISSUE",
+  status: "OPEN",
+  label: "Issue",
+  tone: "amber",
+};
 
 const workspaceData: WorkspaceUiData = {
   workspaceId: "e2e-workspace",
@@ -35,6 +44,7 @@ export default function LogDetailE2EPage() {
           log={log}
           workspaceData={workspaceData}
           assignTaskOverride={async () => ({ ok: true })}
+          changeStatusOverride={async () => ({ ok: true })}
           isLoggedIn
         />
       </div>

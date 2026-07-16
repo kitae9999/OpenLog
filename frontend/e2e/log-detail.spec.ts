@@ -23,6 +23,8 @@ test.describe("Log detail layout", () => {
     ).toContainText("Logs");
     await expect(page.getByText("Task", { exact: true })).toBeVisible();
     await expect(page.getByTestId("task-switcher")).toBeVisible();
+    await expect(page.getByText("Status", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("issue-status-switcher")).toBeVisible();
     await expect(page.getByText("Branch", { exact: true })).toBeVisible();
   });
 
@@ -47,6 +49,36 @@ test.describe("Log detail layout", () => {
         .getByTestId("task-switcher")
         .getByText("홈 피드 → 워크스페이스 뷰 전환"),
     ).toBeVisible();
+  });
+
+  test("changes an issue between open and closed from the sidebar", async ({
+    page,
+  }) => {
+    const statusSwitcher = page.getByTestId("issue-status-switcher");
+
+    await expect(
+      statusSwitcher.getByRole("button", { name: "Issue status" }),
+    ).toContainText("Open");
+    await statusSwitcher.getByRole("button", { name: "Issue status" }).click();
+    await expect(
+      page.getByRole("listbox", { name: "Issue status options" }),
+    ).toBeVisible();
+
+    await page.getByRole("option", { name: "Closed" }).click();
+
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    await expect(
+      statusSwitcher.getByRole("button", { name: "Issue status" }),
+    ).toContainText("Closed");
+    await expect(page.getByTestId("log-title-block")).toContainText("Closed");
+
+    await statusSwitcher.getByRole("button", { name: "Issue status" }).click();
+    await page.getByRole("option", { name: "Open" }).click();
+
+    await expect(
+      statusSwitcher.getByRole("button", { name: "Issue status" }),
+    ).toContainText("Open");
+    await expect(page.getByTestId("log-title-block")).toContainText("Open");
   });
 
   test("edits content inline without leaving the page", async ({ page }) => {
