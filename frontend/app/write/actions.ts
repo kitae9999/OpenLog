@@ -7,6 +7,8 @@ import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import type { WriteActionState } from "./action-state";
 
 type PostWriteResponse = {
+  id: number;
+  status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
   authorUsername: string;
   slug: string;
 };
@@ -31,21 +33,26 @@ export async function submitPost(
     .filter(Boolean)
     .filter((value, index, list) => list.indexOf(value) === index);
   const links = parsePostWriteLinks(formData);
+  const intent = String(formData.get("intent") ?? "publish");
 
   const errors: WriteActionState["errors"] = {};
 
-  if (!title) {
-    errors.title = "제목은 필수입니다.";
-  }
-
-  if (!description) {
-    errors.description = "설명은 필수입니다.";
-  } else if (description.length > DESCRIPTION_MAX_LENGTH) {
+  if (description.length > DESCRIPTION_MAX_LENGTH) {
     errors.description = `설명은 ${DESCRIPTION_MAX_LENGTH}자 이하여야 합니다.`;
   }
 
-  if (!content) {
-    errors.content = "본문은 필수입니다.";
+  if (intent === "publish") {
+    if (!title) {
+      errors.title = "제목은 필수입니다.";
+    }
+    if (!description) {
+      errors.description = "설명은 필수입니다.";
+    }
+    if (!content) {
+      errors.content = "본문은 필수입니다.";
+    }
+  } else if (!title && !description && !content) {
+    errors.form = "제목, 설명, 본문 중 하나 이상을 입력해주세요.";
   }
 
   if (Object.keys(errors).length > 0) {
@@ -70,7 +77,31 @@ export async function submitPost(
   });
 
   if (response.ok) {
-    const payload = (await response.json()) as PostWriteResponse;
+    const draft = (await response.json()) as PostWriteResponse;
+    if (intent !== "publish") {
+      return {
+        errors: {},
+        redirectTo: `/posts/${draft.id}/edit`,
+      };
+    }
+
+    const publishResponse = await fetch(
+      `${API_CONFIG.baseURL}/posts/${draft.id}/publish`,
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          cookie: headerStore.get("cookie") ?? "",
+        },
+      },
+    );
+    if (!publishResponse.ok) {
+      return {
+        errors: {},
+        redirectTo: `/posts/${draft.id}/edit?publishError=1`,
+      };
+    }
+    const payload = (await publishResponse.json()) as PostWriteResponse;
     return {
       errors: {},
       redirectTo: buildPublicPostPath(payload.authorUsername, payload.slug),

@@ -5,10 +5,13 @@ import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.common.outbox.OutboxEventWriter
 import io.github.kitae9999.openlog.media.MediaService
+import io.github.kitae9999.openlog.output.entity.OutputStatus
+import io.github.kitae9999.openlog.output.entity.WorkspaceOutput
 import io.github.kitae9999.openlog.post.command.PostLinkWriteCommand
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.entity.Post
 import io.github.kitae9999.openlog.post.entity.PostLink
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.post.repository.PostLinkRepository
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.postlike.PostLikeCount
@@ -19,6 +22,7 @@ import io.github.kitae9999.openlog.suggest.repository.SuggestionRepository
 import io.github.kitae9999.openlog.topic.entity.Topic
 import io.github.kitae9999.openlog.topic.repository.TopicRepository
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.workspace.entity.Workspace
 import io.github.kitae9999.openlog.comment.repository.CommentCount
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -32,6 +36,7 @@ import org.mockito.BDDMockito.given
 import org.mockito.Mock
 import org.mockito.Mockito.lenient
 import org.mockito.Mockito.never
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.verifyNoMoreInteractions
@@ -107,6 +112,8 @@ class PostServiceTest {
         assertThat(postCaptor.value.author).isSameAs(user)
         assertThat(postCaptor.value.slug).isEqualTo("hello-openlog")
         assertThat(postCaptor.value.title).isEqualTo("Hello OpenLog")
+        assertThat(postCaptor.value.status).isEqualTo(PostStatus.DRAFT)
+        verifyNoInteractions(outboxEventWriter)
     }
 
     @Test
@@ -125,8 +132,14 @@ class PostServiceTest {
             title = "Hello OpenLog",
             description = "A short intro",
             content = "Intro\n\n![Cover](https://example.com/cover.webp)\n\nContent",
+            status = PostStatus.PUBLISHED,
         )
-        given(postRepository.findAllByOrderByCreatedAtDescIdDesc(PageRequest.of(0, 11)))
+        given(
+            postRepository.findAllByStatusOrderByPublishedAtDescIdDesc(
+                PostStatus.PUBLISHED,
+                PageRequest.of(0, 11),
+            )
+        )
             .willReturn(listOf(post))
         given(postLikeRepository.countAllByPostIdIn(listOf(10L))).willReturn(
             listOf(object : PostLikeCount {
@@ -168,6 +181,7 @@ class PostServiceTest {
             title = "Cursor Post",
             description = "Cursor",
             content = "Content",
+            status = PostStatus.PUBLISHED,
         )
         val nextPost = Post(
             id = 19L,
@@ -176,13 +190,15 @@ class PostServiceTest {
             title = "Next Post",
             description = "Next",
             content = "Content",
+            status = PostStatus.PUBLISHED,
         )
         val cursor = Base64.getUrlEncoder()
             .withoutPadding()
-            .encodeToString("${cursorPost.createdAt}|20".toByteArray())
+            .encodeToString("${requireNotNull(cursorPost.publishedAt)}|20".toByteArray())
         given(
-            postRepository.findRecentPostsAfterCursor(
-                cursorPost.createdAt,
+            postRepository.findPublishedPostsAfterCursor(
+                PostStatus.PUBLISHED,
+                requireNotNull(cursorPost.publishedAt),
                 20L,
                 PageRequest.of(0, 11),
             )
@@ -221,6 +237,7 @@ class PostServiceTest {
             title = "Target Post",
             description = "target",
             content = "target content",
+            status = PostStatus.PUBLISHED,
         )
         given(postRepository.existsByAuthorIdAndSlug(1L, "source-post")).willReturn(false)
         given(postRepository.save(any(Post::class.java))).willAnswer { invocation ->
@@ -270,6 +287,7 @@ class PostServiceTest {
             title = "Old Post",
             description = "old",
             content = "old",
+            status = PostStatus.PUBLISHED,
         )
         val newTarget = Post(
             id = 20L,
@@ -278,6 +296,7 @@ class PostServiceTest {
             title = "New Post",
             description = "new",
             content = "new",
+            status = PostStatus.PUBLISHED,
         )
         val staleLink = PostLink(sourcePost = sourcePost, targetPost = oldTarget, label = "Old Post")
         given(postRepository.findById(10L)).willReturn(Optional.of(sourcePost))
@@ -322,6 +341,7 @@ class PostServiceTest {
             title = "First Target",
             description = "first",
             content = "first",
+            status = PostStatus.PUBLISHED,
         )
         val secondTarget = Post(
             id = 21L,
@@ -330,6 +350,7 @@ class PostServiceTest {
             title = "Second Target",
             description = "second",
             content = "second",
+            status = PostStatus.PUBLISHED,
         )
         val staleLink = PostLink(sourcePost = sourcePost, targetPost = firstTarget, label = "Old First Target")
         given(postRepository.findById(10L)).willReturn(Optional.of(sourcePost))
@@ -370,6 +391,7 @@ class PostServiceTest {
             title = "Same Title",
             description = "selected",
             content = "selected",
+            status = PostStatus.PUBLISHED,
         )
         given(postRepository.existsByAuthorIdAndSlug(1L, "source-post")).willReturn(false)
         given(postRepository.save(any(Post::class.java))).willAnswer { invocation ->
@@ -409,6 +431,7 @@ class PostServiceTest {
             title = "Target Post",
             description = "target",
             content = "target content",
+            status = PostStatus.PUBLISHED,
         )
         given(postRepository.existsByAuthorIdAndSlug(1L, "source-post")).willReturn(false)
         given(postRepository.save(any(Post::class.java))).willAnswer { invocation ->
@@ -669,6 +692,61 @@ class PostServiceTest {
         verify(postRepository).delete(post)
     }
 
+    @Test
+    fun `deletePost restores linked output to draft`() {
+        val user = User(id = 1L, username = "alice")
+        val workspace = Workspace(id = 20L, owner = user, slug = "default", name = "Default")
+        val output = WorkspaceOutput(
+            id = 30L,
+            workspace = workspace,
+            author = user,
+            title = "Source output",
+            content = "Content",
+        )
+        output.markExported()
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Description",
+            content = "Content",
+            output = output,
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+
+        postService.deletePost(1L, 10L)
+
+        assertThat(output.status).isEqualTo(OutputStatus.DRAFT)
+        assertThat(output.exportedAt).isNull()
+        verify(postRepository).delete(post)
+    }
+
+    @Test
+    fun `publishPost notifies followers only on first publish`() {
+        val user = User(id = 1L, username = "alice")
+        val post = Post(
+            id = 10L,
+            author = user,
+            slug = "hello-openlog",
+            title = "Hello OpenLog",
+            description = "Description",
+            content = "Content",
+            status = PostStatus.DRAFT,
+        )
+        given(postRepository.findById(10L)).willReturn(Optional.of(post))
+
+        val firstPublished = postService.publishPost(1L, 10L)
+        postService.unpublishPost(1L, 10L)
+        val republished = postService.publishPost(1L, 10L)
+
+        assertThat(firstPublished.status).isEqualTo(PostStatus.PUBLISHED)
+        assertThat(republished.status).isEqualTo(PostStatus.PUBLISHED)
+        assertThat(post.publishedAt).isNotNull()
+        assertThat(post.unpublishedAt).isNull()
+        assertThat(mockingDetails(outboxEventWriter).invocations).hasSize(1)
+    }
+
     private fun createRequest(
         title: String = "Hello OpenLog",
         description: String = "Removing blog ownership from posts",
@@ -690,6 +768,9 @@ class PostServiceTest {
         title = title,
         description = description,
         content = content,
+        status = status,
+        publishedAt = publishedAt,
+        unpublishedAt = unpublishedAt,
     )
 
     @Suppress("UNCHECKED_CAST")

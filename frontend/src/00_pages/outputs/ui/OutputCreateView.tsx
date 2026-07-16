@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   formatSelection,
@@ -13,7 +13,6 @@ import {
 import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import {
   getLogBody,
-  getLogsForTask,
   getOutputHref,
   getOutputsHref,
   getTabHref,
@@ -34,30 +33,13 @@ export function OutputCreateView({
   const router = useRouter();
   const tasks = workspaceData?.tasks ?? [];
   const logs = workspaceData?.logs ?? [];
-  const initialTask =
-    tasks.find((task) => task.id === initialTaskId) ?? tasks[0];
-  const [taskId, setTaskId] = useState(initialTask?.id ?? "");
-  const candidateLogs = useMemo(
-    () =>
-      workspaceData
-        ? logs.filter((log) => log.taskId === taskId)
-        : getLogsForTask(taskId),
-    [logs, taskId, workspaceData],
+  const initialTask = tasks.find((task) => task.id === initialTaskId);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>(() =>
+    initialTask ? [initialTask.id] : [],
   );
-  const [selectedLogIds, setSelectedLogIds] = useState<string[]>(() =>
-    candidateLogs.map((log) => log.id),
-  );
-  const [title, setTitle] = useState(
-    initialTask ? `${initialTask.title} 정리` : "",
-  );
-  const [content, setContent] = useState(() => {
-    const source = candidateLogs.slice(0, 2);
-    if (source.length === 0) {
-      return "## Summary\n\n";
-    }
-
-    return `## Summary\n\n${source.map((log) => log.description).join("\n\n")}\n\n## Source logs\n\n${source.map((log) => `- ${log.title}`).join("\n")}`;
-  });
+  const [selectedLogIds, setSelectedLogIds] = useState<string[]>([]);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -94,10 +76,11 @@ export function OutputCreateView({
     });
   }
 
-  function changeTask(nextTaskId: string) {
-    setTaskId(nextTaskId);
-    setSelectedLogIds(
-      logs.filter((log) => log.taskId === nextTaskId).map((log) => log.id),
+  function toggleTask(taskId: string) {
+    setSelectedTaskIds((current) =>
+      current.includes(taskId)
+        ? current.filter((id) => id !== taskId)
+        : [...current, taskId],
     );
   }
 
@@ -122,7 +105,7 @@ export function OutputCreateView({
         workspaceId: workspaceData.workspaceId,
         title: trimmedTitle,
         content,
-        taskIds: taskId ? [taskId] : [],
+        taskIds: selectedTaskIds,
         logIds: selectedLogIds,
       });
 
@@ -145,7 +128,7 @@ export function OutputCreateView({
           ? `from ${selectedLogIds.length} log${selectedLogIds.length === 1 ? "" : "s"}`
           : "manual draft",
       content,
-      taskIds: taskId ? [taskId] : [],
+      taskIds: selectedTaskIds,
       logIds: selectedLogIds,
     });
 
@@ -253,7 +236,7 @@ export function OutputCreateView({
               )}
             >
               {error ??
-                `${selectedLogIds.length} source log${selectedLogIds.length === 1 ? "" : "s"} selected`}
+                `${selectedTaskIds.length} task${selectedTaskIds.length === 1 ? "" : "s"} · ${selectedLogIds.length} log${selectedLogIds.length === 1 ? "" : "s"} selected`}
             </span>
             <div className="flex items-center gap-3">
               <Link
@@ -280,25 +263,25 @@ export function OutputCreateView({
         </div>
 
         <aside className="space-y-5 px-1 pt-[22px] lg:px-0">
-          <FieldSelect label="Task" value={taskId} onChange={changeTask}>
-            {tasks.map((task) => (
-              <option key={task.id} value={task.id}>
-                {task.title}
-              </option>
-            ))}
-          </FieldSelect>
+          <SourceChecklist
+            label="Source tasks"
+            emptyLabel="No tasks available."
+            items={tasks.map((task) => ({ id: task.id, title: task.title }))}
+            selectedIds={selectedTaskIds}
+            onToggle={toggleTask}
+          />
 
           <div>
             <p className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
               Source logs
             </p>
             <div className="mt-3 space-y-1">
-              {candidateLogs.length === 0 ? (
+              {logs.length === 0 ? (
                 <p className="py-2 text-[12.5px] text-zinc-500">
-                  No logs for this task.
+                  No logs available.
                 </p>
               ) : (
-                candidateLogs.map((log) => {
+                logs.map((log) => {
                   const checked = selectedLogIds.includes(log.id);
                   return (
                     <label
@@ -333,33 +316,47 @@ export function OutputCreateView({
   );
 }
 
-function FieldSelect({
+function SourceChecklist({
   label,
-  value,
-  onChange,
-  children,
+  emptyLabel,
+  items,
+  selectedIds,
+  onToggle,
 }: {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
-  children: ReactNode;
+  emptyLabel: string;
+  items: Array<{ id: string; title: string }>;
+  selectedIds: string[];
+  onToggle: (id: string) => void;
 }) {
   return (
-    <label className="block">
-      <span className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
+    <div>
+      <p className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
         {label}
-      </span>
-      <div className="relative mt-1.5">
-        <select
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-9 w-full appearance-none border-0 border-b border-zinc-200 bg-transparent py-1.5 pr-7 text-[13.5px] font-medium text-zinc-900 outline-none transition hover:border-zinc-300 focus:border-zinc-900"
-        >
-          {children}
-        </select>
-        <IconChevronDown className="pointer-events-none absolute right-0 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+      </p>
+      <div className="mt-3 space-y-1">
+        {items.length === 0 ? (
+          <p className="py-2 text-[12.5px] text-zinc-500">{emptyLabel}</p>
+        ) : (
+          items.map((item) => (
+            <label
+              key={item.id}
+              className="flex cursor-pointer items-start gap-2.5 py-2"
+            >
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(item.id)}
+                onChange={() => onToggle(item.id)}
+                className="mt-0.5 size-3.5 rounded border-zinc-300 text-zinc-950 focus:ring-zinc-900/20"
+              />
+              <span className="text-[13px] font-medium leading-5 text-zinc-900">
+                {item.title}
+              </span>
+            </label>
+          ))
+        )}
       </div>
-    </label>
+    </div>
   );
 }
 
@@ -388,24 +385,5 @@ function TabButton({
         <span className="absolute inset-x-2 -bottom-px h-0.5 bg-zinc-950" />
       ) : null}
     </button>
-  );
-}
-
-function IconChevronDown({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M6 9l6 6 6-6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

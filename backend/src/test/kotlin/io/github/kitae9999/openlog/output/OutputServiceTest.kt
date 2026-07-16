@@ -10,6 +10,8 @@ import io.github.kitae9999.openlog.output.repository.OutputTaskRepository
 import io.github.kitae9999.openlog.output.repository.WorkspaceOutputRepository
 import io.github.kitae9999.openlog.post.PostService
 import io.github.kitae9999.openlog.post.dto.PostWriteResponse
+import io.github.kitae9999.openlog.post.entity.Post
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.post.repository.PostRepository
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.WorkspaceAccessResolver
@@ -265,7 +267,7 @@ class OutputServiceTest {
     }
 
     @Test
-    fun `publishOutput creates post and marks output published`() {
+    fun `createPostDraft creates post and marks output exported`() {
         val output = WorkspaceOutput(
             id = 40L,
             workspace = workspace,
@@ -274,35 +276,73 @@ class OutputServiceTest {
             content = "Ready content",
         )
         given(workspaceAccessResolver.requireOwnedWorkspace(1L, 100L)).willReturn(workspace)
-        given(workspaceOutputRepository.findById(40L)).willReturn(Optional.of(output))
+        given(workspaceOutputRepository.findByIdForUpdate(40L)).willReturn(output)
         given(postRepository.findByOutputId(40L)).willReturn(null)
         given(
             postService.createPostFromOutput(
                 user = user,
                 output = output,
-                description = "Public summary",
-                topics = listOf("output"),
             )
-        ).willReturn(PostWriteResponse(authorUsername = "alice", slug = "publish-me"))
+        ).willReturn(
+            PostWriteResponse(
+                id = 80L,
+                status = PostStatus.DRAFT,
+                authorUsername = "alice",
+                slug = "publish-me",
+            )
+        )
         given(outputTaskRepository.findAllByOutputId(40L)).willReturn(emptyList())
         given(outputLogRepository.findAllByOutputId(40L)).willReturn(emptyList())
 
-        val response = outputService.publishOutput(
+        val response = outputService.createPostDraft(
             user = user,
             workspaceId = 100L,
             outputId = 40L,
-            description = "Public summary",
-            topics = listOf("output"),
         )
 
-        assertThat(output.status).isEqualTo(OutputStatus.PUBLISHED)
-        assertThat(output.publishedAt).isNotNull()
-        assertThat(response.status).isEqualTo(OutputStatus.PUBLISHED)
-        verify(postService).createPostFromOutput(user, output, "Public summary", listOf("output"))
+        assertThat(output.status).isEqualTo(OutputStatus.EXPORTED)
+        assertThat(output.exportedAt).isNotNull()
+        assertThat(response.status).isEqualTo(OutputStatus.EXPORTED)
+        verify(postService).createPostFromOutput(user, output)
+        verify(workspaceOutputRepository).findByIdForUpdate(40L)
     }
 
     @Test
-    fun `published output cannot be updated`() {
+    fun `createPostDraft rejects an output that already has a post`() {
+        val output = WorkspaceOutput(
+            id = 40L,
+            workspace = workspace,
+            author = user,
+            title = "Already copied",
+            content = "Ready content",
+        )
+        val linkedPost = Post(
+            id = 80L,
+            author = user,
+            slug = "already-copied",
+            title = "Already copied",
+            description = "",
+            content = "Ready content",
+            output = output,
+        )
+        given(workspaceAccessResolver.requireOwnedWorkspace(1L, 100L)).willReturn(workspace)
+        given(workspaceOutputRepository.findByIdForUpdate(40L)).willReturn(output)
+        given(postRepository.findByOutputId(40L)).willReturn(linkedPost)
+
+        assertThatThrownBy {
+            outputService.createPostDraft(
+                user = user,
+                workspaceId = 100L,
+                outputId = 40L,
+            )
+        }.isInstanceOf(io.github.kitae9999.openlog.common.exception.ConflictException::class.java)
+
+        verifyNoInteractions(postService)
+        assertThat(output.status).isEqualTo(OutputStatus.DRAFT)
+    }
+
+    @Test
+    fun `exported output cannot be updated`() {
         val output = WorkspaceOutput(
             id = 40L,
             workspace = workspace,
@@ -310,7 +350,7 @@ class OutputServiceTest {
             title = "Published",
             content = "Content",
         )
-        output.markPublished()
+        output.markExported()
         given(workspaceAccessResolver.requireOwnedWorkspace(1L, 100L)).willReturn(workspace)
         given(workspaceOutputRepository.findById(40L)).willReturn(Optional.of(output))
 
@@ -324,7 +364,7 @@ class OutputServiceTest {
                 taskIds = emptyList(),
                 logIds = emptyList(),
             )
-        }.isInstanceOf(BadRequestException::class.java)
+        }.isInstanceOf(io.github.kitae9999.openlog.common.exception.ConflictException::class.java)
 
         verify(outputTaskRepository, never()).findAllByOutputId(40L)
         verify(outputLogRepository, never()).findAllByOutputId(40L)
@@ -353,5 +393,36 @@ class OutputServiceTest {
         outputService.deleteOutputs(1L, 100L, listOf(40L, 50L))
 
         verify(workspaceOutputRepository).deleteAll(listOf(first, second))
+    }
+
+    @Test
+    fun `deleteOutputs rejects output linked to post`() {
+        val output = WorkspaceOutput(
+            id = 40L,
+            workspace = workspace,
+            author = user,
+            title = "Exported",
+            content = "Body",
+        )
+        output.markExported()
+        val post = Post(
+            id = 80L,
+            author = user,
+            slug = "exported",
+            title = "Exported",
+            description = "Description",
+            content = "Body",
+            output = output,
+            status = PostStatus.DRAFT,
+        )
+        given(workspaceAccessResolver.requireOwnedWorkspace(1L, 100L)).willReturn(workspace)
+        given(workspaceOutputRepository.findById(40L)).willReturn(Optional.of(output))
+        given(postRepository.findByOutputId(40L)).willReturn(post)
+
+        assertThatThrownBy {
+            outputService.deleteOutput(1L, 100L, 40L)
+        }.isInstanceOf(io.github.kitae9999.openlog.common.exception.ConflictException::class.java)
+
+        verify(workspaceOutputRepository, never()).deleteAll(any())
     }
 }

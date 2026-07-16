@@ -30,6 +30,11 @@ export function FeedArticleCard({ post }: { post: FeedPost }) {
                 <OfficialBadge size="sm" />
               ) : null}
             </span>
+            {post.status && post.status !== "published" ? (
+              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-zinc-500">
+                {post.status === "unpublished" ? "Unpublished" : "Draft"}
+              </span>
+            ) : null}
           </div>
 
           <div

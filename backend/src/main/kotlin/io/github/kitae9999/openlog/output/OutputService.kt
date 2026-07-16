@@ -4,6 +4,7 @@ import io.github.kitae9999.openlog.common.event.payload.WorkspaceChangeAction
 import io.github.kitae9999.openlog.common.event.payload.WorkspaceEntityType
 import io.github.kitae9999.openlog.common.event.payload.WorkspaceSyncZone
 import io.github.kitae9999.openlog.common.exception.BadRequestException
+import io.github.kitae9999.openlog.common.exception.ConflictException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.output.dto.OutputDetailResponse
 import io.github.kitae9999.openlog.output.dto.OutputResponse
@@ -133,27 +134,24 @@ class OutputService(
     }
 
     @Transactional
-    fun publishOutput(
+    fun createPostDraft(
         user: User,
         workspaceId: Long,
         outputId: Long,
-        description: String,
-        topics: List<String>,
     ): OutputDetailResponse {
         val userId = requireNotNull(user.id)
-        val output = requireOwnedOutput(userId, workspaceId, outputId)
-        requireDraft(output, "Draft 상태의 output만 발행할 수 있습니다.")
+        val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val output = requireOwnedOutputForUpdate(workspace, outputId)
+        requireDraft(output, "Draft 상태의 output만 Post 초안으로 전환할 수 있습니다.")
         if (postRepository.findByOutputId(outputId) != null) {
-            throw BadRequestException("이미 발행된 output입니다.")
+            throw ConflictException("이미 Post가 생성된 output입니다.")
         }
 
         postService.createPostFromOutput(
             user = user,
             output = output,
-            description = description.trim(),
-            topics = topics,
         )
-        output.markPublished()
+        output.markExported()
         workspaceChangeNotifier.notify(
             workspaceId = workspaceId,
             zone = WorkspaceSyncZone.OUTPUT,
@@ -175,6 +173,9 @@ class OutputService(
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
         val outputs = outputIds.distinct().map { outputId ->
             requireOwnedOutput(workspace, outputId)
+        }
+        if (outputs.any { output -> postRepository.findByOutputId(requireNotNull(output.id)) != null }) {
+            throw ConflictException("연결된 Post가 있는 output은 삭제할 수 없습니다.")
         }
         workspaceOutputRepository.deleteAll(outputs)
         outputs.forEach { output ->
@@ -228,16 +229,27 @@ class OutputService(
         val output = workspaceOutputRepository.findById(outputId).getOrNull()
             ?: throw NotFoundException("output을 찾을 수 없습니다.")
 
+        validateOutputWorkspace(output, workspace)
+        return output
+    }
+
+    private fun requireOwnedOutputForUpdate(workspace: Workspace, outputId: Long): WorkspaceOutput {
+        val output = workspaceOutputRepository.findByIdForUpdate(outputId)
+            ?: throw NotFoundException("output을 찾을 수 없습니다.")
+
+        validateOutputWorkspace(output, workspace)
+        return output
+    }
+
+    private fun validateOutputWorkspace(output: WorkspaceOutput, workspace: Workspace) {
         if (output.workspace.id != workspace.id) {
             throw BadRequestException("현재 워크스페이스에 속한 output만 사용할 수 있습니다.")
         }
-
-        return output
     }
 
     private fun requireDraft(output: WorkspaceOutput, message: String) {
         if (output.status != OutputStatus.DRAFT) {
-            throw BadRequestException(message)
+            throw ConflictException(message)
         }
     }
 
@@ -247,7 +259,7 @@ class OutputService(
             output = output,
             tasks = outputTaskRepository.findAllByOutputId(outputId),
             logs = outputLogRepository.findAllByOutputId(outputId),
-            publishedPost = postRepository.findByOutputId(outputId),
+            linkedPost = postRepository.findByOutputId(outputId),
         )
     }
 }

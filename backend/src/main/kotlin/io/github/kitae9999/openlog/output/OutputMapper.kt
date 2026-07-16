@@ -5,7 +5,7 @@ import io.github.kitae9999.openlog.output.dto.OutputDetailResponse
 import io.github.kitae9999.openlog.output.dto.OutputLogSourceResponse
 import io.github.kitae9999.openlog.output.dto.OutputResponse
 import io.github.kitae9999.openlog.output.dto.OutputTaskSourceResponse
-import io.github.kitae9999.openlog.output.dto.PublishedOutputPostResponse
+import io.github.kitae9999.openlog.output.dto.LinkedOutputPostResponse
 import io.github.kitae9999.openlog.output.entity.OutputLog
 import io.github.kitae9999.openlog.output.entity.OutputTask
 import io.github.kitae9999.openlog.output.entity.WorkspaceOutput
@@ -30,7 +30,7 @@ class OutputMapper {
             logIds = logIds,
             createdAt = output.createdAt.toString(),
             updatedAt = output.updatedAt.toString(),
-            publishedAt = output.publishedAt?.toString(),
+            exportedAt = output.exportedAt?.toString(),
         )
     }
 
@@ -38,7 +38,7 @@ class OutputMapper {
         output: WorkspaceOutput,
         tasks: List<OutputTask>,
         logs: List<OutputLog>,
-        publishedPost: Post?,
+        linkedPost: Post?,
     ): OutputDetailResponse {
         return OutputDetailResponse(
             id = requireNotNull(output.id),
@@ -62,15 +62,17 @@ class OutputMapper {
                     taskId = link.log.task?.id,
                 )
             },
-            publishedPost = publishedPost?.let {
-                PublishedOutputPostResponse(
+            linkedPost = linkedPost?.let {
+                LinkedOutputPostResponse(
+                    id = requireNotNull(it.id),
+                    status = it.status,
                     authorUsername = requireNotNull(it.author.username),
                     slug = it.slug,
                 )
             },
             createdAt = output.createdAt.toString(),
             updatedAt = output.updatedAt.toString(),
-            publishedAt = output.publishedAt?.toString(),
+            exportedAt = output.exportedAt?.toString(),
         )
     }
 }

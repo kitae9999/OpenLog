@@ -4,6 +4,7 @@ import io.github.kitae9999.openlog.post.command.PostLinkWriteCommand
 import io.github.kitae9999.openlog.post.command.PostWriteCommand
 import io.github.kitae9999.openlog.post.dto.PostWriteRequest
 import io.github.kitae9999.openlog.post.dto.PostWriteResponse
+import io.github.kitae9999.openlog.post.dto.OwnedPostResponse
 import io.github.kitae9999.openlog.post.dto.RecentPostCursorResponse
 import io.github.kitae9999.openlog.user.entity.User
 import jakarta.validation.Valid
@@ -50,6 +51,30 @@ class PostController(
         )
 
         return ResponseEntity.status(201).body(createdPost)
+    }
+
+    @GetMapping("/{postId}")
+    fun getOwnedPost(
+        @AuthenticationPrincipal user: User,
+        @PathVariable postId: Long,
+    ): OwnedPostResponse {
+        return postService.getOwnedPost(requireNotNull(user.id), postId)
+    }
+
+    @PostMapping("/{postId}/publish")
+    fun publishPost(
+        @AuthenticationPrincipal user: User,
+        @PathVariable postId: Long,
+    ): PostWriteResponse {
+        return postService.publishPost(requireNotNull(user.id), postId)
+    }
+
+    @PostMapping("/{postId}/unpublish")
+    fun unpublishPost(
+        @AuthenticationPrincipal user: User,
+        @PathVariable postId: Long,
+    ): PostWriteResponse {
+        return postService.unpublishPost(requireNotNull(user.id), postId)
     }
 
     @DeleteMapping("/{postId}")

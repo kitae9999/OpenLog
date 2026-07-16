@@ -7,6 +7,7 @@ import io.github.kitae9999.openlog.common.exception.BadRequestException
 import io.github.kitae9999.openlog.common.exception.ForbiddenException
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.post.repository.PostRepository
+import io.github.kitae9999.openlog.post.entity.PostStatus
 import io.github.kitae9999.openlog.user.entity.User
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,7 +21,8 @@ class CommentService(
 ) {
     @Transactional
     fun createComment(author: User, postId: Long, content: String): CommentResponse {
-        val post = postRepository.findById(postId).getOrNull() ?: throw NotFoundException("포스트를 찾을 수 없습니다.")
+        val post = postRepository.findByIdAndStatus(postId, PostStatus.PUBLISHED)
+            ?: throw NotFoundException("포스트를 찾을 수 없습니다.")
 
         val savedComment = commentRepository.save(
             Comment(
@@ -38,7 +40,7 @@ class CommentService(
      */
     @Transactional(readOnly = true)
     fun getPostComments(postId: Long, userId: Long?): List<CommentResponse> {
-        if (!postRepository.existsById(postId)) {
+        if (!postRepository.existsByIdAndStatus(postId, PostStatus.PUBLISHED)) {
             throw NotFoundException("포스트를 찾을 수 없습니다.")
         }
 
@@ -61,6 +63,9 @@ class CommentService(
     }
 
     private fun getManageableComment(userId: Long, postId: Long, commentId: Long): Comment {
+        if (!postRepository.existsByIdAndStatus(postId, PostStatus.PUBLISHED)) {
+            throw NotFoundException("포스트를 찾을 수 없습니다.")
+        }
         val comment = commentRepository.findById(commentId).getOrNull()
             ?: throw NotFoundException("댓글을 찾을 수 없습니다.")
 

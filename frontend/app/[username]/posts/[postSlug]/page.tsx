@@ -15,7 +15,6 @@ import { toJsonLdScript } from "@/shared/lib/jsonLd";
 import { formatPostVersionLabel } from "@/shared/lib/postVersion";
 import {
   buildPublicProfilePath,
-  buildPublicPostEditPath,
   buildPublicPostPath,
   buildPublicSuggestsPath,
   buildViewerProfileHref,
@@ -117,10 +116,7 @@ export default async function PublicPostPage({
     ]);
     const authorHref = buildPublicProfilePath(detail.authorUsername);
     const articleHref = buildPublicPostPath(detail.authorUsername, detail.slug);
-    const editHref = buildPublicPostEditPath(
-      detail.authorUsername,
-      detail.slug,
-    );
+    const editHref = `/posts/${detail.id}/edit`;
     const suggestsHref = buildPublicSuggestsPath(
       detail.authorUsername,
       detail.slug,

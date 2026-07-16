@@ -48,7 +48,7 @@ test.describe("SEO metadata and crawler controls", () => {
   test("marks tabbed home URLs as noindex with canonical root", async ({
     page,
   }) => {
-    await page.goto("/?tab=explore");
+    await page.goto("/?tab=workspace");
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
       "https://openlog.kr",

@@ -26,7 +26,7 @@ import {
 } from "@/features/document-selection/ui/DocumentBulkSelection";
 import { deleteWorkspaceDocuments } from "@/features/workspace-actions/api/workspaceActions";
 
-const statusItems: WorkspaceOutputStatus[] = ["draft", "published"];
+const statusItems: WorkspaceOutputStatus[] = ["draft", "exported"];
 
 export function OutputsListView({
   isLoggedIn,
@@ -56,7 +56,9 @@ export function OutputsListView({
     [outputs, status],
   );
   const selection = useDocumentSelection(
-    filteredOutputs.map((output) => output.id),
+    filteredOutputs
+      .filter((output) => output.status === "draft")
+      .map((output) => output.id),
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -160,14 +162,14 @@ export function OutputsListView({
         })}
       </div>
 
-      {workspaceData ? (
+      {workspaceData && status === "draft" ? (
         <DocumentBulkBar
           visibleCount={filteredOutputs.length}
           selectedCount={selection.selectedIds.size}
           allVisibleSelected={selection.allVisibleSelected}
           someVisibleSelected={selection.someVisibleSelected}
           documentLabel="outputs"
-          deleteImpact="Published posts will be kept."
+          deleteImpact="Draft outputs and their source links will be deleted."
           isDeleting={isDeleting}
           error={deleteError}
           onToggleAll={selection.toggleAllVisible}
@@ -197,7 +199,11 @@ export function OutputsListView({
               key={output.id}
               output={output}
               selected={selection.selectedIds.has(output.id)}
-              onToggle={() => selection.toggle(output.id)}
+              onToggle={
+                output.status === "draft"
+                  ? () => selection.toggle(output.id)
+                  : undefined
+              }
             />
           ))}
         </ul>
@@ -213,7 +219,7 @@ function OutputRow({
 }: {
   output: WorkspaceTaskOutput;
   selected: boolean;
-  onToggle: () => void;
+  onToggle?: () => void;
 }) {
   const sourceLabel = [
     `${output.taskCount ?? output.taskIds.length} task${(output.taskCount ?? output.taskIds.length) === 1 ? "" : "s"}`,
@@ -229,11 +235,15 @@ function OutputRow({
         )}
       >
         <div className="grid grid-cols-[17px_minmax(0,1fr)_auto] items-center gap-x-2.5">
-          <SelectionCheckbox
-            checked={selected}
-            label={`${selected ? "Deselect" : "Select"} ${output.title}`}
-            onChange={onToggle}
-          />
+          {onToggle ? (
+            <SelectionCheckbox
+              checked={selected}
+              label={`${selected ? "Deselect" : "Select"} ${output.title}`}
+              onChange={onToggle}
+            />
+          ) : (
+            <span aria-hidden="true" />
+          )}
           <Link
             href={getOutputHref(output.id)}
             className="min-w-0 truncate text-[14.5px] font-medium leading-5 text-zinc-950 transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"

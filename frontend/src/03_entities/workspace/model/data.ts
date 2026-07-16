@@ -8,6 +8,7 @@ export type TabKey = "workspace" | "explore" | "home" | "following" | "liked";
 
 export type FeedPost = {
   id: string;
+  status?: "draft" | "published" | "unpublished";
   nickname: string;
   profileImageSrc: string;
   authorIsOpenLogOfficial: boolean;
@@ -586,7 +587,7 @@ export function getTaskExcerpt(body: string, maxLength = 100) {
   return `${firstLine.slice(0, maxLength).trim()}…`;
 }
 
-export type WorkspaceOutputStatus = "draft" | "published";
+export type WorkspaceOutputStatus = "draft" | "exported";
 
 export type WorkspaceTaskOutput = {
   id: string;
@@ -600,6 +601,9 @@ export type WorkspaceTaskOutput = {
   description: string;
   content: string;
   updatedLabel: string;
+  linkedPostId?: string;
+  linkedPostStatus?: "draft" | "published" | "unpublished";
+  postEditHref?: string;
   publishedHref?: string;
 };
 
@@ -649,7 +653,7 @@ export function getNewOutputHref(taskId?: string) {
 }
 
 export function getOutputStatusLabel(status: WorkspaceOutputStatus) {
-  return status === "draft" ? "Draft" : "Published";
+  return status === "draft" ? "Draft" : "Post created";
 }
 
 export function getOutputsFiltered(status: WorkspaceOutputStatus | "all") {
