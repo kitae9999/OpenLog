@@ -51,6 +51,10 @@ agent asks the user and retries with the selected ID. With no projects, agents
 with write permission can preview and confirm `create_workspace_project`; this
 does not require or create a local directory.
 
+The MCP server sends its built-in session instructions in Korean. Tool names,
+input fields, Capture Mode values, and response status values remain unchanged.
+Workspace Agent Guides are managed separately as workspace-owned Markdown.
+
 Each workspace owns one editable English Markdown Agent Guide. The MCP server's
 `start_openlog_session` and `get_workspace_agent_guide` tools return the latest
 Guide revision. `update_workspace_agent_guide` replaces Guide content after a
@@ -141,8 +145,3 @@ openlog mcp install cursor
 
 Cursor registration updates the global `~/.cursor/mcp.json` while preserving
 existing MCP servers.
-
-Set `OPENLOG_API_BASE_URL` to point at a non-production API. Set
-`OPENLOG_WEB_BASE_URL` to control absolute post URLs returned by `publish_post`.
-Set `OPENLOG_MCP_CONFIG_FILE` to replace the default
-`~/.openlog/mcp-config.json` permission file.

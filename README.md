@@ -102,6 +102,10 @@ multiple choices so the agent can ask the user. `create_workspace_project` can
 create and start a project without creating a directory; `openlog init` can bind
 a folder to that project later.
 
+The MCP server sends its built-in session instructions in Korean. Tool names,
+input fields, Capture Mode values, and response status values remain unchanged.
+Workspace Agent Guides are managed separately as workspace-owned Markdown.
+
 The workspace Agent Guide is an editable English Markdown SSOT. The MCP server
 loads its latest revision at the start of each project session. Capture Mode is
 stored per project:
@@ -198,51 +202,6 @@ openlog mcp permissions reset
 
 `create_workspace_project`, `publish_post`, `publish_workspace_output`, `update_workspace_agent_guide`, and `update_workspace_project_capture_mode` return a preview by default. Applying the write requires `confirm: true`, or `skipConfirmation: true` when the user has explicitly requested the write without another confirmation.
 
-### Connect to a local server
-
-```bash
-OPENLOG_API_BASE_URL=http://localhost:8080/api \
-OPENLOG_WEB_BASE_URL=http://localhost:3030 \
-npx -y @openloghq/cli@latest mcp
-```
-
-- `OPENLOG_API_BASE_URL`: API base URL used by the CLI and MCP server
-- `OPENLOG_WEB_BASE_URL`: web base URL used in published-post responses
-- `OPENLOG_AUTH_FILE`: optional path replacing the default `~/.openlog/auth.json`
-- `OPENLOG_MCP_CONFIG_FILE`: optional path replacing the default `~/.openlog/mcp-config.json`
-
-## Development
-
-### Requirements
-
-- Java 21
-- Node.js 20+
-- pnpm 10
-- Docker for the local infrastructure
-
-### Run locally
-
-```bash
-docker compose up -d
-./gradlew :backend:bootRunLocal
-```
-
-```bash
-cd frontend
-pnpm install
-pnpm dev
-```
-
-The frontend runs at `http://localhost:3030` and the API at `http://localhost:8080/api`.
-
-### Verify
-
-```bash
-./gradlew :backend:test
-cd frontend && pnpm lint && pnpm build && pnpm test:e2e
-cd packages/openlog-cli && npm test && npm run build
-```
-
 ## Repository structure
 
 ```text
@@ -250,7 +209,6 @@ backend/                Spring Boot API and database migrations
 frontend/               Next.js web application and Playwright tests
 packages/openlog-cli/   Official CLI and MCP server
 deploy/                 Production deployment assets
-_docs/                  Plans, worklogs, tasks, issues, and PR records
 ```
 
 ## Copyright and repository use

@@ -2,48 +2,48 @@
 
 [English](./README.md) | [한국어](./README.ko.md)
 
-**코드 뒤에 남은 맥락을 기록하고, 오래가는 지식으로 바꿉니다.**
+**작업하며 쌓인 맥락을 기록하고, 오래 쓰는 지식으로 만들어요.**
 
-[OpenLog](https://openlog.kr)는 개발자 워크스페이스와 협업형 글쓰기 플랫폼을 하나로 연결한 서비스입니다. AI 코딩 에이전트와 작업하면서 생긴 Task, Log, 결정, Memory, Output을 보존하고, 그 맥락을 다른 사람이 검토하고 개선할 수 있는 기술 글로 이어줍니다.
+[OpenLog](https://openlog.kr)는 개발자 워크스페이스와 협업형 글쓰기를 연결한 서비스예요. AI 코딩 에이전트와 작업하며 생긴 Task, Log, 결정, Memory, Output을 한곳에 남겨요. 이렇게 쌓인 맥락은 다른 사람과 함께 검토하고 다듬을 수 있는 기술 글로 이어져요.
 
-OpenLog v1.0.0은 새롭게 구성한 워크스페이스 경험을 공식 적용한 첫 번째 Release입니다.
+OpenLog v1.0.0은 새로 설계한 워크스페이스 경험을 처음 선보인 릴리스예요.
 
-## OpenLog가 필요한 이유
+## 왜 OpenLog가 필요할까요?
 
-변경의 배경과 중요한 판단은 대화 기록, 터미널 출력, 이슈 트래커, 임시 메모 곳곳에 흩어집니다. 나중에 문서나 글을 쓰려고 하면 작업 당시의 이유와 고민은 이미 상당 부분 사라진 뒤입니다.
+변경한 이유와 중요한 판단은 대화 기록, 터미널 출력, 이슈 트래커, 임시 메모 곳곳에 흩어지기 쉬워요. 나중에 글로 정리하려고 보면, 작업할 때 어떤 고민을 했는지 떠올리기 어려울 때가 많아요.
 
-OpenLog는 그 맥락을 실제 작업 가까이에 남깁니다.
+OpenLog는 작업이 끝나기 전에 그 맥락을 가까운 곳에 남겨요.
 
-- 에이전트가 현재 작업과 남은 문제를 계속 정리할 수 있습니다.
-- Task, Log, Todo, Memory, Output을 하나의 워크스페이스에서 연결합니다.
-- Activity와 Graph로 작업의 흐름과 문서 관계를 확인합니다.
-- 완성된 Output을 Markdown 게시글로 발행합니다.
-- 독자는 PR과 비슷한 제안 흐름으로 글을 함께 개선합니다.
+- 에이전트가 지금 하는 일과 남은 문제를 계속 정리해요.
+- Task, Log, Todo, Memory, Output을 하나의 워크스페이스에서 연결해요.
+- Activity와 Graph에서 작업 흐름과 문서 관계를 살펴볼 수 있어요.
+- 완성한 Output은 Markdown 게시글로 발행해요.
+- 독자는 PR과 비슷한 제안 방식으로 글을 함께 다듬어요.
 
-## 핵심 흐름
+## 이렇게 사용해요
 
-1. OpenLog CLI와 MCP server를 코딩 에이전트에 연결합니다.
-2. 평소처럼 작업하면 에이전트가 워크스페이스의 Now Working을 갱신합니다.
-3. 구현 과정, 결정, 문제 해결 내용과 재사용할 맥락을 Log와 Memory로 남깁니다.
-4. 관련 Task, Log, Memory, Output을 Graph에서 연결합니다.
-5. 쌓인 맥락을 Output으로 정리해 게시글로 발행합니다.
-6. 제안을 검토하고 공개된 지식을 계속 최신 상태로 유지합니다.
+1. OpenLog CLI와 MCP 서버를 코딩 에이전트에 연결해요.
+2. 평소처럼 작업해요. 에이전트가 워크스페이스의 Now Working을 갱신해요.
+3. 구현 과정과 결정, 문제를 해결한 내용, 다시 쓸 맥락은 Log와 Memory에 남겨요.
+4. 관련된 Task, Log, Memory, Output을 Graph로 연결해요.
+5. 쌓인 맥락을 Output으로 정리하고 게시글로 발행해요.
+6. 제안을 검토하며 공개된 지식을 최신 상태로 유지해요.
 
 ## 주요 기능
 
 ### 에이전트와 연결되는 워크스페이스
 
-- **Now Working**은 최근 브랜치, 연결된 Task, 완료한 작업, 고민 중인 문제와 다음 단계를 요약합니다.
-- **Tasks와 Todos**로 예정된 작업과 진행 중인 일을 관리합니다.
-- **Logs**는 일반 진행 상황뿐 아니라 결정, 이슈, 수정 내역을 종류별로 기록합니다.
-- **Memory**는 독립적으로 작성하거나 기존 Log에서 오래 보존할 맥락을 저장합니다.
-- **Outputs**는 워크스페이스 문서를 조합해 발행 가능한 Markdown 결과물을 만듭니다.
+- **Now Working**에서 최근 브랜치와 연결된 Task, 완료한 작업, 고민 중인 문제, 다음 단계를 한눈에 볼 수 있어요.
+- **Tasks와 Todos**로 예정된 작업과 진행 중인 일을 관리해요.
+- **Logs**에는 진행 상황과 결정, 이슈, 수정 내역을 종류별로 기록해요.
+- **Memory**는 따로 작성할 수도 있고, 기존 Log에서 오래 남길 맥락을 가져올 수도 있어요.
+- **Outputs**는 워크스페이스 문서를 모아 발행할 수 있는 Markdown 결과물로 만들어요.
 
 ### Activity와 지식 Graph
 
-- GitHub 형태의 Activity 화면에서 최근 1년간의 Log 활동과 날짜별 상세 내역을 확인합니다.
-- Planner와 Dashboard에서 현재 작업과 월간 진행 상황을 빠르게 파악합니다.
-- Graph는 Task, Log, Memory, Output을 연결하며 서로 다른 문서 유형도 수동으로 연결할 수 있습니다.
+- GitHub 형태의 Activity 화면에서 최근 1년간의 Log 활동과 날짜별 내역을 확인해요.
+- Planner와 Dashboard에서는 현재 작업과 월간 진행 상황을 빠르게 살펴볼 수 있어요.
+- Graph로 Task, Log, Memory, Output을 연결해요. 서로 다른 문서 유형도 직접 연결할 수 있어요.
 
 ### 협업형 글쓰기
 
@@ -53,54 +53,58 @@ OpenLog는 그 맥락을 실제 작업 가까이에 남깁니다.
 - 게시글 수정 제안, 토론, 댓글, 좋아요, 기여 이력
 - 관련 글 연결과 공개 지식 Graph 탐색
 
-### 오래 유지되는 로그인
+### 로그인은 오래 유지돼요
 
-- 웹은 짧은 수명의 access token과 회전하는 refresh session을 사용합니다.
-- CLI의 device login은 에이전트 설정에 계정 비밀번호를 넣지 않고도 MCP 연결을 유지합니다.
+- 웹은 수명이 짧은 access token과 주기적으로 바뀌는 refresh session을 사용해요.
+- CLI의 device login을 사용하면 에이전트 설정에 계정 비밀번호를 넣지 않고도 MCP 연결을 유지할 수 있어요.
 
-## 시작하기
+## 시작해 볼까요?
 
-[openlog.kr](https://openlog.kr)에 접속해 로그인한 뒤 워크스페이스를 만드세요.
+[openlog.kr](https://openlog.kr)에 로그인하고 워크스페이스를 먼저 만들어 주세요.
 
 ### CLI
 
-공식 CLI는 Node.js 20 이상이 필요합니다.
+공식 CLI를 사용하려면 Node.js 20 이상이 필요해요.
 
-처음 연결할 때는 대화형 설정을 실행하세요.
+처음이라면 대화형 설정으로 시작해 보세요.
 
 ```bash
 npx -y @openloghq/cli@latest
 ```
 
-온보딩 위저드가 로그인, Codex·Claude Code·Cursor 또는 모든 지원 client의
-OpenLog MCP 등록, 로컬 MCP 권한 프로필 선택을 차례로 안내합니다. 위저드는
-현재 디렉토리를 검사하거나 연결하지 않으며, 설정이 끝나면 로컬 폴더 없이도
-에이전트가 OpenLog 프로젝트를 찾을 수 있습니다. 위저드는 언제든 다시 실행할
-수 있습니다.
+온보딩 위저드가 로그인부터 MCP 등록, 로컬 MCP 권한 설정까지 차례로 안내해요.
+Codex·Claude Code·Cursor를 하나씩 고르거나 한 번에 모두 연결할 수 있어요.
+이 과정에서 현재 디렉토리를 살펴보거나 연결하지는 않아요. 설정을 마치면 로컬
+폴더가 없어도 에이전트가 OpenLog 프로젝트를 찾을 수 있어요. 위저드는 언제든
+다시 실행할 수 있어요.
 
 ```bash
 npx -y @openloghq/cli@latest setup
 ```
 
-경로로 프로젝트를 자동 식별하고 싶다면 원하는 폴더 안에서 init을 실행합니다.
+폴더 경로로 프로젝트를 자동으로 찾고 싶다면 해당 폴더에서 init을 실행해요.
 
 ```bash
 cd <folder>
 npx -y @openloghq/cli@latest init
 ```
 
-`openlog init`은 현재 폴더가 Git 저장소인지 일반 폴더인지 보여주고 연결 여부를
-묻습니다. Git 저장소는 로컬 `.git/config`의 `openlog.projectId`를 사용하고,
-일반 폴더는 버전이 포함된 `.openlog/project.json`을 사용합니다. 일반 폴더의
-하위 경로에서 세션을 시작하면 가장 가까운 상위 바인딩을 찾습니다. 폴더 내부
-파일은 검사하지 않습니다.
+`openlog init`은 현재 폴더가 Git 저장소인지 일반 폴더인지 먼저 보여줘요. 연결할지
+확인한 뒤 프로젝트를 선택해요. Git 저장소에서는 로컬 `.git/config`의
+`openlog.projectId`를 사용하고, 일반 폴더에서는 버전이 포함된
+`.openlog/project.json`을 사용해요. 일반 폴더의 하위 경로에서 세션을 시작해도
+가장 가까운 상위 바인딩을 찾아요. 폴더 안의 파일은 살펴보지 않아요.
 
-경로 없이 `start_openlog_session`을 호출하면 프로젝트가 정확히 하나일 때만
-자동으로 시작합니다. 여러 개면 에이전트가 사용자에게 물을 수 있도록 목록을
-반환합니다. `create_workspace_project`는 디렉토리를 만들지 않고 프로젝트를
-생성·시작하며, 나중에 `openlog init`으로 로컬 폴더를 연결할 수 있습니다.
+`start_openlog_session`은 경로 없이도 호출할 수 있어요. 프로젝트가 하나라면 바로
+시작하고, 여러 개라면 에이전트가 어떤 프로젝트를 사용할지 물어봐요.
+`create_workspace_project`로는 디렉토리 없이 프로젝트를 만들고 시작할 수 있어요.
+필요할 때 `openlog init`으로 로컬 폴더를 연결하면 돼요.
 
-비대화형 환경이나 수동 설정에서는 개별 명령을 사용하세요.
+MCP 서버가 에이전트에 건네는 기본 세션 안내는 한국어예요. 도구명과 입력 필드,
+Capture Mode, 응답 상태값은 바꾸지 않아요. 워크스페이스별 Agent Guide는 기본
+세션 안내와 따로 관리해요.
+
+대화형 화면을 사용할 수 없거나 직접 설정하고 싶다면 아래 명령을 사용해요.
 
 ```bash
 npx -y @openloghq/cli@latest login
@@ -108,20 +112,20 @@ npx -y @openloghq/cli@latest whoami
 npx -y @openloghq/cli@latest mcp
 ```
 
-- `openlog login`: device login을 시작하고 브라우저에서 승인 화면을 엽니다.
-- `openlog whoami`: 로컬에 로그인된 계정을 확인합니다.
-- `openlog logout`: 로컬 OpenLog session을 삭제합니다.
-- `openlog init`: 현재 폴더를 OpenLog 프로젝트에 연결합니다.
-- `openlog mcp`: stdio 기반 MCP server를 실행합니다.
+- `openlog login`: device login을 시작하고 브라우저에서 승인 화면을 열어요.
+- `openlog whoami`: 로컬에 로그인된 계정을 확인해요.
+- `openlog logout`: 로컬 OpenLog session을 삭제해요.
+- `openlog init`: 현재 폴더를 OpenLog 프로젝트에 연결해요.
+- `openlog mcp`: stdio 기반 MCP 서버를 실행해요.
 
-전역으로 설치하면 `openlog` 명령을 바로 사용할 수 있습니다.
+전역으로 설치하면 `openlog` 명령을 바로 사용할 수 있어요.
 
 ```bash
 npm install -g @openloghq/cli
 openlog
 ```
 
-### MCP client 설정
+### MCP 클라이언트 연결하기
 
 ```json
 {
@@ -134,7 +138,7 @@ openlog
 }
 ```
 
-지원하는 client에는 CLI로 자동 등록할 수도 있습니다.
+지원하는 클라이언트에는 CLI가 MCP 설정을 자동으로 등록해요.
 
 ```bash
 openlog mcp install all
@@ -143,12 +147,12 @@ openlog mcp install claude-code
 openlog mcp install cursor
 ```
 
-`all`은 Codex, Claude Code, Cursor에 차례로 등록합니다. Cursor 설정은 전역
-`~/.cursor/mcp.json`에 추가되며 기존 MCP server 설정은 유지됩니다.
+`all`을 선택하면 Codex, Claude Code, Cursor에 차례로 등록해요. Cursor 설정은
+전역 `~/.cursor/mcp.json`에 추가하고, 기존 MCP 서버 설정은 그대로 둬요.
 
 ### 로컬 MCP 권한
 
-OpenLog는 로컬 권한 프로필에 따라 MCP tool을 등록합니다.
+OpenLog는 선택한 로컬 권한 프로필에 맞춰 MCP 도구를 등록해요.
 
 ```bash
 openlog mcp permissions
@@ -158,84 +162,44 @@ openlog mcp permissions set full
 openlog mcp permissions reset
 ```
 
-| 프로필 | 허용 기능 |
+| 프로필 | 사용할 수 있는 기능 |
 | --- | --- |
-| `read-only` | 인증 상태와 조회 tool |
-| `safe-write` | 조회, 생성, 수정, 연결, 이미지 업로드, 확인 후 발행 tool |
-| `full` | `safe-write` 기능과 개별 즉시 삭제, working brief 초기화 tool |
+| `read-only` | 인증 상태와 조회 도구 |
+| `safe-write` | 조회, 생성, 수정, 연결, 이미지 업로드, 확인 후 발행 도구 |
+| `full` | `safe-write` 기능과 개별 즉시 삭제, working brief 초기화 도구 |
 
-기본값은 `safe-write`입니다. 프로필을 바꾼 뒤 MCP server를 재시작하거나 다시 로드해야 합니다. 이 설정은 로컬 에이전트 안전 정책이며, API는 로그인 사용자의 서버 권한을 별도로 계속 검사합니다.
+기본 프로필은 `safe-write`예요. 프로필을 바꾸면 MCP 서버를 재시작하거나 다시
+불러와 주세요. 이 설정은 로컬 에이전트에 적용되는 안전 정책이에요. API는 로그인한
+사용자의 서버 권한을 별도로 계속 확인해요.
 
-### MCP tools
+### MCP 도구
 
-| 영역 | Tool |
+| 영역 | 도구 |
 | --- | --- |
 | 권한과 계정 | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts` |
 | 공개 게시글 | `get_post_detail`, `upload_post_image`, `publish_post` |
 | 워크스페이스와 활동 | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_project`, `create_workspace_project`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
 | Agent Guide | `update_workspace_agent_guide` |
 | Capture Mode | `update_workspace_project_capture_mode` |
-| Task와 Log | workspace task와 log의 list/get/create/update tool |
-| Todo와 Memory | todo 조회·생성·완료 tool, memory 조회·생성·log 변환·수정 tool |
+| Task와 Log | workspace task와 log의 조회·생성·수정 도구 |
+| Todo와 Memory | todo 조회·생성·완료 도구, memory 조회·생성·log 변환·수정 도구 |
 | Output | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `publish_workspace_output` |
-| Graph link | `list_workspace_links`와 task/log/cross-link 생성 tool |
-| Full 삭제 | working brief 초기화와 task/log/todo/memory/output/link 개별 삭제 tool |
+| Graph 연결 | `list_workspace_links`와 task/log/cross-link 생성 도구 |
+| `full` 삭제 | working brief 초기화와 task/log/todo/memory/output/link 개별 삭제 도구 |
 
-`create_workspace_project`, `publish_post`, `publish_workspace_output`, `update_workspace_agent_guide`, `update_workspace_project_capture_mode`는 기본적으로 미리보기만 반환합니다. 실제 반영에는 `confirm: true`가 필요하며, 사용자가 추가 확인 없이 쓰라고 명시한 경우에만 `skipConfirmation: true`를 사용할 수 있습니다.
-
-### 로컬 서버 연결
-
-```bash
-OPENLOG_API_BASE_URL=http://localhost:8080/api \
-OPENLOG_WEB_BASE_URL=http://localhost:3030 \
-npx -y @openloghq/cli@latest mcp
-```
-
-- `OPENLOG_API_BASE_URL`: CLI와 MCP server가 호출할 API base URL
-- `OPENLOG_WEB_BASE_URL`: 게시글 발행 응답에 사용할 웹 base URL
-- `OPENLOG_AUTH_FILE`: 기본 `~/.openlog/auth.json`을 대신할 인증 파일 경로
-- `OPENLOG_MCP_CONFIG_FILE`: 기본 `~/.openlog/mcp-config.json`을 대신할 권한 설정 파일 경로
-
-## 로컬 개발
-
-### 필요 환경
-
-- Java 21
-- Node.js 20 이상
-- pnpm 10
-- 로컬 인프라 실행을 위한 Docker
-
-### 실행
-
-```bash
-docker compose up -d
-./gradlew :backend:bootRunLocal
-```
-
-```bash
-cd frontend
-pnpm install
-pnpm dev
-```
-
-Frontend는 `http://localhost:3030`, API는 `http://localhost:8080/api`에서 실행됩니다.
-
-### 검증
-
-```bash
-./gradlew :backend:test
-cd frontend && pnpm lint && pnpm build && pnpm test:e2e
-cd packages/openlog-cli && npm test && npm run build
-```
+`create_workspace_project`, `publish_post`, `publish_workspace_output`,
+`update_workspace_agent_guide`, `update_workspace_project_capture_mode`는 먼저
+미리보기를 보여줘요. 실제로 반영하려면 `confirm: true`가 필요해요. 사용자가
+추가 확인 없이 진행해 달라고 직접 요청한 경우에만 `skipConfirmation: true`를
+사용할 수 있어요.
 
 ## 저장소 구조
 
 ```text
-backend/                Spring Boot API와 DB migration
+backend/                Spring Boot API와 DB 마이그레이션
 frontend/               Next.js 웹 애플리케이션과 Playwright 테스트
-packages/openlog-cli/   공식 CLI와 MCP server
+packages/openlog-cli/   공식 CLI와 MCP 서버
 deploy/                 운영 배포 설정
-_docs/                  Plan, Worklog, Task, Issue, PR 기록
 ```
 
 ## 저작권과 저장소 이용
@@ -248,6 +212,6 @@ Copyright © 2026 OpenLog. All rights reserved.
 
 현재 외부 코드 기여는 받지 않습니다. Issue를 통한 버그 제보와 기능 제안은 환영합니다. 사전 협의 없이 생성된 Pull Request는 병합되지 않을 수 있습니다. 향후 기여 정책과 기여자 라이선스 동의서(Contributor License Agreement, CLA)를 제공할 수 있습니다.
 
-## Release
+## 릴리스
 
-변경 내용과 버전 기록은 [OpenLog Releases](https://github.com/kitae9999/OpenLog/releases)에서 확인할 수 있습니다.
+변경 내용과 버전 기록은 [OpenLog Releases](https://github.com/kitae9999/OpenLog/releases)에서 확인해 주세요.
