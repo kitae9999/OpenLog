@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.server.authorization.settings.OAuth2T
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings
 import java.net.URI
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 class McpDynamicClientConverter(
@@ -61,6 +62,7 @@ class McpDynamicClientConverter(
             ?: "MCP client"
         val builder = RegisteredClient.withId(UUID.randomUUID().toString())
             .clientId(UUID.randomUUID().toString())
+            .clientIdIssuedAt(Instant.now())
             .clientName(clientName)
             .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
             .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)

@@ -7,6 +7,7 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.server.authorization.OAuth2ClientRegistration
+import org.springframework.security.oauth2.server.authorization.converter.RegisteredClientOAuth2ClientRegistrationConverter
 import org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat
 import java.time.Duration
 
@@ -38,6 +39,22 @@ class McpDynamicClientConverterTest {
         assertThat(client.tokenSettings.accessTokenFormat).isEqualTo(OAuth2TokenFormat.REFERENCE)
         assertThat(client.tokenSettings.isReuseRefreshTokens).isFalse()
         assertThat(client.scopes).containsExactly("mcp:tools")
+    }
+
+    @Test
+    fun `creates metadata required for a dynamic registration response`() {
+        val client = converter.convert(
+            registration(
+                redirectUri = "http://127.0.0.1:49152/oauth/callback",
+                authenticationMethod = "none",
+            ),
+        )
+
+        val response = RegisteredClientOAuth2ClientRegistrationConverter().convert(client)
+
+        assertThat(client.clientIdIssuedAt).isNotNull()
+        assertThat(response.clientId).isEqualTo(client.clientId)
+        assertThat(response.clientIdIssuedAt).isEqualTo(client.clientIdIssuedAt)
     }
 
     @Test
