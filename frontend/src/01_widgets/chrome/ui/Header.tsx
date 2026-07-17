@@ -7,7 +7,7 @@ import { GuestActions } from "@/features/auth/ui";
 import { OpenLogLogo } from "@/shared/ui/brand";
 import { NotificationMenu } from "./NotificationMenu";
 import { ProfileMenu } from "./ProfileMenu";
-import { SearchBar } from "./SearchBar";
+// import { SearchBar } from "./SearchBar";
 
 export function Header({
   isLoggedIn,
@@ -58,8 +58,7 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-3">
-          <SearchBar className="hidden md:block" />
-
+          {/* <SearchBar className="hidden md:block" /> */}
           {isLoggedIn ? (
             <>
               {showWriteAction ? (

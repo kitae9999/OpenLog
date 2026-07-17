@@ -1,23 +1,35 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  CLAUDE_MARK_ASSET,
+  CODEX_MARK_ASSET,
+  CURSOR_MARK_ASSET,
+  NODE_MARK_ASSET,
+} from "@/shared/config/brand";
 import { cn } from "@/shared/lib/cn";
 import { getTabHref } from "@/entities/workspace/model/data";
 import {
   MCP_GUIDE_LOCALES,
   buildMcpGuideHref,
   mcpClientConfig,
-  mcpGuideAccessLabels,
   mcpGuideCommands,
   mcpGuideCopy,
   mcpGuideCopyButtonLabels,
   mcpGuidePermissionProfiles,
-  mcpGuideTools,
   parseMcpGuideLocale,
   type McpGuideLocale,
 } from "@/pages/mcp-guide/model/mcpGuideContent";
+import { McpSetupSteps } from "@/pages/mcp-guide/ui/McpSetupSteps";
+
+const SUPPORTED_AGENTS = [
+  { name: "Cursor", src: CURSOR_MARK_ASSET },
+  { name: "Codex", src: CODEX_MARK_ASSET },
+  { name: "Claude Code", src: CLAUDE_MARK_ASSET },
+] as const;
 
 export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
   const router = useRouter();
@@ -60,14 +72,53 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
           <p className="mt-1.5 max-w-[62ch] text-[13px] leading-6 text-zinc-500">
             {copy.subtitle}
           </p>
+          <ul className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+            {SUPPORTED_AGENTS.map((agent) => (
+              <li
+                key={agent.name}
+                className="inline-flex items-center gap-2 text-[12.5px] font-medium text-zinc-600"
+              >
+                <Image
+                  src={agent.src}
+                  alt=""
+                  width={16}
+                  height={16}
+                  unoptimized
+                  className="shrink-0 object-contain"
+                />
+                <span>{agent.name}</span>
+              </li>
+            ))}
+          </ul>
         </div>
         <LocaleToggle locale={locale} onChange={setLocale} />
       </header>
 
       <div className="space-y-0 divide-y divide-zinc-200/80">
         <GuideSection title={copy.sections.setup.title}>
+          <p className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            <Image
+              src={NODE_MARK_ASSET}
+              alt=""
+              width={16}
+              height={16}
+              unoptimized
+              className="shrink-0 object-contain"
+            />
+            <span>{copy.sections.setup.prerequisiteBefore}</span>
+            <a
+              href="https://nodejs.org/en/download"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-zinc-950 underline underline-offset-2 transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            >
+              {copy.sections.setup.prerequisiteLink}
+            </a>
+            <span>{copy.sections.setup.prerequisiteAfter}</span>
+          </p>
           <p>{copy.sections.setup.body}</p>
           <CodeBlock locale={locale}>{mcpGuideCommands.setup}</CodeBlock>
+          <McpSetupSteps steps={copy.sections.setup.steps} className="mt-2" />
           <p className="text-[12.5px] text-zinc-500">
             {copy.sections.setup.footnoteBefore}{" "}
             <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px]">
@@ -77,43 +128,29 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
           </p>
         </GuideSection>
 
-        <GuideSection title={copy.sections.project.title}>
-          <p>{copy.sections.project.body}</p>
-          <CodeBlock locale={locale}>{mcpGuideCommands.init}</CodeBlock>
-          <p className="text-[12.5px] text-zinc-500">
-            {copy.sections.project.footnote}
-          </p>
-        </GuideSection>
-
-        <GuideSection title={copy.sections.register.title}>
-          <p>{copy.sections.register.body}</p>
+        <CollapsibleGuideSection title={copy.sections.advanced.title}>
+          <p>{copy.sections.advanced.body}</p>
           <CodeBlock locale={locale}>{mcpClientConfig}</CodeBlock>
-          <p>{copy.sections.register.installers}</p>
+          <p>{copy.sections.advanced.installers}</p>
           <CodeBlock
             locale={locale}
           >{`${mcpGuideCommands.installAll}\n\n${mcpGuideCommands.installCodex}\n${mcpGuideCommands.installClaude}\n${mcpGuideCommands.installCursor}`}</CodeBlock>
-        </GuideSection>
-
-        <GuideSection title={copy.sections.manual.title}>
-          <p>{copy.sections.manual.body}</p>
+          <p>{copy.sections.advanced.manualBody}</p>
           <CodeBlock locale={locale}>{mcpGuideCommands.mcp}</CodeBlock>
           <p className="text-[12.5px] text-zinc-500">
-            {copy.sections.manual.footnote}
+            {copy.sections.advanced.manualFootnote}
           </p>
-        </GuideSection>
-
-        <GuideSection title={copy.sections.permissions.title}>
-          <p>{copy.sections.permissions.body}</p>
+          <p>{copy.sections.advanced.permissionsBody}</p>
           <CodeBlock locale={locale}>{mcpGuideCommands.permissions}</CodeBlock>
           <div className="openlog-scroll overflow-x-auto">
             <table className="w-full min-w-[540px] border-collapse text-left text-[13px]">
               <thead>
                 <tr className="border-b border-zinc-200">
                   <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
-                    {copy.sections.permissions.colProfile}
+                    {copy.sections.advanced.colProfile}
                   </th>
                   <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
-                    {copy.sections.permissions.colCapability}
+                    {copy.sections.advanced.colCapability}
                   </th>
                 </tr>
               </thead>
@@ -137,59 +174,9 @@ export function McpGuideView({ isLoggedIn }: { isLoggedIn: boolean }) {
             </table>
           </div>
           <p className="text-[12.5px] text-zinc-500">
-            {copy.sections.permissions.footnote}
+            {copy.sections.advanced.permissionsFootnote}
           </p>
-        </GuideSection>
-
-        <GuideSection title={copy.sections.tools.title}>
-          <div className="openlog-scroll overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-left text-[13px]">
-              <thead>
-                <tr className="border-b border-zinc-200">
-                  <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
-                    {copy.sections.tools.colArea}
-                  </th>
-                  <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
-                    {copy.sections.tools.colTools}
-                  </th>
-                  <th className="px-2.5 py-2.5 font-semibold text-zinc-600">
-                    {copy.sections.tools.colAccess}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {mcpGuideTools.map((group) => (
-                  <tr
-                    key={group.area.en}
-                    className="border-b border-zinc-200/80 last:border-b-0"
-                  >
-                    <td className="w-[170px] px-2.5 py-2.5 align-top font-medium text-zinc-700">
-                      {group.area[locale]}
-                    </td>
-                    <td className="px-2.5 py-2.5 align-top">
-                      <div className="flex flex-wrap gap-x-2 gap-y-1">
-                        {group.tools.map((tool) => (
-                          <code
-                            key={tool}
-                            className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11.5px] text-zinc-800"
-                          >
-                            {tool}
-                          </code>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="w-[140px] px-2.5 py-2.5 align-top text-zinc-500">
-                      {mcpGuideAccessLabels[locale][group.access]}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-[12.5px] text-zinc-500">
-            {copy.sections.tools.footnote}
-          </p>
-        </GuideSection>
+        </CollapsibleGuideSection>
 
         <GuideSection title={copy.sections.troubleshooting.title}>
           <ul className="list-disc space-y-2 pl-5 text-[13.5px] text-zinc-600">
@@ -295,6 +282,39 @@ function GuideSection({
         {children}
       </div>
     </section>
+  );
+}
+
+function CollapsibleGuideSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className="group py-8 first:pt-0">
+      <summary className="flex cursor-pointer list-none items-center gap-2 text-[13.5px] font-semibold tracking-tight text-zinc-600 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 [&::-webkit-details-marker]:hidden">
+        <span
+          aria-hidden="true"
+          className="inline-flex size-4 shrink-0 items-center justify-center text-zinc-400 transition group-open:rotate-90"
+        >
+          <svg viewBox="0 0 16 16" className="size-3.5" fill="none">
+            <path
+              d="M6 3.5 10.5 8 6 12.5"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+        {title}
+      </summary>
+      <div className="mt-3 space-y-3 text-[13.5px] leading-6 text-zinc-600">
+        {children}
+      </div>
+    </details>
   );
 }
 

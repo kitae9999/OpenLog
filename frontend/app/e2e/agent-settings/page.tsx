@@ -49,7 +49,7 @@ export default function AgentSettingsFixturePage() {
         workspaces={[fixture.workspace]}
       />
       <main className="min-h-dvh px-6 py-8 lg:pl-[306px]">
-        <WorkspaceAgentSettingsView data={fixture} />
+        <WorkspaceAgentSettingsView data={fixture} locale="ko" />
       </main>
     </div>
   );

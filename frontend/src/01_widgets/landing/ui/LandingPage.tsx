@@ -9,10 +9,15 @@ import { handleOAuth } from "@/features/auth/api/handleOAuth";
 import { cn } from "@/shared/lib/cn";
 import { OpenLogLogo } from "@/shared/ui/brand";
 import { GitHubIcon } from "@/shared/ui/icons";
+import {
+  LANDING_LOCALES,
+  buildLandingHref,
+  landingCopy,
+  type LandingLocale,
+} from "@/widgets/landing/model/landingContent";
+import { getMcpGuideHref } from "@/entities/workspace/model/data";
 import { LandingGraphDemo } from "./LandingGraphDemo";
 import { LandingSessionDemo } from "./LandingSessionDemo";
-import { LandingTerminalDemo } from "./LandingTerminalDemo";
-import { LandingWorkflowStory } from "./LandingWorkflowStory";
 import {
   useActiveSection,
   usePrefersReducedMotion,
@@ -28,46 +33,21 @@ const landingMono = Geist_Mono({
   display: "swap",
 });
 
-const sectionIds = [
-  "session",
-  "pipeline",
-  "contribute",
-  "features",
-  "graph",
-] as const;
+const sectionIds = ["session", "graph", "publish"] as const;
 
-const navLinks = [
-  { href: "#session", label: "Session", id: "session" },
-  { href: "#pipeline", label: "Pipeline", id: "pipeline" },
-  { href: "#contribute", label: "Contribute", id: "contribute" },
-  { href: "#features", label: "Features", id: "features" },
-  { href: "#graph", label: "Graph", id: "graph" },
-] as const;
+export function LandingPage({
+  locale = "ko",
+}: {
+  locale?: LandingLocale;
+}) {
+  const copy = landingCopy[locale];
+  const heroLines = copy.hero.lines;
+  const navLinks = [
+    { href: "#session", label: copy.nav.session, id: "session" },
+    { href: "#graph", label: copy.nav.graph, id: "graph" },
+    { href: "#publish", label: copy.nav.publish, id: "publish" },
+  ] as const;
 
-const heroLines = [
-  ["Work", "first."],
-  ["Writing", "follows."],
-] as const;
-
-const contributeSteps = [
-  {
-    step: "01",
-    title: "Share a knowledge post",
-    body: "Turn connected tasks and logs into a post the community can read.",
-  },
-  {
-    step: "02",
-    title: "Receive edit suggestions",
-    body: "Readers propose clearer wording, missing context, or better structure.",
-  },
-  {
-    step: "03",
-    title: "Accept what fits",
-    body: "You stay in control — review suggestions and keep the final voice yours.",
-  },
-] as const;
-
-export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [heroReady, setHeroReady] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
@@ -106,7 +86,7 @@ export function LandingPage() {
           >
             <div className="mx-auto flex h-20 w-full max-w-[1280px] items-center justify-between px-6">
               <Link
-                href="/"
+                href={buildLandingHref(locale)}
                 className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
               >
                 <OpenLogLogo className="w-[136px]" priority sizes="136px" />
@@ -130,6 +110,7 @@ export function LandingPage() {
               </div>
 
               <div className="flex items-center gap-4">
+                <LocaleToggle locale={locale} />
                 <button
                   type="button"
                   onClick={openLogin}
@@ -137,7 +118,7 @@ export function LandingPage() {
                   aria-expanded={isModalOpen}
                   className="hidden text-sm font-medium text-[#47464a] transition-colors hover:text-black sm:block"
                 >
-                  Sign in
+                  {copy.nav.signIn}
                 </button>
                 <button
                   type="button"
@@ -146,7 +127,7 @@ export function LandingPage() {
                   aria-expanded={isModalOpen}
                   className="landing-mono landing-cta-primary rounded-full bg-black px-4 py-2 text-[11px] tracking-wider text-white uppercase hover:bg-zinc-800"
                 >
-                  Get started
+                  {copy.nav.getStarted}
                 </button>
               </div>
             </div>
@@ -192,9 +173,7 @@ export function LandingPage() {
                   className="landing-stagger-child mx-auto max-w-2xl text-xl font-light text-[#47464a]"
                   style={{ ["--i" as string]: 4 }}
                 >
-                  OpenLog captures your development workflow context
-                  automatically, connecting tasks, logs, and decisions into
-                  publish-ready documentation.
+                  {copy.hero.subtitle}
                 </p>
 
                 <div
@@ -208,7 +187,7 @@ export function LandingPage() {
                     aria-expanded={isModalOpen}
                     className="landing-mono landing-cta-primary flex h-[50px] w-full items-center justify-center gap-2 rounded-full bg-black px-8 text-[12px] tracking-wider text-white uppercase hover:bg-zinc-800 sm:w-auto"
                   >
-                    Start writing
+                    {copy.hero.startWriting}
                     <span aria-hidden="true">→</span>
                   </button>
                   <div className="relative flex h-[50px] w-full items-center justify-center sm:w-auto">
@@ -216,13 +195,13 @@ export function LandingPage() {
                       href="/?tab=explore"
                       className="landing-mono flex h-full w-full items-center justify-center px-8 text-center text-[12px] tracking-wider text-[#47464a] uppercase transition-colors hover:text-black sm:w-auto"
                     >
-                      Explore posts
+                      {copy.hero.explorePosts}
                     </Link>
                     <div
                       className="landing-speech-bubble absolute top-full left-1/2 z-10 mt-2 -translate-x-1/2 whitespace-nowrap"
                       role="note"
                     >
-                      No login needed
+                      {copy.hero.noLoginNeeded}
                       <span
                         className="landing-speech-bubble-tail"
                         aria-hidden="true"
@@ -239,11 +218,22 @@ export function LandingPage() {
             >
               <div className="landing-reveal mx-auto mb-12 max-w-5xl px-6 text-center">
                 <h2 className="landing-display text-4xl leading-[1.1] font-bold tracking-tight text-black lg:text-5xl">
-                  A session becomes a draft
+                  {copy.session.title}
                 </h2>
                 <p className="mx-auto mt-5 max-w-2xl text-lg font-light text-[#47464a]">
-                  Watch Claude Code talk through the work while OpenLog captures
-                  the task, logs, and links in the workspace.
+                  {copy.session.body}
+                </p>
+                <p className="mt-6">
+                  <Link
+                    href={
+                      locale === "en"
+                        ? `${getMcpGuideHref()}?lang=en`
+                        : getMcpGuideHref()
+                    }
+                    className="landing-mono text-[12px] font-medium tracking-wider text-[#47464a] uppercase transition-colors hover:text-black"
+                  >
+                    {copy.session.guideCta}
+                  </Link>
                 </p>
               </div>
               <div className="landing-reveal mx-auto max-w-[1280px] px-4 sm:px-6">
@@ -251,36 +241,37 @@ export function LandingPage() {
               </div>
             </section>
 
-            <section id="pipeline" className="relative py-28">
-              <div className="landing-reveal mx-auto mb-14 max-w-5xl px-6">
-                <h2 className="landing-display text-4xl leading-[1.1] font-bold tracking-tight text-black lg:text-5xl">
-                  The Workflow Loop
-                </h2>
-                <p className="mt-5 max-w-2xl text-lg font-light text-[#47464a]">
-                  Hover a step to see what it looks like in practice.
-                </p>
-              </div>
-              <div className="landing-reveal mx-auto max-w-5xl px-6">
-                <LandingWorkflowStory />
+            <section id="graph" className="border-y border-zinc-200/50 py-40">
+              <div className="relative mx-auto max-w-6xl px-6">
+                <div className="landing-reveal relative z-10 mb-16 text-center">
+                  <h2 className="landing-display text-4xl leading-[1.1] font-bold tracking-tight text-black lg:text-5xl">
+                    {copy.graph.title}
+                  </h2>
+                  <p className="mx-auto mt-6 max-w-2xl text-lg font-light text-[#47464a]">
+                    {copy.graph.body}
+                  </p>
+                </div>
+
+                <div className="landing-reveal landing-stagger-1 relative z-10">
+                  <LandingGraphDemo />
+                </div>
               </div>
             </section>
 
-            <section id="contribute" className="relative py-40">
+            <section id="publish" className="relative py-40">
               <div className="landing-reveal mx-auto max-w-5xl px-6">
                 <div className="grid grid-cols-1 gap-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-24">
                   <div>
                     <h2 className="landing-display text-4xl leading-[1.1] font-bold tracking-tight text-black lg:text-5xl">
-                      Publish is not the end
+                      {copy.publish.title}
                     </h2>
                     <p className="mt-6 text-lg leading-relaxed font-light text-[#47464a]">
-                      Once a post is public, other developers can send edit
-                      suggestions — the same way open-source reviews improve
-                      code.
+                      {copy.publish.body}
                     </p>
                   </div>
 
                   <ol className="space-y-10 border-l border-zinc-200 pl-8">
-                    {contributeSteps.map((step, index) => (
+                    {copy.publish.steps.map((step, index) => (
                       <li
                         key={step.step}
                         className="landing-stagger-child"
@@ -302,79 +293,14 @@ export function LandingPage() {
               </div>
             </section>
 
-            <section id="features" className="relative py-40">
-              <div className="landing-reveal mx-auto max-w-6xl px-6">
-                <div className="grid grid-cols-1 items-start gap-16 lg:grid-cols-2 lg:gap-20">
-                  <div>
-                    <h2 className="landing-display text-4xl leading-[1.1] font-bold tracking-tight text-black lg:text-5xl">
-                      Terminal-first context tracking
-                    </h2>
-                    <p className="mt-6 text-lg leading-relaxed font-light text-[#47464a]">
-                      Logging starts when you run a command. Capture work
-                      context from the terminal, or write it by hand when you
-                      need to.
-                    </p>
-                    <ul className="mt-10 space-y-5 text-[15px] leading-relaxed text-[#47464a]">
-                      <li
-                        className="landing-stagger-child"
-                        style={{ ["--i" as string]: 0 }}
-                      >
-                        <span className="font-medium text-black">
-                          CLI capture.
-                        </span>{" "}
-                        Commit, push, and debug sessions become logs without
-                        leaving the shell.
-                      </li>
-                      <li
-                        className="landing-stagger-child"
-                        style={{ ["--i" as string]: 1 }}
-                      >
-                        <span className="font-medium text-black">
-                          Manual notes.
-                        </span>{" "}
-                        Decisions and issues you type yourself stay linked to
-                        the same tasks.
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div
-                    className="landing-stagger-child"
-                    style={{ ["--i" as string]: 2 }}
-                  >
-                    <LandingTerminalDemo />
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section id="graph" className="border-y border-zinc-200/50 py-40">
-              <div className="relative mx-auto max-w-6xl px-6">
-                <div className="landing-reveal relative z-10 mb-16 text-center">
-                  <h2 className="landing-display text-4xl leading-[1.1] font-bold tracking-tight text-black lg:text-5xl">
-                    Knowledge Graph
-                  </h2>
-                  <p className="mx-auto mt-6 max-w-2xl text-lg font-light text-[#47464a]">
-                    Pan, zoom, and drag nodes — the same interactive graph you
-                    use in your workspace.
-                  </p>
-                </div>
-
-                <div className="landing-reveal landing-stagger-1 relative z-10">
-                  <LandingGraphDemo />
-                </div>
-              </div>
-            </section>
-
             <section className="relative overflow-hidden border-t border-zinc-200/50 py-40">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent to-white" />
               <div className="landing-reveal relative z-10 mx-auto max-w-4xl px-6 text-center">
                 <h2 className="landing-display mb-8 text-5xl leading-[1.05] font-bold tracking-tight text-black lg:text-6xl">
-                  Ready to log your work?
+                  {copy.cta.title}
                 </h2>
                 <p className="mx-auto mb-16 max-w-2xl text-xl font-light text-zinc-500">
-                  Join developers building in public and tracking their
-                  knowledge as they work.
+                  {copy.cta.body}
                 </p>
                 <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
                   <button
@@ -383,7 +309,7 @@ export function LandingPage() {
                     className="landing-mono landing-cta-primary flex w-full items-center justify-center gap-3 rounded-full bg-black px-10 py-5 text-[12px] tracking-wider text-white uppercase hover:bg-zinc-800 sm:w-auto"
                   >
                     <GitHubIcon className="h-5 w-5" />
-                    Continue with GitHub
+                    {copy.cta.github}
                   </button>
                   <button
                     type="button"
@@ -398,11 +324,11 @@ export function LandingPage() {
                       aria-hidden="true"
                       className="h-5 w-5"
                     />
-                    Continue with Google
+                    {copy.cta.google}
                   </button>
                 </div>
                 <p className="landing-mono mt-8 text-[11px] tracking-widest text-zinc-400 uppercase">
-                  Free for personal use. No credit card required.
+                  {copy.cta.freeNote}
                 </p>
               </div>
             </section>
@@ -415,13 +341,12 @@ export function LandingPage() {
                   <OpenLogLogo className="w-[132px]" sizes="132px" />
                 </div>
                 <p className="max-w-sm text-sm leading-relaxed font-light text-zinc-500">
-                  OpenLog helps developers automatically capture context and
-                  build a structured knowledge base without context switching.
+                  {copy.footer.blurb}
                 </p>
               </div>
               <div>
                 <h4 className="landing-mono mb-6 text-[11px] tracking-widest text-zinc-400 uppercase">
-                  Product
+                  {copy.footer.product}
                 </h4>
                 <ul className="space-y-4 text-sm font-light text-zinc-600">
                   {navLinks.map((link) => (
@@ -438,24 +363,24 @@ export function LandingPage() {
               </div>
               <div>
                 <h4 className="landing-mono mb-6 text-[11px] tracking-widest text-zinc-400 uppercase">
-                  Legal
+                  {copy.footer.legal}
                 </h4>
                 <ul className="space-y-4 text-sm font-light text-zinc-600">
                   <li>
-                    <span className="text-zinc-400">Privacy Policy</span>
+                    <span className="text-zinc-400">{copy.footer.privacy}</span>
                   </li>
                   <li>
-                    <span className="text-zinc-400">Terms of Service</span>
+                    <span className="text-zinc-400">{copy.footer.terms}</span>
                   </li>
                   <li>
-                    <span className="text-zinc-400">Cookie Policy</span>
+                    <span className="text-zinc-400">{copy.footer.cookies}</span>
                   </li>
                 </ul>
               </div>
             </div>
             <div className="mx-auto mt-24 flex max-w-[1280px] flex-col items-center justify-between gap-6 border-t border-zinc-200/50 px-6 pt-8 md:flex-row">
               <div className="landing-mono text-[10px] tracking-widest text-zinc-400 uppercase">
-                © {new Date().getFullYear()} OpenLog. All rights reserved.
+                © {new Date().getFullYear()} OpenLog. {copy.footer.rights}
               </div>
               <div className="landing-mono flex gap-6 text-[11px] tracking-widest uppercase">
                 <a
@@ -472,5 +397,37 @@ export function LandingPage() {
         </div>
       )}
     </GuestActions>
+  );
+}
+
+function LocaleToggle({ locale }: { locale: LandingLocale }) {
+  return (
+    <div
+      role="group"
+      aria-label="Language"
+      className="flex items-center gap-1.5 text-[12px] font-medium"
+    >
+      {LANDING_LOCALES.map((item, index) => (
+        <span key={item.key} className="flex items-center gap-1.5">
+          {index > 0 ? (
+            <span className="text-zinc-300" aria-hidden="true">
+              /
+            </span>
+          ) : null}
+          <Link
+            href={buildLandingHref(item.key)}
+            aria-current={locale === item.key ? "page" : undefined}
+            className={cn(
+              "transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+              locale === item.key
+                ? "font-semibold text-black"
+                : "text-zinc-400 hover:text-zinc-700",
+            )}
+          >
+            {item.label}
+          </Link>
+        </span>
+      ))}
+    </div>
   );
 }
