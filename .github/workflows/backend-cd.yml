@@ -27,19 +27,16 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      mcp_changed: ${{ steps.filter.outputs.mcp }}
       nginx_changed: ${{ steps.filter.outputs.nginx }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Detect changed assets
+      - name: Detect changed deployment assets
         id: filter
         uses: dorny/paths-filter@v4
         with:
           filters: |
-            mcp:
-              - "packages/openlog-cli/**"
             nginx:
               - "deploy/production/nginx/**"
               - "deploy/production/docker-compose.production.yml"
@@ -105,9 +102,6 @@ jobs:
 
   build-and-push-mcp:
     runs-on: ubuntu-latest
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.mcp_changed == 'true'
-    timeout-minutes: 15
     outputs:
       image: ${{ steps.meta.outputs.image }}
     steps:
@@ -164,14 +158,6 @@ jobs:
       - changes
       - build-and-push
       - build-and-push-mcp
-    if: >-
-      always() &&
-      needs.changes.result == 'success' &&
-      needs.build-and-push.result == 'success' &&
-      (
-        needs.build-and-push-mcp.result == 'success' ||
-        needs.build-and-push-mcp.result == 'skipped'
-      )
     environment: production-runtime
     steps:
       - name: Checkout
@@ -205,16 +191,10 @@ jobs:
         env:
           PRODUCTION_BACKEND_ENV: ${{ secrets.PRODUCTION_BACKEND_ENV }}
         run: |
-          if [[ "${{ needs.build-and-push-mcp.result }}" == "success" ]]; then
-            MCP_IMAGE="${{ needs.build-and-push-mcp.outputs.image }}:${{ github.sha }}"
-          else
-            MCP_IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}/mcp:production"
-          fi
-
           {
             printf '%s\n' "$PRODUCTION_BACKEND_ENV"
             printf 'BACKEND_IMAGE=%s\n' "${{ needs.build-and-push.outputs.image }}:${{ github.sha }}"
-            printf 'MCP_IMAGE=%s\n' "$MCP_IMAGE"
+            printf 'MCP_IMAGE=%s\n' "${{ needs.build-and-push-mcp.outputs.image }}:${{ github.sha }}"
           } | ssh "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}" \
             "cat > '${{ secrets.PRODUCTION_DEPLOY_PATH }}/production.env' && \
              chmod 600 '${{ secrets.PRODUCTION_DEPLOY_PATH }}/production.env' && \

@@ -21,7 +21,7 @@ or MCP server is required.
 Codex CLI before the public plugin is approved:
 
 ```bash
-codex mcp add openlog --url https://api.openlog.kr/mcp
+codex mcp add openlog --url https://api.openlog.kr/mcp --oauth-resource https://api.openlog.kr/mcp
 codex mcp login openlog
 ```
 
@@ -29,7 +29,6 @@ Claude Code before the public marketplace plugin is approved:
 
 ```bash
 claude mcp add --transport http --scope user openlog https://api.openlog.kr/mcp
-claude mcp login openlog
 ```
 
 OAuth connections default to `safe-write`. Choose `full` explicitly to expose
