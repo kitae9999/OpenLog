@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.server.authorization.settings.OAuth2T
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings
 import java.net.URI
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 class McpDynamicClientConverter(
@@ -22,7 +23,9 @@ class McpDynamicClientConverter(
     override fun convert(source: OAuth2ClientRegistration): RegisteredClient {
         val redirectUris = source.redirectUris.orEmpty().distinct()
         if (redirectUris.isEmpty() || redirectUris.any { !isAllowedRedirectUri(it) }) {
-            invalidClientMetadata("redirect_uris must contain only HTTPS or loopback HTTP URIs.")
+            invalidClientMetadata(
+                "redirect_uris must contain only HTTPS, loopback HTTP, or an approved native app callback URI.",
+            )
         }
 
         val authenticationMethod = source.tokenEndpointAuthenticationMethod
@@ -59,6 +62,7 @@ class McpDynamicClientConverter(
             ?: "MCP client"
         val builder = RegisteredClient.withId(UUID.randomUUID().toString())
             .clientId(UUID.randomUUID().toString())
+            .clientIdIssuedAt(Instant.now())
             .clientName(clientName)
             .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
             .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
@@ -93,7 +97,10 @@ class McpDynamicClientConverter(
         if (uri.scheme.equals("https", ignoreCase = true)) {
             return true
         }
-        return uri.scheme.equals("http", ignoreCase = true) && uri.host.lowercase() in LOOPBACK_HOSTS
+        if (uri.scheme.equals("http", ignoreCase = true) && uri.host.lowercase() in LOOPBACK_HOSTS) {
+            return true
+        }
+        return value == CURSOR_REDIRECT_URI
     }
 
     private fun invalidClientMetadata(description: String): Nothing {
@@ -105,6 +112,7 @@ class McpDynamicClientConverter(
     private companion object {
         private const val MCP_SCOPE = "mcp:tools"
         private const val MAX_CLIENT_NAME_LENGTH = 200
+        private const val CURSOR_REDIRECT_URI = "cursor://anysphere.cursor-mcp/oauth/callback"
         private val LOOPBACK_HOSTS = setOf("localhost", "127.0.0.1", "::1")
     }
 }

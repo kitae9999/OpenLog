@@ -7,6 +7,7 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.server.authorization.OAuth2ClientRegistration
+import org.springframework.security.oauth2.server.authorization.converter.RegisteredClientOAuth2ClientRegistrationConverter
 import org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat
 import java.time.Duration
 
@@ -41,11 +42,57 @@ class McpDynamicClientConverterTest {
     }
 
     @Test
+    fun `creates metadata required for a dynamic registration response`() {
+        val client = converter.convert(
+            registration(
+                redirectUri = "http://127.0.0.1:49152/oauth/callback",
+                authenticationMethod = "none",
+            ),
+        )
+
+        val response = RegisteredClientOAuth2ClientRegistrationConverter().convert(client)
+
+        assertThat(client.clientIdIssuedAt).isNotNull()
+        assertThat(response.clientId).isEqualTo(client.clientId)
+        assertThat(response.clientIdIssuedAt).isEqualTo(client.clientIdIssuedAt)
+    }
+
+    @Test
     fun `rejects non loopback HTTP redirect URIs`() {
         assertThatThrownBy {
             converter.convert(
                 registration(
                     redirectUri = "http://agent.example.com/callback",
+                    authenticationMethod = "none",
+                ),
+            )
+        }.isInstanceOf(OAuth2AuthenticationException::class.java)
+    }
+
+    @Test
+    fun `registers Cursor native app and web callback URIs`() {
+        val redirectUris = listOf(
+            "cursor://anysphere.cursor-mcp/oauth/callback",
+            "https://www.cursor.com/agents/mcp/oauth/callback",
+            "http://localhost:8787/callback",
+        )
+
+        val client = converter.convert(
+            registration(
+                redirectUris = redirectUris,
+                authenticationMethod = "none",
+            ),
+        )
+
+        assertThat(client.redirectUris).containsExactlyInAnyOrderElementsOf(redirectUris)
+    }
+
+    @Test
+    fun `rejects unapproved native app redirect URIs`() {
+        assertThatThrownBy {
+            converter.convert(
+                registration(
+                    redirectUri = "cursor://attacker.example/oauth/callback",
                     authenticationMethod = "none",
                 ),
             )
@@ -67,10 +114,15 @@ class McpDynamicClientConverterTest {
     private fun registration(
         redirectUri: String,
         authenticationMethod: String,
+    ): OAuth2ClientRegistration = registration(listOf(redirectUri), authenticationMethod)
+
+    private fun registration(
+        redirectUris: List<String>,
+        authenticationMethod: String,
     ): OAuth2ClientRegistration = OAuth2ClientRegistration.withClaims(
         mapOf(
             "client_name" to "Codex",
-            "redirect_uris" to listOf(redirectUri),
+            "redirect_uris" to redirectUris,
             "token_endpoint_auth_method" to authenticationMethod,
             "grant_types" to listOf("authorization_code", "refresh_token"),
             "response_types" to listOf("code"),
