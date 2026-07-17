@@ -21,6 +21,12 @@ import {
   updateWorkspaceAgentGuide,
   updateWorkspaceProjectCaptureMode,
 } from "@/features/workspace-agent/api/workspaceAgentActions";
+import {
+  AGENT_GUIDE_PAGE_LOCALES,
+  agentGuidePageCopy,
+  buildAgentGuidePageHref,
+  type AgentGuidePageLocale,
+} from "@/pages/workspace-agent/model/agentGuidePageContent";
 
 const CAPTURE_MODE_COPY: Record<
   WorkspaceCaptureMode,
@@ -28,11 +34,13 @@ const CAPTURE_MODE_COPY: Record<
 > = {
   AUTO: {
     label: "Auto",
-    detail: "The agent may create or update drafts when the Guide says the work matters.",
+    detail:
+      "The agent may create or update drafts when the Guide says the work matters.",
   },
   ASK: {
     label: "Ask first",
-    detail: "The agent asks before creating or updating Tasks, Logs, or Outputs.",
+    detail:
+      "The agent asks before creating or updating Tasks, Logs, or Outputs.",
   },
   EXPLICIT: {
     label: "Explicit only",
@@ -44,9 +52,12 @@ const CAPTURE_MODES = ["ASK", "AUTO", "EXPLICIT"] as const;
 
 export function WorkspaceAgentSettingsView({
   data,
+  locale = "en",
 }: {
   data: WorkspaceAgentSettingsData;
+  locale?: AgentGuidePageLocale;
 }) {
+  const copy = agentGuidePageCopy[locale];
   const [content, setContent] = useState(data.guide.content);
   const [savedContent, setSavedContent] = useState(data.guide.content);
   const [revision, setRevision] = useState(data.guide.revision);
@@ -151,7 +162,9 @@ export function WorkspaceAgentSettingsView({
       setMessage(result.message ?? "Failed to disconnect the project.");
       return;
     }
-    setProjects((current) => current.filter((project) => project.id !== projectId));
+    setProjects((current) =>
+      current.filter((project) => project.id !== projectId),
+    );
     setConfirmProjectId(null);
   }
 
@@ -166,29 +179,65 @@ export function WorkspaceAgentSettingsView({
         </Link>
         <span className="text-zinc-300">/</span>
         <Link href="/settings/manage" className="transition hover:text-zinc-950">
-          Settings
+          {copy.breadcrumbSettings}
         </Link>
         <span className="text-zinc-300">/</span>
-        <span className="font-semibold text-zinc-950">Agent Guide</span>
+        <span className="font-semibold text-zinc-950">
+          {copy.breadcrumbCurrent}
+        </span>
       </nav>
 
-      <header className="border-b border-zinc-200 pb-7">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-[26px] font-semibold tracking-[-0.025em] text-zinc-950">
-              {data.workspace.name}
-            </h1>
-            <p className="mt-2 max-w-[68ch] text-[13.5px] leading-6 text-zinc-500">
-              One workspace guide governs every connected project. Capture Mode decides
-              when each project may turn that guidance into Task, Log, and Output drafts.
-            </p>
-          </div>
+      <header className="flex flex-wrap items-end justify-between gap-4 pb-7">
+        <div className="min-w-0">
+          <h1 className="text-[26px] font-semibold tracking-[-0.025em] text-zinc-950">
+            {data.workspace.name}
+          </h1>
+          <p className="mt-2 max-w-[68ch] text-[13.5px] leading-6 text-zinc-500">
+            {copy.headerSubtitle}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-3">
+          <LocaleToggle workspaceId={data.workspace.id} locale={locale} />
           <div className="text-right font-mono text-[11px] leading-5 text-zinc-400">
             <p>revision {revision}</p>
             <p>updated {formatTimestamp(updatedAt)}</p>
           </div>
         </div>
       </header>
+
+      <section
+        className="border-t border-zinc-200 py-8"
+        aria-labelledby="what-is-heading"
+      >
+        <div className="border-b border-zinc-200 pb-3">
+          <h2
+            id="what-is-heading"
+            className="text-[13.5px] font-semibold tracking-tight text-zinc-600"
+          >
+            {copy.whatIs.title}
+          </h2>
+        </div>
+        <p className="mt-4 max-w-[68ch] text-[13px] leading-6 text-zinc-500">
+          {copy.whatIs.lead}
+        </p>
+        <ul className="mt-4">
+          {copy.whatIs.points.map((point) => (
+            <li
+              key={point.title}
+              className="border-t border-zinc-200/80 first:border-t-0"
+            >
+              <div className="grid gap-1 px-2.5 py-3.5 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4">
+                <p className="text-[13px] font-medium text-zinc-950">
+                  {point.title}
+                </p>
+                <p className="text-[12.5px] leading-5 text-zinc-500">
+                  {point.body}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {message ? (
         <div
@@ -199,13 +248,20 @@ export function WorkspaceAgentSettingsView({
         </div>
       ) : null}
 
-      <section className="py-8" aria-labelledby="guide-heading">
+      <section
+        className="border-t border-zinc-200 py-8"
+        aria-labelledby="guide-heading"
+      >
         <div>
-          <h2 id="guide-heading" className="text-[16px] font-semibold text-zinc-950">
+          <h2
+            id="guide-heading"
+            className="text-[16px] font-semibold text-zinc-950"
+          >
             Workspace Guide
           </h2>
           <p className="mt-1 text-[12.5px] leading-5 text-zinc-500">
-            English Markdown · loaded fresh whenever an agent starts an OpenLog session
+            English Markdown · loaded fresh whenever an agent starts an OpenLog
+            session
           </p>
         </div>
 
@@ -301,14 +357,21 @@ export function WorkspaceAgentSettingsView({
         </div>
       </section>
 
-      <section className="border-t border-zinc-200 py-8" aria-labelledby="projects-heading">
+      <section
+        className="border-t border-zinc-200 py-8"
+        aria-labelledby="projects-heading"
+      >
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 id="projects-heading" className="text-[16px] font-semibold text-zinc-950">
+            <h2
+              id="projects-heading"
+              className="text-[16px] font-semibold text-zinc-950"
+            >
               Connected projects
             </h2>
             <p className="mt-1 text-[12.5px] leading-5 text-zinc-500">
-              Repository and local Git projects share this Guide but keep their own Capture Mode.
+              Repository and local Git projects share this Guide but keep their
+              own Capture Mode.
             </p>
           </div>
           <code className="rounded-md bg-zinc-100 px-2.5 py-1.5 text-[11px] text-zinc-600">
@@ -318,9 +381,12 @@ export function WorkspaceAgentSettingsView({
 
         {projects.length === 0 ? (
           <div className="mt-6 border-l-2 border-zinc-300 py-2 pl-4">
-            <p className="text-[13px] font-medium text-zinc-700">No projects connected.</p>
+            <p className="text-[13px] font-medium text-zinc-700">
+              No projects connected.
+            </p>
             <p className="mt-1 text-[12.5px] text-zinc-500">
-              Run the init command from a Git project to create the first connection.
+              Run the init command from a Git project to create the first
+              connection.
             </p>
           </div>
         ) : (
@@ -340,6 +406,44 @@ export function WorkspaceAgentSettingsView({
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function LocaleToggle({
+  workspaceId,
+  locale,
+}: {
+  workspaceId: string | number;
+  locale: AgentGuidePageLocale;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Language"
+      className="flex items-center gap-1.5 text-[12px] font-medium"
+    >
+      {AGENT_GUIDE_PAGE_LOCALES.map((item, index) => (
+        <span key={item.key} className="flex items-center gap-1.5">
+          {index > 0 ? (
+            <span className="text-zinc-300" aria-hidden="true">
+              /
+            </span>
+          ) : null}
+          <Link
+            href={buildAgentGuidePageHref(workspaceId, item.key)}
+            aria-current={locale === item.key ? "page" : undefined}
+            className={cn(
+              "transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
+              locale === item.key
+                ? "font-semibold text-zinc-950"
+                : "text-zinc-400 hover:text-zinc-700",
+            )}
+          >
+            {item.label}
+          </Link>
+        </span>
+      ))}
     </div>
   );
 }

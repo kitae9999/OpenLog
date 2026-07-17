@@ -6,23 +6,29 @@ import { cn } from "@/shared/lib/cn";
 import { useSidebarOpenState } from "@/shared/lib/useSidebarOpenState";
 import { HomeSidebar } from "@/widgets/app-shell/ui/HomeFeedShell";
 import { McpGuideView } from "@/pages/mcp-guide/ui/McpGuideView";
+import type { McpGuideLocale } from "@/pages/mcp-guide/model/mcpGuideContent";
 import type { ManagedWorkspace } from "@/entities/workspace/model/workspaceTypes";
+import type { McpConnection } from "@/features/mcp/api/mcpConnections";
 
 export function McpGuideShell({
   isLoggedIn,
   profileImageUrl,
   profileHref,
   workspaces = [],
+  connections = [],
+  locale,
   footer,
 }: {
   isLoggedIn: boolean;
   profileImageUrl?: string | null;
   profileHref?: string;
   workspaces?: ManagedWorkspace[];
+  connections?: McpConnection[];
+  locale: McpGuideLocale;
   footer: ReactNode;
 }) {
-  const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } = useSidebarOpenState();
-
+  const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } =
+    useSidebarOpenState();
 
   return (
     <div className="flex min-h-dvh flex-col bg-app text-zinc-950">
@@ -64,7 +70,11 @@ export function McpGuideShell({
             aria-label="MCP Guide"
             className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 xl:px-10"
           >
-            <McpGuideView isLoggedIn={isLoggedIn} />
+            <McpGuideView
+              isLoggedIn={isLoggedIn}
+              connections={connections}
+              locale={locale}
+            />
           </section>
         </main>
       </div>

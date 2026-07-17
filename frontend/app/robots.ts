@@ -11,6 +11,7 @@ const PRIVATE_PATHS = [
   "/landing-preview",
   "/logs",
   "/memory",
+  "/mcp-consent",
   "/onboarding",
   "/outputs",
   "/planner",
