@@ -10,7 +10,6 @@ import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken
 import org.springframework.web.filter.OncePerRequestFilter
 import org.springframework.web.util.UriComponentsBuilder
 import tools.jackson.databind.ObjectMapper
@@ -43,9 +42,6 @@ class McpAuthorizationRequestFilter(
                     null,
                     emptyList(),
                 )
-                // Spring Security 7 pre-validates the request before this filter and captures the anonymous
-                // principal in a request attribute. Remove it so the endpoint rebuilds the request with this user.
-                request.removeAttribute(OAuth2AuthorizationCodeRequestAuthenticationToken::class.java.name)
                 filterChain.doFilter(request, response)
                 return
             }

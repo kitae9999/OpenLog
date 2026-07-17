@@ -28,27 +28,36 @@ export default async function McpConsentPage({
   }
 
   return (
-    <main className="min-h-dvh bg-app px-5 py-10 text-zinc-950 sm:px-8">
-      <section className="mx-auto flex min-h-[calc(100dvh-5rem)] w-full max-w-[520px] flex-col justify-center">
-        <div className="flex items-center gap-3">
-          <OpenLogLogo variant="mark" className="size-8" decorative />
-          <p className="text-[13.5px] font-semibold tracking-tight text-zinc-600">
-            OpenLog Remote MCP
-          </p>
-        </div>
+    <main className="min-h-dvh bg-zinc-100 px-5 py-10 text-zinc-950 sm:px-8">
+      <section className="mx-auto flex min-h-[calc(100dvh-5rem)] w-full max-w-[560px] flex-col justify-center">
+        <div className="border border-zinc-200 bg-white shadow-[0_24px_80px_rgba(24,24,27,0.08)]">
+          <header className="border-b border-zinc-200 px-6 py-6 sm:px-8">
+            <div className="flex items-center gap-3">
+              <OpenLogLogo variant="mark" className="size-8" decorative />
+              <div>
+                <p className="text-[13px] font-semibold tracking-tight text-zinc-950">
+                  OpenLog Remote MCP
+                </p>
+                <p className="font-mono text-[10px] tracking-[0.12em] text-emerald-700">
+                  OAUTH CONNECTION
+                </p>
+              </div>
+            </div>
+          </header>
 
-        <div className="mt-8 border-t border-zinc-200 pt-8">
-          {!challengeId ? (
-            <InvalidChallengeState />
-          ) : !user ? (
-            <LoginState challengeId={challengeId} />
-          ) : !user.isOnboardingComplete ? (
-            <IncompleteOnboardingState />
-          ) : challenge ? (
-            <McpConsentForm challenge={challenge} />
-          ) : (
-            <InvalidChallengeState />
-          )}
+          <div className="px-6 py-7 sm:px-8 sm:py-8">
+            {!challengeId ? (
+              <InvalidChallengeState />
+            ) : !user ? (
+              <LoginState challengeId={challengeId} />
+            ) : !user.isOnboardingComplete ? (
+              <IncompleteOnboardingState />
+            ) : challenge ? (
+              <McpConsentForm challenge={challenge} />
+            ) : (
+              <InvalidChallengeState />
+            )}
+          </div>
         </div>
       </section>
     </main>
@@ -62,23 +71,26 @@ function LoginState({ challengeId }: { challengeId: string }) {
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold tracking-tight text-zinc-950 sm:text-[32px]">
-        먼저 OpenLog에 로그인해요
-      </h1>
-      <p className="mt-2 text-[14.5px] leading-6 text-zinc-500">
-        로그인하면 같은 승인 요청으로 돌아와요.
+      <p className="font-mono text-[11px] font-semibold tracking-[0.14em] text-zinc-400">
+        SIGN IN REQUIRED
       </p>
-      <div className="mt-8 flex flex-col gap-3">
+      <h1 className="mt-3 text-[25px] font-semibold tracking-[-0.025em]">
+        먼저 OpenLog에 로그인하세요.
+      </h1>
+      <p className="mt-2 text-[13.5px] leading-6 text-zinc-500">
+        로그인 후 같은 승인 요청으로 돌아옵니다.
+      </p>
+      <div className="mt-7 grid gap-2">
         <a
           href={githubHref}
-          className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          className="inline-flex h-11 items-center justify-center gap-2 bg-zinc-950 px-5 text-[13px] font-semibold text-white transition hover:bg-zinc-800"
         >
           <GitHubIcon className="size-4" />
           GitHub로 계속
         </a>
         <a
           href={googleHref}
-          className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-semibold text-zinc-800 transition hover:border-zinc-300 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+          className="inline-flex h-11 items-center justify-center gap-2 border border-zinc-300 bg-white px-5 text-[13px] font-semibold text-zinc-800 transition hover:border-zinc-500"
         >
           <Image
             src="/google.svg"
@@ -86,7 +98,6 @@ function LoginState({ challengeId }: { challengeId: string }) {
             width={16}
             height={16}
             aria-hidden="true"
-            className="size-4"
           />
           Google로 계속
         </a>
@@ -97,16 +108,19 @@ function LoginState({ challengeId }: { challengeId: string }) {
 
 function IncompleteOnboardingState() {
   return (
-    <div className="flex flex-col gap-5">
-      <h1 className="text-[28px] font-semibold tracking-tight text-zinc-950 sm:text-[32px]">
-        프로필 설정을 먼저 마쳐요
+    <div>
+      <p className="font-mono text-[11px] font-semibold tracking-[0.14em] text-amber-700">
+        PROFILE REQUIRED
+      </p>
+      <h1 className="mt-3 text-[25px] font-semibold tracking-[-0.025em]">
+        프로필 설정을 먼저 마쳐주세요.
       </h1>
-      <p className="text-[14.5px] leading-6 text-zinc-500">
-        워크스페이스가 준비된 뒤에 MCP 연결을 승인할 수 있어요.
+      <p className="mt-2 text-[13.5px] leading-6 text-zinc-500">
+        워크스페이스가 준비된 뒤 MCP 연결을 승인할 수 있습니다.
       </p>
       <Link
         href="/onboarding"
-        className="inline-flex cursor-pointer text-[13px] font-medium text-zinc-950 transition hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        className="mt-6 inline-flex h-11 items-center bg-zinc-950 px-5 text-[13px] font-semibold text-white"
       >
         온보딩 계속 →
       </Link>
@@ -116,16 +130,19 @@ function IncompleteOnboardingState() {
 
 function InvalidChallengeState() {
   return (
-    <div className="flex flex-col gap-5">
-      <h1 className="text-[28px] font-semibold tracking-tight text-zinc-950 sm:text-[32px]">
-        승인 요청이 만료됐거나 올바르지 않아요
+    <div>
+      <p className="font-mono text-[11px] font-semibold tracking-[0.14em] text-red-600">
+        INVALID REQUEST
+      </p>
+      <h1 className="mt-3 text-[25px] font-semibold tracking-[-0.025em]">
+        승인 요청이 만료되었거나 올바르지 않습니다.
       </h1>
-      <p className="text-[14.5px] leading-6 text-zinc-500">
+      <p className="mt-2 text-[13.5px] leading-6 text-zinc-500">
         에이전트에서 OpenLog 연결을 다시 시작해 주세요.
       </p>
       <Link
         href="/settings/mcp-guide"
-        className="inline-flex cursor-pointer text-[13px] font-medium text-zinc-500 transition hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+        className="mt-6 inline-flex text-[13px] font-semibold text-zinc-950"
       >
         연결 가이드 보기 →
       </Link>

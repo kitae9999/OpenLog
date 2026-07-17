@@ -22,15 +22,15 @@ export const remoteMcpGuideCopy = {
         action: "Open in Cursor",
       },
       codex: {
-        status: "Connect via CLI",
+        status: "Plugin pending review",
         description:
-          "Copy the command, run it in your terminal, then complete OAuth.",
+          "Until the public plugin is approved, register with these commands and start OAuth.",
         action: "Copy command",
       },
       claude: {
-        status: "Connect via CLI",
+        status: "Marketplace pending review",
         description:
-          "Copy the command, run it in your terminal, then complete OAuth.",
+          "Until the official marketplace listing is approved, use a user-scoped remote MCP command.",
         action: "Copy command",
       },
       terminalHint:
@@ -80,15 +80,15 @@ export const remoteMcpGuideCopy = {
         action: "Cursor에서 열기",
       },
       codex: {
-        status: "CLI로 연결",
+        status: "플러그인 심사 전",
         description:
-          "명령을 복사해 터미널에서 실행한 뒤 OAuth를 완료해요.",
+          "공개 플러그인이 승인되기 전에는 명령으로 등록하고 OAuth를 시작해요.",
         action: "명령 복사",
       },
       claude: {
-        status: "CLI로 연결",
+        status: "마켓 심사 전",
         description:
-          "명령을 복사해 터미널에서 실행한 뒤 OAuth를 완료해요.",
+          "공식 마켓에 올라가기 전에는 사용자 범위 원격 MCP 명령을 사용해요.",
         action: "명령 복사",
       },
       terminalHint:
