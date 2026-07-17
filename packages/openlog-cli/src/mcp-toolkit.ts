@@ -65,6 +65,14 @@ type LocalToolHandler<Schema extends ToolInputSchema> = (
   args: ToolArguments<Schema>,
 ) => Promise<unknown>;
 
+export type McpToolObserver = {
+  record(
+    name: string,
+    outcome: "success" | "failure",
+    durationMs: number,
+  ): void;
+};
+
 export class McpToolRegistry {
   readonly toolNames: string[] = [];
 
@@ -72,6 +80,7 @@ export class McpToolRegistry {
     private readonly server: McpServer,
     readonly permissions: ResolvedMcpPermissions,
     private readonly createAuthenticatedClient: () => Promise<OpenLogApiClient>,
+    private readonly observer?: McpToolObserver,
   ) {}
 
   registerAuthenticated<Schema extends ToolInputSchema>(
@@ -86,14 +95,23 @@ export class McpToolRegistry {
     }
 
     const callback = (async (args: ToolArguments<Schema>) => {
+      const startedAt = performance.now();
       // 목록 노출 여부와 별개로 실행 직전에도 권한을 확인해 우회 호출을 막는다.
       if (!hasMcpCapability(this.permissions, capability)) {
+        this.observer?.record(name, "failure", performance.now() - startedAt);
         return permissionDeniedResult(name, capability);
       }
 
-      return withAuthenticatedClient(this.createAuthenticatedClient, (client) =>
-        handler(client, args),
+      const result = await withAuthenticatedClient(
+        this.createAuthenticatedClient,
+        (client) => handler(client, args),
       );
+      this.observer?.record(
+        name,
+        "isError" in result && result.isError ? "failure" : "success",
+        performance.now() - startedAt,
+      );
+      return result;
     }) as ToolCallback<Schema>;
 
     this.server.registerTool(name, config, callback);
@@ -112,13 +130,18 @@ export class McpToolRegistry {
     }
 
     const callback = (async (args: ToolArguments<Schema>) => {
+      const startedAt = performance.now();
       if (!hasMcpCapability(this.permissions, capability)) {
+        this.observer?.record(name, "failure", performance.now() - startedAt);
         return permissionDeniedResult(name, capability);
       }
 
       try {
-        return textResult(await handler(args));
+        const result = textResult(await handler(args));
+        this.observer?.record(name, "success", performance.now() - startedAt);
+        return result;
       } catch (error) {
+        this.observer?.record(name, "failure", performance.now() - startedAt);
         return errorResult(error);
       }
     }) as ToolCallback<Schema>;

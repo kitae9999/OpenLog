@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "openlog": {
+      "type": "http",
+      "url": "https://api.openlog.kr/mcp",
+      "note": "Official OpenLog remote MCP server. Uses OAuth on first connection and defaults to the safe-write permission profile."
+    }
+  }
+}

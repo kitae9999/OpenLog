@@ -26,6 +26,7 @@ set_real_ip_from 2a06:98c0::/29;
 set_real_ip_from 2c0f:f248::/32;
 
 limit_req_zone $binary_remote_addr zone=openlog_api_per_ip:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=openlog_oauth_register_per_ip:10m rate=10r/m;
 limit_conn_zone $binary_remote_addr zone=openlog_sse_per_ip:10m;
 limit_req_status 429;
 limit_conn_status 429;
@@ -54,6 +55,8 @@ server {
 
     client_max_body_size 10m;
     error_page 429 = @rate_limited;
+
+    include /etc/nginx/snippets/openlog-public-routes.conf;
 
     location ~ ^/api/workspaces/[0-9]+/events$ {
         limit_conn openlog_sse_per_ip 20;
@@ -117,6 +120,8 @@ server {
 
     client_max_body_size 10m;
     error_page 429 = @rate_limited;
+
+    include /etc/nginx/snippets/openlog-public-routes.conf;
 
     location ~ ^/api/workspaces/[0-9]+/events$ {
         limit_conn openlog_sse_per_ip 20;

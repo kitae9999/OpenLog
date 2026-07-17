@@ -29,3 +29,16 @@ logging:
   structured:
     format:
       console: ecs
+
+auth:
+  mcp:
+    enabled: ${MCP_REMOTE_ENABLED:false}
+    issuer: ${MCP_OAUTH_ISSUER:https://api.openlog.kr}
+    resource: ${MCP_PUBLIC_RESOURCE:https://api.openlog.kr/mcp}
+    internal-api-resource: ${MCP_INTERNAL_API_RESOURCE:https://api.openlog.kr/api}
+    frontend-consent-url: ${MCP_FRONTEND_CONSENT_URL:https://openlog.kr/mcp-consent}
+    service-client-id: ${MCP_SERVICE_CLIENT_ID:openlog-mcp-service}
+    service-client-secret: ${MCP_SERVICE_CLIENT_SECRET:change-me}
+    access-token-ttl: ${MCP_ACCESS_TOKEN_TTL:PT10M}
+    refresh-token-ttl: ${MCP_REFRESH_TOKEN_TTL:P30D}
+    internal-token-ttl: PT60S

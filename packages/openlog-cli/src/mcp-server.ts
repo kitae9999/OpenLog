@@ -14,6 +14,7 @@ import {
   McpToolRegistry,
   READ_TOOL_ANNOTATIONS,
   WRITE_TOOL_ANNOTATIONS,
+  type McpToolObserver,
 } from "./mcp-toolkit.js";
 import { registerWorkspaceTools } from "./mcp-workspace-tools.js";
 import { uploadPostImage } from "./post-image-upload.js";
@@ -33,7 +34,19 @@ AUTO에서는 Guide가 기록할 만한 작업이라고 안내할 때 초안을 
 워크스페이스나 프로젝트를 짐작해서 고르지 마세요. projectPath로 호출한 start_openlog_session이 not_initialized 또는 stale을 반환하면, 함께 받은 init 명령을 사용자에게 보여줘요.
 발행, Agent Guide 수정, Capture Mode 변경, 삭제에는 Capture Mode와 관계없이 각 도구의 확인 규칙이 적용돼요. 현재 MCP 권한 설정이 언제나 우선해요.`;
 
-type CreateOpenLogMcpServerOptions = {
+export const OPENLOG_REMOTE_MCP_INSTRUCTIONS = `본격적인 작업을 시작하기 전에 경로 없이 start_openlog_session을 호출해요.
+프로젝트가 여러 개라 selection_required가 돌아오면 목록을 사용자에게 보여주고 어떤 프로젝트를 사용할지 물어봐요. 여러 프로젝트 중 하나를 임의로 고르면 안 돼요.
+no_projects가 돌아오면 create_workspace_project를 제안해요.
+세션에서 받은 Workspace Agent Guide와 Capture Mode를 살펴보고 OpenLog Task, Log, Output 초안을 만들거나 수정할지 정해요.
+AUTO에서는 Guide가 기록할 만한 작업이라고 안내할 때 초안을 먼저 만들거나 수정해도 돼요. ASK에서는 쓰기 전에 사용자에게 물어봐요. EXPLICIT에서는 사용자가 직접 요청했을 때만 써요.
+앞으로도 계속 적용할 행동 규칙이나 기록 정책에 사용자가 동의했다면, 먼저 변경 내용을 보여주고 확인받은 뒤 update_workspace_agent_guide로 Agent Guide를 수정해요. 한 번만 필요한 정보는 Agent Guide가 아니라 NOTE Log에 남겨요.
+사용자가 Capture Mode를 바꾸고 싶어 하면, 먼저 변경 내용을 보여주고 확인받은 뒤 update_workspace_project_capture_mode를 호출해요. 새 설정을 적용하려면 프로젝트를 다시 읽거나 세션을 다시 시작해요.
+발행, Agent Guide 수정, Capture Mode 변경, 삭제에는 Capture Mode와 관계없이 각 도구의 확인 규칙이 적용돼요. 현재 OAuth 연결 권한이 언제나 우선해요.`;
+
+export type McpRuntimeMode = "local" | "remote";
+
+export type CreateOpenLogMcpServerOptions = {
+  runtime?: McpRuntimeMode;
   permissions?: ResolvedMcpPermissions;
   createAuthenticatedClient?: () => Promise<OpenLogApiClient>;
   readAuth?: () => Promise<AuthFile | null>;
@@ -41,6 +54,7 @@ type CreateOpenLogMcpServerOptions = {
   apiBaseUrl?: string;
   webBaseUrl?: string;
   projectBinding?: ProjectBinding;
+  toolObserver?: McpToolObserver;
 };
 
 export type CreatedOpenLogMcpServer = {
@@ -53,6 +67,7 @@ export async function createOpenLogMcpServer(
   options: CreateOpenLogMcpServerOptions = {},
 ): Promise<CreatedOpenLogMcpServer> {
   // 의존성을 주입할 수 있는 factory로 구성해 실제 네트워크 없이 도구 목록과 호출을 테스트한다.
+  const runtime = options.runtime ?? "local";
   const permissions = options.permissions ?? (await readMcpPermissions());
   const createClient =
     options.createAuthenticatedClient ?? createAuthenticatedApiClient;
@@ -60,15 +75,28 @@ export async function createOpenLogMcpServer(
   const uploadImage = options.uploadImage ?? uploadPostImage;
   const apiBaseUrl = options.apiBaseUrl ?? getApiBaseUrl();
   const webBaseUrl = options.webBaseUrl ?? getWebBaseUrl();
-  const projectBinding = options.projectBinding ?? createProjectBinding();
+  const projectBinding =
+    runtime === "local"
+      ? (options.projectBinding ?? createProjectBinding())
+      : undefined;
   const server = new McpServer(
     {
       name: "openlog",
-      version: "2.0.0",
+      version: "2.1.0",
     },
-    { instructions: OPENLOG_MCP_INSTRUCTIONS },
+    {
+      instructions:
+        runtime === "remote"
+          ? OPENLOG_REMOTE_MCP_INSTRUCTIONS
+          : OPENLOG_MCP_INSTRUCTIONS,
+    },
   );
-  const registry = new McpToolRegistry(server, permissions, createClient);
+  const registry = new McpToolRegistry(
+    server,
+    permissions,
+    createClient,
+    options.toolObserver,
+  );
 
   registry.registerLocal(
     "get_mcp_permissions",
@@ -76,14 +104,18 @@ export async function createOpenLogMcpServer(
     {
       title: "Get OpenLog MCP Permissions",
       description:
-        "Return the active local MCP permission profile and capabilities.",
+        runtime === "remote"
+          ? "Return the active OAuth connection permission profile and capabilities."
+          : "Return the active local MCP permission profile and capabilities.",
       inputSchema: {},
       annotations: READ_TOOL_ANNOTATIONS,
     },
     async () => ({
       ...permissions,
       note:
-        "This is a local agent safety policy, not a server-side authorization boundary.",
+        runtime === "remote"
+          ? "This profile is enforced by the current OAuth connection and takes effect on every request."
+          : "This is a local agent safety policy, not a server-side authorization boundary.",
     }),
   );
 
@@ -92,11 +124,34 @@ export async function createOpenLogMcpServer(
     "read",
     {
       title: "Get OpenLog Auth Status",
-      description: "Check whether the local OpenLog CLI is authenticated.",
+      description:
+        runtime === "remote"
+          ? "Return the user authenticated by the current remote OAuth connection."
+          : "Check whether the local OpenLog CLI is authenticated.",
       inputSchema: {},
       annotations: READ_TOOL_ANNOTATIONS,
     },
     async () => {
+      if (runtime === "remote") {
+        try {
+          const me = await createClient().then((client) =>
+            client.get("/auth/me"),
+          );
+          return {
+            authenticated: true,
+            apiBaseUrl,
+            user: me,
+            permissionProfile: permissions.profile,
+          };
+        } catch (error) {
+          return {
+            authenticated: false,
+            apiBaseUrl,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      }
+
       let resolvedApiBaseUrl = apiBaseUrl;
       try {
         const authFile = await readAuth();
@@ -107,7 +162,9 @@ export async function createOpenLogMcpServer(
           };
         }
         resolvedApiBaseUrl = authFile.apiBaseUrl;
-        const me = await createClient().then((client) => client.get("/auth/me"));
+        const me = await createClient().then((client) =>
+          client.get("/auth/me"),
+        );
 
         return {
           authenticated: true,
@@ -136,77 +193,65 @@ export async function createOpenLogMcpServer(
     (client) => client.get("/auth/me"),
   );
 
-  registry.registerAuthenticated(
-    "start_openlog_session",
-    "read",
-    {
-      title: "Start OpenLog Project Session",
-      description:
-        "Return the latest workspace Agent Guide and Capture Mode. Supply projectPath to resolve a Git or general-folder local binding, projectId to select a project returned by an earlier pathless call, or neither to discover projects. A pathless call auto-starts only when exactly one project exists; with multiple projects it returns selection_required so the agent can ask the user.",
-      inputSchema: {
-        projectPath: z.string().trim().min(1).optional(),
-        projectId: z.number().int().positive().optional(),
+  if (runtime === "remote") {
+    registry.registerAuthenticated(
+      "start_openlog_session",
+      "read",
+      {
+        title: "Start OpenLog Project Session",
+        description:
+          "Return the latest workspace Agent Guide and Capture Mode. Supply projectId to select a project returned by an earlier pathless call, or omit it to discover projects. A pathless call auto-starts only when exactly one project exists; with multiple projects it returns selection_required so the agent can ask the user.",
+        inputSchema: {
+          projectId: z.number().int().positive().optional(),
+        },
+        annotations: READ_TOOL_ANNOTATIONS,
       },
-      annotations: READ_TOOL_ANNOTATIONS,
-    },
-    async (client, { projectPath, projectId }) => {
-      if (projectPath && projectId) {
-        throw new Error("Provide projectPath or projectId, not both.");
-      }
-
-      if (projectPath) {
-        const project = await projectBinding.inspect(projectPath);
-        if (project.projectId == null) {
-          return sessionInitRequired(project.root, "not_initialized");
+      (client, { projectId }) =>
+        discoverOrSelectSession(
+          client,
+          projectId,
+          permissions,
+          webBaseUrl,
+          runtime,
+        ),
+    );
+  } else {
+    registry.registerAuthenticated(
+      "start_openlog_session",
+      "read",
+      {
+        title: "Start OpenLog Project Session",
+        description:
+          "Return the latest workspace Agent Guide and Capture Mode. Supply projectPath to resolve a Git or general-folder local binding, projectId to select a project returned by an earlier pathless call, or neither to discover projects. A pathless call auto-starts only when exactly one project exists; with multiple projects it returns selection_required so the agent can ask the user.",
+        inputSchema: {
+          projectPath: z.string().trim().min(1).optional(),
+          projectId: z.number().int().positive().optional(),
+        },
+        annotations: READ_TOOL_ANNOTATIONS,
+      },
+      async (client, { projectPath, projectId }) => {
+        if (projectPath && projectId) {
+          throw new Error("Provide projectPath or projectId, not both.");
         }
-        return loadSessionContext(client, project.projectId, project.root);
-      }
 
-      if (projectId) {
-        return loadSessionContext(client, projectId);
-      }
+        if (projectPath) {
+          const project = await projectBinding!.inspect(projectPath);
+          if (project.projectId == null) {
+            return sessionInitRequired(project.root, "not_initialized");
+          }
+          return loadSessionContext(client, project.projectId, project.root);
+        }
 
-      const workspaces = await client.get<SessionWorkspace[]>("/workspaces");
-      const projects = workspaces.flatMap((workspace) =>
-        workspace.projects.map((project) => ({
-          projectId: project.id,
-          displayName: project.displayName,
-          workspaceId: workspace.id,
-          workspaceName: workspace.name,
-          captureMode: project.captureMode,
-          repositoryFullName: project.repositoryFullName,
-        })),
-      );
-
-      if (projects.length === 0) {
-        const canCreateProject = permissions.capabilities.includes("write");
-        return {
-          status: "no_projects",
-          workspaces: workspaces.map((workspace) => ({
-            workspaceId: workspace.id,
-            workspaceName: workspace.name,
-          })),
-          nextStep:
-            workspaces.length === 0
-              ? `Create a workspace in OpenLog first: ${webBaseUrl}/workspaces/new`
-              : canCreateProject
-                ? "Ask the user which workspace should own the project, then call create_workspace_project with its workspaceId and a displayName."
-                : "Project creation requires the write capability. Ask the user to create one in OpenLog or enable safe-write/full with openlog mcp permissions set, then restart the MCP server.",
-        };
-      }
-
-      if (projects.length === 1) {
-        return loadSessionContext(client, projects[0]!.projectId);
-      }
-
-      return {
-        status: "selection_required",
-        projects,
-        nextStep:
-          "Ask the user which project to use, then call start_openlog_session with that project's projectId.",
-      };
-    },
-  );
+        return discoverOrSelectSession(
+          client,
+          projectId,
+          permissions,
+          webBaseUrl,
+          runtime,
+        );
+      },
+    );
+  }
 
   registry.registerAuthenticated(
     "list_my_notifications",
@@ -284,25 +329,27 @@ export async function createOpenLogMcpServer(
     (client, { postId }) => client.get(`/posts/${postId}`),
   );
 
-  registry.registerAuthenticated(
-    "upload_post_image",
-    "write",
-    {
-      title: "Upload OpenLog Post Image",
-      description:
-        "Convert a local image file to WebP, upload it to OpenLog, and return markdown for post content.",
-      inputSchema: {
-        filePath: z.string().min(1),
-        altText: z.string().optional(),
+  if (runtime === "local") {
+    registry.registerAuthenticated(
+      "upload_post_image",
+      "write",
+      {
+        title: "Upload OpenLog Post Image",
+        description:
+          "Convert a local image file to WebP, upload it to OpenLog, and return markdown for post content.",
+        inputSchema: {
+          filePath: z.string().min(1),
+          altText: z.string().optional(),
+        },
+        annotations: WRITE_TOOL_ANNOTATIONS,
       },
-      annotations: WRITE_TOOL_ANNOTATIONS,
-    },
-    (client, { filePath, altText }) =>
-      uploadImage(client, {
-        filePath,
-        altText,
-      }),
-  );
+      (client, { filePath, altText }) =>
+        uploadImage(client, {
+          filePath,
+          altText,
+        }),
+    );
+  }
 
   registry.registerAuthenticated(
     "create_post_draft",
@@ -447,9 +494,66 @@ export async function createOpenLogMcpServer(
 }
 
 export async function runMcpServer(): Promise<void> {
+  console.error(
+    "[deprecated] OpenLog stdio MCP is supported for this release only. Connect https://api.openlog.kr/mcp instead.",
+  );
   const created = await createOpenLogMcpServer();
   printMcpStartupHint(created.permissions, created.toolNames);
   await created.server.connect(new StdioServerTransport());
+}
+
+async function discoverOrSelectSession(
+  client: OpenLogApiClient,
+  projectId: number | undefined,
+  permissions: ResolvedMcpPermissions,
+  webBaseUrl: string,
+  runtime: McpRuntimeMode,
+) {
+  if (projectId) {
+    return loadSessionContext(client, projectId);
+  }
+
+  const workspaces = await client.get<SessionWorkspace[]>("/workspaces");
+  const projects = workspaces.flatMap((workspace) =>
+    workspace.projects.map((project) => ({
+      projectId: project.id,
+      displayName: project.displayName,
+      workspaceId: workspace.id,
+      workspaceName: workspace.name,
+      captureMode: project.captureMode,
+      repositoryFullName: project.repositoryFullName,
+    })),
+  );
+
+  if (projects.length === 0) {
+    const canCreateProject = permissions.capabilities.includes("write");
+    return {
+      status: "no_projects",
+      workspaces: workspaces.map((workspace) => ({
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+      })),
+      nextStep:
+        workspaces.length === 0
+          ? `Create a workspace in OpenLog first: ${webBaseUrl}/workspaces/new`
+          : canCreateProject
+            ? "Ask the user which workspace should own the project, then call create_workspace_project with its workspaceId and a displayName."
+            : runtime === "remote"
+              ? "Project creation requires write access. Ask the user to change this OAuth connection to safe-write or full in OpenLog settings."
+              : "Project creation requires the write capability. Ask the user to create one in OpenLog or enable safe-write/full with openlog mcp permissions set, then restart the MCP server.",
+    };
+  }
+
+  if (projects.length === 1) {
+    return loadSessionContext(client, projects[0]!.projectId);
+  }
+
+  return {
+    status: "selection_required",
+    projects,
+    nextStep:
+      "Ask the user which project to use, then call start_openlog_session with that project's projectId.",
+  };
 }
 
 function sessionInitRequired(
@@ -572,7 +676,9 @@ function normalizePostDraftInput(input: PostWriteInput): PostWriteInput {
   const content = input.content.trim();
 
   if (!title && !description && !content) {
-    throw new Error("At least one of title, description, or content is required.");
+    throw new Error(
+      "At least one of title, description, or content is required.",
+    );
   }
 
   return {

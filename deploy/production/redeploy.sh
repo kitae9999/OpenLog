@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [[ $# -eq 0 ]]; then
-  set -- kafka debezium backend
+  set -- kafka debezium backend mcp
 fi
 
 includes_service() {
@@ -67,7 +67,7 @@ if includes_service "debezium" "$@"; then
   fi
 fi
 
-if includes_service "backend" "$@" || includes_service "nginx" "$@"; then
+if includes_service "backend" "$@" || includes_service "mcp" "$@" || includes_service "nginx" "$@"; then
   docker compose \
     -p openlog \
     --env-file production.env \

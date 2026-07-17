@@ -126,7 +126,7 @@ services:
       kafka:
         condition: service_healthy
     env_file:
-      - ./production.env
+      - ${PRODUCTION_ENV_FILE:-./production.env}
     environment:
       SPRING_PROFILES_ACTIVE: production
     expose:
@@ -143,11 +143,40 @@ services:
     networks:
       - openlog
 
+  mcp:
+    image: ${MCP_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file:
+      - ${PRODUCTION_ENV_FILE:-./production.env}
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8090
+      OPENLOG_API_BASE_URL: http://backend:8080/api
+      MCP_INTROSPECTION_URL: http://backend:8080/api/oauth2/introspect
+      MCP_TOKEN_URL: http://backend:8080/api/oauth2/token
+    expose:
+      - "8090"
+    ports:
+      - "127.0.0.1:8090:8090"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8090/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - openlog
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
     depends_on:
       backend:
+        condition: service_healthy
+      mcp:
         condition: service_healthy
     environment:
       NGINX_SERVER_NAME: ${NGINX_SERVER_NAME}
@@ -158,6 +187,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/public-routes.conf:/etc/nginx/snippets/openlog-public-routes.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
     networks:
       - openlog

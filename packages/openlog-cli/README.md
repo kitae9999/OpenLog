@@ -1,6 +1,45 @@
 # OpenLog CLI
 
-Official CLI and MCP server for OpenLog.
+Official OpenLog remote MCP service and compatibility CLI.
+
+## Remote MCP (recommended)
+
+New connections use the hosted Streamable HTTP endpoint. No local OpenLog CLI
+or MCP server is required.
+
+```json
+{
+  "mcpServers": {
+    "openlog": {
+      "type": "http",
+      "url": "https://api.openlog.kr/mcp"
+    }
+  }
+}
+```
+
+Codex CLI before the public plugin is approved:
+
+```bash
+codex mcp add openlog --url https://api.openlog.kr/mcp --oauth-resource https://api.openlog.kr/mcp
+codex mcp login openlog
+```
+
+Claude Code before the public marketplace plugin is approved:
+
+```bash
+claude mcp add --transport http --scope user openlog https://api.openlog.kr/mcp
+```
+
+OAuth connections default to `safe-write`. Choose `full` explicitly to expose
+delete tools. Remote v1 does not inspect local paths and does not expose
+`upload_post_image(filePath)`.
+
+## Legacy stdio compatibility (2.1 only)
+
+The local stdio CLI remains available for this compatibility release and prints
+a deprecation notice when it starts. It will be removed with device login,
+local project binding, and stdio installation commands in the next release.
 
 ```bash
 npx -y @openloghq/cli@latest
