@@ -6,7 +6,6 @@ import { cn } from "@/shared/lib/cn";
 import { useSidebarOpenState } from "@/shared/lib/useSidebarOpenState";
 import { HomeSidebar } from "@/widgets/app-shell/ui/HomeFeedShell";
 import { WorkspaceAgentSettingsView } from "@/pages/workspace-agent/ui/WorkspaceAgentSettingsView";
-import type { AgentGuidePageLocale } from "@/pages/workspace-agent/model/agentGuidePageContent";
 import type { WorkspaceAgentSettingsData } from "@/entities/workspace/api/workspaceAgentApi";
 import type { ManagedWorkspace } from "@/entities/workspace/model/workspaceTypes";
 
@@ -15,18 +14,15 @@ export function WorkspaceAgentSettingsShell({
   profileHref,
   workspaces,
   data,
-  locale,
   footer,
 }: {
   profileImageUrl?: string | null;
   profileHref?: string;
   workspaces: ManagedWorkspace[];
   data: WorkspaceAgentSettingsData;
-  locale: AgentGuidePageLocale;
   footer: ReactNode;
 }) {
-  const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } =
-    useSidebarOpenState();
+  const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } = useSidebarOpenState();
 
   return (
     <div className="flex min-h-dvh flex-col bg-app text-zinc-950">
@@ -69,7 +65,7 @@ export function WorkspaceAgentSettingsShell({
             aria-label="Agent settings"
             className="mx-auto w-full max-w-[1220px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 xl:px-10"
           >
-            <WorkspaceAgentSettingsView data={data} locale={locale} />
+            <WorkspaceAgentSettingsView data={data} />
           </section>
         </main>
       </div>

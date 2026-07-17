@@ -22,7 +22,7 @@ OpenLog는 작업이 끝나기 전에 그 맥락을 가까운 곳에 남겨요.
 
 ## 이렇게 사용해요
 
-1. OpenLog 원격 MCP 서버를 코딩 에이전트에 연결해요.
+1. OpenLog CLI와 MCP 서버를 코딩 에이전트에 연결해요.
 2. 평소처럼 작업해요. 에이전트가 워크스페이스의 Now Working을 갱신해요.
 3. 구현 과정과 결정, 문제를 해결한 내용, 다시 쓸 맥락은 Log와 Memory에 남겨요.
 4. 관련된 Task, Log, Memory, Output을 Graph로 연결해요.
@@ -56,61 +56,13 @@ OpenLog는 작업이 끝나기 전에 그 맥락을 가까운 곳에 남겨요.
 ### 로그인은 오래 유지돼요
 
 - 웹은 수명이 짧은 access token과 주기적으로 바뀌는 refresh session을 사용해요.
-- 원격 MCP는 OAuth로 연결하며, 에이전트 설정에 계정 비밀번호나 OpenLog 토큰을 저장하지 않아요.
+- CLI의 device login을 사용하면 에이전트 설정에 계정 비밀번호를 넣지 않고도 MCP 연결을 유지할 수 있어요.
 
 ## 시작해 볼까요?
 
 [openlog.kr](https://openlog.kr)에 로그인하고 워크스페이스를 먼저 만들어 주세요.
 
-### 원격 MCP 연결 (권장)
-
-새 연결은 `https://api.openlog.kr/mcp`의 Streamable HTTP MCP를 사용해요.
-로컬 OpenLog CLI나 MCP 서버를 설치할 필요가 없어요. 연결 상태와 권한은
-[OpenLog 에이전트 가이드](https://openlog.kr/settings/mcp-guide)에서 확인·변경·해지할 수 있어요.
-
-#### Codex CLI
-
-```bash
-codex mcp add openlog --url https://api.openlog.kr/mcp
-codex mcp login openlog
-```
-
-#### Claude Code
-
-```bash
-claude mcp add --transport http --scope user openlog https://api.openlog.kr/mcp
-claude mcp login openlog
-```
-
-#### Cursor
-
-[Add to Cursor](https://cursor.com/install-mcp?name=openlog&config=eyJ1cmwiOiJodHRwczovL2FwaS5vcGVubG9nLmtyL21jcCJ9)를 누르거나 다음 설정을 등록하세요.
-
-```json
-{
-  "mcpServers": {
-    "openlog": {
-      "url": "https://api.openlog.kr/mcp"
-    }
-  }
-}
-```
-
-처음 연결할 때 브라우저에서 OpenLog 로그인과 연결 승인을 진행해요. 기본 권한은
-`safe-write`이고, 삭제 도구가 필요한 경우에만 `full`을 명시적으로 선택해요.
-
-`start_openlog_session`은 로컬 경로 없이 시작해요. 프로젝트가 하나면 바로 연결하고,
-여러 개면 에이전트가 목록을 보여준 뒤 사용자의 선택을 받아요. 원격 v1은 로컬
-경로 탐색과 `upload_post_image(filePath)`를 제공하지 않아요.
-
-MCP 서버가 에이전트에 건네는 기본 세션 안내는 한국어예요. 워크스페이스별
-Agent Guide와 프로젝트별 Capture Mode(`AUTO`, `ASK`, `EXPLICIT`)는 서버에 저장되고
-세션 시작 시 적용돼요. 기본 Capture Mode는 `ASK`예요.
-
-### 기존 로컬 CLI (호환 유지)
-
-stdio CLI, device login, 로컬 프로젝트 바인딩은 한 버전 동안만 호환을 유지해요.
-신규 사용자에게는 원격 MCP 연결을 권장해요.
+### CLI
 
 공식 CLI를 사용하려면 Node.js 20 이상이 필요해요.
 
@@ -173,7 +125,7 @@ npm install -g @openloghq/cli
 openlog
 ```
 
-### 기존 로컬 MCP 클라이언트 연결하기
+### MCP 클라이언트 연결하기
 
 ```json
 {
@@ -210,11 +162,11 @@ openlog mcp permissions set full
 openlog mcp permissions reset
 ```
 
-| 프로필       | 사용할 수 있는 기능                                           |
-| ------------ | ------------------------------------------------------------- |
-| `read-only`  | 인증 상태와 조회 도구                                         |
-| `safe-write` | 조회, 생성, 수정, 연결, 이미지 업로드, 확인 후 발행 도구      |
-| `full`       | `safe-write` 기능과 개별 즉시 삭제, working brief 초기화 도구 |
+| 프로필 | 사용할 수 있는 기능 |
+| --- | --- |
+| `read-only` | 인증 상태와 조회 도구 |
+| `safe-write` | 조회, 생성, 수정, 연결, 이미지 업로드, 확인 후 발행 도구 |
+| `full` | `safe-write` 기능과 개별 즉시 삭제, working brief 초기화 도구 |
 
 기본 프로필은 `safe-write`예요. 프로필을 바꾸면 MCP 서버를 재시작하거나 다시
 불러와 주세요. 이 설정은 로컬 에이전트에 적용되는 안전 정책이에요. API는 로그인한
@@ -222,18 +174,18 @@ openlog mcp permissions reset
 
 ### MCP 도구
 
-| 영역                | 도구                                                                                                                                                                                                                                                  |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 권한과 계정         | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts`                                                                                                                                   |
-| Post                | `list_my_posts`, `get_my_post`, `create_post_draft`, `update_post`, `publish_post`, `unpublish_post`, `get_post_detail`                                                                                                                               |
+| 영역 | 도구 |
+| --- | --- |
+| 권한과 계정 | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts` |
+| Post | `list_my_posts`, `get_my_post`, `create_post_draft`, `update_post`, `publish_post`, `unpublish_post`, `get_post_detail`, `upload_post_image` |
 | 워크스페이스와 활동 | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_project`, `create_workspace_project`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
-| Agent Guide         | `update_workspace_agent_guide`                                                                                                                                                                                                                        |
-| Capture Mode        | `update_workspace_project_capture_mode`                                                                                                                                                                                                               |
-| Task와 Log          | workspace task와 log의 조회·생성·수정 도구                                                                                                                                                                                                            |
-| Todo와 Memory       | todo 조회·생성·완료 도구, memory 조회·생성·log 변환·수정 도구                                                                                                                                                                                         |
-| Output              | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `create_post_draft_from_output`                                                                                                               |
-| Graph 연결          | `list_workspace_links`와 task/log/cross-link 생성 도구                                                                                                                                                                                                |
-| `full` 삭제         | working brief 초기화와 task/log/todo/memory/output/link 개별 삭제 도구                                                                                                                                                                                |
+| Agent Guide | `update_workspace_agent_guide` |
+| Capture Mode | `update_workspace_project_capture_mode` |
+| Task와 Log | workspace task와 log의 조회·생성·수정 도구 |
+| Todo와 Memory | todo 조회·생성·완료 도구, memory 조회·생성·log 변환·수정 도구 |
+| Output | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `create_post_draft_from_output` |
+| Graph 연결 | `list_workspace_links`와 task/log/cross-link 생성 도구 |
+| `full` 삭제 | working brief 초기화와 task/log/todo/memory/output/link 개별 삭제 도구 |
 
 `create_workspace_project`, `create_post_draft_from_output`, `publish_post`, `unpublish_post`,
 `update_workspace_agent_guide`, `update_workspace_project_capture_mode`는 먼저
@@ -246,7 +198,7 @@ openlog mcp permissions reset
 ```text
 backend/                Spring Boot API와 DB 마이그레이션
 frontend/               Next.js 웹 애플리케이션과 Playwright 테스트
-packages/openlog-cli/   원격 MCP 서버와 호환 CLI
+packages/openlog-cli/   공식 CLI와 MCP 서버
 deploy/                 운영 배포 설정
 ```
 

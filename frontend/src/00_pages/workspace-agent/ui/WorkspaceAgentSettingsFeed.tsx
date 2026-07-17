@@ -4,22 +4,13 @@ import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboar
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { listManagedWorkspaces } from "@/entities/workspace/api/workspaceApi";
 import { getWorkspaceAgentSettings } from "@/entities/workspace/api/workspaceAgentApi";
-import {
-  parseAgentGuidePageLocale,
-  type AgentGuidePageLocale,
-} from "@/pages/workspace-agent/model/agentGuidePageContent";
 import { WorkspaceAgentSettingsShell } from "@/pages/workspace-agent/ui/WorkspaceAgentSettingsShell";
 
 export async function WorkspaceAgentSettingsFeed({
   workspaceId,
-  locale: localeParam,
 }: {
   workspaceId: string;
-  locale?: string | null;
 }) {
-  const locale: AgentGuidePageLocale = parseAgentGuidePageLocale(
-    localeParam ?? null,
-  );
   const user = await getUserOrRedirectToOnboarding();
   if (!user) {
     redirect("/");
@@ -39,7 +30,6 @@ export async function WorkspaceAgentSettingsFeed({
       profileHref={buildViewerProfileHref(user.username)}
       workspaces={workspaces}
       data={data}
-      locale={locale}
       footer={<Footer />}
     />
   );

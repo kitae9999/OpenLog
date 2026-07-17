@@ -10,7 +10,6 @@ on:
       - "gradlew"
       - "gradlew.bat"
       - "settings.gradle.kts"
-      - "packages/openlog-cli/**"
       - "deploy/production/**"
       - ".github/workflows/backend-cd.yml"
   workflow_dispatch:
@@ -27,19 +26,16 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      mcp_changed: ${{ steps.filter.outputs.mcp }}
       nginx_changed: ${{ steps.filter.outputs.nginx }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Detect changed assets
+      - name: Detect changed deployment assets
         id: filter
         uses: dorny/paths-filter@v4
         with:
           filters: |
-            mcp:
-              - "packages/openlog-cli/**"
             nginx:
               - "deploy/production/nginx/**"
               - "deploy/production/docker-compose.production.yml"
@@ -103,75 +99,11 @@ jobs:
             ${{ steps.meta.outputs.image }}:${{ github.sha }}
             ${{ steps.meta.outputs.image }}:production
 
-  build-and-push-mcp:
-    runs-on: ubuntu-latest
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.mcp_changed == 'true'
-    timeout-minutes: 15
-    outputs:
-      image: ${{ steps.meta.outputs.image }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: packages/openlog-cli/package-lock.json
-
-      - name: Test remote MCP package
-        working-directory: packages/openlog-cli
-        run: |
-          npm ci
-          npm test
-          npm run build
-
-      - name: Compute image name
-        id: meta
-        run: |
-          IMAGE_NAME="ghcr.io/${GITHUB_REPOSITORY,,}/mcp"
-          echo "image=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push MCP image
-        uses: docker/build-push-action@v6
-        with:
-          context: packages/openlog-cli
-          file: packages/openlog-cli/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.image }}:${{ github.sha }}
-            ${{ steps.meta.outputs.image }}:production
-
   deploy:
     runs-on: ubuntu-latest
     needs:
       - changes
       - build-and-push
-      - build-and-push-mcp
-    if: >-
-      always() &&
-      needs.changes.result == 'success' &&
-      needs.build-and-push.result == 'success' &&
-      (
-        needs.build-and-push-mcp.result == 'success' ||
-        needs.build-and-push-mcp.result == 'skipped'
-      )
     environment: production-runtime
     steps:
       - name: Checkout
@@ -205,16 +137,9 @@ jobs:
         env:
           PRODUCTION_BACKEND_ENV: ${{ secrets.PRODUCTION_BACKEND_ENV }}
         run: |
-          if [[ "${{ needs.build-and-push-mcp.result }}" == "success" ]]; then
-            MCP_IMAGE="${{ needs.build-and-push-mcp.outputs.image }}:${{ github.sha }}"
-          else
-            MCP_IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}/mcp:production"
-          fi
-
           {
             printf '%s\n' "$PRODUCTION_BACKEND_ENV"
             printf 'BACKEND_IMAGE=%s\n' "${{ needs.build-and-push.outputs.image }}:${{ github.sha }}"
-            printf 'MCP_IMAGE=%s\n' "$MCP_IMAGE"
           } | ssh "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}" \
             "cat > '${{ secrets.PRODUCTION_DEPLOY_PATH }}/production.env' && \
              chmod 600 '${{ secrets.PRODUCTION_DEPLOY_PATH }}/production.env' && \
@@ -226,9 +151,9 @@ jobs:
           PRODUCTION_GHCR_USERNAME: ${{ secrets.PRODUCTION_GHCR_USERNAME }}
         run: |
           if [[ "${{ needs.changes.outputs.nginx_changed }}" == "true" ]]; then
-            SERVICES="kafka debezium backend mcp nginx"
+            SERVICES="kafka debezium backend nginx"
           else
-            SERVICES="kafka debezium backend mcp"
+            SERVICES="kafka debezium backend"
           fi
 
           ssh "${{ secrets.PRODUCTION_SSH_USER }}@${{ secrets.PRODUCTION_SSH_HOST }}" "
