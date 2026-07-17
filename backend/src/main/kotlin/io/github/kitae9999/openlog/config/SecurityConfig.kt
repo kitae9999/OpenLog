@@ -142,7 +142,8 @@ class SecurityConfig(
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
 
-        if (mcpOAuthProperties.ifAvailable?.enabled == true) {
+        val mcpProperties = mcpOAuthProperties.ifAvailable
+        if (mcpProperties?.enabled == true) {
             val introspector = mcpInternalTokenIntrospector.getIfAvailable()
             if (introspector != null) {
                 http.oauth2ResourceServer { resourceServer ->
@@ -150,6 +151,19 @@ class SecurityConfig(
                         opaqueToken
                             .introspector(introspector)
                             .authenticationConverter(McpInternalAuthenticationConverter(userRepository))
+                    }
+                    resourceServer.protectedResourceMetadata { metadata ->
+                        metadata.protectedResourceMetadataCustomizer { protectedResource ->
+                            protectedResource
+                                .resource(mcpProperties.resource)
+                                .authorizationServer(mcpProperties.issuer)
+                                .scope("mcp:tools")
+                                .bearerMethod("header")
+                                .resourceName("OpenLog Remote MCP")
+                                .claims { claims ->
+                                    claims.remove("tls_client_certificate_bound_access_tokens")
+                                }
+                        }
                     }
                 }
             }
