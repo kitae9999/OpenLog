@@ -79,4 +79,29 @@ if [[ -x /usr/local/sbin/openlog-refresh-alloy-access ]]; then
   sudo -n /usr/local/sbin/openlog-refresh-alloy-access
 fi
 
+mcp_container_id="$(
+  docker compose \
+    -p openlog \
+    --env-file production.env \
+    -f docker-compose.production.yml \
+    ps -q mcp
+)"
+if [[ -n "$mcp_container_id" ]]; then
+  # The Alloy host ACL refresh can make Docker's runtime network files unreadable to the
+  # non-root Node process. Restore Docker's normal permissions before verifying backend DNS.
+  docker compose \
+    -p openlog \
+    --env-file production.env \
+    -f docker-compose.production.yml \
+    exec -T --user root mcp \
+    chmod 0644 /etc/hostname /etc/hosts /etc/resolv.conf
+
+  docker compose \
+    -p openlog \
+    --env-file production.env \
+    -f docker-compose.production.yml \
+    exec -T mcp \
+    node -e "fetch('http://backend:9090/actuator/health/readiness').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+fi
+
 docker image prune -f >/dev/null 2>&1 || true
