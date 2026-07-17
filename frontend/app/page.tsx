@@ -9,6 +9,7 @@ import {
   SITE_URL,
 } from "@/shared/config/site";
 import { toJsonLdScript } from "@/shared/lib/jsonLd";
+import { parseLandingLocale } from "@/widgets/landing/model/landingContent";
 
 export async function generateMetadata({
   searchParams,
@@ -29,12 +30,19 @@ export async function generateMetadata({
 export default async function Home({
   searchParams,
 }: {
-  searchParams?: Promise<{ tab?: string; status?: string }>; // 객체 구조 분해할당, searchParams는 Next가 자동으로 넘겨줌
+  searchParams?: Promise<{
+    tab?: string;
+    status?: string;
+    lang?: string | string[];
+  }>; // 객체 구조 분해할당, searchParams는 Next가 자동으로 넘겨줌
 }) {
   const sp = await searchParams;
   const user = await getUserOrRedirectToOnboarding();
   const isLoggedIn = !!user;
   const tab = normalizeTab(sp?.tab, isLoggedIn);
+  const langParam = sp?.lang;
+  const lang = Array.isArray(langParam) ? langParam[0] : langParam;
+  const landingLocale = parseLandingLocale(lang);
 
   const siteJsonLd = {
     "@context": "https://schema.org",
@@ -45,7 +53,7 @@ export default async function Home({
         url: SITE_URL,
         name: SITE_NAME,
         description: SITE_DESCRIPTION,
-        inLanguage: "en",
+        inLanguage: landingLocale === "ko" ? "ko" : "en",
         publisher: { "@id": `${SITE_URL}/#organization` },
       },
       {
@@ -59,7 +67,7 @@ export default async function Home({
 
   const content =
     !isLoggedIn && !sp?.tab ? (
-      <LandingPage />
+      <LandingPage locale={landingLocale} />
     ) : (
       <HomeFeed
         activeTab={tab}

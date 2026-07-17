@@ -200,14 +200,14 @@ function AgentGuideTipLink({
             className="absolute -top-[5px] right-5 size-2.5 rotate-45 border-t border-l border-zinc-200 bg-white"
           />
           <p className="relative text-[12px] leading-4 text-zinc-600">
-            Tell agents what to capture in this workspace.
+            이 워크스페이스에서 에이전트가 무엇을 남길지 알려 주세요.
           </p>
           <button
             type="button"
             onClick={dismissTip}
             className="relative mt-1.5 text-[11px] font-medium text-zinc-400 underline-offset-2 transition hover:text-zinc-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
           >
-            Do not show again
+            다시 보지 않기
           </button>
         </div>
       ) : null}
@@ -266,7 +266,7 @@ function McpSetupPrompt({
     <div className="fixed inset-0 z-[80] grid place-items-center p-4">
       <button
         type="button"
-        aria-label="Dismiss MCP setup prompt"
+        aria-label="MCP 안내 닫기"
         onClick={dismiss}
         className="absolute inset-0 bg-zinc-950/12 backdrop-blur-[10px] backdrop-saturate-150"
       />
@@ -281,14 +281,14 @@ function McpSetupPrompt({
           id={titleId}
           className="text-[16px] font-semibold tracking-[-0.01em] text-zinc-950"
         >
-          Have you connected MCP?
+          에이전트랑 연결할까요?
         </h2>
         <p
           id={descriptionId}
           className="mt-2 text-[13.5px] leading-6 text-zinc-500"
         >
-          Agents need MCP to create Tasks, Logs, and Outputs. Open the guide to
-          install and configure it.
+          한 줄 명령으로 setup과 init까지 끝나요. MCP Guide에서 Cursor, Claude,
+          Codex 연결 방법을 볼 수 있어요.
         </p>
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
@@ -296,14 +296,14 @@ function McpSetupPrompt({
             onClick={dismiss}
             className="inline-flex h-9 items-center rounded-xl px-3.5 text-[13px] font-semibold text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
           >
-            Skip
+            나중에
           </button>
           <Link
             href={getMcpGuideHref()}
             onClick={dismiss}
             className="inline-flex h-9 items-center rounded-xl bg-zinc-950 px-3.5 text-[13px] font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
           >
-            Open MCP Guide
+            MCP Guide 열기
           </Link>
         </div>
       </div>
@@ -535,9 +535,11 @@ export function WorkspaceDashboardView({
             </div>
           </div>
         ) : (
+          // When an agent works with OpenLog, it pushes a short brief here —
+          // branch, task, and how far things got.
           <p className="mt-3 max-w-[52ch] text-[14.5px] leading-6 text-zinc-500">
-            When an agent works with OpenLog, it pushes a short brief here —
-            branch, task, and how far things got.
+            에이전트로 작업하면, 작업 단위마다 에이전트가 여기 brief를 자동으로
+            업데이트해요.
           </p>
         )}
       </section>

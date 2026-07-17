@@ -23,6 +23,12 @@ Setup never inspects or connects the current directory. After setup, an agent
 can discover OpenLog projects without a local folder. Non-interactive shells
 should use the individual commands instead.
 
+To finish folder binding in the same directory after setup, chain the commands:
+
+```bash
+npx -y @openloghq/cli@latest setup && npx -y @openloghq/cli@latest init
+```
+
 ## Project init
 
 Run init inside any local folder you want OpenLog agents to identify automatically:
