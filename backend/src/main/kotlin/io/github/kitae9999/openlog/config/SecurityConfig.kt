@@ -2,7 +2,11 @@ package io.github.kitae9999.openlog.config
 
 import io.github.kitae9999.openlog.auth.GithubOAuthSuccessHandler
 import io.github.kitae9999.openlog.auth.JwtAuthenticationFilter
+import io.github.kitae9999.openlog.auth.mcp.McpInternalAuthenticationConverter
+import io.github.kitae9999.openlog.auth.mcp.McpInternalTokenIntrospector
+import io.github.kitae9999.openlog.auth.mcp.McpOAuthProperties
 import io.github.kitae9999.openlog.common.exception.ErrorResponse
+import io.github.kitae9999.openlog.user.repository.UserRepository
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -21,6 +25,9 @@ class SecurityConfig(
     private val githubOAuthSuccessHandler: GithubOAuthSuccessHandler,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
     private val objectMapper: ObjectMapper,
+    private val mcpOAuthProperties: org.springframework.beans.factory.ObjectProvider<McpOAuthProperties>,
+    private val mcpInternalTokenIntrospector: org.springframework.beans.factory.ObjectProvider<McpInternalTokenIntrospector>,
+    private val userRepository: UserRepository,
 ) {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -33,12 +40,13 @@ class SecurityConfig(
                 it
                     // OAuth / 로그인
                     .requestMatchers(
-                        "/oauth2/**",
+                        "/oauth2/authorization/**",
                         "/login/oauth2/**",
                         "/auth/google",
                         "/auth/google/callback",
                         "/auth/github",
                     ).permitAll()
+                    .requestMatchers("/oauth2/consent", "/auth/mcp/connections/**").authenticated()
                     // auth — 로그아웃/디바이스 로그인 시작·토큰 교환 공개
                     .requestMatchers(
                         HttpMethod.POST,
@@ -133,6 +141,19 @@ class SecurityConfig(
                 it.successHandler(githubOAuthSuccessHandler)
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+
+        if (mcpOAuthProperties.ifAvailable?.enabled == true) {
+            val introspector = mcpInternalTokenIntrospector.getIfAvailable()
+            if (introspector != null) {
+                http.oauth2ResourceServer { resourceServer ->
+                    resourceServer.opaqueToken { opaqueToken ->
+                        opaqueToken
+                            .introspector(introspector)
+                            .authenticationConverter(McpInternalAuthenticationConverter(userRepository))
+                    }
+                }
+            }
+        }
 
         return http.build()
     }
