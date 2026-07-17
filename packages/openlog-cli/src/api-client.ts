@@ -15,8 +15,6 @@ export type OpenLogApiClientOptions = {
   accessToken?: string;
   refreshToken?: string;
   apiBaseUrl?: string;
-  authenticationMode?: "cookie" | "bearer";
-  request?: typeof fetch;
   onTokenRefresh?: (tokens: RefreshedTokens) => Promise<void> | void;
 };
 
@@ -31,20 +29,13 @@ export class OpenLogApiClient {
   private readonly apiBaseUrl: string;
   private accessToken?: string;
   private refreshToken?: string;
-  private readonly authenticationMode: "cookie" | "bearer";
-  private readonly requestFunction: typeof fetch;
   private readonly onTokenRefresh?: OpenLogApiClientOptions["onTokenRefresh"];
   private refreshPromise?: Promise<void>;
 
   constructor(options: OpenLogApiClientOptions = {}) {
-    this.apiBaseUrl = (options.apiBaseUrl ?? getApiBaseUrl()).replace(
-      /\/$/,
-      "",
-    );
+    this.apiBaseUrl = (options.apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
     this.accessToken = options.accessToken;
     this.refreshToken = options.refreshToken;
-    this.authenticationMode = options.authenticationMode ?? "cookie";
-    this.requestFunction = options.request ?? fetch;
     this.onTokenRefresh = options.onTokenRefresh;
   }
 
@@ -102,14 +93,12 @@ export class OpenLogApiClient {
     allowRefresh = true,
   ): Promise<T> {
     const url = `${this.apiBaseUrl}${path}`;
-    const response = await this.requestFunction(url, {
+    const response = await fetch(url, {
       ...init,
       headers: {
         ...(init.headers ?? {}),
         ...(this.accessToken
-          ? this.authenticationMode === "bearer"
-            ? { authorization: `Bearer ${this.accessToken}` }
-            : { cookie: `openlog_access_token=${this.accessToken}` }
+          ? { cookie: `openlog_access_token=${this.accessToken}` }
           : {}),
       },
     });
@@ -120,11 +109,7 @@ export class OpenLogApiClient {
     }
 
     if (!response.ok) {
-      throw new ApiError(
-        response.status,
-        url,
-        await readErrorMessage(response),
-      );
+      throw new ApiError(response.status, url, await readErrorMessage(response));
     }
 
     if (response.status === 204) {
@@ -150,14 +135,11 @@ export class OpenLogApiClient {
   }
 
   private async performTokenRefresh(): Promise<void> {
-    const response = await this.requestFunction(
-      `${this.apiBaseUrl}/auth/device/refresh`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ refreshToken: this.refreshToken }),
-      },
-    );
+    const response = await fetch(`${this.apiBaseUrl}/auth/device/refresh`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ refreshToken: this.refreshToken }),
+    });
 
     if (!response.ok) {
       throw new ApiError(
@@ -181,9 +163,9 @@ export class OpenLogApiClient {
 function isRefreshedTokens(value: RefreshedTokens): boolean {
   return Boolean(
     value.accessToken &&
-    value.refreshToken &&
-    Number.isFinite(value.expiresIn) &&
-    Number.isFinite(value.refreshExpiresIn),
+      value.refreshToken &&
+      Number.isFinite(value.expiresIn) &&
+      Number.isFinite(value.refreshExpiresIn),
   );
 }
 

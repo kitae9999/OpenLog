@@ -8,20 +8,9 @@ export const metadata: Metadata = {
 
 export default async function WorkspaceAgentSettingsPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ workspaceId: string }>;
-  searchParams?: Promise<{ lang?: string | string[] }>;
 }) {
   const { workspaceId } = await params;
-  const resolved = await searchParams;
-  const langParam = resolved?.lang;
-  const lang = Array.isArray(langParam) ? langParam[0] : langParam;
-
-  return (
-    <WorkspaceAgentSettingsFeed
-      workspaceId={workspaceId}
-      locale={lang ?? null}
-    />
-  );
+  return <WorkspaceAgentSettingsFeed workspaceId={workspaceId} />;
 }
