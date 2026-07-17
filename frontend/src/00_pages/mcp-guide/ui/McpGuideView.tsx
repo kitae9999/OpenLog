@@ -26,9 +26,10 @@ import { McpCommandTerminal } from "@/pages/mcp-guide/ui/McpCommandTerminal";
 const MCP_URL = "https://api.openlog.kr/mcp";
 const CURSOR_INSTALL_URL =
   "https://cursor.com/install-mcp?name=openlog&config=eyJ1cmwiOiJodHRwczovL2FwaS5vcGVubG9nLmtyL21jcCJ9";
-const CODEX_COMMAND = `codex mcp add openlog --url ${MCP_URL} --oauth-resource ${MCP_URL}
+const CODEX_COMMAND = `codex mcp add openlog --url ${MCP_URL}
 codex mcp login openlog`;
-const CLAUDE_COMMAND = `claude mcp add --transport http --scope user openlog ${MCP_URL}`;
+const CLAUDE_COMMAND = `claude mcp add --transport http --scope user openlog ${MCP_URL}
+claude mcp login openlog`;
 
 export function McpGuideView({
   isLoggedIn,
