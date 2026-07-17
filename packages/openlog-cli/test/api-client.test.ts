@@ -67,6 +67,31 @@ test("keeps the original 401 when no refresh token is available", async (t) => {
   );
 });
 
+test("sends exchanged remote tokens as bearer authorization", async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  let authorization: string | null = null;
+  let cookie: string | null = null;
+  globalThis.fetch = async (_input, init) => {
+    const headers = new Headers(init?.headers);
+    authorization = headers.get("authorization");
+    cookie = headers.get("cookie");
+    return Response.json({ ok: true });
+  };
+
+  const client = new OpenLogApiClient({
+    apiBaseUrl: "https://api.openlog.test",
+    accessToken: "internal-reference-token",
+    authenticationMode: "bearer",
+  });
+
+  assert.deepEqual(await client.get("/auth/me"), { ok: true });
+  assert.equal(authorization, "Bearer internal-reference-token");
+  assert.equal(cookie, null);
+});
+
 test("shares one refresh request across concurrent 401 responses", async (t) => {
   let refreshCount = 0;
   const originalFetch = globalThis.fetch;
@@ -147,7 +172,9 @@ test("accepts an empty successful response with a non-204 status", async (t) => 
   });
   globalThis.fetch = async () => new Response(null, { status: 201 });
 
-  const client = new OpenLogApiClient({ apiBaseUrl: "https://api.openlog.test" });
+  const client = new OpenLogApiClient({
+    apiBaseUrl: "https://api.openlog.test",
+  });
   await client.postNoContent("/workspaces/1/log-links", {
     fromLogId: 1,
     toLogId: 2,
