@@ -22,7 +22,7 @@ OpenLog keeps that context close to the work:
 
 ## Core workflow
 
-1. Connect the OpenLog CLI and MCP server to your coding agent.
+1. Connect the hosted OpenLog MCP server to your coding agent.
 2. Work normally while the agent updates the workspace working brief.
 3. Capture implementation logs, decisions, fixes, and reusable memories.
 4. Connect related tasks, logs, memories, and outputs in the graph.
@@ -56,13 +56,66 @@ OpenLog keeps that context close to the work:
 ### Durable authentication
 
 - Browser sessions use short-lived access tokens with rotating refresh sessions.
-- CLI device login keeps MCP clients authenticated without embedding account credentials in agent configuration.
+- Remote MCP uses OAuth without storing an account password or OpenLog token in the agent configuration.
 
 ## Get started
 
 Open [openlog.kr](https://openlog.kr), sign in, and create a workspace.
 
-### CLI
+### Remote MCP (recommended)
+
+New connections use the hosted Streamable HTTP endpoint at
+`https://api.openlog.kr/mcp`. No local OpenLog CLI or MCP server is required.
+Use the [OpenLog Agent Guide](https://openlog.kr/settings/mcp-guide) to inspect,
+change, or revoke connected agents and their permissions.
+
+#### Codex CLI
+
+```bash
+codex mcp add openlog --url https://api.openlog.kr/mcp
+codex mcp login openlog
+```
+
+#### Claude Code
+
+```bash
+claude mcp add --transport http --scope user openlog https://api.openlog.kr/mcp
+claude mcp login openlog
+```
+
+#### Cursor
+
+Use [Add to Cursor](https://cursor.com/install-mcp?name=openlog&config=eyJ1cmwiOiJodHRwczovL2FwaS5vcGVubG9nLmtyL21jcCJ9)
+or register the endpoint directly:
+
+```json
+{
+  "mcpServers": {
+    "openlog": {
+      "url": "https://api.openlog.kr/mcp"
+    }
+  }
+}
+```
+
+The first connection opens a browser for OpenLog sign-in and consent. OAuth
+connections default to `safe-write`; select `full` explicitly only when delete
+tools are required.
+
+`start_openlog_session` begins without a local path. It starts immediately for
+a single project or returns the project list so the agent can ask the user when
+there are multiple choices. Remote v1 does not inspect local paths and does not
+expose `upload_post_image(filePath)`.
+
+The MCP server sends its built-in session instructions in Korean. Workspace
+Agent Guides and per-project Capture Mode (`AUTO`, `ASK`, or `EXPLICIT`) are
+stored on the server and loaded when a session starts. `ASK` is the default
+Capture Mode.
+
+### Legacy local CLI (compatibility)
+
+The stdio CLI, device login, and local project binding remain available for one
+compatibility release. New users should connect through remote MCP.
 
 The official CLI requires Node.js 20 or later.
 
@@ -110,11 +163,11 @@ The workspace Agent Guide is an editable English Markdown SSOT. The MCP server
 loads its latest revision at the start of each project session. Capture Mode is
 stored per project:
 
-| Mode | Agent behavior for Task, Log, and Output create/update |
-| --- | --- |
-| `AUTO` | May act when the Workspace Guide says the work is worth recording |
-| `ASK` | Asks before acting; this is the default |
-| `EXPLICIT` | Acts only after an explicit user request |
+| Mode       | Agent behavior for Task, Log, and Output create/update            |
+| ---------- | ----------------------------------------------------------------- |
+| `AUTO`     | May act when the Workspace Guide says the work is worth recording |
+| `ASK`      | Asks before acting; this is the default                           |
+| `EXPLICIT` | Acts only after an explicit user request                          |
 
 Publishing and deletion retain their separate confirmation rules. The local MCP
 permission profile always takes precedence over Capture Mode.
@@ -140,7 +193,7 @@ npm install -g @openloghq/cli
 openlog
 ```
 
-### MCP client configuration
+### Legacy local MCP client configuration
 
 ```json
 {
@@ -177,28 +230,28 @@ openlog mcp permissions set full
 openlog mcp permissions reset
 ```
 
-| Profile | Capabilities |
-| --- | --- |
-| `read-only` | Authentication and read tools |
-| `safe-write` | Read, create, update, link, upload, and confirmed publish tools |
-| `full` | `safe-write` plus immediate single-item delete and working-brief clear tools |
+| Profile      | Capabilities                                                                 |
+| ------------ | ---------------------------------------------------------------------------- |
+| `read-only`  | Authentication and read tools                                                |
+| `safe-write` | Read, create, update, link, upload, and confirmed publish tools              |
+| `full`       | `safe-write` plus immediate single-item delete and working-brief clear tools |
 
 `safe-write` is the default. Restart or reload the MCP server after changing the profile. This profile is a local agent safety policy; the API still enforces the authenticated user's server-side access.
 
 ### MCP tools
 
-| Area | Tools |
-| --- | --- |
-| Permissions and account | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts` |
-| Posts | `list_my_posts`, `get_my_post`, `create_post_draft`, `update_post`, `publish_post`, `unpublish_post`, `get_post_detail`, `upload_post_image` |
-| Workspace and activity | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_project`, `create_workspace_project`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
-| Agent Guide | `update_workspace_agent_guide` |
-| Capture Mode | `update_workspace_project_capture_mode` |
-| Tasks and logs | `list_workspace_tasks`, `get_workspace_task`, `create_workspace_task`, `update_workspace_task`, and the matching workspace-log tools |
-| Todos and memories | Todo list/create/done tools and memory list/get/create/from-log/update tools |
-| Outputs | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `create_post_draft_from_output` |
-| Graph links | `list_workspace_links` and task/log/cross-link create tools |
-| Full-profile deletes | Working-brief clear and individual task/log/todo/memory/output/link delete tools |
+| Area                    | Tools                                                                                                                                                                                                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Permissions and account | `get_mcp_permissions`, `get_auth_status`, `get_me`, `list_my_notifications`, `list_my_posts`, `list_my_liked_posts`                                                                                                                                   |
+| Posts                   | `list_my_posts`, `get_my_post`, `create_post_draft`, `update_post`, `publish_post`, `unpublish_post`, `get_post_detail`                                                                                                                               |
+| Workspace and activity  | `start_openlog_session`, `list_workspaces`, `get_workspace`, `get_workspace_project`, `create_workspace_project`, `get_workspace_agent_guide`, `get_working_brief`, `push_working_brief`, `get_workspace_activity`, `get_workspace_activity_day_logs` |
+| Agent Guide             | `update_workspace_agent_guide`                                                                                                                                                                                                                        |
+| Capture Mode            | `update_workspace_project_capture_mode`                                                                                                                                                                                                               |
+| Tasks and logs          | `list_workspace_tasks`, `get_workspace_task`, `create_workspace_task`, `update_workspace_task`, and the matching workspace-log tools                                                                                                                  |
+| Todos and memories      | Todo list/create/done tools and memory list/get/create/from-log/update tools                                                                                                                                                                          |
+| Outputs                 | `list_workspace_outputs`, `get_workspace_output`, `create_workspace_output`, `update_workspace_output`, `create_post_draft_from_output`                                                                                                               |
+| Graph links             | `list_workspace_links` and task/log/cross-link create tools                                                                                                                                                                                           |
+| Full-profile deletes    | Working-brief clear and individual task/log/todo/memory/output/link delete tools                                                                                                                                                                      |
 
 `create_workspace_project`, `create_post_draft_from_output`, `publish_post`, `unpublish_post`, `update_workspace_agent_guide`, and `update_workspace_project_capture_mode` return a preview by default. Applying the write requires `confirm: true`, or `skipConfirmation: true` when the user has explicitly requested the write without another confirmation.
 
@@ -207,7 +260,7 @@ openlog mcp permissions reset
 ```text
 backend/                Spring Boot API and database migrations
 frontend/               Next.js web application and Playwright tests
-packages/openlog-cli/   Official CLI and MCP server
+packages/openlog-cli/   Remote MCP server and compatibility CLI
 deploy/                 Production deployment assets
 ```
 
