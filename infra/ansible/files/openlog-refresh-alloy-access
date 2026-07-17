@@ -5,6 +5,15 @@ set -euo pipefail
 if [[ -d /var/lib/docker ]]; then
   setfacl -R -m d:u:alloy:rx /var/lib/docker
   setfacl -R -m u:alloy:rx /var/lib/docker
+
+  # Docker bind-mounts these files into every container. The inherited default ACL must not
+  # remove other-read permission because non-root containers need them for hostname and DNS.
+  find /var/lib/docker/containers \
+    -mindepth 2 \
+    -maxdepth 2 \
+    -type f \
+    \( -name hostname -o -name hosts -o -name resolv.conf \) \
+    -exec setfacl -m o::r {} +
 fi
 
 if [[ -S /run/containerd/containerd.sock ]]; then
