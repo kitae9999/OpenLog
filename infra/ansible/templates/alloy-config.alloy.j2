@@ -11,7 +11,7 @@ prometheus.scrape "host" {
   targets         = prometheus.exporter.unix.host.targets
   forward_to      = [prometheus.relabel.host.receiver]
   job_name        = "openlog-host"
-  scrape_interval = "30s"
+  scrape_interval = "60s"
 }
 
 prometheus.relabel "host" {
@@ -47,7 +47,7 @@ prometheus.scrape "containers" {
   targets         = prometheus.exporter.cadvisor.containers.targets
   forward_to      = [prometheus.relabel.containers.receiver]
   job_name        = "openlog-containers"
-  scrape_interval = "30s"
+  scrape_interval = "60s"
 }
 
 prometheus.relabel "containers" {
@@ -82,7 +82,7 @@ prometheus.scrape "spring" {
   forward_to      = [prometheus.relabel.spring.receiver]
   job_name        = "openlog-backend"
   metrics_path    = "/actuator/prometheus"
-  scrape_interval = "30s"
+  scrape_interval = "60s"
 }
 
 prometheus.relabel "spring" {
@@ -106,7 +106,7 @@ prometheus.scrape "alloy" {
   forward_to      = [prometheus.relabel.alloy.receiver]
   job_name        = "openlog-alloy"
   metrics_path    = "/metrics"
-  scrape_interval = "30s"
+  scrape_interval = "60s"
 }
 
 prometheus.relabel "alloy" {
