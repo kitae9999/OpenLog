@@ -50,6 +50,11 @@ export type WorkspaceLogResponse = {
   updatedAt: string;
 };
 
+export type WorkspaceLogDetailResponse = WorkspaceLogResponse & {
+  content: string;
+  closedAt: string | null;
+};
+
 export type WorkspaceLogCursorResponse = {
   logs: WorkspaceLogResponse[];
   nextCursor: string | null;
@@ -159,6 +164,20 @@ export async function fetchWorkspaceLogs(workspaceId: string) {
   return response.logs.map(mapLog);
 }
 
+export async function fetchWorkspaceTask(workspaceId: string, taskId: string) {
+  const response = await clientApi<WorkspaceTaskResponse>(
+    `/api/workspaces/${workspaceId}/tasks/${taskId}`,
+  );
+  return mapTask(response);
+}
+
+export async function fetchWorkspaceLog(workspaceId: string, logId: string) {
+  const response = await clientApi<WorkspaceLogDetailResponse>(
+    `/api/workspaces/${workspaceId}/logs/${logId}`,
+  );
+  return mapLog(response);
+}
+
 export function buildWorkspaceUiData(
   bootstrap: AppBootstrap,
   workspaceId: string,
@@ -259,7 +278,10 @@ export function mapTask(task: WorkspaceTaskResponse): WorkspaceWorkItem {
   };
 }
 
-export function mapLog(log: WorkspaceLogResponse): WorkspaceLogItem {
+export function mapLog(
+  log: WorkspaceLogResponse | WorkspaceLogDetailResponse,
+): WorkspaceLogItem {
+  const content = "content" in log ? log.content : undefined;
   return {
     id: String(log.id),
     tone: mapLogTone(log.kind),
@@ -267,11 +289,12 @@ export function mapLog(log: WorkspaceLogResponse): WorkspaceLogItem {
     kind: log.kind,
     status: log.status,
     title: log.title,
-    description: log.summary ?? "",
+    description: log.summary ?? (content ? excerpt(content) : ""),
     summary: log.summary ?? undefined,
     meta: buildLogMeta(log),
     href: getLogHref(String(log.id)),
     taskId: log.taskId ? String(log.taskId) : undefined,
+    body: content,
     createdAt: log.createdAt,
     updatedAt: log.updatedAt,
   };
@@ -344,15 +367,27 @@ function mapLogTone(kind: LogKind): WorkspaceLogItem["tone"] {
   return "zinc";
 }
 
-function buildLogMeta(log: WorkspaceLogResponse) {
+function buildLogMeta(log: WorkspaceLogResponse | WorkspaceLogDetailResponse) {
   const activityAt = log.updatedAt || log.createdAt;
   if (log.status === "OPEN") {
     return `open · ${formatWorkspaceDateLabel(activityAt)}`;
   }
   if (log.status === "CLOSED") {
-    return `closed · ${formatWorkspaceDateLabel(activityAt)}`;
+    const closedAt = "closedAt" in log ? log.closedAt : null;
+    return `closed · ${formatWorkspaceDateLabel(closedAt ?? activityAt)}`;
   }
   return formatWorkspaceDateLabel(activityAt);
+}
+
+function excerpt(content: string, maxLength = 120) {
+  const plain = content
+    .replace(/^#+\s+/gm, "")
+    .replace(/[*`_~[\]()]/g, "")
+    .trim();
+  if (!plain) return "";
+  return plain.length <= maxLength
+    ? plain
+    : `${plain.slice(0, maxLength).trim()}...`;
 }
 
 function getDashboardDateRange() {

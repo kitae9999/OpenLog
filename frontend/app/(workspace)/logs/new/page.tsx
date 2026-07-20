@@ -1,4 +1,4 @@
-import { LogCreateFeed } from "@/pages/logs/ui/LogCreateFeed";
+import { WorkspaceLogCreateQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default async function NewLogPage({
   searchParams,
@@ -7,5 +7,5 @@ export default async function NewLogPage({
 }) {
   const params = await searchParams;
 
-  return <LogCreateFeed taskId={params.taskId} />;
+  return <WorkspaceLogCreateQueryView taskId={params.taskId} />;
 }

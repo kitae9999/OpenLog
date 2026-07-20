@@ -1,4 +1,4 @@
-import { TaskDetailFeed } from "@/pages/tasks/ui/TaskDetailFeed";
+import { WorkspaceTaskQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default async function TaskDetailPage({
   params,
@@ -7,5 +7,5 @@ export default async function TaskDetailPage({
 }) {
   const { taskId } = await params;
 
-  return <TaskDetailFeed taskId={taskId} />;
+  return <WorkspaceTaskQueryView taskId={taskId} mode="detail" />;
 }

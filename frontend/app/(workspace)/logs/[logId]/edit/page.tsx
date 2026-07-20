@@ -1,4 +1,4 @@
-import { LogEditFeed } from "@/pages/logs/ui/LogEditFeed";
+import { WorkspaceLogQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default async function LogEditPage({
   params,
@@ -7,5 +7,5 @@ export default async function LogEditPage({
 }) {
   const { logId } = await params;
 
-  return <LogEditFeed logId={logId} />;
+  return <WorkspaceLogQueryView logId={logId} mode="edit" />;
 }

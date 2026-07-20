@@ -1,4 +1,4 @@
-import { TaskEditFeed } from "@/pages/tasks/ui/TaskEditFeed";
+import { WorkspaceTaskQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default async function TaskEditPage({
   params,
@@ -7,5 +7,5 @@ export default async function TaskEditPage({
 }) {
   const { taskId } = await params;
 
-  return <TaskEditFeed taskId={taskId} />;
+  return <WorkspaceTaskQueryView taskId={taskId} mode="edit" />;
 }

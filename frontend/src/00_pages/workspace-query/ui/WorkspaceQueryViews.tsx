@@ -5,11 +5,19 @@ import { useQuery } from "@tanstack/react-query";
 import { WorkspaceView } from "@/widgets/workspace-dashboard/ui/WorkspaceView";
 import { TasksListView } from "@/pages/tasks/ui/TasksListView";
 import { LogsListView } from "@/pages/logs/ui/LogsListView";
+import { TaskCreateView } from "@/pages/tasks/ui/TaskCreateView";
+import { TaskDetailView } from "@/pages/tasks/ui/TaskDetailView";
+import { TaskEditView } from "@/pages/tasks/ui/TaskEditView";
+import { LogCreateView } from "@/pages/logs/ui/LogCreateView";
+import { LogDetailView } from "@/pages/logs/ui/LogDetailView";
+import { LogEditView } from "@/pages/logs/ui/LogEditView";
 import type { LogListTypeFilter } from "@/entities/workspace/model/data";
 import {
   buildWorkspaceUiData,
   fetchWorkspaceDashboard,
+  fetchWorkspaceLog,
   fetchWorkspaceLogs,
+  fetchWorkspaceTask,
   fetchWorkspaceTasks,
 } from "@/entities/workspace/api/workspaceQueryApi";
 import { useWorkspaceApp } from "@/features/app-session/model/WorkspaceAppContext";
@@ -96,6 +104,100 @@ export function WorkspaceLogsQueryView({
             workspaceData={workspaceData}
           />
         </Suspense>
+      </QueryState>
+    </WorkspaceRouteSection>
+  );
+}
+
+export function WorkspaceTaskCreateQueryView() {
+  const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
+  const workspaceData = activeWorkspaceId
+    ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {})
+    : null;
+  return (
+    <WorkspaceRouteSection label="New task">
+      <TaskCreateView isLoggedIn workspaceData={workspaceData} />
+    </WorkspaceRouteSection>
+  );
+}
+
+export function WorkspaceTaskQueryView({
+  taskId,
+  mode,
+}: {
+  taskId: string;
+  mode: "detail" | "edit";
+}) {
+  const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
+  const task = useQuery({
+    queryKey: workspaceQueryKeys.task(activeWorkspaceId ?? "none", taskId),
+    queryFn: () => fetchWorkspaceTask(activeWorkspaceId!, taskId),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
+  const workspaceData = activeWorkspaceId
+    ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
+        tasks: task.data ? [task.data] : [],
+      })
+    : null;
+  return (
+    <WorkspaceRouteSection label={mode === "edit" ? "Edit task" : "Task detail"}>
+      <QueryState isLoading={task.isLoading} isError={task.isError}>
+        {task.data && mode === "detail" ? (
+          <TaskDetailView task={task.data} workspaceData={workspaceData} isLoggedIn />
+        ) : null}
+        {task.data && mode === "edit" ? (
+          <TaskEditView task={task.data} workspaceId={activeWorkspaceId ?? undefined} />
+        ) : null}
+      </QueryState>
+    </WorkspaceRouteSection>
+  );
+}
+
+export function WorkspaceLogCreateQueryView({ taskId }: { taskId?: string }) {
+  const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
+  const workspaceData = activeWorkspaceId
+    ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {})
+    : null;
+  return (
+    <WorkspaceRouteSection label="New log">
+      <LogCreateView
+        isLoggedIn
+        initialTaskId={taskId}
+        workspaceData={workspaceData}
+      />
+    </WorkspaceRouteSection>
+  );
+}
+
+export function WorkspaceLogQueryView({
+  logId,
+  mode,
+}: {
+  logId: string;
+  mode: "detail" | "edit";
+}) {
+  const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
+  const log = useQuery({
+    queryKey: workspaceQueryKeys.log(activeWorkspaceId ?? "none", logId),
+    queryFn: () => fetchWorkspaceLog(activeWorkspaceId!, logId),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
+  const workspaceData = activeWorkspaceId
+    ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
+        logs: log.data ? [log.data] : [],
+      })
+    : null;
+  return (
+    <WorkspaceRouteSection label={mode === "edit" ? "Edit log" : "Log detail"}>
+      <QueryState isLoading={log.isLoading} isError={log.isError}>
+        {log.data && mode === "detail" ? (
+          <LogDetailView log={log.data} workspaceData={workspaceData} isLoggedIn />
+        ) : null}
+        {log.data && mode === "edit" ? (
+          <LogEditView log={log.data} workspaceId={activeWorkspaceId ?? undefined} />
+        ) : null}
       </QueryState>
     </WorkspaceRouteSection>
   );

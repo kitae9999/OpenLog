@@ -1,5 +1,5 @@
-import { TaskCreateFeed } from "@/pages/tasks/ui/TaskCreateFeed";
+import { WorkspaceTaskCreateQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default async function NewTaskPage() {
-  return <TaskCreateFeed />;
+  return <WorkspaceTaskCreateQueryView />;
 }

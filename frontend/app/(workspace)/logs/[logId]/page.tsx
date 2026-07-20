@@ -1,4 +1,4 @@
-import { LogDetailFeed } from "@/pages/logs/ui/LogDetailFeed";
+import { WorkspaceLogQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default async function LogDetailPage({
   params,
@@ -7,5 +7,5 @@ export default async function LogDetailPage({
 }) {
   const { logId } = await params;
 
-  return <LogDetailFeed logId={logId} />;
+  return <WorkspaceLogQueryView logId={logId} mode="detail" />;
 }
