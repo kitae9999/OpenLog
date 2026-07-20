@@ -171,6 +171,15 @@ type WorkspaceApiSnapshot = {
   crossLinks: CrossLinkResponse[];
   memories: MemoryResponse[];
   workingBrief: WorkingBriefResponse | null;
+  activity: WorkspaceActivity;
+};
+
+type WorkspaceDashboardResponse = Omit<WorkspaceApiSnapshot, "workspace">;
+
+type WorkspaceNavigationSummaryResponse = {
+  activeTaskCount: number;
+  logsCount: number;
+  openIssuesCount: number;
 };
 
 type WorkingBriefResponse = {
@@ -227,6 +236,10 @@ export const loadWorkspacePageData = cache(() =>
 
 export const loadWorkspaceNavigationPageData = cache(() =>
   loadWorkspacePageDataWith(fetchWorkspaceNavigationData),
+);
+
+export const loadWorkspaceShellPageData = cache(() =>
+  loadWorkspacePageDataWith(fetchWorkspaceShellData),
 );
 
 async function loadWorkspacePageDataWith(
@@ -325,6 +338,27 @@ async function fetchWorkspaceUiData(
   }
 
   const selectedId = selected.id;
+  const today = getSeoulIsoDate(new Date());
+  const from = getSeoulIsoDate(
+    new Date(
+      new Date(`${today}T00:00:00Z`).getTime() - 364 * 24 * 60 * 60 * 1000,
+    ),
+  );
+  try {
+    const dashboard = await fetchJson<WorkspaceDashboardResponse>(
+      `/workspaces/${selectedId}/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(today)}`,
+      cookie,
+    );
+    return mapWorkspaceSnapshot({
+      workspace: selected,
+      ...dashboard,
+    });
+  } catch (error: unknown) {
+    if (!(error instanceof WorkspaceApiRequestError) || error.status !== 404) {
+      throw error;
+    }
+  }
+
   const [
     tasks,
     logs,
@@ -335,6 +369,7 @@ async function fetchWorkspaceUiData(
     outputSummaries,
     memories,
     workingBrief,
+    activity,
   ] = await Promise.all([
       fetchAllTasks(selectedId, cookie),
       fetchAllLogs(selectedId, cookie),
@@ -362,20 +397,34 @@ async function fetchWorkspaceUiData(
         `/workspaces/${selectedId}/working-brief`,
         cookie,
       ).catch(() => null),
+      fetchJson<WorkspaceActivity>(
+        `/workspaces/${selectedId}/activity?from=${encodeURIComponent(from)}&to=${encodeURIComponent(today)}`,
+        cookie,
+      ),
     ]);
 
   return mapWorkspaceSnapshot({
     workspace: selected,
     tasks,
     logs,
-    outputs: outputSummaries,
-    todos,
     taskLinks,
     logLinks,
     crossLinks,
+    todos,
+    outputs: outputSummaries,
     memories,
     workingBrief,
+    activity,
   });
+}
+
+function getSeoulIsoDate(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 function selectWorkspace(
@@ -410,19 +459,66 @@ async function fetchWorkspaceNavigationData(
     fetchAllLogs(selected.id, cookie),
   ]);
 
+  const mappedTasks = tasks.map(mapTask);
+  const mappedLogs = logs.map(mapLog);
+
   return {
     workspaceId: String(selected.id),
     workspaceName: selected.name || selected.slug,
     repositoryFullName: singleRepositoryFullName(selected.projects),
     projects: selected.projects.map(mapWorkspaceProject),
-    tasks: tasks.map(mapTask),
-    logs: logs.map(mapLog),
+    tasks: mappedTasks,
+    logs: mappedLogs,
     outputs: [],
     todos: [],
     taskLinks: [],
     logLinks: [],
     crossLinks: [],
     memories: [],
+    activity: null,
+    navigationSummary: buildNavigationSummary(mappedTasks, mappedLogs),
+    workingBrief: null,
+  };
+}
+
+async function fetchWorkspaceShellData(
+  workspaces: WorkspaceResponse[],
+  cookie: string,
+  workspaceId?: string | null,
+): Promise<WorkspaceUiData | null> {
+  const selected = selectWorkspace(workspaces, cookie, workspaceId);
+  if (!selected) {
+    return null;
+  }
+
+  let navigationSummary: WorkspaceNavigationSummaryResponse;
+  try {
+    navigationSummary = await fetchJson<WorkspaceNavigationSummaryResponse>(
+      `/workspaces/${selected.id}/navigation-summary`,
+      cookie,
+    );
+  } catch (error: unknown) {
+    if (!(error instanceof WorkspaceApiRequestError) || error.status !== 404) {
+      throw error;
+    }
+    return fetchWorkspaceNavigationData(workspaces, cookie, workspaceId);
+  }
+
+  return {
+    workspaceId: String(selected.id),
+    workspaceName: selected.name || selected.slug,
+    repositoryFullName: singleRepositoryFullName(selected.projects),
+    projects: selected.projects.map(mapWorkspaceProject),
+    tasks: [],
+    logs: [],
+    outputs: [],
+    todos: [],
+    taskLinks: [],
+    logLinks: [],
+    crossLinks: [],
+    memories: [],
+    activity: null,
+    navigationSummary,
     workingBrief: null,
   };
 }
@@ -610,10 +706,16 @@ async function fetchJson<T>(path: string, cookie: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Workspace API request failed: ${response.status}`);
+    throw new WorkspaceApiRequestError(response.status);
   }
 
   return (await response.json()) as T;
+}
+
+class WorkspaceApiRequestError extends Error {
+  constructor(readonly status: number) {
+    super(`Workspace API request failed: ${status}`);
+  }
 }
 
 function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
@@ -651,9 +753,27 @@ function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
       relation: link.relation,
     })),
     memories: snapshot.memories.map(mapMemory),
+    activity: snapshot.activity,
+    navigationSummary: buildNavigationSummary(tasks, logs),
     workingBrief: snapshot.workingBrief
       ? mapWorkingBrief(snapshot.workingBrief)
       : null,
+  };
+}
+
+function buildNavigationSummary(
+  tasks: WorkspaceWorkItem[],
+  logs: WorkspaceLogItem[],
+) {
+  const doingTaskCount = tasks.filter((task) => task.status === "doing").length;
+  const todoTaskCount = tasks.filter((task) => task.status === "todo").length;
+
+  return {
+    activeTaskCount: doingTaskCount || todoTaskCount,
+    logsCount: logs.length,
+    openIssuesCount: logs.filter(
+      (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
+    ).length,
   };
 }
 

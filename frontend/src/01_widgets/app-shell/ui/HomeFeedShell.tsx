@@ -585,6 +585,7 @@ export function HomeSidebar({
   const activeWorkspaceId = useActiveWorkspaceId();
   const sidebarTasks = isLoggedIn ? (workspaceData?.tasks ?? []) : [];
   const sidebarLogs = isLoggedIn ? (workspaceData?.logs ?? []) : [];
+  const navigationSummary = workspaceData?.navigationSummary;
   const storedWorkspaceId = workspaces.some(
     (workspace) => workspace.id === activeWorkspaceId,
   )
@@ -596,12 +597,15 @@ export function HomeSidebar({
     storedWorkspaceId ??
     workspaces[0]?.id;
   const doingTaskCount =
-    sidebarTasks.filter((task) => task.status === "doing").length ||
-    sidebarTasks.filter((task) => task.status === "todo").length;
-  const logsCount = sidebarLogs.length;
-  const openIssuesCount = sidebarLogs.filter(
-    (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
-  ).length;
+    navigationSummary?.activeTaskCount ??
+    (sidebarTasks.filter((task) => task.status === "doing").length ||
+      sidebarTasks.filter((task) => task.status === "todo").length);
+  const logsCount = navigationSummary?.logsCount ?? sidebarLogs.length;
+  const openIssuesCount =
+    navigationSummary?.openIssuesCount ??
+    sidebarLogs.filter(
+      (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
+    ).length;
 
   return (
     <aside

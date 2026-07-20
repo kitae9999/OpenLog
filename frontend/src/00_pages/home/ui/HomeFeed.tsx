@@ -9,19 +9,9 @@ import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { HomeFeedShell } from "@/widgets/app-shell/ui/HomeFeedShell";
 import {
-  getWorkspaceActivity,
-  loadWorkspaceNavigationPageData,
   loadWorkspacePageData,
+  loadWorkspaceShellPageData,
 } from "@/entities/workspace/api/workspaceApi";
-
-function getSeoulIsoDate(date: Date) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
 
 export async function HomeFeed({
   activeTab,
@@ -39,26 +29,12 @@ export async function HomeFeed({
   const pageData = isLoggedIn
     ? await (resolvedTab === "workspace"
         ? loadWorkspacePageData()
-        : loadWorkspaceNavigationPageData())
+        : loadWorkspaceShellPageData())
     : { workspaces: [], workspaceData: null };
   const workspaces = pageData.workspaces;
-  const workspaceData =
-    resolvedTab === "workspace" ? pageData.workspaceData : null;
+  const workspaceData = pageData.workspaceData;
 
-  let workspaceActivity = null;
-  if (workspaceData) {
-    const today = getSeoulIsoDate(new Date());
-    const from = getSeoulIsoDate(
-      new Date(
-        new Date(`${today}T00:00:00Z`).getTime() - 364 * 24 * 60 * 60 * 1000,
-      ),
-    );
-    workspaceActivity = await getWorkspaceActivity(
-      workspaceData.workspaceId,
-      from,
-      today,
-    );
-  }
+  const workspaceActivity = workspaceData?.activity ?? null;
 
   const authoredPosts =
     resolvedTab === "home" && data

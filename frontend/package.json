@@ -10,6 +10,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "test:fanout": "node scripts/measure-workspace-api-fanout.mjs",
     "test:e2e": "playwright test",
     "test:e2e:todos": "playwright test e2e/todos-layout.spec.ts",
     "verify:todos-ui": "playwright test e2e/todos-layout.spec.ts --reporter=line"

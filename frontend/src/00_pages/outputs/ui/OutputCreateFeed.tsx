@@ -4,7 +4,7 @@ import type { User } from "@/entities/user/model/User";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { OutputCreateShell } from "@/pages/outputs/ui/OutputCreateShell";
 import { requireWorkspaceData } from "@/widgets/app-shell/lib/requireWorkspacePageData";
-import { loadWorkspaceNavigationPageData } from "@/entities/workspace/api/workspaceApi";
+import { loadWorkspaceShellPageData } from "@/entities/workspace/api/workspaceApi";
 
 export async function OutputCreateFeed({
   viewer,
@@ -16,7 +16,7 @@ export async function OutputCreateFeed({
   const user =
     viewer === undefined ? await getUserOrRedirectToOnboarding() : viewer;
   const pageData = user
-    ? await loadWorkspaceNavigationPageData()
+    ? await loadWorkspaceShellPageData()
     : { workspaces: [], workspaceData: null, status: "empty" as const };
   const workspaces = pageData.workspaces;
   const workspaceData = user ? requireWorkspaceData(pageData) : null;

@@ -60,8 +60,16 @@ export type WorkspaceUiData = {
   logLinks: WorkspaceLogLinkItem[];
   crossLinks?: WorkspaceCrossLinkItem[];
   memories: WorkspaceMemoryItem[];
+  activity?: WorkspaceActivity | null;
+  navigationSummary?: WorkspaceNavigationSummary;
   /** Optional until a dedicated API exists; UI may also derive from task + logs. */
   workingBrief?: WorkspaceWorkingBrief | null;
+};
+
+export type WorkspaceNavigationSummary = {
+  activeTaskCount: number;
+  logsCount: number;
+  openIssuesCount: number;
 };
 
 export type WorkspaceMemoryItem = {

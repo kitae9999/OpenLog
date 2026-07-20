@@ -1,0 +1,281 @@
+import { spawn, spawnSync } from "node:child_process";
+import http from "node:http";
+import process from "node:process";
+import { chromium } from "@playwright/test";
+
+const appPort = 3140;
+const apiPort = 3141;
+const appUrl = `http://127.0.0.1:${appPort}`;
+const apiUrl = `http://127.0.0.1:${apiPort}`;
+const clientCount = 5;
+
+const counts = new Map();
+const openStreams = new Set();
+
+function record(pathname) {
+  counts.set(pathname, (counts.get(pathname) ?? 0) + 1);
+}
+
+function json(response, status, value) {
+  response.writeHead(status, { "Content-Type": "application/json" });
+  response.end(JSON.stringify(value));
+}
+
+const mockApi = http.createServer((request, response) => {
+  const url = new URL(request.url ?? "/", apiUrl);
+  record(url.pathname);
+
+  if (url.pathname === "/auth/me") {
+    json(response, 200, {
+      id: 1,
+      username: "fanout-test",
+      nickname: "Fanout Test",
+      email: "fanout@example.test",
+      profileImageUrl: null,
+      bio: null,
+      isOnboardingComplete: true,
+    });
+    return;
+  }
+
+  if (url.pathname === "/workspaces") {
+    json(response, 200, [
+      {
+        id: 1,
+        slug: "fanout-test",
+        name: "Fanout Test",
+        projects: [
+          {
+            id: 1,
+            workspaceId: 1,
+            displayName: "fanout/test",
+            repositoryFullName: "fanout/test",
+            captureMode: "AUTO",
+            createdAt: "2026-07-20T00:00:00",
+            updatedAt: "2026-07-20T00:00:00",
+          },
+        ],
+      },
+    ]);
+    return;
+  }
+
+  if (url.pathname === "/workspaces/1/tasks") {
+    json(response, 200, {
+      tasks: [],
+      nextCursor: null,
+      hasNext: false,
+    });
+    return;
+  }
+
+  if (url.pathname === "/workspaces/1/dashboard") {
+    json(response, 200, {
+      tasks: [],
+      logs: [],
+      taskLinks: [],
+      logLinks: [],
+      crossLinks: [],
+      todos: [],
+      outputs: [],
+      memories: [],
+      workingBrief: null,
+      activity: {
+        from: url.searchParams.get("from"),
+        to: url.searchParams.get("to"),
+        totalLogCount: 0,
+        days: [],
+      },
+    });
+    return;
+  }
+
+  if (url.pathname === "/workspaces/1/navigation-summary") {
+    json(response, 200, {
+      activeTaskCount: 0,
+      logsCount: 0,
+      openIssuesCount: 0,
+    });
+    return;
+  }
+
+  if (url.pathname === "/workspaces/1/logs") {
+    json(response, 200, {
+      logs: [],
+      nextCursor: null,
+      hasNext: false,
+    });
+    return;
+  }
+
+  if (url.pathname === "/workspaces/1/memories") {
+    json(response, 200, {
+      memories: [],
+      nextCursor: null,
+      hasNext: false,
+    });
+    return;
+  }
+
+  if (url.pathname === "/workspaces/1/working-brief") {
+    json(response, 404, { code: "NOT_FOUND" });
+    return;
+  }
+
+  if (url.pathname === "/workspaces/1/activity") {
+    json(response, 200, {
+      from: url.searchParams.get("from"),
+      to: url.searchParams.get("to"),
+      totalLogCount: 0,
+      days: [],
+    });
+    return;
+  }
+
+  if (url.pathname === "/workspaces/1/events") {
+    response.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+    response.write("event: workspace.subscribed\n");
+    response.write('data: {"workspaceId":1}\n\n');
+    openStreams.add(response);
+    response.on("close", () => openStreams.delete(response));
+    return;
+  }
+
+  if (url.pathname === "/notifications") {
+    json(response, 200, { notifications: [], unreadCount: 0 });
+    return;
+  }
+
+  if (url.pathname === "/users/me/posts") {
+    json(response, 200, {
+      posts: [],
+      size: 10,
+      nextCursor: null,
+      hasNext: false,
+    });
+    return;
+  }
+
+  if (
+    url.pathname === "/workspaces/1/task-links" ||
+    url.pathname === "/workspaces/1/log-links" ||
+    url.pathname === "/workspaces/1/cross-links" ||
+    url.pathname === "/workspaces/1/todos" ||
+    url.pathname === "/workspaces/1/outputs"
+  ) {
+    json(response, 200, []);
+    return;
+  }
+
+  json(response, 404, { code: "NOT_FOUND", path: url.pathname });
+});
+
+await new Promise((resolve) => mockApi.listen(apiPort, "127.0.0.1", resolve));
+
+const build = spawnSync("pnpm", ["build"], {
+  cwd: process.cwd(),
+  env: { ...process.env, NEXT_PUBLIC_API_BASE_URL: apiUrl },
+  stdio: "inherit",
+});
+
+if (build.status !== 0) {
+  mockApi.close();
+  process.exit(build.status ?? 1);
+}
+
+const app = spawn("pnpm", ["exec", "next", "start", "-p", String(appPort)], {
+  cwd: process.cwd(),
+  env: { ...process.env, NEXT_PUBLIC_API_BASE_URL: apiUrl },
+  stdio: ["ignore", "pipe", "pipe"],
+});
+
+app.stdout.on("data", (chunk) => process.stdout.write(chunk));
+app.stderr.on("data", (chunk) => process.stderr.write(chunk));
+
+async function waitForApp() {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${appUrl}/robots.txt`);
+      if (response.ok) return;
+    } catch {
+      // The production server is still starting.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error("Timed out waiting for the Next.js production server.");
+}
+
+let browser;
+try {
+  await waitForApp();
+  browser = await chromium.launch({ headless: true });
+
+  await measureScenario({
+    browser,
+    path: "/?tab=workspace",
+    label: "workspace",
+    maxRequestCount: 25,
+    heading: "Fanout Test",
+  });
+  await measureScenario({
+    browser,
+    path: "/?tab=home",
+    label: "home feed",
+    maxRequestCount: 30,
+    forbiddenPaths: ["/workspaces/1/tasks", "/workspaces/1/logs"],
+  });
+} finally {
+  await browser?.close();
+  for (const stream of openStreams) stream.end();
+  app.kill("SIGTERM");
+  mockApi.close();
+}
+
+async function measureScenario({
+  browser,
+  path,
+  label,
+  maxRequestCount,
+  heading,
+  forbiddenPaths = [],
+}) {
+  counts.clear();
+  await Promise.all(
+    Array.from({ length: clientCount }, async () => {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await page.goto(`${appUrl}${path}`, {
+        waitUntil: "domcontentloaded",
+      });
+      if (heading) {
+        await page.getByRole("heading", { name: heading }).waitFor();
+      }
+      await page.waitForTimeout(2_000);
+      await context.close();
+    }),
+  );
+
+  const entries = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((sum, [, count]) => sum + count, 0);
+
+  console.log(`\nMeasured ${clientCount} concurrent ${label} visits.`);
+  console.log(`Backend API requests: ${total}`);
+  for (const [pathname, count] of entries) {
+    console.log(`${String(count).padStart(4)} ${pathname}`);
+  }
+  if (total > maxRequestCount) {
+    throw new Error(
+      `${label} API fan-out regression: expected at most ${maxRequestCount}, received ${total}.`,
+    );
+  }
+  for (const pathname of forbiddenPaths) {
+    if (counts.has(pathname)) {
+      throw new Error(`${label} unexpectedly requested ${pathname}.`);
+    }
+  }
+}
