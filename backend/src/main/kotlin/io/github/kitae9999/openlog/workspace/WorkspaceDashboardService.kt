@@ -21,6 +21,7 @@ class WorkspaceDashboardService(
     private val memoryService: MemoryService,
     private val workingBriefService: WorkingBriefService,
     private val activityService: ActivityService,
+    private val workspaceNavigationSummaryService: WorkspaceNavigationSummaryService,
 ) {
     @Transactional(readOnly = true)
     fun getDashboard(
@@ -61,6 +62,7 @@ class WorkspaceDashboardService(
                 null
             },
             activity = activityService.getActivity(userId, workspaceId, from, to),
+            navigationSummary = workspaceNavigationSummaryService.getSummary(userId, workspaceId),
         )
     }
 

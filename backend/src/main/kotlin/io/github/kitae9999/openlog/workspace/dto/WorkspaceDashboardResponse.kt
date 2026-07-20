@@ -18,4 +18,5 @@ data class WorkspaceDashboardResponse(
     val memories: List<MemoryResponse>,
     val workingBrief: WorkingBriefResponse?,
     val activity: WorkspaceActivityResponse,
+    val navigationSummary: WorkspaceNavigationSummaryResponse,
 )

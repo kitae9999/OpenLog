@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
@@ -53,6 +53,7 @@ import { WorkspaceGraphPreview } from "@/widgets/workspace-dashboard/ui/Workspac
 import {
   createWorkspaceTodo,
   deleteWorkspaceTodo,
+  refreshWorkspaceDashboard,
   updateWorkspaceTodoDone,
   type WorkspaceActionResult,
 } from "@/features/workspace-actions/api/workspaceActions";
@@ -324,16 +325,37 @@ export function WorkspaceDashboardView({
   replaySnapshot?: PreviewReplaySnapshot;
 }) {
   const isPreview = Boolean(replaySnapshot);
+  const [liveWorkspaceData, setLiveWorkspaceData] = useState(workspaceData);
+
+  useEffect(() => {
+    setLiveWorkspaceData(workspaceData);
+  }, [workspaceData]);
+
   const resolvedWorkspaceData =
     isPreview && replaySnapshot
       ? getPreviewReplayWorkspaceData(replaySnapshot)
-      : workspaceData;
+      : liveWorkspaceData;
+  const workspaceId = resolvedWorkspaceData?.workspaceId;
+  const refreshDashboard = useCallback(async () => {
+    if (!workspaceId) {
+      return;
+    }
+    const result = await refreshWorkspaceDashboard(workspaceId);
+    setLiveWorkspaceData((current) =>
+      result.ok && current
+        ? { ...current, ...result.data }
+        : current
+          ? { ...current }
+          : current,
+    );
+  }, [workspaceId]);
   const highlight = replaySnapshot?.highlight ?? { kind: "none" as const };
   const liveSync = useWorkspaceLiveSync({
     workspaceId: resolvedWorkspaceData?.workspaceId
       ? Number(resolvedWorkspaceData.workspaceId)
       : null,
     enabled: !isPreview && Boolean(resolvedWorkspaceData?.workspaceId),
+    onRefresh: refreshDashboard,
   });
   const {
     syncFill: liveSyncFill,
@@ -363,6 +385,7 @@ export function WorkspaceDashboardView({
   const logs = resolvedWorkspaceData?.logs ?? [];
   const memories = resolvedWorkspaceData?.memories ?? [];
   const outputs = resolvedWorkspaceData?.outputs ?? [];
+  const resolvedActivity = resolvedWorkspaceData?.activity ?? activity;
   // Backend timestamps are timezone-free Asia/Seoul local datetimes.
   const brief =
     resolvedWorkspaceData?.workingBrief ?? deriveWorkingBrief(tasks, logs);
@@ -685,8 +708,8 @@ export function WorkspaceDashboardView({
           className="mt-5 min-h-[200px]"
         >
           {exploreWidget === "activity" ? (
-            activity ? (
-              <ActivityYearGrid activity={activity} />
+            resolvedActivity ? (
+              <ActivityYearGrid activity={resolvedActivity} />
             ) : (
               <p className="text-sm text-zinc-500">
                 {isPreview
@@ -1014,7 +1037,6 @@ function TodosSection({
   createTodoOverride?: (title: string) => Promise<WorkspaceActionResult>;
   isPreview?: boolean;
 }) {
-  const router = useRouter();
   const syncFill = usePreviewSyncFill();
   const [localTodos, setLocalTodos] = useState(todos);
   const [error, setError] = useState<string | null>(null);
@@ -1102,8 +1124,13 @@ function TodosSection({
         setDraftTitle(trimmed);
         return;
       }
-
-      router.refresh();
+      if (result.id) {
+        setLocalTodos((current) =>
+          current.map((todo) =>
+            todo.id === optimisticId ? { ...todo, id: result.id! } : todo,
+          ),
+        );
+      }
     });
   }
 
@@ -1147,7 +1174,6 @@ function TodosSection({
         return;
       }
 
-      router.refresh();
     });
   }
 
@@ -1176,7 +1202,6 @@ function TodosSection({
         setError(result.message ?? "Failed to remove todo.");
         return;
       }
-      router.refresh();
     });
   }
 
@@ -1400,6 +1425,7 @@ function PreviewableLink({
   return (
     <Link
       href={href}
+      prefetch={false}
       className={className}
       title={title}
       aria-label={ariaLabel}

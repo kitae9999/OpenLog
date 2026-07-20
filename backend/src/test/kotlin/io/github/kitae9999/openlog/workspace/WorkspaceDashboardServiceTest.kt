@@ -10,6 +10,7 @@ import io.github.kitae9999.openlog.todo.TodoService
 import io.github.kitae9999.openlog.workingbrief.WorkingBriefService
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogCursorResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceNavigationSummaryResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -30,6 +31,7 @@ class WorkspaceDashboardServiceTest {
     @Mock private lateinit var memoryService: MemoryService
     @Mock private lateinit var workingBriefService: WorkingBriefService
     @Mock private lateinit var activityService: ActivityService
+    @Mock private lateinit var workspaceNavigationSummaryService: WorkspaceNavigationSummaryService
     private lateinit var service: WorkspaceDashboardService
 
     @BeforeEach
@@ -43,6 +45,7 @@ class WorkspaceDashboardServiceTest {
             memoryService,
             workingBriefService,
             activityService,
+            workspaceNavigationSummaryService,
         )
     }
 
@@ -65,6 +68,9 @@ class WorkspaceDashboardServiceTest {
         given(activityService.getActivity(1L, 10L, from, to)).willReturn(
             WorkspaceActivityResponse(from.toString(), to.toString(), 0, emptyList()),
         )
+        given(workspaceNavigationSummaryService.getSummary(1L, 10L)).willReturn(
+            WorkspaceNavigationSummaryResponse(activeTaskCount = 12, logsCount = 42, openIssuesCount = 3),
+        )
 
         val response = service.getDashboard(1L, 10L, from, to)
 
@@ -73,6 +79,7 @@ class WorkspaceDashboardServiceTest {
         assertThat(response.workingBrief).isNull()
         assertThat(response.activity.from).isEqualTo("2025-07-21")
         assertThat(response.activity.to).isEqualTo("2026-07-20")
+        assertThat(response.navigationSummary.logsCount).isEqualTo(42)
         verify(workspaceTaskService).getTasks(1L, 10L, null, null, 20)
         verify(workspaceLogService).getLogs(1L, 10L, null, null, 6)
         verify(todoService).getTodos(1L, 10L, to)

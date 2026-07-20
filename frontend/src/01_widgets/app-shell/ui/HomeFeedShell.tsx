@@ -768,6 +768,7 @@ function SidebarLogsGroup({
     <>
       <Link
         href={getLogsHref(logsFilter)}
+        prefetch={false}
         onClick={onNavigate}
         className={cn(
           "flex h-8 w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
@@ -818,6 +819,7 @@ function SidebarLogsGroup({
               <Link
                 key={item.key}
                 href={getLogsHref(item.key)}
+                prefetch={false}
                 onClick={onNavigate}
                 className={cn(
                   "flex cursor-pointer items-center gap-2 rounded-lg px-[9px] py-[5px] text-[12.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
@@ -876,6 +878,7 @@ function SidebarLink({
   return (
     <Link
       href={href}
+      prefetch={false}
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}
       className={cn(

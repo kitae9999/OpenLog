@@ -174,7 +174,9 @@ type WorkspaceApiSnapshot = {
   activity: WorkspaceActivity;
 };
 
-type WorkspaceDashboardResponse = Omit<WorkspaceApiSnapshot, "workspace">;
+type WorkspaceDashboardResponse = Omit<WorkspaceApiSnapshot, "workspace"> & {
+  navigationSummary?: WorkspaceNavigationSummaryResponse;
+};
 
 type WorkspaceNavigationSummaryResponse = {
   activeTaskCount: number;
@@ -212,6 +214,21 @@ type ActivityDayLogsResponse = {
   date: string;
   logs: WorkspaceLogResponse[];
 };
+
+export type WorkspaceDashboardRefreshData = Pick<
+  WorkspaceUiData,
+  | "tasks"
+  | "logs"
+  | "outputs"
+  | "todos"
+  | "taskLinks"
+  | "logLinks"
+  | "crossLinks"
+  | "memories"
+  | "activity"
+  | "navigationSummary"
+  | "workingBrief"
+>;
 
 export const listManagedWorkspaces = cache(
   async (): Promise<ManagedWorkspace[]> => {
@@ -290,6 +307,19 @@ export const getWorkspaceUiData = cache(
   },
 );
 
+export async function getWorkspaceDashboardRefreshData(
+  workspaceId: string,
+): Promise<WorkspaceDashboardRefreshData> {
+  const headerStore = await headers();
+  const cookie = headerStore.get("cookie") ?? "";
+  const { from, to } = getDashboardDateRange();
+  const dashboard = await fetchJson<WorkspaceDashboardResponse>(
+    `/workspaces/${encodeURIComponent(workspaceId)}/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    cookie,
+  );
+  return mapWorkspaceDashboardResponse(dashboard);
+}
+
 export const getWorkspaceLog = cache(
   async (
     workspaceId: string,
@@ -338,15 +368,10 @@ async function fetchWorkspaceUiData(
   }
 
   const selectedId = selected.id;
-  const today = getSeoulIsoDate(new Date());
-  const from = getSeoulIsoDate(
-    new Date(
-      new Date(`${today}T00:00:00Z`).getTime() - 364 * 24 * 60 * 60 * 1000,
-    ),
-  );
+  const { from, to } = getDashboardDateRange();
   try {
     const dashboard = await fetchJson<WorkspaceDashboardResponse>(
-      `/workspaces/${selectedId}/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(today)}`,
+      `/workspaces/${selectedId}/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
       cookie,
     );
     return mapWorkspaceSnapshot({
@@ -398,7 +423,7 @@ async function fetchWorkspaceUiData(
         cookie,
       ).catch(() => null),
       fetchJson<WorkspaceActivity>(
-        `/workspaces/${selectedId}/activity?from=${encodeURIComponent(from)}&to=${encodeURIComponent(today)}`,
+        `/workspaces/${selectedId}/activity?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
         cookie,
       ),
     ]);
@@ -416,6 +441,16 @@ async function fetchWorkspaceUiData(
     workingBrief,
     activity,
   });
+}
+
+function getDashboardDateRange() {
+  const to = getSeoulIsoDate(new Date());
+  const from = getSeoulIsoDate(
+    new Date(
+      new Date(`${to}T00:00:00Z`).getTime() - 364 * 24 * 60 * 60 * 1000,
+    ),
+  );
+  return { from, to };
 }
 
 function getSeoulIsoDate(date: Date) {
@@ -719,18 +754,27 @@ class WorkspaceApiRequestError extends Error {
 }
 
 function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
-  const logs = snapshot.logs.map(mapLog);
-  const tasks = snapshot.tasks.map(mapTask);
-  const outputs = snapshot.outputs.map(mapOutput);
+  const dashboard = mapWorkspaceDashboardResponse(snapshot);
 
   return {
     workspaceId: String(snapshot.workspace.id),
     workspaceName: snapshot.workspace.name || snapshot.workspace.slug,
     repositoryFullName: singleRepositoryFullName(snapshot.workspace.projects),
     projects: snapshot.workspace.projects.map(mapWorkspaceProject),
+    ...dashboard,
+  };
+}
+
+function mapWorkspaceDashboardResponse(
+  snapshot: WorkspaceDashboardResponse,
+): WorkspaceDashboardRefreshData {
+  const logs = snapshot.logs.map(mapLog);
+  const tasks = snapshot.tasks.map(mapTask);
+
+  return {
     tasks,
     logs,
-    outputs,
+    outputs: snapshot.outputs.map(mapOutput),
     todos: snapshot.todos.map(mapTodo),
     taskLinks: snapshot.taskLinks.map((link) => ({
       id: String(link.id),
@@ -754,7 +798,8 @@ function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
     })),
     memories: snapshot.memories.map(mapMemory),
     activity: snapshot.activity,
-    navigationSummary: buildNavigationSummary(tasks, logs),
+    navigationSummary:
+      snapshot.navigationSummary ?? buildNavigationSummary(tasks, logs),
     workingBrief: snapshot.workingBrief
       ? mapWorkingBrief(snapshot.workingBrief)
       : null,

@@ -11,6 +11,7 @@ const clientCount = 5;
 
 const counts = new Map();
 const openStreams = new Set();
+const dashboardTodos = [];
 
 function record(pathname) {
   counts.set(pathname, (counts.get(pathname) ?? 0) + 1);
@@ -76,7 +77,7 @@ const mockApi = http.createServer((request, response) => {
       taskLinks: [],
       logLinks: [],
       crossLinks: [],
-      todos: [],
+      todos: dashboardTodos,
       outputs: [],
       memories: [],
       workingBrief: null,
@@ -85,6 +86,11 @@ const mockApi = http.createServer((request, response) => {
         to: url.searchParams.get("to"),
         totalLogCount: 0,
         days: [],
+      },
+      navigationSummary: {
+        activeTaskCount: 0,
+        logsCount: 0,
+        openIssuesCount: 0,
       },
     });
     return;
@@ -142,6 +148,26 @@ const mockApi = http.createServer((request, response) => {
     response.write('data: {"workspaceId":1}\n\n');
     openStreams.add(response);
     response.on("close", () => openStreams.delete(response));
+    return;
+  }
+
+  if (url.pathname === "/workspaces/1/todos" && request.method === "POST") {
+    let body = "";
+    request.on("data", (chunk) => {
+      body += chunk;
+    });
+    request.on("end", () => {
+      const input = JSON.parse(body || "{}");
+      const todo = {
+        id: dashboardTodos.length + 1,
+        title: input.title,
+        done: false,
+        taskId: input.taskId ?? null,
+        plannedFor: input.plannedFor,
+      };
+      dashboardTodos.push(todo);
+      json(response, 200, todo);
+    });
     return;
   }
 
@@ -217,7 +243,7 @@ try {
 
   await measureScenario({
     browser,
-    path: "/?tab=workspace",
+    path: "/dashboard",
     label: "workspace",
     maxRequestCount: 25,
     heading: "Fanout Test",
@@ -229,11 +255,107 @@ try {
     maxRequestCount: 30,
     forbiddenPaths: ["/workspaces/1/tasks", "/workspaces/1/logs"],
   });
+  await measureDashboardRefreshUseCases(browser);
 } finally {
   await browser?.close();
   for (const stream of openStreams) stream.end();
   app.kill("SIGTERM");
   mockApi.close();
+}
+
+async function measureDashboardRefreshUseCases(browser) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto(`${appUrl}/dashboard`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("heading", { name: "Fanout Test" }).waitFor();
+  await page.waitForTimeout(500);
+
+  counts.clear();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.getByRole("heading", { name: "Fanout Test" }).waitFor();
+  await page.waitForTimeout(500);
+  printAndAssertCounts("manual dashboard reload", {
+    maxRequestCount: 5,
+    required: {
+      "/auth/me": 1,
+      "/workspaces": 1,
+      "/workspaces/1/dashboard": 1,
+    },
+  });
+
+  counts.clear();
+  const todoTitle = "Optimistic dashboard todo";
+  await page.getByLabel("New todo").fill(todoTitle);
+  await page.getByLabel("New todo").press("Enter");
+  await page.getByText(todoTitle, { exact: true }).waitFor();
+  await page.waitForTimeout(300);
+  printAndAssertCounts("dashboard todo mutation", {
+    maxRequestCount: 1,
+    required: { "/workspaces/1/todos": 1 },
+    forbidden: ["/workspaces", "/workspaces/1/dashboard"],
+  });
+
+  counts.clear();
+  const externalTitle = "External SSE dashboard todo";
+  dashboardTodos.push({
+    id: dashboardTodos.length + 1,
+    title: externalTitle,
+    done: false,
+    taskId: null,
+    plannedFor: new Date().toISOString().slice(0, 10),
+  });
+  broadcastWorkspaceChange({
+    zone: "todos",
+    entityType: "TODO",
+    entityId: String(dashboardTodos.length),
+    action: "CREATED",
+  });
+  await page.getByText(externalTitle, { exact: true }).waitFor();
+  await page.waitForTimeout(300);
+  printAndAssertCounts("SSE dashboard refresh", {
+    maxRequestCount: 1,
+    required: { "/workspaces/1/dashboard": 1 },
+    forbidden: ["/auth/me", "/workspaces", "/notifications"],
+  });
+
+  await context.close();
+}
+
+function broadcastWorkspaceChange({ zone, entityType, entityId, action }) {
+  const data = JSON.stringify({
+    workspaceId: 1,
+    zone,
+    entityType,
+    entityId,
+    action,
+    occurredAt: new Date().toISOString(),
+  });
+  for (const stream of openStreams) {
+    stream.write(`event: workspace.changed\ndata: ${data}\n\n`);
+  }
+}
+
+function printAndAssertCounts(label, { maxRequestCount, required, forbidden = [] }) {
+  const entries = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((sum, [, count]) => sum + count, 0);
+  console.log(`\nMeasured ${label}.`);
+  console.log(`Backend API requests: ${total}`);
+  for (const [pathname, count] of entries) {
+    console.log(`${String(count).padStart(4)} ${pathname}`);
+  }
+  if (total > maxRequestCount) {
+    throw new Error(`${label}: expected at most ${maxRequestCount}, received ${total}.`);
+  }
+  for (const [pathname, expected] of Object.entries(required)) {
+    if (counts.get(pathname) !== expected) {
+      throw new Error(`${label}: expected ${expected} request(s) to ${pathname}.`);
+    }
+  }
+  for (const pathname of forbidden) {
+    if (counts.has(pathname)) {
+      throw new Error(`${label}: unexpectedly requested ${pathname}.`);
+    }
+  }
 }
 
 async function measureScenario({

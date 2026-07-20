@@ -76,6 +76,9 @@ export function getSidebarTabs(isLoggedIn: boolean) {
 }
 
 export function getTabHref(tab: TabKey, isLoggedIn: boolean) {
+  if (tab === "workspace" && isLoggedIn) {
+    return "/dashboard";
+  }
   return tab === getDefaultTab(isLoggedIn) ? "/" : `/?tab=${tab}`;
 }
 
