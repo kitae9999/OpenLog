@@ -12,6 +12,42 @@ const clientCount = 5;
 const counts = new Map();
 const openStreams = new Set();
 const dashboardTodos = [];
+const bootstrapResponse = {
+  user: {
+    id: 1,
+    username: "fanout-test",
+    nickname: "Fanout Test",
+    email: "fanout@example.test",
+    profileImageUrl: null,
+    bio: null,
+    isOnboardingComplete: true,
+  },
+  workspaces: [
+    {
+      id: 1,
+      slug: "fanout-test",
+      name: "Fanout Test",
+      projects: [
+        {
+          id: 1,
+          workspaceId: 1,
+          displayName: "fanout/test",
+          repositoryFullName: "fanout/test",
+          captureMode: "AUTO",
+          createdAt: "2026-07-20T00:00:00",
+          updatedAt: "2026-07-20T00:00:00",
+        },
+      ],
+    },
+  ],
+  activeWorkspaceId: 1,
+  navigationSummary: {
+    activeTaskCount: 0,
+    logsCount: 0,
+    openIssuesCount: 0,
+  },
+  notificationSummary: { unreadCount: 0 },
+};
 
 function record(pathname) {
   counts.set(pathname, (counts.get(pathname) ?? 0) + 1);
@@ -25,6 +61,11 @@ function json(response, status, value) {
 const mockApi = http.createServer((request, response) => {
   const url = new URL(request.url ?? "/", apiUrl);
   record(url.pathname);
+
+  if (url.pathname === "/app/bootstrap") {
+    json(response, 200, bootstrapResponse);
+    return;
+  }
 
   if (url.pathname === "/auth/me") {
     json(response, 200, {
@@ -176,6 +217,11 @@ const mockApi = http.createServer((request, response) => {
     return;
   }
 
+  if (url.pathname === "/notifications/summary") {
+    json(response, 200, { unreadCount: 0 });
+    return;
+  }
+
   if (url.pathname === "/users/me/posts") {
     json(response, 200, {
       posts: [],
@@ -245,7 +291,7 @@ try {
     browser,
     path: "/dashboard",
     label: "workspace",
-    maxRequestCount: 25,
+    maxRequestCount: 15,
     heading: "Fanout Test",
   });
   await measureScenario({
@@ -276,12 +322,13 @@ async function measureDashboardRefreshUseCases(browser) {
   await page.getByRole("heading", { name: "Fanout Test" }).waitFor();
   await page.waitForTimeout(500);
   printAndAssertCounts("manual dashboard reload", {
-    maxRequestCount: 5,
+    maxRequestCount: 3,
     required: {
-      "/auth/me": 1,
-      "/workspaces": 1,
+      "/app/bootstrap": 1,
       "/workspaces/1/dashboard": 1,
+      "/workspaces/1/events": 1,
     },
+    forbidden: ["/auth/me", "/workspaces", "/notifications"],
   });
 
   counts.clear();
@@ -353,15 +400,15 @@ async function measureRapidSidebarNavigation(browser) {
 
   const total = [...counts.values()].reduce((sum, count) => sum + count, 0);
   printAndAssertCounts(`${clientCount} concurrent rapid sidebar navigation flows`, {
-    maxRequestCount: 75,
+    maxRequestCount: 15,
     required: {
-      "/workspaces/1/dashboard": clientCount,
-      "/workspaces/1/tasks": clientCount * 2,
-      "/workspaces/1/logs": clientCount * 2,
+      "/workspaces/1/tasks": clientCount,
+      "/workspaces/1/logs": clientCount,
     },
+    forbidden: ["/auth/me", "/workspaces", "/notifications", "/app/bootstrap"],
   });
-  if (total / clientCount > 15) {
-    throw new Error(`rapid sidebar navigation exceeded 15 requests per user: ${total}.`);
+  if (total / clientCount > 3) {
+    throw new Error(`rapid sidebar navigation exceeded 3 requests per user: ${total}.`);
   }
 
   await Promise.all(sessions.map(({ context }) => context.close()));
