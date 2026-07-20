@@ -9,7 +9,7 @@ import { deleteWorkspace, updateWorkspace } from "@/features/workspace-actions/a
 import { clearActiveWorkspaceId } from "@/features/workspace-selection/model/workspaceSelection";
 import { notifyWorkspaceChange } from "@/features/workspace-selection/model/useActiveWorkspace";
 import type { ManagedWorkspace } from "@/entities/workspace/model/workspaceTypes";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { appQueryKeys } from "@/shared/api/queryKeys";
 
 export function ManageView({
@@ -84,6 +84,8 @@ export function ManageView({
 function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const deleteMutation = useMutation({ mutationFn: deleteWorkspace });
+  const updateMutation = useMutation({ mutationFn: updateWorkspace });
   const titleId = useId();
   const descriptionId = useId();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -141,7 +143,9 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
 
     startTransition(async () => {
       try {
-        const result = await deleteWorkspace({ workspaceId: workspace.id });
+        const result = await deleteMutation.mutateAsync({
+          workspaceId: workspace.id,
+        });
         if (!result.ok) {
           setErrorMessage(
             result.message ?? "Something went wrong while deleting this workspace.",
@@ -184,7 +188,7 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
 
     setIsSaving(true);
     setErrorMessage(null);
-    const result = await updateWorkspace({
+    const result = await updateMutation.mutateAsync({
       workspaceId: workspace.id,
       name: trimmedName,
     });

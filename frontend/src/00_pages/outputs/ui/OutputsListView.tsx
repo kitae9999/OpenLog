@@ -24,7 +24,7 @@ import {
   useDocumentSelection,
 } from "@/features/document-selection/ui/DocumentBulkSelection";
 import { deleteWorkspaceDocuments } from "@/features/workspace-actions/api/workspaceActions";
-import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 const statusItems: WorkspaceOutputStatus[] = ["draft", "exported"];
 
@@ -37,7 +37,7 @@ export function OutputsListView({
   status: WorkspaceOutputStatus;
   workspaceData?: WorkspaceUiData | null;
 }) {
-  const invalidateWorkspace = useInvalidateWorkspaceQueries();
+  const deleteMutation = useWorkspaceMutation("outputs");
   const outputOverridesSnapshot = useSyncExternalStore(
     subscribeOutputOverrides,
     getOutputOverridesSnapshot,
@@ -69,18 +69,19 @@ export function OutputsListView({
     }
     setIsDeleting(true);
     setDeleteError(null);
-    const result = await deleteWorkspaceDocuments({
-      workspaceId: workspaceData.workspaceId,
-      documentType: "outputs",
-      ids: selection.selectedIdList,
-    });
+    const result = await deleteMutation.mutateAsync(() =>
+      deleteWorkspaceDocuments({
+        workspaceId: workspaceData.workspaceId,
+        documentType: "outputs",
+        ids: selection.selectedIdList,
+      }),
+    );
     setIsDeleting(false);
     if (!result.ok) {
       setDeleteError(result.message ?? "Failed to delete selected outputs.");
       return false;
     }
     selection.clear();
-    await invalidateWorkspace("outputs");
     return true;
   }
 

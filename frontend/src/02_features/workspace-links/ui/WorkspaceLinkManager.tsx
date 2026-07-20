@@ -26,7 +26,7 @@ import type {
   WorkspaceTaskLinkItem,
   WorkspaceUiData,
 } from "@/entities/workspace/model/workspaceTypes";
-import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 type NodeKind = WorkspaceNodeKind;
 type NodeRef = { kind: NodeKind; id: string };
@@ -83,7 +83,7 @@ export function WorkspaceLinkManager({
 }: {
   workspaceData: WorkspaceUiData;
 }) {
-  const invalidateWorkspace = useInvalidateWorkspaceQueries();
+  const linkMutation = useWorkspaceMutation("links");
   const [fromValue, setFromValue] = useState("");
   const [toValue, setToValue] = useState("");
   const [taskRelation, setTaskRelation] =
@@ -153,28 +153,30 @@ export function WorkspaceLinkManager({
 
     setIsSaving(true);
     setError(null);
-    const result = isCrossKind
-      ? await createWorkspaceCrossLink({
-          workspaceId: workspaceData.workspaceId,
-          fromType: fromNode.kind,
-          fromNodeId: fromNode.id,
-          toType: toNode.kind,
-          toNodeId: toNode.id,
-          relation: crossRelation,
-        })
-      : pairKind === "task"
-        ? await createWorkspaceTaskLink({
+    const result = await linkMutation.mutateAsync(() =>
+      isCrossKind
+        ? createWorkspaceCrossLink({
             workspaceId: workspaceData.workspaceId,
-            fromTaskId: fromNode.id,
-            toTaskId: toNode.id,
-            relation: taskRelation,
+            fromType: fromNode.kind,
+            fromNodeId: fromNode.id,
+            toType: toNode.kind,
+            toNodeId: toNode.id,
+            relation: crossRelation,
           })
-        : await createWorkspaceLogLink({
-            workspaceId: workspaceData.workspaceId,
-            fromLogId: fromNode.id,
-            toLogId: toNode.id,
-            relation: logRelation,
-          });
+        : pairKind === "task"
+          ? createWorkspaceTaskLink({
+              workspaceId: workspaceData.workspaceId,
+              fromTaskId: fromNode.id,
+              toTaskId: toNode.id,
+              relation: taskRelation,
+            })
+          : createWorkspaceLogLink({
+              workspaceId: workspaceData.workspaceId,
+              fromLogId: fromNode.id,
+              toLogId: toNode.id,
+              relation: logRelation,
+            }),
+    );
     setIsSaving(false);
 
     if (!result.ok) {
@@ -184,7 +186,6 @@ export function WorkspaceLinkManager({
 
     setFromValue("");
     setToValue("");
-    await invalidateWorkspace("links");
   }
 
   async function deleteLink(connection: ListedConnection) {
@@ -194,21 +195,22 @@ export function WorkspaceLinkManager({
 
     setDeletingKey(toConnectionKey(connection));
     setError(null);
-    const result =
+    const result = await linkMutation.mutateAsync(() =>
       connection.linkKind === "cross"
-        ? await deleteWorkspaceCrossLink({
+        ? deleteWorkspaceCrossLink({
             workspaceId: workspaceData.workspaceId,
             crossLinkId: connection.id,
           })
         : connection.linkKind === "task"
-          ? await deleteWorkspaceTaskLink({
+          ? deleteWorkspaceTaskLink({
               workspaceId: workspaceData.workspaceId,
               taskLinkId: connection.id,
             })
-          : await deleteWorkspaceLogLink({
+          : deleteWorkspaceLogLink({
               workspaceId: workspaceData.workspaceId,
               logLinkId: connection.id,
-            });
+            }),
+    );
     setDeletingKey(null);
 
     if (!result.ok) {
@@ -216,7 +218,6 @@ export function WorkspaceLinkManager({
       return;
     }
 
-    await invalidateWorkspace("links");
   }
 
   return (

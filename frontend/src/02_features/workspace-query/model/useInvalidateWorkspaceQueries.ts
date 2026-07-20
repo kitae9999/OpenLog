@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOptionalWorkspaceApp } from "@/features/app-session/model/WorkspaceAppContext";
+import type { WorkspaceActionResult } from "@/features/workspace-actions/api/workspaceActions";
 
 export type WorkspaceQueryZone =
   | "tasks"
@@ -49,4 +50,14 @@ export function useInvalidateWorkspaceQueries() {
     },
     [activeWorkspaceId, queryClient],
   );
+}
+
+export function useWorkspaceMutation(zone: WorkspaceQueryZone) {
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
+  return useMutation({
+    mutationFn: (mutation: () => Promise<WorkspaceActionResult>) => mutation(),
+    onSuccess: async (result) => {
+      if (result.ok) await invalidateWorkspace(zone);
+    },
+  });
 }

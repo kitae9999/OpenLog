@@ -20,7 +20,7 @@ import {
 } from "@/entities/workspace/model/data";
 import { saveLogOverride } from "@/features/document-overrides/model/logOverrides";
 import { updateWorkspaceLog } from "@/features/workspace-actions/api/workspaceActions";
-import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function LogEditView({
   log,
@@ -30,7 +30,7 @@ export function LogEditView({
   workspaceId?: string;
 }) {
   const router = useRouter();
-  const invalidateWorkspace = useInvalidateWorkspaceQueries();
+  const logMutation = useWorkspaceMutation("logs");
   const [title, setTitle] = useState(log.title);
   const [body, setBody] = useState(() => getLogBody(log));
   const [error, setError] = useState<string | null>(null);
@@ -79,15 +79,17 @@ export function LogEditView({
     setError(null);
 
     if (workspaceId) {
-      const result = await updateWorkspaceLog({
-        workspaceId,
-        logId: log.id,
-        title: trimmedTitle,
-        content: body,
-        summary: log.summary ?? log.description,
-        taskId: log.taskId ?? null,
-        status: log.status ?? "NONE",
-      });
+      const result = await logMutation.mutateAsync(() =>
+        updateWorkspaceLog({
+          workspaceId,
+          logId: log.id,
+          title: trimmedTitle,
+          content: body,
+          summary: log.summary ?? log.description,
+          taskId: log.taskId ?? null,
+          status: log.status ?? "NONE",
+        }),
+      );
 
       setIsSaving(false);
 
@@ -97,7 +99,6 @@ export function LogEditView({
       }
 
       router.push(getLogHref(log.id));
-      await invalidateWorkspace("logs");
       return;
     }
 
@@ -107,7 +108,6 @@ export function LogEditView({
     });
     setIsSaving(false);
     router.push(getLogHref(log.id));
-    await invalidateWorkspace("logs");
   }
 
   return (
