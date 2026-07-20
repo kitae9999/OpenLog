@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { HomeFeed } from "@/pages/home/ui";
+import { WorkspaceDashboardQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardPage() {
-  return <HomeFeed activeTab="workspace" />;
+  return <WorkspaceDashboardQueryView />;
 }

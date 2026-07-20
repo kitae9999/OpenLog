@@ -1,5 +1,5 @@
-import { LogsListFeed } from "@/pages/logs/ui/LogsListFeed";
+import { WorkspaceLogsQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default function LogsPage() {
-  return <LogsListFeed typeFilter="all" />;
+  return <WorkspaceLogsQueryView typeFilter="all" />;
 }
