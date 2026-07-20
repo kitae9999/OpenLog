@@ -1,5 +1,5 @@
-import { MemoryFeed } from "@/pages/memory/ui/MemoryFeed";
+import { WorkspaceMemoryEditorQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default function NewMemoryPage() {
-  return <MemoryFeed mode="new" />;
+  return <WorkspaceMemoryEditorQueryView mode="new" />;
 }

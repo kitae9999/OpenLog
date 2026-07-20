@@ -1,4 +1,4 @@
-import { OutputDetailFeed } from "@/pages/outputs/ui/OutputDetailFeed";
+import { WorkspaceOutputQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default async function OutputDetailPage({
   params,
@@ -7,5 +7,5 @@ export default async function OutputDetailPage({
 }) {
   const { outputId } = await params;
 
-  return <OutputDetailFeed outputId={outputId} />;
+  return <WorkspaceOutputQueryView outputId={outputId} />;
 }

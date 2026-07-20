@@ -1,4 +1,4 @@
-import { OutputCreateFeed } from "@/pages/outputs/ui/OutputCreateFeed";
+import { WorkspaceOutputCreateQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default async function NewOutputPage({
   searchParams,
@@ -7,5 +7,5 @@ export default async function NewOutputPage({
 }) {
   const params = await searchParams;
 
-  return <OutputCreateFeed taskId={params.taskId} />;
+  return <WorkspaceOutputCreateQueryView taskId={params.taskId} />;
 }

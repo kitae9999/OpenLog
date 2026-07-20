@@ -17,6 +17,7 @@ const COLLECTION_PATHS = new Set([
   "planner-view",
   "graph-view",
   "activity-view",
+  "agent-guide",
 ]);
 const DETAIL_PATHS = new Set(["tasks", "logs", "outputs", "memories"]);
 

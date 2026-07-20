@@ -13,6 +13,7 @@ import type {
   WorkspaceMemoryItem,
   WorkspaceUiData,
 } from "@/entities/workspace/model/workspaceTypes";
+import type { WorkspaceAgentSettingsData } from "@/entities/workspace/api/workspaceAgentApi";
 import type { AppBootstrap } from "@/features/app-session/model/appBootstrap";
 import { clientApi } from "@/shared/api/clientApi";
 import { formatWorkspaceDateLabel } from "@/shared/lib/formatWorkspaceDateLabel";
@@ -73,6 +74,29 @@ export type OutputResponse = {
   exportedAt: string | null;
 };
 
+type OutputDetailResponse = {
+  id: number;
+  status: OutputStatus;
+  title: string;
+  content: string;
+  tasks: Array<{ id: number; title: string; status: TaskStatus }>;
+  logs: Array<{
+    id: number;
+    title: string;
+    kind: LogKind;
+    status: LogStatus;
+    taskId: number | null;
+  }>;
+  linkedPost: {
+    id: number;
+    status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
+    authorUsername: string;
+    slug: string;
+  } | null;
+  updatedAt: string;
+  exportedAt: string | null;
+};
+
 export type TodoResponse = {
   id: number;
   title: string;
@@ -119,6 +143,14 @@ type MemoryCursorResponse = {
   memories: MemoryResponse[];
   nextCursor: string | null;
   hasNext: boolean;
+};
+
+type WorkspaceAgentGuideResponse = {
+  workspaceId: number;
+  content: string;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type TaskLinkResponse = {
@@ -255,6 +287,40 @@ export async function fetchWorkspaceMemories(workspaceId: string) {
     `/api/workspaces/${workspaceId}/memories?size=50`,
   );
   return response.memories.map(mapMemory);
+}
+
+export async function fetchWorkspaceOutput(workspaceId: string, outputId: string) {
+  const response = await clientApi<OutputDetailResponse>(
+    `/api/workspaces/${workspaceId}/outputs/${outputId}`,
+  );
+  return mapOutput(response);
+}
+
+export async function fetchWorkspaceMemory(workspaceId: string, memoryId: string) {
+  const response = await clientApi<MemoryResponse>(
+    `/api/workspaces/${workspaceId}/memories/${memoryId}`,
+  );
+  return mapMemory(response);
+}
+
+export async function fetchWorkspaceAgentSettings(
+  bootstrap: AppBootstrap,
+  workspaceId: string,
+): Promise<WorkspaceAgentSettingsData> {
+  const guide = await clientApi<WorkspaceAgentGuideResponse>(
+    `/api/workspaces/${workspaceId}/agent-guide`,
+  );
+  const workspace = bootstrap.workspaces.find((item) => item.id === workspaceId);
+  if (!workspace) throw new Error("Workspace not found.");
+  return {
+    workspace,
+    guide: {
+      content: guide.content,
+      revision: guide.revision,
+      createdAt: guide.createdAt,
+      updatedAt: guide.updatedAt,
+    },
+  };
 }
 
 export function buildWorkspaceUiData(
@@ -408,9 +474,16 @@ export function mapLog(
   };
 }
 
-function mapOutput(output: OutputResponse): WorkspaceTaskOutput {
-  const taskIds = (output.taskIds ?? []).map(String);
-  const logIds = (output.logIds ?? []).map(String);
+function mapOutput(output: OutputResponse | OutputDetailResponse): WorkspaceTaskOutput {
+  const isDetail = "content" in output;
+  const taskIds = isDetail
+    ? output.tasks.map((task) => String(task.id))
+    : (output.taskIds ?? []).map(String);
+  const logIds = isDetail
+    ? output.logs.map((log) => String(log.id))
+    : (output.logIds ?? []).map(String);
+  const taskCount = isDetail ? taskIds.length : output.taskCount;
+  const logCount = isDetail ? logIds.length : output.logCount;
   const status: WorkspaceOutputStatus =
     output.status === "EXPORTED" ? "exported" : "draft";
   return {
@@ -418,13 +491,27 @@ function mapOutput(output: OutputResponse): WorkspaceTaskOutput {
     taskId: taskIds[0] ?? "",
     taskIds,
     logIds,
-    taskCount: output.taskCount,
-    logCount: output.logCount,
+    taskCount,
+    logCount,
     status,
     title: output.title,
-    description: `${output.taskCount} task${output.taskCount === 1 ? "" : "s"} · ${output.logCount} log${output.logCount === 1 ? "" : "s"}`,
-    content: "",
+    description: `${taskCount} task${taskCount === 1 ? "" : "s"} · ${logCount} log${logCount === 1 ? "" : "s"}`,
+    content: isDetail ? output.content : "",
     updatedLabel: formatWorkspaceDateLabel(output.updatedAt),
+    linkedPostId:
+      isDetail && output.linkedPost ? String(output.linkedPost.id) : undefined,
+    linkedPostStatus:
+      isDetail && output.linkedPost
+        ? output.linkedPost.status.toLowerCase() as "draft" | "published" | "unpublished"
+        : undefined,
+    postEditHref:
+      isDetail && output.linkedPost
+        ? `/posts/${output.linkedPost.id}/edit`
+        : undefined,
+    publishedHref:
+      isDetail && output.linkedPost?.status === "PUBLISHED"
+        ? buildPublicPostPath(output.linkedPost.authorUsername, output.linkedPost.slug)
+        : undefined,
   };
 }
 

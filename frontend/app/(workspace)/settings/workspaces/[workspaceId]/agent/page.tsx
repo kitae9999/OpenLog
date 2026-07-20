@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WorkspaceAgentSettingsFeed } from "@/pages/workspace-agent/ui/WorkspaceAgentSettingsFeed";
+import { WorkspaceAgentSettingsQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export const metadata: Metadata = {
   title: "Agent Guide | OpenLog",
@@ -19,6 +19,6 @@ export default async function WorkspaceAgentSettingsPage({
   const lang = Array.isArray(langParam) ? langParam[0] : langParam;
 
   return (
-    <WorkspaceAgentSettingsFeed workspaceId={workspaceId} locale={lang ?? null} />
+    <WorkspaceAgentSettingsQueryView workspaceId={workspaceId} locale={lang ?? null} />
   );
 }
