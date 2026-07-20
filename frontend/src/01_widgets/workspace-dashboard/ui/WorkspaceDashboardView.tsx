@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  useCallback,
   createContext,
   useContext,
   useEffect,
@@ -47,13 +46,10 @@ import {
   isZoneFetching,
   type SyncFillState,
 } from "@/shared/model/syncFill";
-import { FetchingIndicator } from "@/shared/ui/sync/FetchingIndicator";
-import { useWorkspaceLiveSync } from "@/features/workspace-sync/model/useWorkspaceLiveSync";
 import { WorkspaceGraphPreview } from "@/widgets/workspace-dashboard/ui/WorkspaceGraphPreview";
 import {
   createWorkspaceTodo,
   deleteWorkspaceTodo,
-  refreshWorkspaceDashboard,
   updateWorkspaceTodoDone,
   type WorkspaceActionResult,
 } from "@/features/workspace-actions/api/workspaceActions";
@@ -335,41 +331,14 @@ export function WorkspaceDashboardView({
     isPreview && replaySnapshot
       ? getPreviewReplayWorkspaceData(replaySnapshot)
       : liveWorkspaceData;
-  const workspaceId = resolvedWorkspaceData?.workspaceId;
-  const refreshDashboard = useCallback(async () => {
-    if (!workspaceId) {
-      return;
-    }
-    const result = await refreshWorkspaceDashboard(workspaceId);
-    setLiveWorkspaceData((current) =>
-      result.ok && current
-        ? { ...current, ...result.data }
-        : current
-          ? { ...current }
-          : current,
-    );
-  }, [workspaceId]);
   const highlight = replaySnapshot?.highlight ?? { kind: "none" as const };
-  const liveSync = useWorkspaceLiveSync({
-    workspaceId: resolvedWorkspaceData?.workspaceId
-      ? Number(resolvedWorkspaceData.workspaceId)
-      : null,
-    enabled: !isPreview && Boolean(resolvedWorkspaceData?.workspaceId),
-    onRefresh: refreshDashboard,
-  });
-  const {
-    syncFill: liveSyncFill,
-    noteEntityIds,
-    showFetchingToast,
-    fetchingToastExiting,
-  } = liveSync;
   const syncFill = isPreview
     ? (replaySnapshot?.syncFill ?? {
         status: "idle" as const,
         reserved: { ...PREVIEW_RESERVED_COUNTS },
         incomingIds: [] as string[],
       })
-    : liveSyncFill;
+    : IDLE_SYNC_FILL;
 
   const [exploreWidget, setExploreWidget] = useState<ExploreWidget>(() => {
     if (
@@ -408,22 +377,6 @@ export function WorkspaceDashboardView({
     isPreview &&
     brief?.taskId != null &&
     isPreviewHighlight(highlight, "task", brief.taskId);
-
-  useEffect(() => {
-    if (isPreview || !resolvedWorkspaceData) {
-      return;
-    }
-    noteEntityIds([
-      ...resolvedWorkspaceData.tasks.map((task) => task.id),
-      ...resolvedWorkspaceData.logs.map((log) => log.id),
-      ...resolvedWorkspaceData.todos.map((todo) => todo.id),
-      ...resolvedWorkspaceData.outputs.map((output) => output.id),
-      ...resolvedWorkspaceData.memories.map((memory) => memory.id),
-      ...(resolvedWorkspaceData.workingBrief || brief
-        ? ["working-brief"]
-        : []),
-    ]);
-  }, [brief, isPreview, noteEntityIds, resolvedWorkspaceData]);
 
   useEffect(() => {
     if (!isPreview || !replaySnapshot) {
@@ -740,12 +693,6 @@ export function WorkspaceDashboardView({
     return (
       <PreviewSyncFillContext.Provider value={syncFill}>
         {dashboard}
-        {showFetchingToast ? (
-          <FetchingIndicator
-            exiting={fetchingToastExiting}
-            className="fixed right-4 bottom-4 z-40 sm:right-6 sm:bottom-6"
-          />
-        ) : null}
       </PreviewSyncFillContext.Provider>
     );
   }

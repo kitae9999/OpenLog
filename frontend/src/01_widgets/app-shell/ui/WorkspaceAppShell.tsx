@@ -8,7 +8,7 @@ import { HomeSidebar } from "@/widgets/app-shell/ui/HomeFeedShell";
 import { WorkspaceAppContext } from "@/features/app-session/model/WorkspaceAppContext";
 import type { AppBootstrap } from "@/features/app-session/model/appBootstrap";
 import { clientApi } from "@/shared/api/clientApi";
-import { workspaceQueryKeys } from "@/shared/api/queryKeys";
+import { appQueryKeys, workspaceQueryKeys } from "@/shared/api/queryKeys";
 import { cn } from "@/shared/lib/cn";
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { useSidebarOpenState } from "@/shared/lib/useSidebarOpenState";
@@ -17,6 +17,7 @@ import type {
   WorkspaceNavigationSummary,
   WorkspaceUiData,
 } from "@/entities/workspace/model/workspaceTypes";
+import { useWorkspaceSse } from "@/features/workspace-sync/model/useWorkspaceSse";
 
 export function WorkspaceAppShell({
   bootstrap,
@@ -29,6 +30,12 @@ export function WorkspaceAppShell({
   const [activeWorkspaceId, setActiveId] = useState(
     bootstrap.activeWorkspaceId,
   );
+  const workspaces = useQuery({
+    queryKey: appQueryKeys.workspaces,
+    queryFn: async () => bootstrap.workspaces,
+    initialData: bootstrap.workspaces,
+    staleTime: 5 * 60_000,
+  }).data;
   const { isSidebarOpen, setIsSidebarOpen, closeSidebarIfMobile } =
     useSidebarOpenState();
   const navigation = useQuery({
@@ -40,7 +47,7 @@ export function WorkspaceAppShell({
     enabled: activeWorkspaceId !== null,
     staleTime: 30_000,
   });
-  const activeWorkspace = bootstrap.workspaces.find(
+  const activeWorkspace = workspaces.find(
     (workspace) => workspace.id === activeWorkspaceId,
   );
   const workspaceData = useMemo<WorkspaceUiData | null>(() => {
@@ -69,6 +76,7 @@ export function WorkspaceAppShell({
     };
   }, [activeWorkspace, activeWorkspaceId, navigation.data]);
   const activeNavigation = resolveNavigation(pathname);
+  useWorkspaceSse(activeWorkspaceId);
 
   function selectWorkspace(workspaceId: string) {
     setActiveWorkspaceId(workspaceId);
@@ -77,7 +85,11 @@ export function WorkspaceAppShell({
 
   return (
     <WorkspaceAppContext.Provider
-      value={{ bootstrap, activeWorkspaceId, selectWorkspace }}
+      value={{
+        bootstrap: { ...bootstrap, workspaces },
+        activeWorkspaceId,
+        selectWorkspace,
+      }}
     >
       <div className="flex min-h-dvh flex-col bg-app text-zinc-950">
         <Header
@@ -110,7 +122,7 @@ export function WorkspaceAppShell({
             settingsNav={activeNavigation.settingsNav}
             isLoggedIn
             isOpen={isSidebarOpen}
-            workspaces={bootstrap.workspaces}
+            workspaces={workspaces}
             workspaceData={workspaceData}
             onNavigate={closeSidebarIfMobile}
             onWorkspaceSelect={selectWorkspace}
