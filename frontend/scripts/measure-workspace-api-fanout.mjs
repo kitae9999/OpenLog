@@ -256,6 +256,7 @@ try {
     forbiddenPaths: ["/workspaces/1/tasks", "/workspaces/1/logs"],
   });
   await measureDashboardRefreshUseCases(browser);
+  await measureRapidSidebarNavigation(browser);
 } finally {
   await browser?.close();
   for (const stream of openStreams) stream.end();
@@ -319,6 +320,51 @@ async function measureDashboardRefreshUseCases(browser) {
   });
 
   await context.close();
+}
+
+async function measureRapidSidebarNavigation(browser) {
+  const sessions = await Promise.all(
+    Array.from({ length: clientCount }, async () => {
+      const context = await browser.newContext();
+      await context.addInitScript(() => {
+        window.localStorage.setItem("openlog.dismiss-mcp-setup-prompt", "1");
+      });
+      const page = await context.newPage();
+      await page.goto(`${appUrl}/dashboard`, { waitUntil: "domcontentloaded" });
+      await page.getByRole("heading", { name: "Fanout Test" }).waitFor();
+      return { context, page };
+    }),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  counts.clear();
+
+  await Promise.all(
+    sessions.map(async ({ page }) => {
+      await page.getByRole("link", { name: /^Tasks/ }).click();
+      await page.waitForURL(`${appUrl}/tasks`);
+      await page.getByRole("link", { name: /^Logs/ }).first().click();
+      await page.waitForURL(`${appUrl}/logs`);
+      await page.getByRole("link", { name: "Dashboard" }).click();
+      await page.waitForURL(`${appUrl}/dashboard`);
+      await page.getByRole("heading", { name: "Fanout Test" }).waitFor();
+    }),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const total = [...counts.values()].reduce((sum, count) => sum + count, 0);
+  printAndAssertCounts(`${clientCount} concurrent rapid sidebar navigation flows`, {
+    maxRequestCount: 75,
+    required: {
+      "/workspaces/1/dashboard": clientCount,
+      "/workspaces/1/tasks": clientCount * 2,
+      "/workspaces/1/logs": clientCount * 2,
+    },
+  });
+  if (total / clientCount > 15) {
+    throw new Error(`rapid sidebar navigation exceeded 15 requests per user: ${total}.`);
+  }
+
+  await Promise.all(sessions.map(({ context }) => context.close()));
 }
 
 function broadcastWorkspaceChange({ zone, entityType, entityId, action }) {
