@@ -35,6 +35,7 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageRequest
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
@@ -131,6 +132,34 @@ class OutputServiceTest {
         verify(outputLogRepository).findAllByOutputIdIn(listOf(40L, 41L))
         verify(outputTaskRepository, never()).findAllByOutputId(anyLong())
         verify(outputLogRepository, never()).findAllByOutputId(anyLong())
+    }
+
+    @Test
+    fun `getRecentOutputs limits the dashboard query before loading source ids`() {
+        val output = WorkspaceOutput(
+            id = 40L,
+            workspace = workspace,
+            author = user,
+            title = "Latest",
+            content = "Latest content",
+        )
+        given(workspaceAccessResolver.requireOwnedWorkspace(1L, 100L)).willReturn(workspace)
+        given(
+            workspaceOutputRepository.findAllByWorkspaceIdOrderByUpdatedAtDesc(
+                100L,
+                PageRequest.of(0, 1),
+            ),
+        ).willReturn(listOf(output))
+        given(outputTaskRepository.findAllByOutputIdIn(listOf(40L))).willReturn(emptyList())
+        given(outputLogRepository.findAllByOutputIdIn(listOf(40L))).willReturn(emptyList())
+
+        val responses = outputService.getRecentOutputs(1L, 100L, 1)
+
+        assertThat(responses).extracting<Long> { it.id }.containsExactly(40L)
+        verify(workspaceOutputRepository).findAllByWorkspaceIdOrderByUpdatedAtDesc(
+            100L,
+            PageRequest.of(0, 1),
+        )
     }
 
     @Test

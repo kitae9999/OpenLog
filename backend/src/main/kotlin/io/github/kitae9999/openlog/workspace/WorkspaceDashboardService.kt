@@ -3,13 +3,10 @@ package io.github.kitae9999.openlog.workspace
 import io.github.kitae9999.openlog.activity.ActivityService
 import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.memory.MemoryService
-import io.github.kitae9999.openlog.memory.dto.MemoryResponse
 import io.github.kitae9999.openlog.output.OutputService
 import io.github.kitae9999.openlog.todo.TodoService
 import io.github.kitae9999.openlog.workingbrief.WorkingBriefService
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceDashboardResponse
-import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogResponse
-import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskResponse
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -33,14 +30,31 @@ class WorkspaceDashboardService(
         to: LocalDate,
     ): WorkspaceDashboardResponse {
         return WorkspaceDashboardResponse(
-            tasks = getAllTasks(userId, workspaceId),
-            logs = getAllLogs(userId, workspaceId),
+            tasks = workspaceTaskService.getTasks(
+                userId = userId,
+                workspaceId = workspaceId,
+                status = null,
+                cursor = null,
+                size = DASHBOARD_TASK_LIMIT,
+            ).tasks,
+            logs = workspaceLogService.getLogs(
+                userId = userId,
+                workspaceId = workspaceId,
+                taskId = null,
+                cursor = null,
+                size = DASHBOARD_LOG_LIMIT,
+            ).logs,
             taskLinks = workspaceLinkService.getTaskLinks(userId, workspaceId),
             logLinks = workspaceLinkService.getLogLinks(userId, workspaceId),
             crossLinks = workspaceLinkService.getCrossLinks(userId, workspaceId),
-            todos = todoService.getAllTodos(userId, workspaceId),
-            outputs = outputService.getOutputs(userId, workspaceId, null),
-            memories = getAllMemories(userId, workspaceId),
+            todos = todoService.getTodos(userId, workspaceId, to),
+            outputs = outputService.getRecentOutputs(userId, workspaceId, DASHBOARD_OUTPUT_LIMIT),
+            memories = memoryService.getMemories(
+                userId = userId,
+                workspaceId = workspaceId,
+                cursor = null,
+                size = DASHBOARD_MEMORY_LIMIT,
+            ).memories,
             workingBrief = try {
                 workingBriefService.getBrief(userId, workspaceId)
             } catch (_: NotFoundException) {
@@ -50,40 +64,10 @@ class WorkspaceDashboardService(
         )
     }
 
-    private fun getAllTasks(userId: Long, workspaceId: Long): List<WorkspaceTaskResponse> {
-        val tasks = mutableListOf<WorkspaceTaskResponse>()
-        var cursor: String? = null
-        do {
-            val page = workspaceTaskService.getTasks(userId, workspaceId, null, cursor, PAGE_SIZE)
-            tasks += page.tasks
-            cursor = page.nextCursor.takeIf { page.hasNext }
-        } while (cursor != null)
-        return tasks
-    }
-
-    private fun getAllLogs(userId: Long, workspaceId: Long): List<WorkspaceLogResponse> {
-        val logs = mutableListOf<WorkspaceLogResponse>()
-        var cursor: String? = null
-        do {
-            val page = workspaceLogService.getLogs(userId, workspaceId, null, cursor, PAGE_SIZE)
-            logs += page.logs
-            cursor = page.nextCursor.takeIf { page.hasNext }
-        } while (cursor != null)
-        return logs
-    }
-
-    private fun getAllMemories(userId: Long, workspaceId: Long): List<MemoryResponse> {
-        val memories = mutableListOf<MemoryResponse>()
-        var cursor: String? = null
-        do {
-            val page = memoryService.getMemories(userId, workspaceId, cursor, PAGE_SIZE)
-            memories += page.memories
-            cursor = page.nextCursor.takeIf { page.hasNext }
-        } while (cursor != null)
-        return memories
-    }
-
     private companion object {
-        private const val PAGE_SIZE = 50
+        private const val DASHBOARD_TASK_LIMIT = 20
+        private const val DASHBOARD_LOG_LIMIT = 6
+        private const val DASHBOARD_OUTPUT_LIMIT = 1
+        private const val DASHBOARD_MEMORY_LIMIT = 8
     }
 }

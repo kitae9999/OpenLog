@@ -21,6 +21,7 @@ import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.WorkspaceAccessResolver
 import io.github.kitae9999.openlog.workspace.WorkspaceChangeNotifier
 import io.github.kitae9999.openlog.workspace.entity.Workspace
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import kotlin.jvm.optionals.getOrNull
@@ -44,25 +45,17 @@ class OutputService(
         } else {
             workspaceOutputRepository.findAllByWorkspaceIdAndStatusOrderByUpdatedAtDesc(workspaceId, status)
         }
-        val outputIds = outputs.map { requireNotNull(it.id) }
-        if (outputIds.isEmpty()) {
-            return emptyList()
-        }
-        val taskIdsByOutputId = outputTaskRepository.findAllByOutputIdIn(outputIds)
-            .groupBy { requireNotNull(it.output.id) }
-            .mapValues { (_, links) -> links.map { requireNotNull(it.task.id) } }
-        val logIdsByOutputId = outputLogRepository.findAllByOutputIdIn(outputIds)
-            .groupBy { requireNotNull(it.output.id) }
-            .mapValues { (_, links) -> links.map { requireNotNull(it.log.id) } }
+        return toOutputResponses(outputs)
+    }
 
-        return outputs.map { output ->
-            val outputId = requireNotNull(output.id)
-            outputMapper.toOutputResponse(
-                output = output,
-                taskIds = taskIdsByOutputId[outputId].orEmpty(),
-                logIds = logIdsByOutputId[outputId].orEmpty(),
-            )
-        }
+    @Transactional(readOnly = true)
+    fun getRecentOutputs(userId: Long, workspaceId: Long, limit: Int): List<OutputResponse> {
+        workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        val outputs = workspaceOutputRepository.findAllByWorkspaceIdOrderByUpdatedAtDesc(
+            workspaceId,
+            PageRequest.of(0, limit.coerceIn(1, MAX_DASHBOARD_OUTPUTS)),
+        )
+        return toOutputResponses(outputs)
     }
 
     @Transactional(readOnly = true)
@@ -220,6 +213,28 @@ class OutputService(
         }
     }
 
+    private fun toOutputResponses(outputs: List<WorkspaceOutput>): List<OutputResponse> {
+        val outputIds = outputs.map { requireNotNull(it.id) }
+        if (outputIds.isEmpty()) {
+            return emptyList()
+        }
+        val taskIdsByOutputId = outputTaskRepository.findAllByOutputIdIn(outputIds)
+            .groupBy { requireNotNull(it.output.id) }
+            .mapValues { (_, links) -> links.map { requireNotNull(it.task.id) } }
+        val logIdsByOutputId = outputLogRepository.findAllByOutputIdIn(outputIds)
+            .groupBy { requireNotNull(it.output.id) }
+            .mapValues { (_, links) -> links.map { requireNotNull(it.log.id) } }
+
+        return outputs.map { output ->
+            val outputId = requireNotNull(output.id)
+            outputMapper.toOutputResponse(
+                output = output,
+                taskIds = taskIdsByOutputId[outputId].orEmpty(),
+                logIds = logIdsByOutputId[outputId].orEmpty(),
+            )
+        }
+    }
+
     private fun requireOwnedOutput(userId: Long, workspaceId: Long, outputId: Long): WorkspaceOutput {
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
         return requireOwnedOutput(workspace, outputId)
@@ -261,5 +276,9 @@ class OutputService(
             logs = outputLogRepository.findAllByOutputId(outputId),
             linkedPost = postRepository.findByOutputId(outputId),
         )
+    }
+
+    private companion object {
+        private const val MAX_DASHBOARD_OUTPUTS = 20
     }
 }
