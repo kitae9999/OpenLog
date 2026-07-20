@@ -44,6 +44,7 @@ import {
   updateWorkspaceOutput,
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function OutputDetailView({
   isLoggedIn,
@@ -57,6 +58,7 @@ export function OutputDetailView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const outputMutation = useWorkspaceMutation("outputs");
   const outputOverridesSnapshot = useSyncExternalStore(
     subscribeOutputOverrides,
     getOutputOverridesSnapshot,
@@ -185,14 +187,16 @@ export function OutputDetailView({
     setError(null);
 
     if (workspaceData) {
-      const result = await updateWorkspaceOutput({
-        workspaceId: workspaceData.workspaceId,
-        outputId: output.id,
-        title: title.trim(),
-        content,
-        taskIds: output.taskIds,
-        logIds: output.logIds,
-      });
+      const result = await outputMutation.mutateAsync(() =>
+        updateWorkspaceOutput({
+          workspaceId: workspaceData.workspaceId,
+          outputId: output.id,
+          title: title.trim(),
+          content,
+          taskIds: output.taskIds,
+          logIds: output.logIds,
+        }),
+      );
 
       setIsSaving(false);
 
@@ -203,7 +207,6 @@ export function OutputDetailView({
 
       setIsEditing(false);
       setMode("write");
-      router.refresh();
       return;
     }
 
@@ -217,7 +220,6 @@ export function OutputDetailView({
     setIsEditing(false);
     setMode("write");
     setIsSaving(false);
-    router.refresh();
   }
 
   async function createPostDraft() {
@@ -229,10 +231,12 @@ export function OutputDetailView({
     setError(null);
 
     if (workspaceData) {
-      const result = await createPostDraftFromOutput({
-        workspaceId: workspaceData.workspaceId,
-        outputId: output.id,
-      });
+      const result = await outputMutation.mutateAsync(() =>
+        createPostDraftFromOutput({
+          workspaceId: workspaceData.workspaceId,
+          outputId: output.id,
+        }),
+      );
 
       setIsSaving(false);
 
@@ -243,7 +247,6 @@ export function OutputDetailView({
 
       setIsEditing(false);
       setMode("write");
-      router.refresh();
       return;
     }
 
@@ -274,11 +277,13 @@ export function OutputDetailView({
 
     setIsDeleting(true);
     setDeleteError(null);
-    const result = await deleteWorkspaceDocuments({
-      workspaceId: workspaceData.workspaceId,
-      documentType: "outputs",
-      ids: [output.id],
-    });
+    const result = await outputMutation.mutateAsync(() =>
+      deleteWorkspaceDocuments({
+        workspaceId: workspaceData.workspaceId,
+        documentType: "outputs",
+        ids: [output.id],
+      }),
+    );
     setIsDeleting(false);
 
     if (!result.ok) {
@@ -287,7 +292,6 @@ export function OutputDetailView({
     }
 
     router.push(getOutputsHref());
-    router.refresh();
   }
 
   return (

@@ -14,6 +14,10 @@ import { createWorkspace } from "@/features/workspace-actions/api/workspaceActio
 import { setActiveWorkspaceId } from "@/features/workspace-selection/model/workspaceSelection";
 import { notifyWorkspaceChange } from "@/features/workspace-selection/model/useActiveWorkspace";
 import { cn } from "@/shared/lib/cn";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { appQueryKeys } from "@/shared/api/queryKeys";
+import type { ManagedWorkspace } from "@/entities/workspace/model/workspaceTypes";
+import { useOptionalWorkspaceApp } from "@/features/app-session/model/WorkspaceAppContext";
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const REPO_FULL_NAME_PATTERN =
@@ -66,6 +70,9 @@ function normalizeRepoFullName(value: string): {
 
 export function WorkspaceCreateView({ isLoggedIn }: { isLoggedIn: boolean }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const workspaceApp = useOptionalWorkspaceApp();
+  const createMutation = useMutation({ mutationFn: createWorkspace });
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
@@ -120,7 +127,7 @@ export function WorkspaceCreateView({ isLoggedIn }: { isLoggedIn: boolean }) {
 
     startTransition(async () => {
       try {
-        const result = await createWorkspace({
+        const result = await createMutation.mutateAsync({
           name: trimmedName,
           slug: trimmedSlug,
           repoFullName: normalizedRepo.repoFullName,
@@ -133,8 +140,20 @@ export function WorkspaceCreateView({ isLoggedIn }: { isLoggedIn: boolean }) {
 
         setActiveWorkspaceId(result.id);
         notifyWorkspaceChange();
+        queryClient.setQueryData<ManagedWorkspace[]>(
+          appQueryKeys.workspaces,
+          (current = []) => [
+            ...current,
+            {
+              id: result.id!,
+              slug: trimmedSlug,
+              name: trimmedName,
+              projects: [],
+            },
+          ],
+        );
+        workspaceApp?.selectWorkspace(result.id);
         router.push(result.href ?? "/");
-        router.refresh();
       } catch {
         setErrorMessage("Failed to create workspace.");
       }

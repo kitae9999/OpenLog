@@ -562,6 +562,7 @@ export function HomeSidebar({
   agentWorkspaceId,
   workspaces = [],
   workspaceData,
+  onWorkspaceSelect,
 }: {
   activeTab: TabKey;
   isLoggedIn: boolean;
@@ -581,10 +582,12 @@ export function HomeSidebar({
   agentWorkspaceId?: string;
   workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
+  onWorkspaceSelect?: (workspaceId: string) => void;
 }) {
   const activeWorkspaceId = useActiveWorkspaceId();
   const sidebarTasks = isLoggedIn ? (workspaceData?.tasks ?? []) : [];
   const sidebarLogs = isLoggedIn ? (workspaceData?.logs ?? []) : [];
+  const navigationSummary = workspaceData?.navigationSummary;
   const storedWorkspaceId = workspaces.some(
     (workspace) => workspace.id === activeWorkspaceId,
   )
@@ -596,12 +599,15 @@ export function HomeSidebar({
     storedWorkspaceId ??
     workspaces[0]?.id;
   const doingTaskCount =
-    sidebarTasks.filter((task) => task.status === "doing").length ||
-    sidebarTasks.filter((task) => task.status === "todo").length;
-  const logsCount = sidebarLogs.length;
-  const openIssuesCount = sidebarLogs.filter(
-    (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
-  ).length;
+    navigationSummary?.activeTaskCount ??
+    (sidebarTasks.filter((task) => task.status === "doing").length ||
+      sidebarTasks.filter((task) => task.status === "todo").length);
+  const logsCount = navigationSummary?.logsCount ?? sidebarLogs.length;
+  const openIssuesCount =
+    navigationSummary?.openIssuesCount ??
+    sidebarLogs.filter(
+      (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
+    ).length;
 
   return (
     <aside
@@ -617,6 +623,7 @@ export function HomeSidebar({
           workspaces={workspaces}
           activeWorkspaceId={workspaceData?.workspaceId}
           onNavigate={onNavigate}
+          onWorkspaceSelect={onWorkspaceSelect}
         />
 
         <SidebarSection label="WORKSPACE">
@@ -764,6 +771,7 @@ function SidebarLogsGroup({
     <>
       <Link
         href={getLogsHref(logsFilter)}
+        prefetch={false}
         onClick={onNavigate}
         className={cn(
           "flex h-8 w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2 text-[13.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
@@ -814,6 +822,7 @@ function SidebarLogsGroup({
               <Link
                 key={item.key}
                 href={getLogsHref(item.key)}
+                prefetch={false}
                 onClick={onNavigate}
                 className={cn(
                   "flex cursor-pointer items-center gap-2 rounded-lg px-[9px] py-[5px] text-[12.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20",
@@ -872,6 +881,7 @@ function SidebarLink({
   return (
     <Link
       href={href}
+      prefetch={false}
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}
       className={cn(

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
@@ -16,6 +15,7 @@ import {
   updateWorkspaceTodoDone,
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -30,7 +30,7 @@ export function PlannerView({
   todos: WorkspaceTodoItem[] | null;
   workspaceData: WorkspaceUiData;
 }) {
-  const router = useRouter();
+  const todoMutation = useWorkspaceMutation("todos");
   const [title, setTitle] = useState("");
   const [taskId, setTaskId] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -57,12 +57,14 @@ export function PlannerView({
 
     setIsCreating(true);
     setError(null);
-    const result = await createWorkspaceTodo({
-      workspaceId: workspaceData.workspaceId,
-      title: trimmedTitle,
-      plannedFor: selectedDate,
-      taskId: taskId || undefined,
-    });
+    const result = await todoMutation.mutateAsync(() =>
+      createWorkspaceTodo({
+        workspaceId: workspaceData.workspaceId,
+        title: trimmedTitle,
+        plannedFor: selectedDate,
+        taskId: taskId || undefined,
+      }),
+    );
     setIsCreating(false);
 
     if (!result.ok) {
@@ -71,40 +73,41 @@ export function PlannerView({
     }
 
     setTitle("");
-    router.refresh();
   }
 
   async function toggleTodo(todo: WorkspaceTodoItem) {
     if (pendingTodoId) return;
     setPendingTodoId(todo.id);
     setError(null);
-    const result = await updateWorkspaceTodoDone({
-      workspaceId: workspaceData.workspaceId,
-      todoId: todo.id,
-      done: !todo.done,
-    });
+    const result = await todoMutation.mutateAsync(() =>
+      updateWorkspaceTodoDone({
+        workspaceId: workspaceData.workspaceId,
+        todoId: todo.id,
+        done: !todo.done,
+      }),
+    );
     setPendingTodoId(null);
     if (!result.ok) {
       setError(result.message ?? "Failed to update todo.");
       return;
     }
-    router.refresh();
   }
 
   async function deleteTodo(todoId: string) {
     if (pendingTodoId) return;
     setPendingTodoId(todoId);
     setError(null);
-    const result = await deleteWorkspaceTodo({
-      workspaceId: workspaceData.workspaceId,
-      todoId,
-    });
+    const result = await todoMutation.mutateAsync(() =>
+      deleteWorkspaceTodo({
+        workspaceId: workspaceData.workspaceId,
+        todoId,
+      }),
+    );
     setPendingTodoId(null);
     if (!result.ok) {
       setError(result.message ?? "Failed to delete todo.");
       return;
     }
-    router.refresh();
   }
 
   return (

@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { API_CONFIG } from "@/shared/api";
 import type {
@@ -31,7 +30,6 @@ export async function updateWorkspaceAgentGuide(input: {
       method: "PUT",
       body: JSON.stringify({ content: input.content }),
     });
-    revalidateAgentPaths(input.workspaceId);
     return { ok: true, guide };
   });
 }
@@ -50,7 +48,6 @@ export async function updateWorkspaceProjectCaptureMode(input: {
         captureMode: input.captureMode,
       }),
     });
-    revalidateAgentPaths(input.project.workspaceId);
     return { ok: true };
   });
 }
@@ -63,7 +60,6 @@ export async function disconnectWorkspaceProject(input: {
     await requestJson(`/workspace-projects/${input.projectId}`, cookie, {
       method: "DELETE",
     });
-    revalidateAgentPaths(input.workspaceId);
     return { ok: true };
   });
 }
@@ -115,10 +111,4 @@ async function readErrorMessage(response: Response) {
   } catch {
     return `Workspace Agent request failed: ${response.status}`;
   }
-}
-
-function revalidateAgentPaths(workspaceId: string) {
-  revalidatePath(`/settings/workspaces/${workspaceId}/agent`);
-  revalidatePath("/settings/manage");
-  revalidatePath("/");
 }

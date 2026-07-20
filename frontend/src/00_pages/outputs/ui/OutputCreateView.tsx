@@ -20,6 +20,7 @@ import {
 import { createOutputOverride } from "@/features/document-overrides/model/outputOverrides";
 import { createWorkspaceOutput } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function OutputCreateView({
   isLoggedIn,
@@ -31,6 +32,7 @@ export function OutputCreateView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const outputMutation = useWorkspaceMutation("outputs");
   const tasks = workspaceData?.tasks ?? [];
   const logs = workspaceData?.logs ?? [];
   const initialTask = tasks.find((task) => task.id === initialTaskId);
@@ -101,13 +103,15 @@ export function OutputCreateView({
     setError(null);
 
     if (workspaceData) {
-      const result = await createWorkspaceOutput({
-        workspaceId: workspaceData.workspaceId,
-        title: trimmedTitle,
-        content,
-        taskIds: selectedTaskIds,
-        logIds: selectedLogIds,
-      });
+      const result = await outputMutation.mutateAsync(() =>
+        createWorkspaceOutput({
+          workspaceId: workspaceData.workspaceId,
+          title: trimmedTitle,
+          content,
+          taskIds: selectedTaskIds,
+          logIds: selectedLogIds,
+        }),
+      );
 
       setIsSaving(false);
 
@@ -117,7 +121,6 @@ export function OutputCreateView({
       }
 
       router.push(result.href);
-      router.refresh();
       return;
     }
 
@@ -134,7 +137,6 @@ export function OutputCreateView({
 
     setIsSaving(false);
     router.push(getOutputHref(output.id));
-    router.refresh();
   }
 
   return (

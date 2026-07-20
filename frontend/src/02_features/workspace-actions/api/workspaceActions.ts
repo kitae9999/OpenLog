@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { API_CONFIG } from "@/shared/api";
+import {
+  getWorkspaceDashboardRefreshData,
+  type WorkspaceDashboardRefreshData,
+} from "@/entities/workspace/api/workspaceApi";
 import type {
   WorkspaceCrossLinkRelation,
   WorkspaceNodeKind,
@@ -18,7 +22,28 @@ export type WorkspaceActionResult = {
   message?: string;
 };
 
+export type WorkspaceDashboardRefreshResult =
+  | { ok: true; data: WorkspaceDashboardRefreshData }
+  | { ok: false; message: string };
+
 type LogKind = "ISSUE" | "FIX" | "DECISION" | "NOTE";
+
+export async function refreshWorkspaceDashboard(
+  workspaceId: string,
+): Promise<WorkspaceDashboardRefreshResult> {
+  try {
+    return {
+      ok: true,
+      data: await getWorkspaceDashboardRefreshData(workspaceId),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error ? error.message : "Workspace refresh failed.",
+    };
+  }
+}
 
 export async function createWorkspace(input: {
   slug: string;
@@ -40,10 +65,7 @@ export async function createWorkspace(input: {
     );
 
     const workspaceId = String(workspace.id);
-    revalidatePath("/");
-    revalidatePath("/settings/manage");
-    revalidatePath("/workspaces/new");
-    return { ok: true, id: workspaceId, href: "/" };
+    return { ok: true, id: workspaceId, href: "/dashboard" };
   });
 }
 
@@ -59,8 +81,6 @@ export async function updateWorkspace(input: {
       }),
     });
 
-    revalidatePath("/");
-    revalidatePath("/settings/manage");
     return { ok: true, id: input.workspaceId };
   });
 }
@@ -88,7 +108,6 @@ export async function createWorkspaceTask(input: {
     );
 
     const taskId = String(task.id);
-    revalidateWorkspacePaths(taskId);
     return { ok: true, id: taskId, href: `/tasks/${taskId}` };
   });
 }
@@ -112,7 +131,6 @@ export async function updateWorkspaceTask(input: {
       }),
     });
 
-    revalidateWorkspacePaths(input.taskId);
     return { ok: true };
   });
 }
@@ -128,7 +146,6 @@ export async function deleteWorkspaceTask(input: {
       { method: "DELETE" },
     );
 
-    revalidateWorkspaceCollectionPaths();
     return { ok: true, href: "/tasks" };
   });
 }
@@ -148,7 +165,6 @@ export async function deleteWorkspaceDocuments(input: {
       },
     );
 
-    revalidateWorkspaceCollectionPaths();
     return { ok: true };
   });
 }
@@ -180,9 +196,6 @@ export async function createWorkspaceLog(input: {
     );
 
     const logId = String(log.id);
-    revalidatePath(`/logs/${logId}`);
-    revalidatePath("/logs");
-    revalidatePath("/");
     return { ok: true, id: logId, href: `/logs/${logId}` };
   });
 }
@@ -208,10 +221,6 @@ export async function updateWorkspaceLog(input: {
       }),
     });
 
-    revalidatePath(`/logs/${input.logId}`);
-    revalidatePath(`/logs/${input.logId}/edit`);
-    revalidatePath("/logs");
-    revalidatePath("/");
     return { ok: true };
   });
 }
@@ -227,7 +236,6 @@ export async function deleteWorkspaceLog(input: {
       { method: "DELETE" },
     );
 
-    revalidateWorkspaceCollectionPaths();
     return { ok: true, href: "/logs" };
   });
 }
@@ -248,7 +256,6 @@ export async function createWorkspaceTaskLink(input: {
       }),
     });
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -264,7 +271,6 @@ export async function deleteWorkspaceTaskLink(input: {
       { method: "DELETE" },
     );
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -285,7 +291,6 @@ export async function createWorkspaceLogLink(input: {
       }),
     });
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -301,7 +306,6 @@ export async function deleteWorkspaceLogLink(input: {
       { method: "DELETE" },
     );
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -326,7 +330,6 @@ export async function createWorkspaceCrossLink(input: {
       }),
     });
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -342,7 +345,6 @@ export async function deleteWorkspaceCrossLink(input: {
       { method: "DELETE" },
     );
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -367,7 +369,6 @@ export async function createWorkspaceMemory(input: {
       },
     );
     const memoryId = String(memory.id);
-    revalidateMemoryPaths(memoryId);
     return { ok: true, id: memoryId, href: `/memory/${memoryId}` };
   });
 }
@@ -383,8 +384,6 @@ export async function createWorkspaceMemoryFromLog(input: {
       { method: "POST" },
     );
     const memoryId = String(memory.id);
-    revalidateMemoryPaths(memoryId);
-    revalidatePath(`/logs/${input.logId}`);
     return { ok: true, id: memoryId, href: `/memory/${memoryId}` };
   });
 }
@@ -409,7 +408,6 @@ export async function updateWorkspaceMemory(input: {
         }),
       },
     );
-    revalidateMemoryPaths(input.memoryId);
     return { ok: true, href: `/memory/${input.memoryId}` };
   });
 }
@@ -424,7 +422,6 @@ export async function deleteWorkspaceMemory(input: {
       cookie,
       { method: "DELETE" },
     );
-    revalidateMemoryPaths(input.memoryId);
     return { ok: true, href: "/memory" };
   });
 }
@@ -449,8 +446,6 @@ export async function createWorkspaceTodo(input: {
       },
     );
 
-    revalidatePath("/");
-    revalidatePath("/planner");
     return { ok: true, id: String(todo.id) };
   });
 }
@@ -472,8 +467,6 @@ export async function updateWorkspaceTodoDone(input: {
       },
     );
 
-    revalidatePath("/");
-    revalidatePath("/planner");
     return { ok: true, id: input.todoId };
   });
 }
@@ -499,8 +492,6 @@ export async function deleteWorkspaceTodo(input: {
       throw new Error(`Workspace API request failed: ${response.status}`);
     }
 
-    revalidatePath("/");
-    revalidatePath("/planner");
     return { ok: true };
   });
 }
@@ -525,8 +516,6 @@ export async function deleteWorkspace(input: {
       throw new Error(await getWorkspaceErrorMessage(response));
     }
 
-    revalidatePath("/");
-    revalidatePath("/settings/manage");
     return { ok: true };
   });
 }
@@ -553,8 +542,6 @@ export async function createWorkspaceOutput(input: {
       },
     );
 
-    revalidatePath("/outputs");
-    revalidatePath("/");
     return { ok: true, id: String(output.id), href: `/outputs/${output.id}` };
   });
 }
@@ -578,9 +565,6 @@ export async function updateWorkspaceOutput(input: {
       }),
     });
 
-    revalidatePath(`/outputs/${input.outputId}`);
-    revalidatePath("/outputs");
-    revalidatePath("/");
     return { ok: true };
   });
 }
@@ -596,8 +580,6 @@ export async function createPostDraftFromOutput(input: {
       method: "POST",
     });
 
-    revalidatePath(`/outputs/${input.outputId}`);
-    revalidatePath("/outputs");
     revalidatePath("/");
     return {
       ok: true,
@@ -621,14 +603,6 @@ async function mutateWorkspace(
         error instanceof Error ? error.message : "Workspace request failed.",
     };
   }
-}
-
-function revalidateMemoryPaths(memoryId: string) {
-  revalidatePath("/");
-  revalidatePath("/graph");
-  revalidatePath("/memory");
-  revalidatePath(`/memory/${memoryId}`);
-  revalidatePath(`/memory/${memoryId}/edit`);
 }
 
 async function requestJson<T = unknown>(
@@ -671,21 +645,4 @@ async function getWorkspaceErrorMessage(response: Response) {
   return (
     errorBody?.message ?? `Workspace API request failed: ${response.status}`
   );
-}
-
-function revalidateWorkspacePaths(taskId: string) {
-  revalidatePath(`/tasks/${taskId}`);
-  revalidatePath(`/tasks/${taskId}/edit`);
-  revalidatePath("/tasks");
-  revalidatePath("/");
-}
-
-function revalidateWorkspaceCollectionPaths() {
-  revalidatePath("/");
-  revalidatePath("/tasks");
-  revalidatePath("/logs");
-  revalidatePath("/outputs");
-  revalidatePath("/memory");
-  revalidatePath("/graph");
-  revalidatePath("/activity");
 }

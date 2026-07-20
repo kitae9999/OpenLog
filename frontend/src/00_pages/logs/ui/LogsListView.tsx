@@ -32,6 +32,7 @@ import {
 } from "@/features/document-selection/ui/DocumentBulkSelection";
 import { deleteWorkspaceDocuments } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 type SortFilter = "newest" | "oldest";
 
@@ -45,6 +46,7 @@ export function LogsListView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const deleteMutation = useWorkspaceMutation("logs");
   const searchParams = useSearchParams();
   const tasks = workspaceData?.tasks ?? [];
   const logs = useMemo(() => {
@@ -106,18 +108,19 @@ export function LogsListView({
     }
     setIsDeleting(true);
     setDeleteError(null);
-    const result = await deleteWorkspaceDocuments({
-      workspaceId: workspaceData.workspaceId,
-      documentType: "logs",
-      ids: selection.selectedIdList,
-    });
+    const result = await deleteMutation.mutateAsync(() =>
+      deleteWorkspaceDocuments({
+        workspaceId: workspaceData.workspaceId,
+        documentType: "logs",
+        ids: selection.selectedIdList,
+      }),
+    );
     setIsDeleting(false);
     if (!result.ok) {
       setDeleteError(result.message ?? "Failed to delete selected logs.");
       return false;
     }
     selection.clear();
-    router.refresh();
     return true;
   }
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboarding";
 import { HomeFeed } from "@/pages/home/ui";
 import { LandingPage } from "@/widgets/landing/ui";
@@ -39,6 +40,9 @@ export default async function Home({
   const sp = await searchParams;
   const user = await getUserOrRedirectToOnboarding();
   const isLoggedIn = !!user;
+  if (isLoggedIn && (!sp?.tab || sp.tab === "workspace")) {
+    redirect("/dashboard");
+  }
   const tab = normalizeTab(sp?.tab, isLoggedIn);
   const langParam = sp?.lang;
   const lang = Array.isArray(langParam) ? langParam[0] : langParam;

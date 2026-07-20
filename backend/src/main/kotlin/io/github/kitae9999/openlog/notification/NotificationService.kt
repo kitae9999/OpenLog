@@ -5,6 +5,7 @@ import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.follow.FollowRepository
 import io.github.kitae9999.openlog.notification.dto.NotificationListResponse
 import io.github.kitae9999.openlog.notification.dto.NotificationReadResponse
+import io.github.kitae9999.openlog.notification.dto.NotificationSummaryResponse
 import io.github.kitae9999.openlog.notification.entity.Notification
 import io.github.kitae9999.openlog.notification.entity.NotificationType
 import io.github.kitae9999.openlog.user.repository.UserRepository
@@ -35,6 +36,13 @@ class NotificationService (
         return NotificationListResponse(
             notifications = notifications.map(notificationMapper::toResponse),
             size = safeSize,
+            unreadCount = notificationRepository.countByRecipient_IdAndReadAtIsNull(recipientId),
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getSummary(recipientId: Long): NotificationSummaryResponse {
+        return NotificationSummaryResponse(
             unreadCount = notificationRepository.countByRecipient_IdAndReadAtIsNull(recipientId),
         )
     }

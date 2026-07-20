@@ -171,6 +171,17 @@ type WorkspaceApiSnapshot = {
   crossLinks: CrossLinkResponse[];
   memories: MemoryResponse[];
   workingBrief: WorkingBriefResponse | null;
+  activity: WorkspaceActivity;
+};
+
+type WorkspaceDashboardResponse = Omit<WorkspaceApiSnapshot, "workspace"> & {
+  navigationSummary?: WorkspaceNavigationSummaryResponse;
+};
+
+type WorkspaceNavigationSummaryResponse = {
+  activeTaskCount: number;
+  logsCount: number;
+  openIssuesCount: number;
 };
 
 type WorkingBriefResponse = {
@@ -204,6 +215,21 @@ type ActivityDayLogsResponse = {
   logs: WorkspaceLogResponse[];
 };
 
+export type WorkspaceDashboardRefreshData = Pick<
+  WorkspaceUiData,
+  | "tasks"
+  | "logs"
+  | "outputs"
+  | "todos"
+  | "taskLinks"
+  | "logLinks"
+  | "crossLinks"
+  | "memories"
+  | "activity"
+  | "navigationSummary"
+  | "workingBrief"
+>;
+
 export const listManagedWorkspaces = cache(
   async (): Promise<ManagedWorkspace[]> => {
     try {
@@ -227,6 +253,10 @@ export const loadWorkspacePageData = cache(() =>
 
 export const loadWorkspaceNavigationPageData = cache(() =>
   loadWorkspacePageDataWith(fetchWorkspaceNavigationData),
+);
+
+export const loadWorkspaceShellPageData = cache(() =>
+  loadWorkspacePageDataWith(fetchWorkspaceShellData),
 );
 
 async function loadWorkspacePageDataWith(
@@ -277,6 +307,19 @@ export const getWorkspaceUiData = cache(
   },
 );
 
+export async function getWorkspaceDashboardRefreshData(
+  workspaceId: string,
+): Promise<WorkspaceDashboardRefreshData> {
+  const headerStore = await headers();
+  const cookie = headerStore.get("cookie") ?? "";
+  const { from, to } = getDashboardDateRange();
+  const dashboard = await fetchJson<WorkspaceDashboardResponse>(
+    `/workspaces/${encodeURIComponent(workspaceId)}/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    cookie,
+  );
+  return mapWorkspaceDashboardResponse(dashboard);
+}
+
 export const getWorkspaceLog = cache(
   async (
     workspaceId: string,
@@ -325,6 +368,22 @@ async function fetchWorkspaceUiData(
   }
 
   const selectedId = selected.id;
+  const { from, to } = getDashboardDateRange();
+  try {
+    const dashboard = await fetchJson<WorkspaceDashboardResponse>(
+      `/workspaces/${selectedId}/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      cookie,
+    );
+    return mapWorkspaceSnapshot({
+      workspace: selected,
+      ...dashboard,
+    });
+  } catch (error: unknown) {
+    if (!(error instanceof WorkspaceApiRequestError) || error.status !== 404) {
+      throw error;
+    }
+  }
+
   const [
     tasks,
     logs,
@@ -335,6 +394,7 @@ async function fetchWorkspaceUiData(
     outputSummaries,
     memories,
     workingBrief,
+    activity,
   ] = await Promise.all([
       fetchAllTasks(selectedId, cookie),
       fetchAllLogs(selectedId, cookie),
@@ -362,20 +422,44 @@ async function fetchWorkspaceUiData(
         `/workspaces/${selectedId}/working-brief`,
         cookie,
       ).catch(() => null),
+      fetchJson<WorkspaceActivity>(
+        `/workspaces/${selectedId}/activity?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        cookie,
+      ),
     ]);
 
   return mapWorkspaceSnapshot({
     workspace: selected,
     tasks,
     logs,
-    outputs: outputSummaries,
-    todos,
     taskLinks,
     logLinks,
     crossLinks,
+    todos,
+    outputs: outputSummaries,
     memories,
     workingBrief,
+    activity,
   });
+}
+
+function getDashboardDateRange() {
+  const to = getSeoulIsoDate(new Date());
+  const from = getSeoulIsoDate(
+    new Date(
+      new Date(`${to}T00:00:00Z`).getTime() - 364 * 24 * 60 * 60 * 1000,
+    ),
+  );
+  return { from, to };
+}
+
+function getSeoulIsoDate(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 function selectWorkspace(
@@ -410,19 +494,66 @@ async function fetchWorkspaceNavigationData(
     fetchAllLogs(selected.id, cookie),
   ]);
 
+  const mappedTasks = tasks.map(mapTask);
+  const mappedLogs = logs.map(mapLog);
+
   return {
     workspaceId: String(selected.id),
     workspaceName: selected.name || selected.slug,
     repositoryFullName: singleRepositoryFullName(selected.projects),
     projects: selected.projects.map(mapWorkspaceProject),
-    tasks: tasks.map(mapTask),
-    logs: logs.map(mapLog),
+    tasks: mappedTasks,
+    logs: mappedLogs,
     outputs: [],
     todos: [],
     taskLinks: [],
     logLinks: [],
     crossLinks: [],
     memories: [],
+    activity: null,
+    navigationSummary: buildNavigationSummary(mappedTasks, mappedLogs),
+    workingBrief: null,
+  };
+}
+
+async function fetchWorkspaceShellData(
+  workspaces: WorkspaceResponse[],
+  cookie: string,
+  workspaceId?: string | null,
+): Promise<WorkspaceUiData | null> {
+  const selected = selectWorkspace(workspaces, cookie, workspaceId);
+  if (!selected) {
+    return null;
+  }
+
+  let navigationSummary: WorkspaceNavigationSummaryResponse;
+  try {
+    navigationSummary = await fetchJson<WorkspaceNavigationSummaryResponse>(
+      `/workspaces/${selected.id}/navigation-summary`,
+      cookie,
+    );
+  } catch (error: unknown) {
+    if (!(error instanceof WorkspaceApiRequestError) || error.status !== 404) {
+      throw error;
+    }
+    return fetchWorkspaceNavigationData(workspaces, cookie, workspaceId);
+  }
+
+  return {
+    workspaceId: String(selected.id),
+    workspaceName: selected.name || selected.slug,
+    repositoryFullName: singleRepositoryFullName(selected.projects),
+    projects: selected.projects.map(mapWorkspaceProject),
+    tasks: [],
+    logs: [],
+    outputs: [],
+    todos: [],
+    taskLinks: [],
+    logLinks: [],
+    crossLinks: [],
+    memories: [],
+    activity: null,
+    navigationSummary,
     workingBrief: null,
   };
 }
@@ -610,25 +741,40 @@ async function fetchJson<T>(path: string, cookie: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Workspace API request failed: ${response.status}`);
+    throw new WorkspaceApiRequestError(response.status);
   }
 
   return (await response.json()) as T;
 }
 
+class WorkspaceApiRequestError extends Error {
+  constructor(readonly status: number) {
+    super(`Workspace API request failed: ${status}`);
+  }
+}
+
 function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
-  const logs = snapshot.logs.map(mapLog);
-  const tasks = snapshot.tasks.map(mapTask);
-  const outputs = snapshot.outputs.map(mapOutput);
+  const dashboard = mapWorkspaceDashboardResponse(snapshot);
 
   return {
     workspaceId: String(snapshot.workspace.id),
     workspaceName: snapshot.workspace.name || snapshot.workspace.slug,
     repositoryFullName: singleRepositoryFullName(snapshot.workspace.projects),
     projects: snapshot.workspace.projects.map(mapWorkspaceProject),
+    ...dashboard,
+  };
+}
+
+function mapWorkspaceDashboardResponse(
+  snapshot: WorkspaceDashboardResponse,
+): WorkspaceDashboardRefreshData {
+  const logs = snapshot.logs.map(mapLog);
+  const tasks = snapshot.tasks.map(mapTask);
+
+  return {
     tasks,
     logs,
-    outputs,
+    outputs: snapshot.outputs.map(mapOutput),
     todos: snapshot.todos.map(mapTodo),
     taskLinks: snapshot.taskLinks.map((link) => ({
       id: String(link.id),
@@ -651,9 +797,28 @@ function mapWorkspaceSnapshot(snapshot: WorkspaceApiSnapshot): WorkspaceUiData {
       relation: link.relation,
     })),
     memories: snapshot.memories.map(mapMemory),
+    activity: snapshot.activity,
+    navigationSummary:
+      snapshot.navigationSummary ?? buildNavigationSummary(tasks, logs),
     workingBrief: snapshot.workingBrief
       ? mapWorkingBrief(snapshot.workingBrief)
       : null,
+  };
+}
+
+function buildNavigationSummary(
+  tasks: WorkspaceWorkItem[],
+  logs: WorkspaceLogItem[],
+) {
+  const doingTaskCount = tasks.filter((task) => task.status === "doing").length;
+  const todoTaskCount = tasks.filter((task) => task.status === "todo").length;
+
+  return {
+    activeTaskCount: doingTaskCount || todoTaskCount,
+    logsCount: logs.length,
+    openIssuesCount: logs.filter(
+      (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
+    ).length,
   };
 }
 

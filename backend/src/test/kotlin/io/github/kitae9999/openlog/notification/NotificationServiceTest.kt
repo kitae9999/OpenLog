@@ -143,6 +143,15 @@ class NotificationServiceTest {
         }.isInstanceOf(NotFoundException::class.java)
     }
 
+    @Test
+    fun `getSummary counts unread notifications without loading notification rows`() {
+        given(notificationRepository.countByRecipient_IdAndReadAtIsNull(9L)).willReturn(4L)
+
+        val response = notificationService.getSummary(9L)
+
+        assertThat(response.unreadCount).isEqualTo(4L)
+    }
+
     private fun createNotification(): Notification {
         val author = User(id = 8L, username = "kitae9999", nickname = "ASH")
         val recipient = User(id = 9L, username = "gitae9999", nickname = "oreolover")

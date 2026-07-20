@@ -19,6 +19,7 @@ import {
 import { createLogOverride } from "@/features/document-overrides/model/logOverrides";
 import { createWorkspaceLog } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 type LogKind = "ISSUE" | "FIX" | "DECISION" | "NOTE";
 
@@ -39,6 +40,7 @@ export function LogCreateView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const logMutation = useWorkspaceMutation("logs");
   const tasks = workspaceData?.tasks ?? [];
   const [kind, setKind] = useState<LogKind>("NOTE");
   const [taskId, setTaskId] = useState(initialTaskId ?? "");
@@ -91,14 +93,16 @@ export function LogCreateView({
     setError(null);
 
     if (workspaceData) {
-      const result = await createWorkspaceLog({
-        workspaceId: workspaceData.workspaceId,
-        kind,
-        title: trimmedTitle,
-        content: body,
-        taskId: taskId || null,
-        status: kind === "ISSUE" ? "OPEN" : "NONE",
-      });
+      const result = await logMutation.mutateAsync(() =>
+        createWorkspaceLog({
+          workspaceId: workspaceData.workspaceId,
+          kind,
+          title: trimmedTitle,
+          content: body,
+          taskId: taskId || null,
+          status: kind === "ISSUE" ? "OPEN" : "NONE",
+        }),
+      );
 
       setIsSaving(false);
 
@@ -108,7 +112,6 @@ export function LogCreateView({
       }
 
       router.push(result.href);
-      router.refresh();
       return;
     }
 
@@ -121,7 +124,6 @@ export function LogCreateView({
 
     setIsSaving(false);
     router.push(getLogHref(log.id));
-    router.refresh();
   }
 
   return (

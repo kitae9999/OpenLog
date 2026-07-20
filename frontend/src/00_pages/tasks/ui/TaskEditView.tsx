@@ -14,6 +14,7 @@ import { MarkdownContent, MarkdownToolbar } from "@/shared/ui/markdown";
 import { getTabHref, getTaskHref, type WorkspaceWorkItem } from "@/entities/workspace/model/data";
 import { saveTaskOverride } from "@/features/document-overrides/model/taskOverrides";
 import { updateWorkspaceTask } from "@/features/workspace-actions/api/workspaceActions";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function TaskEditView({
   task,
@@ -23,6 +24,7 @@ export function TaskEditView({
   workspaceId?: string;
 }) {
   const router = useRouter();
+  const taskMutation = useWorkspaceMutation("tasks");
   const [title, setTitle] = useState(task.title);
   const [body, setBody] = useState(task.body);
   const [error, setError] = useState<string | null>(null);
@@ -71,14 +73,16 @@ export function TaskEditView({
     setError(null);
 
     if (workspaceId) {
-      const result = await updateWorkspaceTask({
-        workspaceId,
-        taskId: task.id,
-        title: trimmedTitle,
-        description: task.description ?? null,
-        content: body,
-        status: task.apiStatus ?? toApiTaskStatus(task.status),
-      });
+      const result = await taskMutation.mutateAsync(() =>
+        updateWorkspaceTask({
+          workspaceId,
+          taskId: task.id,
+          title: trimmedTitle,
+          description: task.description ?? null,
+          content: body,
+          status: task.apiStatus ?? toApiTaskStatus(task.status),
+        }),
+      );
 
       setIsSaving(false);
 
@@ -88,7 +92,6 @@ export function TaskEditView({
       }
 
       router.push(getTaskHref(task.id));
-      router.refresh();
       return;
     }
 
@@ -98,7 +101,6 @@ export function TaskEditView({
     });
     setIsSaving(false);
     router.push(getTaskHref(task.id));
-    router.refresh();
   }
 
   return (

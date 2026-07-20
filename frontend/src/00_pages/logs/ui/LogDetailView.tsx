@@ -31,6 +31,7 @@ import {
   type WorkspaceActionResult,
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 type IssueLogStatus = "OPEN" | "CLOSED";
 
@@ -57,6 +58,8 @@ export function LogDetailView({
   ) => Promise<WorkspaceActionResult>;
 }) {
   const router = useRouter();
+  const logMutation = useWorkspaceMutation("logs");
+  const memoryMutation = useWorkspaceMutation("memories");
   const [assignedTaskId, setAssignedTaskId] = useState<string | null>(
     log.taskId ?? null,
   );
@@ -119,17 +122,18 @@ export function LogDetailView({
     if (!workspaceData || isSendingToMemory) return;
     setIsSendingToMemory(true);
     setMemoryError(null);
-    const result = await createWorkspaceMemoryFromLog({
-      workspaceId: workspaceData.workspaceId,
-      logId: log.id,
-    });
+    const result = await memoryMutation.mutateAsync(() =>
+      createWorkspaceMemoryFromLog({
+        workspaceId: workspaceData.workspaceId,
+        logId: log.id,
+      }),
+    );
     if (!result.ok || !result.href) {
       setMemoryError(result.message ?? "Failed to send log to memory.");
       setIsSendingToMemory(false);
       return;
     }
     router.push(result.href);
-    router.refresh();
   }
 
   function startEditing() {
@@ -184,15 +188,17 @@ export function LogDetailView({
     setEditError(null);
 
     if (workspaceData) {
-      const result = await updateWorkspaceLog({
-        workspaceId: workspaceData.workspaceId,
-        logId: log.id,
-        title: log.title,
-        content: draftBody,
-        summary: log.summary ?? log.description,
-        taskId: assignedTaskId,
-        status: isIssueLog ? issueStatus : (log.status ?? "NONE"),
-      });
+      const result = await logMutation.mutateAsync(() =>
+        updateWorkspaceLog({
+          workspaceId: workspaceData.workspaceId,
+          logId: log.id,
+          title: log.title,
+          content: draftBody,
+          summary: log.summary ?? log.description,
+          taskId: assignedTaskId,
+          status: isIssueLog ? issueStatus : (log.status ?? "NONE"),
+        }),
+      );
 
       setIsSaving(false);
 
@@ -204,7 +210,6 @@ export function LogDetailView({
       setLocalBody(draftBody);
       setIsEditing(false);
       setMode("write");
-      router.refresh();
       return;
     }
 
@@ -217,7 +222,6 @@ export function LogDetailView({
     setIsEditing(false);
     setMode("write");
     setIsSaving(false);
-    router.refresh();
   }
 
   async function assignTask(nextTaskId: string | null) {
@@ -231,15 +235,17 @@ export function LogDetailView({
     if (workspaceData || assignTaskOverride) {
       const result = assignTaskOverride
         ? await assignTaskOverride(nextTaskId)
-        : await updateWorkspaceLog({
-            workspaceId: workspaceData!.workspaceId,
-            logId: log.id,
-            title: log.title,
-            content: body,
-            summary: log.summary ?? log.description,
-            taskId: nextTaskId,
-            status: isIssueLog ? issueStatus : (log.status ?? "NONE"),
-          });
+        : await logMutation.mutateAsync(() =>
+            updateWorkspaceLog({
+              workspaceId: workspaceData!.workspaceId,
+              logId: log.id,
+              title: log.title,
+              content: body,
+              summary: log.summary ?? log.description,
+              taskId: nextTaskId,
+              status: isIssueLog ? issueStatus : (log.status ?? "NONE"),
+            }),
+          );
 
       setIsAssigning(false);
 
@@ -249,7 +255,6 @@ export function LogDetailView({
       }
 
       setAssignedTaskId(nextTaskId);
-      router.refresh();
       return;
     }
 
@@ -279,15 +284,17 @@ export function LogDetailView({
 
     const result = changeStatusOverride
       ? await changeStatusOverride(nextStatus)
-      : await updateWorkspaceLog({
-          workspaceId: workspaceData!.workspaceId,
-          logId: log.id,
-          title: log.title,
-          content: body,
-          summary: log.summary ?? log.description,
-          taskId: assignedTaskId,
-          status: nextStatus,
-        });
+      : await logMutation.mutateAsync(() =>
+          updateWorkspaceLog({
+            workspaceId: workspaceData!.workspaceId,
+            logId: log.id,
+            title: log.title,
+            content: body,
+            summary: log.summary ?? log.description,
+            taskId: assignedTaskId,
+            status: nextStatus,
+          }),
+        );
 
     setIsUpdatingStatus(false);
 
@@ -297,7 +304,6 @@ export function LogDetailView({
     }
 
     setIssueStatus(nextStatus);
-    router.refresh();
   }
 
   async function deleteLog() {
@@ -311,10 +317,12 @@ export function LogDetailView({
 
     setIsDeleting(true);
     setDeleteError(null);
-    const result = await deleteWorkspaceLog({
-      workspaceId: workspaceData.workspaceId,
-      logId: log.id,
-    });
+    const result = await logMutation.mutateAsync(() =>
+      deleteWorkspaceLog({
+        workspaceId: workspaceData.workspaceId,
+        logId: log.id,
+      }),
+    );
 
     if (!result.ok) {
       setDeleteError(result.message ?? "Failed to delete log.");
@@ -323,7 +331,6 @@ export function LogDetailView({
     }
 
     router.push(result.href ?? getLogsHref());
-    router.refresh();
   }
 
   return (

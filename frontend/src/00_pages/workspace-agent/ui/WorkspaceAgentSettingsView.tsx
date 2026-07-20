@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { cn } from "@/shared/lib/cn";
 import {
   formatSelection,
@@ -70,6 +71,11 @@ export function WorkspaceAgentSettingsView({
   const [confirmProjectId, setConfirmProjectId] = useState<string | null>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const hasGuideChanges = content !== savedContent;
+  const guideMutation = useMutation({ mutationFn: updateWorkspaceAgentGuide });
+  const captureModeMutation = useMutation({
+    mutationFn: updateWorkspaceProjectCaptureMode,
+  });
+  const disconnectMutation = useMutation({ mutationFn: disconnectWorkspaceProject });
 
   function insertFormatting(
     action: ToolbarAction,
@@ -104,7 +110,7 @@ export function WorkspaceAgentSettingsView({
     }
     setSaveState("saving");
     setMessage(null);
-    const result = await updateWorkspaceAgentGuide({
+    const result = await guideMutation.mutateAsync({
       workspaceId: data.workspace.id,
       content,
     });
@@ -129,7 +135,7 @@ export function WorkspaceAgentSettingsView({
     }
     setBusyProjectId(project.id);
     setMessage(null);
-    const result = await updateWorkspaceProjectCaptureMode({
+    const result = await captureModeMutation.mutateAsync({
       project,
       captureMode,
     });
@@ -151,7 +157,7 @@ export function WorkspaceAgentSettingsView({
     }
     setBusyProjectId(projectId);
     setMessage(null);
-    const result = await disconnectWorkspaceProject({
+    const result = await disconnectMutation.mutateAsync({
       workspaceId: data.workspace.id,
       projectId,
     });

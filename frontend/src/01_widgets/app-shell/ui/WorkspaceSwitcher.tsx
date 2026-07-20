@@ -17,11 +17,13 @@ export function WorkspaceSwitcher({
   workspaces,
   activeWorkspaceId,
   onNavigate,
+  onWorkspaceSelect,
 }: {
   isLoggedIn: boolean;
   workspaces: ManagedWorkspace[];
   activeWorkspaceId?: string | null;
   onNavigate?: () => void;
+  onWorkspaceSelect?: (workspaceId: string) => void;
 }) {
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -99,10 +101,13 @@ export function WorkspaceSwitcher({
     setActiveWorkspaceId(workspaceId);
     setActiveId(workspaceId);
     notifyWorkspaceChange();
+    onWorkspaceSelect?.(workspaceId);
     setOpen(false);
     onNavigate?.();
     router.push(getTabHref("workspace", isLoggedIn));
-    router.refresh();
+    if (!onWorkspaceSelect) {
+      router.refresh();
+    }
   }
 
   if (!isLoggedIn) {

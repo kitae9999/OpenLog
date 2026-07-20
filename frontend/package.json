@@ -10,6 +10,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "test:fanout": "node scripts/measure-workspace-api-fanout.mjs",
     "test:e2e": "playwright test",
     "test:e2e:todos": "playwright test e2e/todos-layout.spec.ts",
     "verify:todos-ui": "playwright test e2e/todos-layout.spec.ts --reporter=line"
@@ -21,8 +22,8 @@
     "highlight.js": "^11.11.1",
     "mermaid": "^11.16.0",
     "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.1",

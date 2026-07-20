@@ -7,6 +7,7 @@ import io.github.kitae9999.openlog.auth.exception.OAuthAuthenticationException
 import io.github.kitae9999.openlog.user.repository.UserRepository
 import io.github.kitae9999.openlog.workspace.WorkspaceProjectController
 import io.github.kitae9999.openlog.workspace.WorkspaceProjectService
+import io.micrometer.core.instrument.MeterRegistry
 import jakarta.servlet.http.Cookie
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
@@ -40,6 +41,12 @@ class WorkspaceProjectSecurityTest @Autowired constructor(
 
     @MockitoBean
     private lateinit var clientRegistrationRepository: ClientRegistrationRepository
+
+    @MockitoBean
+    private lateinit var workspaceUserRateLimiter: WorkspaceUserRateLimiter
+
+    @MockitoBean
+    private lateinit var meterRegistry: MeterRegistry
 
     @Test
     fun `expired token returns unauthorized before agent context controller`() {

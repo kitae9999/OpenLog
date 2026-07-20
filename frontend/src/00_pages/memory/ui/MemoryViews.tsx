@@ -24,9 +24,10 @@ import {
   updateWorkspaceMemory,
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceMemoryItem, WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiData | null }) {
-  const router = useRouter();
+  const memoryMutation = useWorkspaceMutation("memories");
   const memories = workspaceData?.memories ?? [];
   const selection = useDocumentSelection(memories.map((memory) => memory.id));
   const [isDeleting, setIsDeleting] = useState(false);
@@ -38,18 +39,19 @@ export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiD
     }
     setIsDeleting(true);
     setDeleteError(null);
-    const result = await deleteWorkspaceDocuments({
-      workspaceId: workspaceData.workspaceId,
-      documentType: "memories",
-      ids: selection.selectedIdList,
-    });
+    const result = await memoryMutation.mutateAsync(() =>
+      deleteWorkspaceDocuments({
+        workspaceId: workspaceData.workspaceId,
+        documentType: "memories",
+        ids: selection.selectedIdList,
+      }),
+    );
     setIsDeleting(false);
     if (!result.ok) {
       setDeleteError(result.message ?? "Failed to delete selected memories.");
       return false;
     }
     selection.clear();
-    router.refresh();
     return true;
   }
 
@@ -150,6 +152,7 @@ export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiD
 
 export function MemoryDetailView({ memory, workspaceData }: { memory: WorkspaceMemoryItem; workspaceData: WorkspaceUiData }) {
   const router = useRouter();
+  const memoryMutation = useWorkspaceMutation("memories");
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -157,14 +160,15 @@ export function MemoryDetailView({ memory, workspaceData }: { memory: WorkspaceM
     if (isDeleting || !window.confirm("Delete this memory? This cannot be undone.")) return;
     setIsDeleting(true);
     setError(null);
-    const result = await deleteWorkspaceMemory({ workspaceId: workspaceData.workspaceId, memoryId: memory.id });
+    const result = await memoryMutation.mutateAsync(() =>
+      deleteWorkspaceMemory({ workspaceId: workspaceData.workspaceId, memoryId: memory.id }),
+    );
     if (!result.ok) {
       setError(result.message ?? "Failed to delete memory.");
       setIsDeleting(false);
       return;
     }
     router.push("/memory");
-    router.refresh();
   }
 
   return (
@@ -250,6 +254,7 @@ export function MemoryDetailView({ memory, workspaceData }: { memory: WorkspaceM
 
 export function MemoryEditorView({ workspaceData, memory }: { workspaceData: WorkspaceUiData; memory?: WorkspaceMemoryItem }) {
   const router = useRouter();
+  const memoryMutation = useWorkspaceMutation("memories");
   const [title, setTitle] = useState(memory?.title ?? "");
   const [body, setBody] = useState(memory?.content ?? "");
   const [taskId, setTaskId] = useState(memory?.task?.id ?? "");
@@ -275,16 +280,17 @@ export function MemoryEditorView({ workspaceData, memory }: { workspaceData: Wor
     setIsSaving(true);
     setError(null);
     const input = { workspaceId: workspaceData.workspaceId, title: title.trim(), content: body.trim(), taskId: taskId || null };
-    const result = memory
-      ? await updateWorkspaceMemory({ ...input, memoryId: memory.id })
-      : await createWorkspaceMemory(input);
+    const result = await memoryMutation.mutateAsync(() =>
+      memory
+        ? updateWorkspaceMemory({ ...input, memoryId: memory.id })
+        : createWorkspaceMemory(input),
+    );
     if (!result.ok || !result.href) {
       setError(result.message ?? "Failed to save memory.");
       setIsSaving(false);
       return;
     }
     router.push(result.href);
-    router.refresh();
   }
 
   return (

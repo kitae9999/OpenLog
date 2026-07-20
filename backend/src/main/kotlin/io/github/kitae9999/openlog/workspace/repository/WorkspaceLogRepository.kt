@@ -11,6 +11,14 @@ import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 
 interface WorkspaceLogRepository : JpaRepository<WorkspaceLog, Long> {
+    fun countByWorkspaceId(workspaceId: Long): Long
+
+    fun countByWorkspaceIdAndKindAndStatus(
+        workspaceId: Long,
+        kind: LogKind,
+        status: LogStatus,
+    ): Long
+
     fun findAllByWorkspaceIdOrderByCreatedAtDesc(workspaceId: Long): List<WorkspaceLog>
 
     fun findAllByWorkspaceIdAndKindAndStatusOrderByCreatedAtDesc(

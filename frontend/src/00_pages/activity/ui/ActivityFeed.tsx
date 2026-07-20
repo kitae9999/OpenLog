@@ -4,12 +4,12 @@ import { getUserOrRedirectToOnboarding } from "@/features/auth/api/requireOnboar
 import { buildViewerProfileHref } from "@/shared/lib/publicRoutes";
 import { ActivityView } from "@/pages/activity/ui/ActivityView";
 import { WorkspaceSectionShell } from "@/widgets/app-shell/ui/WorkspaceSectionShell";
-import { getWorkspaceActivity, getWorkspaceActivityDayLogs, loadWorkspaceNavigationPageData } from "@/entities/workspace/api/workspaceApi";
+import { getWorkspaceActivity, getWorkspaceActivityDayLogs, loadWorkspaceShellPageData } from "@/entities/workspace/api/workspaceApi";
 
 export async function ActivityFeed({ requestedDate }: { requestedDate?: string }) {
   const user = await getUserOrRedirectToOnboarding();
   if (!user) redirect("/");
-  const pageData = await loadWorkspaceNavigationPageData();
+  const pageData = await loadWorkspaceShellPageData();
   const workspaceData = pageData.workspaceData;
   const today = getSeoulIsoDate(new Date());
   const from = getSeoulIsoDate(new Date(new Date(`${today}T00:00:00Z`).getTime() - 364 * 24 * 60 * 60 * 1000));

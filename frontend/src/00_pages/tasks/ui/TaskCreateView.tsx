@@ -15,6 +15,7 @@ import { getTabHref, getTaskHref, getTasksHref } from "@/entities/workspace/mode
 import { createTaskOverride } from "@/features/document-overrides/model/taskOverrides";
 import { createWorkspaceTask } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 type TaskStatus = "TODO" | "DOING" | "DONE";
 
@@ -32,6 +33,7 @@ export function TaskCreateView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const taskMutation = useWorkspaceMutation("tasks");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [status, setStatus] = useState<TaskStatus>("TODO");
@@ -81,12 +83,14 @@ export function TaskCreateView({
     setError(null);
 
     if (workspaceData) {
-      const result = await createWorkspaceTask({
-        workspaceId: workspaceData.workspaceId,
-        title: trimmedTitle,
-        content: body,
-        status,
-      });
+      const result = await taskMutation.mutateAsync(() =>
+        createWorkspaceTask({
+          workspaceId: workspaceData.workspaceId,
+          title: trimmedTitle,
+          content: body,
+          status,
+        }),
+      );
 
       setIsSaving(false);
 
@@ -96,7 +100,6 @@ export function TaskCreateView({
       }
 
       router.push(result.href);
-      router.refresh();
       return;
     }
 
@@ -109,7 +112,6 @@ export function TaskCreateView({
 
     setIsSaving(false);
     router.push(getTaskHref(task.id));
-    router.refresh();
   }
 
   return (

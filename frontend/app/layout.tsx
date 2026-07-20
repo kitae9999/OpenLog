@@ -7,6 +7,7 @@ import {
   SITE_URL,
 } from "@/shared/config/site";
 import { OPENLOG_MARK_ASSET } from "@/shared/config/brand";
+import { AppQueryProvider } from "@/shared/ui/AppQueryProvider";
 import "./globals.css";
 
 const geistMono = Geist_Mono({
@@ -94,7 +95,9 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <AppQueryProvider>{children}</AppQueryProvider>
+      </body>
     </html>
   );
 }

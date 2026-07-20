@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
@@ -25,6 +24,7 @@ import {
 } from "@/features/document-selection/ui/DocumentBulkSelection";
 import { deleteWorkspaceDocuments } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useWorkspaceMutation } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 const filterItems: Array<{ key: TaskListFilter; label: string }> = [
   { key: "active", label: "Active" },
@@ -61,7 +61,7 @@ export function TasksListView({
   isLoggedIn: boolean;
   workspaceData?: WorkspaceUiData | null;
 }) {
-  const router = useRouter();
+  const deleteMutation = useWorkspaceMutation("tasks");
   const logs = workspaceData?.logs ?? [];
   const outputs = workspaceData?.outputs ?? [];
   const [filter, setFilter] = useState<TaskListFilter>("active");
@@ -94,18 +94,19 @@ export function TasksListView({
     }
     setIsDeleting(true);
     setDeleteError(null);
-    const result = await deleteWorkspaceDocuments({
-      workspaceId: workspaceData.workspaceId,
-      documentType: "tasks",
-      ids: selection.selectedIdList,
-    });
+    const result = await deleteMutation.mutateAsync(() =>
+      deleteWorkspaceDocuments({
+        workspaceId: workspaceData.workspaceId,
+        documentType: "tasks",
+        ids: selection.selectedIdList,
+      }),
+    );
     setIsDeleting(false);
     if (!result.ok) {
       setDeleteError(result.message ?? "Failed to delete selected tasks.");
       return false;
     }
     selection.clear();
-    router.refresh();
     return true;
   }
 

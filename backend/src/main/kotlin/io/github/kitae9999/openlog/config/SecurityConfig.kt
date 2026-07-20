@@ -20,6 +20,7 @@ import tools.jackson.databind.ObjectMapper
 class SecurityConfig(
     private val githubOAuthSuccessHandler: GithubOAuthSuccessHandler,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val workspaceUserRateLimitFilter: WorkspaceUserRateLimitFilter,
     private val objectMapper: ObjectMapper,
 ) {
     @Bean
@@ -86,6 +87,9 @@ class SecurityConfig(
                     // notifications — 전부 인증 필요
                     .requestMatchers("/notifications/**").authenticated()
 
+                    // app bootstrap — 인증된 앱 공통 상태
+                    .requestMatchers("/app/**").authenticated()
+
                     // media — 조회 공개(컨트롤러에서 optional auth), 업로드/완료 처리 인증 필요
                     .requestMatchers(HttpMethod.GET, "/media/assets/*").permitAll()
                     .requestMatchers(HttpMethod.POST, "/media/upload-url").authenticated()
@@ -133,6 +137,7 @@ class SecurityConfig(
                 it.successHandler(githubOAuthSuccessHandler)
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterAfter(workspaceUserRateLimitFilter, JwtAuthenticationFilter::class.java)
 
         return http.build()
     }

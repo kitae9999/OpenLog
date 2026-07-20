@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 
 interface WorkspaceTaskRepository : JpaRepository<WorkspaceTask, Long> {
+    fun countByWorkspaceIdAndStatus(workspaceId: Long, status: TaskStatus): Long
+
     @EntityGraph(attributePaths = ["author"])
     fun findAllByWorkspaceIdOrderByUpdatedAtDescIdDesc(
         workspaceId: Long,

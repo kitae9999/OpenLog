@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   createContext,
   useContext,
@@ -13,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { useMutation } from "@tanstack/react-query";
 import { cn } from "@/shared/lib/cn";
 import { todayIso } from "@/shared/lib/todayIso";
 import { GitHubIcon } from "@/shared/ui/icons";
@@ -47,8 +47,6 @@ import {
   isZoneFetching,
   type SyncFillState,
 } from "@/shared/model/syncFill";
-import { FetchingIndicator } from "@/shared/ui/sync/FetchingIndicator";
-import { useWorkspaceLiveSync } from "@/features/workspace-sync/model/useWorkspaceLiveSync";
 import { WorkspaceGraphPreview } from "@/widgets/workspace-dashboard/ui/WorkspaceGraphPreview";
 import {
   createWorkspaceTodo,
@@ -324,30 +322,24 @@ export function WorkspaceDashboardView({
   replaySnapshot?: PreviewReplaySnapshot;
 }) {
   const isPreview = Boolean(replaySnapshot);
+  const [liveWorkspaceData, setLiveWorkspaceData] = useState(workspaceData);
+
+  useEffect(() => {
+    setLiveWorkspaceData(workspaceData);
+  }, [workspaceData]);
+
   const resolvedWorkspaceData =
     isPreview && replaySnapshot
       ? getPreviewReplayWorkspaceData(replaySnapshot)
-      : workspaceData;
+      : liveWorkspaceData;
   const highlight = replaySnapshot?.highlight ?? { kind: "none" as const };
-  const liveSync = useWorkspaceLiveSync({
-    workspaceId: resolvedWorkspaceData?.workspaceId
-      ? Number(resolvedWorkspaceData.workspaceId)
-      : null,
-    enabled: !isPreview && Boolean(resolvedWorkspaceData?.workspaceId),
-  });
-  const {
-    syncFill: liveSyncFill,
-    noteEntityIds,
-    showFetchingToast,
-    fetchingToastExiting,
-  } = liveSync;
   const syncFill = isPreview
     ? (replaySnapshot?.syncFill ?? {
         status: "idle" as const,
         reserved: { ...PREVIEW_RESERVED_COUNTS },
         incomingIds: [] as string[],
       })
-    : liveSyncFill;
+    : IDLE_SYNC_FILL;
 
   const [exploreWidget, setExploreWidget] = useState<ExploreWidget>(() => {
     if (
@@ -363,6 +355,7 @@ export function WorkspaceDashboardView({
   const logs = resolvedWorkspaceData?.logs ?? [];
   const memories = resolvedWorkspaceData?.memories ?? [];
   const outputs = resolvedWorkspaceData?.outputs ?? [];
+  const resolvedActivity = resolvedWorkspaceData?.activity ?? activity;
   // Backend timestamps are timezone-free Asia/Seoul local datetimes.
   const brief =
     resolvedWorkspaceData?.workingBrief ?? deriveWorkingBrief(tasks, logs);
@@ -385,22 +378,6 @@ export function WorkspaceDashboardView({
     isPreview &&
     brief?.taskId != null &&
     isPreviewHighlight(highlight, "task", brief.taskId);
-
-  useEffect(() => {
-    if (isPreview || !resolvedWorkspaceData) {
-      return;
-    }
-    noteEntityIds([
-      ...resolvedWorkspaceData.tasks.map((task) => task.id),
-      ...resolvedWorkspaceData.logs.map((log) => log.id),
-      ...resolvedWorkspaceData.todos.map((todo) => todo.id),
-      ...resolvedWorkspaceData.outputs.map((output) => output.id),
-      ...resolvedWorkspaceData.memories.map((memory) => memory.id),
-      ...(resolvedWorkspaceData.workingBrief || brief
-        ? ["working-brief"]
-        : []),
-    ]);
-  }, [brief, isPreview, noteEntityIds, resolvedWorkspaceData]);
 
   useEffect(() => {
     if (!isPreview || !replaySnapshot) {
@@ -685,8 +662,8 @@ export function WorkspaceDashboardView({
           className="mt-5 min-h-[200px]"
         >
           {exploreWidget === "activity" ? (
-            activity ? (
-              <ActivityYearGrid activity={activity} />
+            resolvedActivity ? (
+              <ActivityYearGrid activity={resolvedActivity} />
             ) : (
               <p className="text-sm text-zinc-500">
                 {isPreview
@@ -717,12 +694,6 @@ export function WorkspaceDashboardView({
     return (
       <PreviewSyncFillContext.Provider value={syncFill}>
         {dashboard}
-        {showFetchingToast ? (
-          <FetchingIndicator
-            exiting={fetchingToastExiting}
-            className="fixed right-4 bottom-4 z-40 sm:right-6 sm:bottom-6"
-          />
-        ) : null}
       </PreviewSyncFillContext.Provider>
     );
   }
@@ -1014,12 +985,14 @@ function TodosSection({
   createTodoOverride?: (title: string) => Promise<WorkspaceActionResult>;
   isPreview?: boolean;
 }) {
-  const router = useRouter();
   const syncFill = usePreviewSyncFill();
   const [localTodos, setLocalTodos] = useState(todos);
   const [error, setError] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [isPending, startTransition] = useTransition();
+  const todoMutation = useMutation({
+    mutationFn: (mutation: () => Promise<WorkspaceActionResult>) => mutation(),
+  });
   const openTodos = localTodos.filter((todo) => !todo.done);
   const canMutate =
     !isPreview && (Boolean(workspaceId) || Boolean(createTodoOverride));
@@ -1051,7 +1024,9 @@ function TodosSection({
       setError(null);
 
       startTransition(async () => {
-        const result = await createTodoOverride(trimmed);
+        const result = await todoMutation.mutateAsync(() =>
+          createTodoOverride(trimmed),
+        );
         if (!result.ok) {
           setLocalTodos((current) =>
             current.filter((todo) => todo.id !== optimisticId),
@@ -1088,11 +1063,13 @@ function TodosSection({
     setError(null);
 
     startTransition(async () => {
-      const result = await createWorkspaceTodo({
-        workspaceId,
-        title: trimmed,
-        plannedFor: todayIso(),
-      });
+      const result = await todoMutation.mutateAsync(() =>
+        createWorkspaceTodo({
+          workspaceId,
+          title: trimmed,
+          plannedFor: todayIso(),
+        }),
+      );
 
       if (!result.ok) {
         setLocalTodos((current) =>
@@ -1102,8 +1079,13 @@ function TodosSection({
         setDraftTitle(trimmed);
         return;
       }
-
-      router.refresh();
+      if (result.id) {
+        setLocalTodos((current) =>
+          current.map((todo) =>
+            todo.id === optimisticId ? { ...todo, id: result.id! } : todo,
+          ),
+        );
+      }
     });
   }
 
@@ -1131,11 +1113,13 @@ function TodosSection({
     }
 
     startTransition(async () => {
-      const result = await updateWorkspaceTodoDone({
-        workspaceId,
-        todoId,
-        done: nextDone,
-      });
+      const result = await todoMutation.mutateAsync(() =>
+        updateWorkspaceTodoDone({
+          workspaceId,
+          todoId,
+          done: nextDone,
+        }),
+      );
 
       if (!result.ok) {
         setLocalTodos((current) =>
@@ -1147,7 +1131,6 @@ function TodosSection({
         return;
       }
 
-      router.refresh();
     });
   }
 
@@ -1170,13 +1153,14 @@ function TodosSection({
     setError(null);
 
     startTransition(async () => {
-      const result = await deleteWorkspaceTodo({ workspaceId, todoId });
+      const result = await todoMutation.mutateAsync(() =>
+        deleteWorkspaceTodo({ workspaceId, todoId }),
+      );
       if (!result.ok) {
         setLocalTodos(previousTodos);
         setError(result.message ?? "Failed to remove todo.");
         return;
       }
-      router.refresh();
     });
   }
 
@@ -1400,6 +1384,7 @@ function PreviewableLink({
   return (
     <Link
       href={href}
+      prefetch={false}
       className={className}
       title={title}
       aria-label={ariaLabel}

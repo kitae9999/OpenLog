@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   diffIdSets,
@@ -26,15 +25,17 @@ const SETTLED_HOLD_MS = 400;
 
 /**
  * Subscribe to workspace SSE and drive demo-shaped syncFill + router.refresh().
+ * The refresh callback now replaces the former router.refresh call with a dashboard-only snapshot fetch.
  */
 export function useWorkspaceLiveSync({
   workspaceId,
   enabled,
+  onRefresh,
 }: {
   workspaceId?: number | null;
   enabled: boolean;
+  onRefresh: () => Promise<void>;
 }) {
-  const router = useRouter();
   const [syncFill, setSyncFill] = useState<SyncFillState>(IDLE_SYNC_FILL);
   const [fetchingToastExiting, setFetchingToastExiting] = useState(false);
   const prevIdsRef = useRef<Set<string>>(new Set());
@@ -43,6 +44,25 @@ export function useWorkspaceLiveSync({
   );
   const settleTimersRef = useRef<number[]>([]);
   const snapshotReadyRef = useRef(false);
+  const refreshInFlightRef = useRef(false);
+  const refreshQueuedRef = useRef(false);
+
+  const requestRefresh = useCallback(async () => {
+    if (refreshInFlightRef.current) {
+      refreshQueuedRef.current = true;
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+    try {
+      do {
+        refreshQueuedRef.current = false;
+        await onRefresh();
+      } while (refreshQueuedRef.current);
+    } finally {
+      refreshInFlightRef.current = false;
+    }
+  }, [onRefresh]);
 
   const clearSettleTimers = useCallback(() => {
     for (const timer of settleTimersRef.current) {
@@ -97,7 +117,7 @@ export function useWorkspaceLiveSync({
           pendingSlotIndex: 0,
           incomingIds: [String(payload.entityId)],
         });
-        router.refresh();
+        void requestRefresh();
       });
 
       eventSource.onopen = () => {
@@ -128,7 +148,7 @@ export function useWorkspaceLiveSync({
       }
       clearSettleTimers();
     };
-  }, [clearSettleTimers, enabled, router, workspaceId]);
+  }, [clearSettleTimers, enabled, requestRefresh, workspaceId]);
 
   const noteEntityIds = useCallback(
     (ids: Iterable<string>) => {
