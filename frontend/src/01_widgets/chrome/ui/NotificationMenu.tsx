@@ -3,9 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { assets } from "@/shared/config/assets";
 import { cn } from "@/shared/lib/cn";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
+import { fetchNotificationSummary } from "@/features/app-session/api/clientAppBootstrapApi";
+import type { NotificationSummary } from "@/features/app-session/model/appBootstrap";
+import { appQueryKeys } from "@/shared/api/queryKeys";
 
 type NotificationActor = {
   id: number;
@@ -49,35 +53,22 @@ type NotificationReadResponse = {
 };
 
 export function NotificationMenu() {
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    async function loadNotificationSummary() {
-      try {
-        const data = await fetchNotifications(1, abortController.signal);
-        setUnreadCount(data.unreadCount);
-      } catch {
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        setUnreadCount(0);
-      }
-    }
-
-    void loadNotificationSummary();
-
-    return () => {
-      abortController.abort();
-    };
-  }, []);
+  const summary = useQuery({
+    queryKey: appQueryKeys.notificationSummary,
+    queryFn: fetchNotificationSummary,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+  });
+  const unreadCount = summary.data?.unreadCount ?? 0;
 
   useEffect(() => {
     if (!isOpen) {
@@ -119,14 +110,13 @@ export function NotificationMenu() {
       try {
         const data = await fetchNotifications(10, abortController.signal);
         setNotifications(data.notifications);
-        setUnreadCount(data.unreadCount);
+        setUnreadCount(queryClient, data.unreadCount);
       } catch {
         if (abortController.signal.aborted) {
           return;
         }
 
         setNotifications([]);
-        setUnreadCount(0);
         setLoadError(true);
       } finally {
         if (!abortController.signal.aborted) {
@@ -140,7 +130,7 @@ export function NotificationMenu() {
     return () => {
       abortController.abort();
     };
-  }, [isOpen]);
+  }, [isOpen, queryClient]);
 
   function handleNotificationSelect(notification: NotificationItem) {
     setIsOpen(false);
@@ -156,7 +146,7 @@ export function NotificationMenu() {
           : item,
       ),
     );
-    setUnreadCount((current) => Math.max(0, current - 1));
+    setUnreadCount(queryClient, Math.max(0, unreadCount - 1));
 
     void markNotificationRead(notification.id)
       .then((data) => {
@@ -165,7 +155,7 @@ export function NotificationMenu() {
             item.id === data.notification.id ? data.notification : item,
           ),
         );
-        setUnreadCount(data.unreadCount);
+        setUnreadCount(queryClient, data.unreadCount);
       })
       .catch(() => undefined);
   }
@@ -234,6 +224,13 @@ export function NotificationMenu() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function setUnreadCount(queryClient: ReturnType<typeof useQueryClient>, unreadCount: number) {
+  queryClient.setQueryData<NotificationSummary>(
+    appQueryKeys.notificationSummary,
+    { unreadCount },
   );
 }
 

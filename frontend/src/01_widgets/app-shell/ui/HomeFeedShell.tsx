@@ -562,6 +562,7 @@ export function HomeSidebar({
   agentWorkspaceId,
   workspaces = [],
   workspaceData,
+  onWorkspaceSelect,
 }: {
   activeTab: TabKey;
   isLoggedIn: boolean;
@@ -581,6 +582,7 @@ export function HomeSidebar({
   agentWorkspaceId?: string;
   workspaces?: ManagedWorkspace[];
   workspaceData?: WorkspaceUiData | null;
+  onWorkspaceSelect?: (workspaceId: string) => void;
 }) {
   const activeWorkspaceId = useActiveWorkspaceId();
   const sidebarTasks = isLoggedIn ? (workspaceData?.tasks ?? []) : [];
@@ -621,6 +623,7 @@ export function HomeSidebar({
           workspaces={workspaces}
           activeWorkspaceId={workspaceData?.workspaceId}
           onNavigate={onNavigate}
+          onWorkspaceSelect={onWorkspaceSelect}
         />
 
         <SidebarSection label="WORKSPACE">
