@@ -29,3 +29,8 @@ logging:
   structured:
     format:
       console: ecs
+
+openlog:
+  rate-limit:
+    workspace:
+      enabled: true

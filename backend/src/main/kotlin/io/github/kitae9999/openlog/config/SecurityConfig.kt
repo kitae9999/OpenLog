@@ -20,6 +20,7 @@ import tools.jackson.databind.ObjectMapper
 class SecurityConfig(
     private val githubOAuthSuccessHandler: GithubOAuthSuccessHandler,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val workspaceUserRateLimitFilter: WorkspaceUserRateLimitFilter,
     private val objectMapper: ObjectMapper,
 ) {
     @Bean
@@ -133,6 +134,7 @@ class SecurityConfig(
                 it.successHandler(githubOAuthSuccessHandler)
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterAfter(workspaceUserRateLimitFilter, JwtAuthenticationFilter::class.java)
 
         return http.build()
     }
