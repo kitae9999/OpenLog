@@ -61,7 +61,7 @@ export type WorkspaceLogCursorResponse = {
   hasNext: boolean;
 };
 
-type OutputResponse = {
+export type OutputResponse = {
   id: number;
   status: OutputStatus;
   title: string;
@@ -73,7 +73,7 @@ type OutputResponse = {
   exportedAt: string | null;
 };
 
-type TodoResponse = {
+export type TodoResponse = {
   id: number;
   title: string;
   done: boolean;
@@ -81,7 +81,7 @@ type TodoResponse = {
   plannedFor: string;
 };
 
-type MemoryResponse = {
+export type MemoryResponse = {
   id: number;
   title: string;
   content: string;
@@ -90,6 +90,35 @@ type MemoryResponse = {
   originLog: { id: number; title: string } | null;
   createdAt: string;
   updatedAt: string;
+};
+
+type WorkspacePlannerViewResponse = {
+  tasks: WorkspaceTaskResponse[];
+  todos: TodoResponse[];
+};
+
+type WorkspaceGraphViewResponse = {
+  tasks: WorkspaceTaskResponse[];
+  logs: WorkspaceLogResponse[];
+  outputs: OutputResponse[];
+  memories: MemoryResponse[];
+  taskLinks: TaskLinkResponse[];
+  logLinks: LogLinkResponse[];
+  crossLinks: CrossLinkResponse[];
+};
+
+type WorkspaceActivityViewResponse = {
+  activity: WorkspaceActivity;
+  selectedDay: {
+    date: string;
+    logs: WorkspaceLogResponse[];
+  };
+};
+
+type MemoryCursorResponse = {
+  memories: MemoryResponse[];
+  nextCursor: string | null;
+  hasNext: boolean;
 };
 
 type TaskLinkResponse = {
@@ -178,6 +207,56 @@ export async function fetchWorkspaceLog(workspaceId: string, logId: string) {
   return mapLog(response);
 }
 
+export async function fetchWorkspacePlanner(
+  workspaceId: string,
+  from: string,
+  to: string,
+) {
+  const response = await clientApi<WorkspacePlannerViewResponse>(
+    `/api/workspaces/${workspaceId}/planner-view?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+  );
+  return {
+    tasks: response.tasks.map(mapTask),
+    todos: response.todos.map(mapTodo),
+  };
+}
+
+export async function fetchWorkspaceGraph(workspaceId: string) {
+  const response = await clientApi<WorkspaceGraphViewResponse>(
+    `/api/workspaces/${workspaceId}/graph-view`,
+  );
+  return mapGraph(response);
+}
+
+export async function fetchWorkspaceActivityView(
+  workspaceId: string,
+  from: string,
+  to: string,
+  date: string,
+) {
+  const response = await clientApi<WorkspaceActivityViewResponse>(
+    `/api/workspaces/${workspaceId}/activity-view?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${encodeURIComponent(date)}`,
+  );
+  return {
+    activity: response.activity,
+    logs: response.selectedDay.logs.map(mapLog),
+  };
+}
+
+export async function fetchWorkspaceOutputs(workspaceId: string) {
+  const response = await clientApi<OutputResponse[]>(
+    `/api/workspaces/${workspaceId}/outputs`,
+  );
+  return response.map(mapOutput);
+}
+
+export async function fetchWorkspaceMemories(workspaceId: string) {
+  const response = await clientApi<MemoryCursorResponse>(
+    `/api/workspaces/${workspaceId}/memories?size=50`,
+  );
+  return response.memories.map(mapMemory);
+}
+
 export function buildWorkspaceUiData(
   bootstrap: AppBootstrap,
   workspaceId: string,
@@ -262,6 +341,35 @@ function mapDashboard(response: WorkspaceDashboardResponse): Partial<WorkspaceUi
           updatedLabel: formatWorkspaceDateLabel(response.workingBrief.updatedAt),
         }
       : null,
+  };
+}
+
+function mapGraph(response: WorkspaceGraphViewResponse): Partial<WorkspaceUiData> {
+  return {
+    tasks: response.tasks.map(mapTask),
+    logs: response.logs.map(mapLog),
+    outputs: response.outputs.map(mapOutput),
+    memories: response.memories.map(mapMemory),
+    taskLinks: response.taskLinks.map((link) => ({
+      id: String(link.id),
+      fromTaskId: String(link.fromTask.id),
+      toTaskId: String(link.toTask.id),
+      relation: link.relation,
+    })),
+    logLinks: response.logLinks.map((link) => ({
+      id: String(link.id),
+      fromLogId: String(link.fromLog.id),
+      toLogId: String(link.toLog.id),
+      relation: link.relation,
+    })),
+    crossLinks: response.crossLinks.map((link) => ({
+      id: String(link.id),
+      fromType: link.fromType.toLowerCase() as WorkspaceCrossLinkItem["fromType"],
+      fromNodeId: String(link.fromNodeId),
+      toType: link.toType.toLowerCase() as WorkspaceCrossLinkItem["toType"],
+      toNodeId: String(link.toNodeId),
+      relation: link.relation,
+    })),
   };
 }
 

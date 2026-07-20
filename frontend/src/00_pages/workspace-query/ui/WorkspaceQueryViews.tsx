@@ -11,15 +11,26 @@ import { TaskEditView } from "@/pages/tasks/ui/TaskEditView";
 import { LogCreateView } from "@/pages/logs/ui/LogCreateView";
 import { LogDetailView } from "@/pages/logs/ui/LogDetailView";
 import { LogEditView } from "@/pages/logs/ui/LogEditView";
+import { PlannerView } from "@/pages/planner/ui/PlannerView";
+import { ActivityView } from "@/pages/activity/ui/ActivityView";
+import { OutputsListView } from "@/pages/outputs/ui/OutputsListView";
+import { MemoryListView } from "@/pages/memory/ui/MemoryViews";
+import { WorkspaceGraphView } from "@/widgets/workspace-graph/ui/WorkspaceGraphView";
 import type { LogListTypeFilter } from "@/entities/workspace/model/data";
 import {
   buildWorkspaceUiData,
   fetchWorkspaceDashboard,
+  fetchWorkspaceActivityView,
+  fetchWorkspaceGraph,
   fetchWorkspaceLog,
   fetchWorkspaceLogs,
+  fetchWorkspaceMemories,
+  fetchWorkspaceOutputs,
+  fetchWorkspacePlanner,
   fetchWorkspaceTask,
   fetchWorkspaceTasks,
 } from "@/entities/workspace/api/workspaceQueryApi";
+import type { WorkspaceOutputStatus } from "@/entities/workspace/model/data";
 import { useWorkspaceApp } from "@/features/app-session/model/WorkspaceAppContext";
 import { workspaceQueryKeys } from "@/shared/api/queryKeys";
 
@@ -203,6 +214,153 @@ export function WorkspaceLogQueryView({
   );
 }
 
+export function WorkspacePlannerQueryView({
+  requestedMonth,
+  requestedDate,
+}: {
+  requestedMonth?: string;
+  requestedDate?: string;
+}) {
+  const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
+  const today = getSeoulIsoDate(new Date());
+  const month = isValidMonth(requestedMonth) ? requestedMonth : today.slice(0, 7);
+  const { from, to } = getMonthRange(month);
+  const selectedDate =
+    isValidDate(requestedDate) && requestedDate.startsWith(`${month}-`)
+      ? requestedDate
+      : today.startsWith(`${month}-`)
+        ? today
+        : from;
+  const planner = useQuery({
+    queryKey: workspaceQueryKeys.planner(activeWorkspaceId ?? "none", month),
+    queryFn: () => fetchWorkspacePlanner(activeWorkspaceId!, from, to),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
+  const workspaceData = activeWorkspaceId
+    ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
+        tasks: planner.data?.tasks ?? [],
+        todos: planner.data?.todos ?? [],
+      })
+    : null;
+  return (
+    <WorkspaceRouteSection label="Planner">
+      <QueryState isLoading={planner.isLoading} isError={planner.isError}>
+        {workspaceData ? (
+          <PlannerView
+            month={month}
+            selectedDate={selectedDate}
+            todos={planner.data?.todos ?? []}
+            workspaceData={workspaceData}
+          />
+        ) : null}
+      </QueryState>
+    </WorkspaceRouteSection>
+  );
+}
+
+export function WorkspaceGraphQueryView() {
+  const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
+  const graph = useQuery({
+    queryKey: workspaceQueryKeys.graph(activeWorkspaceId ?? "none"),
+    queryFn: () => fetchWorkspaceGraph(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
+  const workspaceData = activeWorkspaceId
+    ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, graph.data ?? {})
+    : null;
+  return (
+    <WorkspaceRouteSection label="Workspace Graph">
+      <QueryState isLoading={graph.isLoading} isError={graph.isError}>
+        <WorkspaceGraphView isLoggedIn workspaceData={workspaceData} />
+      </QueryState>
+    </WorkspaceRouteSection>
+  );
+}
+
+export function WorkspaceOutputsQueryView({
+  status,
+}: {
+  status: WorkspaceOutputStatus;
+}) {
+  const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
+  const outputs = useQuery({
+    queryKey: workspaceQueryKeys.outputs(activeWorkspaceId ?? "none", "all"),
+    queryFn: () => fetchWorkspaceOutputs(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
+  const workspaceData = activeWorkspaceId
+    ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
+        outputs: outputs.data ?? [],
+      })
+    : null;
+  return (
+    <WorkspaceRouteSection label="Outputs">
+      <QueryState isLoading={outputs.isLoading} isError={outputs.isError}>
+        <OutputsListView isLoggedIn status={status} workspaceData={workspaceData} />
+      </QueryState>
+    </WorkspaceRouteSection>
+  );
+}
+
+export function WorkspaceMemoryQueryView() {
+  const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
+  const memories = useQuery({
+    queryKey: workspaceQueryKeys.memories(activeWorkspaceId ?? "none"),
+    queryFn: () => fetchWorkspaceMemories(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
+  const workspaceData = activeWorkspaceId
+    ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
+        memories: memories.data ?? [],
+      })
+    : null;
+  return (
+    <WorkspaceRouteSection label="Memory">
+      <QueryState isLoading={memories.isLoading} isError={memories.isError}>
+        <MemoryListView workspaceData={workspaceData} />
+      </QueryState>
+    </WorkspaceRouteSection>
+  );
+}
+
+export function WorkspaceActivityQueryView({ requestedDate }: { requestedDate?: string }) {
+  const { activeWorkspaceId } = useWorkspaceApp();
+  const today = getSeoulIsoDate(new Date());
+  const from = getSeoulIsoDate(
+    new Date(new Date(`${today}T00:00:00Z`).getTime() - 364 * 86_400_000),
+  );
+  const selectedDate =
+    isValidDate(requestedDate) && requestedDate >= from && requestedDate <= today
+      ? requestedDate
+      : today;
+  const activity = useQuery({
+    queryKey: workspaceQueryKeys.activity(
+      activeWorkspaceId ?? "none",
+      `${from}:${today}`,
+      selectedDate,
+    ),
+    queryFn: () =>
+      fetchWorkspaceActivityView(activeWorkspaceId!, from, today, selectedDate),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
+  return (
+    <WorkspaceRouteSection label="Activity">
+      <QueryState isLoading={activity.isLoading} isError={activity.isError}>
+        <ActivityView
+          activity={activity.data?.activity ?? null}
+          selectedDate={selectedDate}
+          selectedLogs={activity.data?.logs ?? []}
+        />
+      </QueryState>
+    </WorkspaceRouteSection>
+  );
+}
+
 function WorkspaceRouteSection({
   label,
   children,
@@ -240,4 +398,34 @@ function QueryState({
     );
   }
   return children;
+}
+
+function isValidMonth(value?: string): value is string {
+  if (!value || !/^\d{4}-\d{2}$/.test(value)) return false;
+  const [year, month] = value.split("-").map(Number);
+  return year >= 1970 && month >= 1 && month <= 12;
+}
+
+function isValidDate(value?: string): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function getMonthRange(month: string) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+  return {
+    from: `${month}-01`,
+    to: `${month}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
+
+function getSeoulIsoDate(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }

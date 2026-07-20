@@ -1,4 +1,4 @@
-import { OutputsListFeed } from "@/pages/outputs/ui/OutputsListFeed";
+import { WorkspaceOutputsQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 import type { WorkspaceOutputStatus } from "@/entities/workspace/model/data";
 
 const allowedStatuses: WorkspaceOutputStatus[] = ["draft", "exported"];
@@ -13,5 +13,5 @@ export default async function OutputsPage({
     ? (params.status as WorkspaceOutputStatus)
     : "draft";
 
-  return <OutputsListFeed status={status} />;
+  return <WorkspaceOutputsQueryView status={status} />;
 }

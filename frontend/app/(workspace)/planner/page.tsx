@@ -1,4 +1,4 @@
-import { PlannerFeed } from "@/pages/planner/ui/PlannerFeed";
+import { WorkspacePlannerQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export default async function PlannerPage({
   searchParams,
@@ -6,5 +6,5 @@ export default async function PlannerPage({
   searchParams: Promise<{ month?: string; date?: string }>;
 }) {
   const { month, date } = await searchParams;
-  return <PlannerFeed requestedMonth={month} requestedDate={date} />;
+  return <WorkspacePlannerQueryView requestedMonth={month} requestedDate={date} />;
 }
