@@ -31,6 +31,7 @@ import {
   type WorkspaceActionResult,
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 type IssueLogStatus = "OPEN" | "CLOSED";
 
@@ -57,6 +58,7 @@ export function LogDetailView({
   ) => Promise<WorkspaceActionResult>;
 }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [assignedTaskId, setAssignedTaskId] = useState<string | null>(
     log.taskId ?? null,
   );
@@ -129,7 +131,7 @@ export function LogDetailView({
       return;
     }
     router.push(result.href);
-    router.refresh();
+    await invalidateWorkspace("logs");
   }
 
   function startEditing() {
@@ -204,7 +206,7 @@ export function LogDetailView({
       setLocalBody(draftBody);
       setIsEditing(false);
       setMode("write");
-      router.refresh();
+      await invalidateWorkspace("logs");
       return;
     }
 
@@ -217,7 +219,7 @@ export function LogDetailView({
     setIsEditing(false);
     setMode("write");
     setIsSaving(false);
-    router.refresh();
+    await invalidateWorkspace("logs");
   }
 
   async function assignTask(nextTaskId: string | null) {
@@ -249,7 +251,7 @@ export function LogDetailView({
       }
 
       setAssignedTaskId(nextTaskId);
-      router.refresh();
+      await invalidateWorkspace("logs");
       return;
     }
 
@@ -297,7 +299,7 @@ export function LogDetailView({
     }
 
     setIssueStatus(nextStatus);
-    router.refresh();
+    await invalidateWorkspace("logs");
   }
 
   async function deleteLog() {
@@ -323,7 +325,7 @@ export function LogDetailView({
     }
 
     router.push(result.href ?? getLogsHref());
-    router.refresh();
+    await invalidateWorkspace("logs");
   }
 
   return (

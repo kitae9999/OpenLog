@@ -24,9 +24,11 @@ import {
   updateWorkspaceMemory,
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceMemoryItem, WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiData | null }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const memories = workspaceData?.memories ?? [];
   const selection = useDocumentSelection(memories.map((memory) => memory.id));
   const [isDeleting, setIsDeleting] = useState(false);
@@ -49,7 +51,7 @@ export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiD
       return false;
     }
     selection.clear();
-    router.refresh();
+    await invalidateWorkspace("memories");
     return true;
   }
 
@@ -150,6 +152,7 @@ export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiD
 
 export function MemoryDetailView({ memory, workspaceData }: { memory: WorkspaceMemoryItem; workspaceData: WorkspaceUiData }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -164,7 +167,7 @@ export function MemoryDetailView({ memory, workspaceData }: { memory: WorkspaceM
       return;
     }
     router.push("/memory");
-    router.refresh();
+    await invalidateWorkspace("memories");
   }
 
   return (
@@ -250,6 +253,7 @@ export function MemoryDetailView({ memory, workspaceData }: { memory: WorkspaceM
 
 export function MemoryEditorView({ workspaceData, memory }: { workspaceData: WorkspaceUiData; memory?: WorkspaceMemoryItem }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [title, setTitle] = useState(memory?.title ?? "");
   const [body, setBody] = useState(memory?.content ?? "");
   const [taskId, setTaskId] = useState(memory?.task?.id ?? "");
@@ -284,7 +288,7 @@ export function MemoryEditorView({ workspaceData, memory }: { workspaceData: Wor
       return;
     }
     router.push(result.href);
-    router.refresh();
+    await invalidateWorkspace("memories");
   }
 
   return (

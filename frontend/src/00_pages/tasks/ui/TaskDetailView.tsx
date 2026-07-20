@@ -38,6 +38,7 @@ import {
   updateWorkspaceTask,
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function TaskDetailView({
   task,
@@ -49,6 +50,7 @@ export function TaskDetailView({
   isLoggedIn?: boolean;
 }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [localStatus, setLocalStatus] = useState<WorkspaceWorkStatus | null>(
@@ -158,7 +160,7 @@ export function TaskDetailView({
       setLocalBody(draftBody);
       setIsEditing(false);
       setMode("write");
-      router.refresh();
+      await invalidateWorkspace("tasks");
       return;
     }
 
@@ -171,7 +173,7 @@ export function TaskDetailView({
     setIsEditing(false);
     setMode("write");
     setIsSaving(false);
-    router.refresh();
+    await invalidateWorkspace("tasks");
   }
 
   async function markDone() {
@@ -199,7 +201,7 @@ export function TaskDetailView({
       }
 
       setLocalStatus("done");
-      router.refresh();
+      await invalidateWorkspace("tasks");
       return;
     }
 
@@ -235,7 +237,7 @@ export function TaskDetailView({
     }
 
     router.push(result.href ?? getTasksHref());
-    router.refresh();
+    await invalidateWorkspace("tasks");
   }
 
   return (

@@ -18,3 +18,7 @@ export function useWorkspaceApp() {
   }
   return value;
 }
+
+export function useOptionalWorkspaceApp() {
+  return useContext(WorkspaceAppContext);
+}

@@ -19,6 +19,7 @@ import {
 import { createLogOverride } from "@/features/document-overrides/model/logOverrides";
 import { createWorkspaceLog } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 type LogKind = "ISSUE" | "FIX" | "DECISION" | "NOTE";
 
@@ -39,6 +40,7 @@ export function LogCreateView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const tasks = workspaceData?.tasks ?? [];
   const [kind, setKind] = useState<LogKind>("NOTE");
   const [taskId, setTaskId] = useState(initialTaskId ?? "");
@@ -108,7 +110,7 @@ export function LogCreateView({
       }
 
       router.push(result.href);
-      router.refresh();
+      await invalidateWorkspace("logs");
       return;
     }
 
@@ -121,7 +123,7 @@ export function LogCreateView({
 
     setIsSaving(false);
     router.push(getLogHref(log.id));
-    router.refresh();
+    await invalidateWorkspace("logs");
   }
 
   return (

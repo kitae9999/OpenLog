@@ -65,9 +65,6 @@ export async function createWorkspace(input: {
     );
 
     const workspaceId = String(workspace.id);
-    revalidatePath("/dashboard");
-    revalidatePath("/settings/manage");
-    revalidatePath("/workspaces/new");
     return { ok: true, id: workspaceId, href: "/dashboard" };
   });
 }
@@ -84,8 +81,6 @@ export async function updateWorkspace(input: {
       }),
     });
 
-    revalidatePath("/dashboard");
-    revalidatePath("/settings/manage");
     return { ok: true, id: input.workspaceId };
   });
 }
@@ -113,7 +108,6 @@ export async function createWorkspaceTask(input: {
     );
 
     const taskId = String(task.id);
-    revalidateWorkspacePaths(taskId);
     return { ok: true, id: taskId, href: `/tasks/${taskId}` };
   });
 }
@@ -137,7 +131,6 @@ export async function updateWorkspaceTask(input: {
       }),
     });
 
-    revalidateWorkspacePaths(input.taskId);
     return { ok: true };
   });
 }
@@ -153,7 +146,6 @@ export async function deleteWorkspaceTask(input: {
       { method: "DELETE" },
     );
 
-    revalidateWorkspaceCollectionPaths();
     return { ok: true, href: "/tasks" };
   });
 }
@@ -173,7 +165,6 @@ export async function deleteWorkspaceDocuments(input: {
       },
     );
 
-    revalidateWorkspaceCollectionPaths();
     return { ok: true };
   });
 }
@@ -205,9 +196,6 @@ export async function createWorkspaceLog(input: {
     );
 
     const logId = String(log.id);
-    revalidatePath(`/logs/${logId}`);
-    revalidatePath("/logs");
-    revalidatePath("/dashboard");
     return { ok: true, id: logId, href: `/logs/${logId}` };
   });
 }
@@ -233,10 +221,6 @@ export async function updateWorkspaceLog(input: {
       }),
     });
 
-    revalidatePath(`/logs/${input.logId}`);
-    revalidatePath(`/logs/${input.logId}/edit`);
-    revalidatePath("/logs");
-    revalidatePath("/dashboard");
     return { ok: true };
   });
 }
@@ -252,7 +236,6 @@ export async function deleteWorkspaceLog(input: {
       { method: "DELETE" },
     );
 
-    revalidateWorkspaceCollectionPaths();
     return { ok: true, href: "/logs" };
   });
 }
@@ -273,7 +256,6 @@ export async function createWorkspaceTaskLink(input: {
       }),
     });
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -289,7 +271,6 @@ export async function deleteWorkspaceTaskLink(input: {
       { method: "DELETE" },
     );
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -310,7 +291,6 @@ export async function createWorkspaceLogLink(input: {
       }),
     });
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -326,7 +306,6 @@ export async function deleteWorkspaceLogLink(input: {
       { method: "DELETE" },
     );
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -351,7 +330,6 @@ export async function createWorkspaceCrossLink(input: {
       }),
     });
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -367,7 +345,6 @@ export async function deleteWorkspaceCrossLink(input: {
       { method: "DELETE" },
     );
 
-    revalidatePath("/graph");
     return { ok: true };
   });
 }
@@ -392,7 +369,6 @@ export async function createWorkspaceMemory(input: {
       },
     );
     const memoryId = String(memory.id);
-    revalidateMemoryPaths(memoryId);
     return { ok: true, id: memoryId, href: `/memory/${memoryId}` };
   });
 }
@@ -408,8 +384,6 @@ export async function createWorkspaceMemoryFromLog(input: {
       { method: "POST" },
     );
     const memoryId = String(memory.id);
-    revalidateMemoryPaths(memoryId);
-    revalidatePath(`/logs/${input.logId}`);
     return { ok: true, id: memoryId, href: `/memory/${memoryId}` };
   });
 }
@@ -434,7 +408,6 @@ export async function updateWorkspaceMemory(input: {
         }),
       },
     );
-    revalidateMemoryPaths(input.memoryId);
     return { ok: true, href: `/memory/${input.memoryId}` };
   });
 }
@@ -449,7 +422,6 @@ export async function deleteWorkspaceMemory(input: {
       cookie,
       { method: "DELETE" },
     );
-    revalidateMemoryPaths(input.memoryId);
     return { ok: true, href: "/memory" };
   });
 }
@@ -544,8 +516,6 @@ export async function deleteWorkspace(input: {
       throw new Error(await getWorkspaceErrorMessage(response));
     }
 
-    revalidatePath("/dashboard");
-    revalidatePath("/settings/manage");
     return { ok: true };
   });
 }
@@ -572,8 +542,6 @@ export async function createWorkspaceOutput(input: {
       },
     );
 
-    revalidatePath("/outputs");
-    revalidatePath("/dashboard");
     return { ok: true, id: String(output.id), href: `/outputs/${output.id}` };
   });
 }
@@ -597,9 +565,6 @@ export async function updateWorkspaceOutput(input: {
       }),
     });
 
-    revalidatePath(`/outputs/${input.outputId}`);
-    revalidatePath("/outputs");
-    revalidatePath("/dashboard");
     return { ok: true };
   });
 }
@@ -615,9 +580,6 @@ export async function createPostDraftFromOutput(input: {
       method: "POST",
     });
 
-    revalidatePath(`/outputs/${input.outputId}`);
-    revalidatePath("/outputs");
-    revalidatePath("/dashboard");
     revalidatePath("/");
     return {
       ok: true,
@@ -641,14 +603,6 @@ async function mutateWorkspace(
         error instanceof Error ? error.message : "Workspace request failed.",
     };
   }
-}
-
-function revalidateMemoryPaths(memoryId: string) {
-  revalidatePath("/dashboard");
-  revalidatePath("/graph");
-  revalidatePath("/memory");
-  revalidatePath(`/memory/${memoryId}`);
-  revalidatePath(`/memory/${memoryId}/edit`);
 }
 
 async function requestJson<T = unknown>(
@@ -691,21 +645,4 @@ async function getWorkspaceErrorMessage(response: Response) {
   return (
     errorBody?.message ?? `Workspace API request failed: ${response.status}`
   );
-}
-
-function revalidateWorkspacePaths(taskId: string) {
-  revalidatePath(`/tasks/${taskId}`);
-  revalidatePath(`/tasks/${taskId}/edit`);
-  revalidatePath("/tasks");
-  revalidatePath("/dashboard");
-}
-
-function revalidateWorkspaceCollectionPaths() {
-  revalidatePath("/dashboard");
-  revalidatePath("/tasks");
-  revalidatePath("/logs");
-  revalidatePath("/outputs");
-  revalidatePath("/memory");
-  revalidatePath("/graph");
-  revalidatePath("/activity");
 }

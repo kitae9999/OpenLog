@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ManageFeed } from "@/pages/workspace-manage/ui/ManageFeed";
+import { WorkspaceManageQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export const metadata: Metadata = {
   title: "Manage | OpenLog",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ManagePage() {
-  return <ManageFeed />;
+  return <WorkspaceManageQueryView />;
 }

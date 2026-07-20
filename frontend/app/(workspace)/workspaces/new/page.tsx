@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WorkspaceCreateFeed } from "@/pages/workspace-create/ui/WorkspaceCreateFeed";
+import { WorkspaceCreateQueryView } from "@/pages/workspace-query/ui/WorkspaceQueryViews";
 
 export const metadata: Metadata = {
   title: "New workspace | OpenLog",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function NewWorkspacePage() {
-  return <WorkspaceCreateFeed />;
+  return <WorkspaceCreateQueryView />;
 }

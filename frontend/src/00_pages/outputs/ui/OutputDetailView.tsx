@@ -44,6 +44,7 @@ import {
   updateWorkspaceOutput,
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function OutputDetailView({
   isLoggedIn,
@@ -57,6 +58,7 @@ export function OutputDetailView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const outputOverridesSnapshot = useSyncExternalStore(
     subscribeOutputOverrides,
     getOutputOverridesSnapshot,
@@ -203,7 +205,7 @@ export function OutputDetailView({
 
       setIsEditing(false);
       setMode("write");
-      router.refresh();
+      await invalidateWorkspace("outputs");
       return;
     }
 
@@ -217,7 +219,7 @@ export function OutputDetailView({
     setIsEditing(false);
     setMode("write");
     setIsSaving(false);
-    router.refresh();
+    await invalidateWorkspace("outputs");
   }
 
   async function createPostDraft() {
@@ -243,7 +245,7 @@ export function OutputDetailView({
 
       setIsEditing(false);
       setMode("write");
-      router.refresh();
+      await invalidateWorkspace("outputs");
       return;
     }
 
@@ -287,7 +289,7 @@ export function OutputDetailView({
     }
 
     router.push(getOutputsHref());
-    router.refresh();
+    await invalidateWorkspace("outputs");
   }
 
   return (

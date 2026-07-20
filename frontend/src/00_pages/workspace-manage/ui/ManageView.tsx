@@ -9,6 +9,8 @@ import { deleteWorkspace, updateWorkspace } from "@/features/workspace-actions/a
 import { clearActiveWorkspaceId } from "@/features/workspace-selection/model/workspaceSelection";
 import { notifyWorkspaceChange } from "@/features/workspace-selection/model/useActiveWorkspace";
 import type { ManagedWorkspace } from "@/entities/workspace/model/workspaceTypes";
+import { useQueryClient } from "@tanstack/react-query";
+import { appQueryKeys } from "@/shared/api/queryKeys";
 
 export function ManageView({
   isLoggedIn,
@@ -81,6 +83,7 @@ export function ManageView({
 
 function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const titleId = useId();
   const descriptionId = useId();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -149,8 +152,11 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
         setIsConfirmOpen(false);
         clearActiveWorkspaceId(workspace.id);
         notifyWorkspaceChange();
+        queryClient.setQueryData<ManagedWorkspace[]>(
+          appQueryKeys.workspaces,
+          (current = []) => current.filter((item) => item.id !== workspace.id),
+        );
         router.replace(getManageHref());
-        router.refresh();
       } catch {
         setErrorMessage("Something went wrong while deleting this workspace.");
       }
@@ -191,7 +197,13 @@ function WorkspaceManageRow({ workspace }: { workspace: ManagedWorkspace }) {
 
     setIsEditing(false);
     notifyWorkspaceChange();
-    router.refresh();
+    queryClient.setQueryData<ManagedWorkspace[]>(
+      appQueryKeys.workspaces,
+      (current = []) =>
+        current.map((item) =>
+          item.id === workspace.id ? { ...item, name: trimmedName } : item,
+        ),
+    );
   }
 
   return (

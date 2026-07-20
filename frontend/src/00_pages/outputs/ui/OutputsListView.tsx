@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
@@ -25,6 +24,7 @@ import {
   useDocumentSelection,
 } from "@/features/document-selection/ui/DocumentBulkSelection";
 import { deleteWorkspaceDocuments } from "@/features/workspace-actions/api/workspaceActions";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 const statusItems: WorkspaceOutputStatus[] = ["draft", "exported"];
 
@@ -37,7 +37,7 @@ export function OutputsListView({
   status: WorkspaceOutputStatus;
   workspaceData?: WorkspaceUiData | null;
 }) {
-  const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const outputOverridesSnapshot = useSyncExternalStore(
     subscribeOutputOverrides,
     getOutputOverridesSnapshot,
@@ -80,7 +80,7 @@ export function OutputsListView({
       return false;
     }
     selection.clear();
-    router.refresh();
+    await invalidateWorkspace("outputs");
     return true;
   }
 

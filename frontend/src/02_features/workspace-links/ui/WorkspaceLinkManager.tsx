@@ -9,7 +9,6 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import { getLogHref, getMemoryHref, getOutputHref, getTaskHref } from "@/entities/workspace/model/data";
 import {
@@ -27,6 +26,7 @@ import type {
   WorkspaceTaskLinkItem,
   WorkspaceUiData,
 } from "@/entities/workspace/model/workspaceTypes";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 type NodeKind = WorkspaceNodeKind;
 type NodeRef = { kind: NodeKind; id: string };
@@ -83,7 +83,7 @@ export function WorkspaceLinkManager({
 }: {
   workspaceData: WorkspaceUiData;
 }) {
-  const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [fromValue, setFromValue] = useState("");
   const [toValue, setToValue] = useState("");
   const [taskRelation, setTaskRelation] =
@@ -184,7 +184,7 @@ export function WorkspaceLinkManager({
 
     setFromValue("");
     setToValue("");
-    router.refresh();
+    await invalidateWorkspace("links");
   }
 
   async function deleteLink(connection: ListedConnection) {
@@ -216,7 +216,7 @@ export function WorkspaceLinkManager({
       return;
     }
 
-    router.refresh();
+    await invalidateWorkspace("links");
   }
 
   return (

@@ -16,6 +16,8 @@ import { ActivityView } from "@/pages/activity/ui/ActivityView";
 import { OutputsListView } from "@/pages/outputs/ui/OutputsListView";
 import { MemoryListView } from "@/pages/memory/ui/MemoryViews";
 import { WorkspaceGraphView } from "@/widgets/workspace-graph/ui/WorkspaceGraphView";
+import { WorkspaceCreateView } from "@/pages/workspace-create/ui/WorkspaceCreateView";
+import { ManageView } from "@/pages/workspace-manage/ui/ManageView";
 import type { LogListTypeFilter } from "@/entities/workspace/model/data";
 import {
   buildWorkspaceUiData,
@@ -357,6 +359,23 @@ export function WorkspaceActivityQueryView({ requestedDate }: { requestedDate?: 
           selectedLogs={activity.data?.logs ?? []}
         />
       </QueryState>
+    </WorkspaceRouteSection>
+  );
+}
+
+export function WorkspaceCreateQueryView() {
+  return (
+    <WorkspaceRouteSection label="New workspace">
+      <WorkspaceCreateView isLoggedIn />
+    </WorkspaceRouteSection>
+  );
+}
+
+export function WorkspaceManageQueryView() {
+  const { bootstrap } = useWorkspaceApp();
+  return (
+    <WorkspaceRouteSection label="Manage workspaces">
+      <ManageView isLoggedIn workspaces={bootstrap.workspaces} />
     </WorkspaceRouteSection>
   );
 }

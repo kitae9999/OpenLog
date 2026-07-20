@@ -20,6 +20,7 @@ import {
 import { createOutputOverride } from "@/features/document-overrides/model/outputOverrides";
 import { createWorkspaceOutput } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function OutputCreateView({
   isLoggedIn,
@@ -31,6 +32,7 @@ export function OutputCreateView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const tasks = workspaceData?.tasks ?? [];
   const logs = workspaceData?.logs ?? [];
   const initialTask = tasks.find((task) => task.id === initialTaskId);
@@ -117,7 +119,7 @@ export function OutputCreateView({
       }
 
       router.push(result.href);
-      router.refresh();
+      await invalidateWorkspace("outputs");
       return;
     }
 
@@ -134,7 +136,7 @@ export function OutputCreateView({
 
     setIsSaving(false);
     router.push(getOutputHref(output.id));
-    router.refresh();
+    await invalidateWorkspace("outputs");
   }
 
   return (

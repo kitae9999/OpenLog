@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
@@ -16,6 +15,7 @@ import {
   updateWorkspaceTodoDone,
 } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -30,7 +30,7 @@ export function PlannerView({
   todos: WorkspaceTodoItem[] | null;
   workspaceData: WorkspaceUiData;
 }) {
-  const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [title, setTitle] = useState("");
   const [taskId, setTaskId] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -71,7 +71,7 @@ export function PlannerView({
     }
 
     setTitle("");
-    router.refresh();
+    await invalidateWorkspace("todos");
   }
 
   async function toggleTodo(todo: WorkspaceTodoItem) {
@@ -88,7 +88,7 @@ export function PlannerView({
       setError(result.message ?? "Failed to update todo.");
       return;
     }
-    router.refresh();
+    await invalidateWorkspace("todos");
   }
 
   async function deleteTodo(todoId: string) {
@@ -104,7 +104,7 @@ export function PlannerView({
       setError(result.message ?? "Failed to delete todo.");
       return;
     }
-    router.refresh();
+    await invalidateWorkspace("todos");
   }
 
   return (

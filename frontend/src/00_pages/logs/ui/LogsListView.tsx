@@ -32,6 +32,7 @@ import {
 } from "@/features/document-selection/ui/DocumentBulkSelection";
 import { deleteWorkspaceDocuments } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 type SortFilter = "newest" | "oldest";
 
@@ -45,6 +46,7 @@ export function LogsListView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const searchParams = useSearchParams();
   const tasks = workspaceData?.tasks ?? [];
   const logs = useMemo(() => {
@@ -117,7 +119,7 @@ export function LogsListView({
       return false;
     }
     selection.clear();
-    router.refresh();
+    await invalidateWorkspace("logs");
     return true;
   }
 

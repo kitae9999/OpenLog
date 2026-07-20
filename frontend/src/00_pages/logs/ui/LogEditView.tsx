@@ -20,6 +20,7 @@ import {
 } from "@/entities/workspace/model/data";
 import { saveLogOverride } from "@/features/document-overrides/model/logOverrides";
 import { updateWorkspaceLog } from "@/features/workspace-actions/api/workspaceActions";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function LogEditView({
   log,
@@ -29,6 +30,7 @@ export function LogEditView({
   workspaceId?: string;
 }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [title, setTitle] = useState(log.title);
   const [body, setBody] = useState(() => getLogBody(log));
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +97,7 @@ export function LogEditView({
       }
 
       router.push(getLogHref(log.id));
-      router.refresh();
+      await invalidateWorkspace("logs");
       return;
     }
 
@@ -105,7 +107,7 @@ export function LogEditView({
     });
     setIsSaving(false);
     router.push(getLogHref(log.id));
-    router.refresh();
+    await invalidateWorkspace("logs");
   }
 
   return (

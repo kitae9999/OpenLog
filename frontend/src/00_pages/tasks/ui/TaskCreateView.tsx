@@ -15,6 +15,7 @@ import { getTabHref, getTaskHref, getTasksHref } from "@/entities/workspace/mode
 import { createTaskOverride } from "@/features/document-overrides/model/taskOverrides";
 import { createWorkspaceTask } from "@/features/workspace-actions/api/workspaceActions";
 import type { WorkspaceUiData } from "@/entities/workspace/model/workspaceTypes";
+import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 type TaskStatus = "TODO" | "DOING" | "DONE";
 
@@ -32,6 +33,7 @@ export function TaskCreateView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [status, setStatus] = useState<TaskStatus>("TODO");
@@ -96,7 +98,7 @@ export function TaskCreateView({
       }
 
       router.push(result.href);
-      router.refresh();
+      await invalidateWorkspace("tasks");
       return;
     }
 
@@ -109,7 +111,7 @@ export function TaskCreateView({
 
     setIsSaving(false);
     router.push(getTaskHref(task.id));
-    router.refresh();
+    await invalidateWorkspace("tasks");
   }
 
   return (
