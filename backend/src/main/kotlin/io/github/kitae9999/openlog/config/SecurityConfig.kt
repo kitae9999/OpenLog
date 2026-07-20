@@ -87,6 +87,9 @@ class SecurityConfig(
                     // notifications — 전부 인증 필요
                     .requestMatchers("/notifications/**").authenticated()
 
+                    // app bootstrap — 인증된 앱 공통 상태
+                    .requestMatchers("/app/**").authenticated()
+
                     // media — 조회 공개(컨트롤러에서 optional auth), 업로드/완료 처리 인증 필요
                     .requestMatchers(HttpMethod.GET, "/media/assets/*").permitAll()
                     .requestMatchers(HttpMethod.POST, "/media/upload-url").authenticated()

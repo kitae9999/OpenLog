@@ -2,6 +2,7 @@ package io.github.kitae9999.openlog.notification
 
 import io.github.kitae9999.openlog.notification.dto.NotificationListResponse
 import io.github.kitae9999.openlog.notification.dto.NotificationReadResponse
+import io.github.kitae9999.openlog.notification.dto.NotificationSummaryResponse
 import io.github.kitae9999.openlog.user.entity.User
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
@@ -16,6 +17,13 @@ import org.springframework.web.bind.annotation.RestController
 class NotificationController(
     private val notificationService: NotificationService,
 ) {
+    @GetMapping("/summary")
+    fun getSummary(
+        @AuthenticationPrincipal user: User,
+    ): NotificationSummaryResponse {
+        return notificationService.getSummary(requireNotNull(user.id))
+    }
+
     @GetMapping
     fun getNotifications(
         @AuthenticationPrincipal user: User,

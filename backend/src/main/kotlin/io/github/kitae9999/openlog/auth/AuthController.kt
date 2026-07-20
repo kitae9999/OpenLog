@@ -6,6 +6,7 @@ import io.github.kitae9999.openlog.auth.dto.DeviceStartResponse
 import io.github.kitae9999.openlog.auth.dto.DeviceTokenRequest
 import io.github.kitae9999.openlog.auth.dto.DeviceTokenResponse
 import io.github.kitae9999.openlog.auth.dto.MeResponse
+import io.github.kitae9999.openlog.auth.dto.toMeResponse
 import io.github.kitae9999.openlog.auth.dto.RefreshTokenRequest
 import io.github.kitae9999.openlog.auth.dto.RefreshTokenResponse
 import io.github.kitae9999.openlog.auth.exception.InvalidRefreshTokenException
@@ -230,18 +231,6 @@ class AuthController(
             )
             .location(URI.create(resolvePostLoginRedirect(currentUser, oauthState.returnTo)))
             .build()
-    }
-
-    private fun User.toMeResponse(): MeResponse {
-        return MeResponse(
-            id = requireNotNull(id),
-            username = username,
-            nickname = nickname,
-            email = email,
-            profileImageUrl = profileImageUrl,
-            bio = bio,
-            isOnboardingComplete = isOnboardingComplete(),
-        )
     }
 
     private fun expireWebAuthCookies(response: HttpServletResponse) {
