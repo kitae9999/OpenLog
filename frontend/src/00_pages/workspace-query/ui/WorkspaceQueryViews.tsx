@@ -484,7 +484,7 @@ export function WorkspaceAgentSettingsQueryView({
   const { bootstrap } = useWorkspaceApp();
   const settings = useQuery({
     queryKey: ["workspace", workspaceId, "agent"],
-    queryFn: () => fetchWorkspaceAgentSettings(bootstrap, workspaceId),
+    queryFn: () => fetchWorkspaceAgentSettings(bootstrap.workspaces, workspaceId),
     ...workspaceQueryPolicy,
   });
   return (

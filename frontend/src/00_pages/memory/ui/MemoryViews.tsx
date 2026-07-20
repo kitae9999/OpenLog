@@ -27,7 +27,6 @@ import type { WorkspaceMemoryItem, WorkspaceUiData } from "@/entities/workspace/
 import { useInvalidateWorkspaceQueries } from "@/features/workspace-query/model/useInvalidateWorkspaceQueries";
 
 export function MemoryListView({ workspaceData }: { workspaceData?: WorkspaceUiData | null }) {
-  const router = useRouter();
   const invalidateWorkspace = useInvalidateWorkspaceQueries();
   const memories = workspaceData?.memories ?? [];
   const selection = useDocumentSelection(memories.map((memory) => memory.id));

@@ -8,13 +8,13 @@ import type {
   WorkspaceWorkStatus,
 } from "@/entities/workspace/model/data";
 import type {
+  ManagedWorkspace,
   WorkspaceActivity,
   WorkspaceCrossLinkItem,
   WorkspaceMemoryItem,
   WorkspaceUiData,
 } from "@/entities/workspace/model/workspaceTypes";
 import type { WorkspaceAgentSettingsData } from "@/entities/workspace/api/workspaceAgentApi";
-import type { AppBootstrap } from "@/features/app-session/model/appBootstrap";
 import { clientApi } from "@/shared/api/clientApi";
 import { formatWorkspaceDateLabel } from "@/shared/lib/formatWorkspaceDateLabel";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
@@ -304,13 +304,13 @@ export async function fetchWorkspaceMemory(workspaceId: string, memoryId: string
 }
 
 export async function fetchWorkspaceAgentSettings(
-  bootstrap: AppBootstrap,
+  workspaces: ManagedWorkspace[],
   workspaceId: string,
 ): Promise<WorkspaceAgentSettingsData> {
   const guide = await clientApi<WorkspaceAgentGuideResponse>(
     `/api/workspaces/${workspaceId}/agent-guide`,
   );
-  const workspace = bootstrap.workspaces.find((item) => item.id === workspaceId);
+  const workspace = workspaces.find((item) => item.id === workspaceId);
   if (!workspace) throw new Error("Workspace not found.");
   return {
     workspace,
@@ -324,7 +324,10 @@ export async function fetchWorkspaceAgentSettings(
 }
 
 export function buildWorkspaceUiData(
-  bootstrap: AppBootstrap,
+  bootstrap: {
+    workspaces: ManagedWorkspace[];
+    navigationSummary: WorkspaceUiData["navigationSummary"] | null;
+  },
   workspaceId: string,
   partial: Partial<WorkspaceUiData>,
 ): WorkspaceUiData | null {

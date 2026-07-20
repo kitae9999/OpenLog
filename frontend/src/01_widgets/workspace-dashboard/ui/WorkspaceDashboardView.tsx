@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { useMutation } from "@tanstack/react-query";
 import { cn } from "@/shared/lib/cn";
 import { todayIso } from "@/shared/lib/todayIso";
 import { GitHubIcon } from "@/shared/ui/icons";
@@ -989,6 +990,9 @@ function TodosSection({
   const [error, setError] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [isPending, startTransition] = useTransition();
+  const todoMutation = useMutation({
+    mutationFn: (mutation: () => Promise<WorkspaceActionResult>) => mutation(),
+  });
   const openTodos = localTodos.filter((todo) => !todo.done);
   const canMutate =
     !isPreview && (Boolean(workspaceId) || Boolean(createTodoOverride));
@@ -1020,7 +1024,9 @@ function TodosSection({
       setError(null);
 
       startTransition(async () => {
-        const result = await createTodoOverride(trimmed);
+        const result = await todoMutation.mutateAsync(() =>
+          createTodoOverride(trimmed),
+        );
         if (!result.ok) {
           setLocalTodos((current) =>
             current.filter((todo) => todo.id !== optimisticId),
@@ -1057,11 +1063,13 @@ function TodosSection({
     setError(null);
 
     startTransition(async () => {
-      const result = await createWorkspaceTodo({
-        workspaceId,
-        title: trimmed,
-        plannedFor: todayIso(),
-      });
+      const result = await todoMutation.mutateAsync(() =>
+        createWorkspaceTodo({
+          workspaceId,
+          title: trimmed,
+          plannedFor: todayIso(),
+        }),
+      );
 
       if (!result.ok) {
         setLocalTodos((current) =>
@@ -1105,11 +1113,13 @@ function TodosSection({
     }
 
     startTransition(async () => {
-      const result = await updateWorkspaceTodoDone({
-        workspaceId,
-        todoId,
-        done: nextDone,
-      });
+      const result = await todoMutation.mutateAsync(() =>
+        updateWorkspaceTodoDone({
+          workspaceId,
+          todoId,
+          done: nextDone,
+        }),
+      );
 
       if (!result.ok) {
         setLocalTodos((current) =>
@@ -1143,7 +1153,9 @@ function TodosSection({
     setError(null);
 
     startTransition(async () => {
-      const result = await deleteWorkspaceTodo({ workspaceId, todoId });
+      const result = await todoMutation.mutateAsync(() =>
+        deleteWorkspaceTodo({ workspaceId, todoId }),
+      );
       if (!result.ok) {
         setLocalTodos(previousTodos);
         setError(result.message ?? "Failed to remove todo.");
