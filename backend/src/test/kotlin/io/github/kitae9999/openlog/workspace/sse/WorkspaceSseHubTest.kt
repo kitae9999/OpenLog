@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
+import java.util.function.Consumer
 
 class WorkspaceSseHubTest {
     @Test
@@ -51,5 +52,56 @@ class WorkspaceSseHubTest {
         assertThat(
             meterRegistry.get("openlog.sse.connections.active").gauge().value(),
         ).isZero()
+    }
+
+    @Test
+    fun `completion callback unregisters subscriber`() {
+        val hub = WorkspaceSseHub(SimpleMeterRegistry())
+        val emitter = RecordingSseEmitter()
+
+        hub.register(3L, emitter)
+        emitter.completionCallback.run()
+
+        assertThat(hub.subscriberCount(3L)).isZero()
+    }
+
+    @Test
+    fun `timeout callback unregisters subscriber`() {
+        val hub = WorkspaceSseHub(SimpleMeterRegistry())
+        val emitter = RecordingSseEmitter()
+
+        hub.register(3L, emitter)
+        emitter.timeoutCallback.run()
+
+        assertThat(hub.subscriberCount(3L)).isZero()
+    }
+
+    @Test
+    fun `error callback unregisters subscriber`() {
+        val hub = WorkspaceSseHub(SimpleMeterRegistry())
+        val emitter = RecordingSseEmitter()
+
+        hub.register(3L, emitter)
+        emitter.errorCallback.accept(IllegalStateException("disconnected"))
+
+        assertThat(hub.subscriberCount(3L)).isZero()
+    }
+
+    private class RecordingSseEmitter : SseEmitter(0L) {
+        lateinit var completionCallback: Runnable
+        lateinit var timeoutCallback: Runnable
+        lateinit var errorCallback: Consumer<Throwable>
+
+        override fun onCompletion(callback: Runnable) {
+            completionCallback = callback
+        }
+
+        override fun onTimeout(callback: Runnable) {
+            timeoutCallback = callback
+        }
+
+        override fun onError(callback: Consumer<Throwable>) {
+            errorCallback = callback
+        }
     }
 }
