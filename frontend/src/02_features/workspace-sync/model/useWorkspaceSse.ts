@@ -13,14 +13,19 @@ type WorkspaceChangedPayload = {
   occurredAt: string;
 };
 
+const HIDDEN_DISCONNECT_GRACE_MS = 60_000;
+
 export function useWorkspaceSse(workspaceId: string | null) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!workspaceId) return;
     const currentWorkspaceId = workspaceId;
-    const controller = new AbortController();
     const timers = new Map<string, number>();
+    let disposed = false;
+    let connectionController: AbortController | null = null;
+    let hiddenTimer: number | null = null;
+    let pausedForVisibility = document.hidden;
 
     function scheduleInvalidation(payload: WorkspaceChangedPayload) {
       const zone = normalizeZone(payload.zone || payload.entityType);
@@ -35,18 +40,66 @@ export function useWorkspaceSse(workspaceId: string | null) {
       );
     }
 
-    void subscribe({
-      workspaceId: currentWorkspaceId,
-      signal: controller.signal,
-      onEvent: scheduleInvalidation,
-      onUnauthorized: () => {
-        queryClient.removeQueries({ queryKey: appQueryKeys.session });
-        window.location.assign("/");
-      },
-    });
+    function openConnection() {
+      if (disposed || document.hidden || connectionController) return;
+
+      const controller = new AbortController();
+      connectionController = controller;
+
+      void subscribe({
+        workspaceId: currentWorkspaceId,
+        signal: controller.signal,
+        onEvent: scheduleInvalidation,
+        onUnauthorized: () => {
+          queryClient.removeQueries({ queryKey: appQueryKeys.session });
+          window.location.assign("/");
+        },
+      }).finally(() => {
+        if (connectionController === controller) {
+          connectionController = null;
+          clearHiddenTimer();
+        }
+      });
+    }
+
+    function closeConnection() {
+      const controller = connectionController;
+      connectionController = null;
+      controller?.abort();
+    }
+
+    function clearHiddenTimer() {
+      if (hiddenTimer === null) return;
+      window.clearTimeout(hiddenTimer);
+      hiddenTimer = null;
+    }
+
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        if (connectionController === null || hiddenTimer !== null) return;
+        hiddenTimer = window.setTimeout(() => {
+          hiddenTimer = null;
+          if (!document.hidden) return;
+          pausedForVisibility = true;
+          closeConnection();
+        }, HIDDEN_DISCONNECT_GRACE_MS);
+        return;
+      }
+
+      clearHiddenTimer();
+      if (!pausedForVisibility) return;
+      pausedForVisibility = false;
+      openConnection();
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    openConnection();
 
     return () => {
-      controller.abort();
+      disposed = true;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearHiddenTimer();
+      closeConnection();
       for (const timer of timers.values()) window.clearTimeout(timer);
       timers.clear();
     };

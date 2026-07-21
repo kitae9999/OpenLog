@@ -23,6 +23,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         cookie: request.headers.get("cookie") ?? "",
       },
       cache: "no-store",
+      signal: request.signal,
     },
   ).catch(() => null);
 
