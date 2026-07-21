@@ -49,7 +49,7 @@ export function Header({
             ) : null}
 
             <Link
-              href="/"
+              href={isLoggedIn ? "/dashboard" : "/"}
               className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
             >
               <OpenLogLogo className="w-[132px]" priority sizes="132px" />
