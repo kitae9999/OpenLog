@@ -1,3 +1,7 @@
 spring:
   jpa:
     open-in-view: false
+
+openlog:
+  workspace-sse:
+    timeout-ms: ${OPENLOG_WORKSPACE_SSE_TIMEOUT_MS:600000}
