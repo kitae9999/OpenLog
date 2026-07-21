@@ -2,6 +2,7 @@ package io.github.kitae9999.openlog.workspace.sse
 
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workspace.WorkspaceAccessResolver
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
@@ -15,6 +16,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 class WorkspaceSseController(
     private val workspaceAccessResolver: WorkspaceAccessResolver,
     private val workspaceSseHub: WorkspaceSseHub,
+    @Value("\${openlog.workspace-sse.timeout-ms:600000}")
+    private val emitterTimeoutMs: Long,
 ) {
     @GetMapping(
         path = ["/{workspaceId}/events"],
@@ -27,7 +30,8 @@ class WorkspaceSseController(
         workspaceAccessResolver.requireOwnedWorkspace(requireNotNull(user.id), workspaceId)
 
         // 0L = no timeout; heartbeat keeps the connection alive
-        val emitter = SseEmitter(0L)
+        // Use the configured finite timeout instead to bound orphaned connections.
+        val emitter = SseEmitter(emitterTimeoutMs)
         workspaceSseHub.register(workspaceId, emitter)
 
         try {

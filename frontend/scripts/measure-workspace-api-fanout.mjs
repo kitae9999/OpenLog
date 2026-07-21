@@ -316,11 +316,13 @@ async function measureDashboardRefreshUseCases(browser) {
   await page.goto(`${appUrl}/dashboard`, { waitUntil: "domcontentloaded" });
   await page.getByRole("heading", { name: "Fanout Test" }).waitFor();
   await page.waitForTimeout(500);
+  await waitForOpenStreamCount(1);
 
   counts.clear();
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.getByRole("heading", { name: "Fanout Test" }).waitFor();
   await page.waitForTimeout(500);
+  await waitForOpenStreamCount(1);
   printAndAssertCounts("manual dashboard reload", {
     maxRequestCount: 3,
     required: {
@@ -366,7 +368,45 @@ async function measureDashboardRefreshUseCases(browser) {
     forbidden: ["/auth/me", "/workspaces", "/notifications"],
   });
 
+  await page.clock.install();
+  await setDocumentVisibility(page, "hidden");
+  await page.clock.fastForward(59_000);
+  assertOpenStreamCount(1, "hidden SSE grace period");
+  await page.clock.fastForward(1_000);
+  await waitForOpenStreamCount(0);
+
+  await setDocumentVisibility(page, "visible");
+  await waitForOpenStreamCount(1);
+
+  counts.clear();
+  const resumedTitle = "Visible reconnect dashboard todo";
+  dashboardTodos.push({
+    id: dashboardTodos.length + 1,
+    title: resumedTitle,
+    done: false,
+    taskId: null,
+    plannedFor: new Date().toISOString().slice(0, 10),
+  });
+  broadcastWorkspaceChange({
+    zone: "todos",
+    entityType: "TODO",
+    entityId: String(dashboardTodos.length),
+    action: "CREATED",
+  });
+  await page.getByText(resumedTitle, { exact: true }).waitFor();
+  printAndAssertCounts("visible SSE reconnect refresh", {
+    maxRequestCount: 1,
+    required: { "/workspaces/1/dashboard": 1 },
+    forbidden: [
+      "/auth/me",
+      "/workspaces",
+      "/notifications",
+      "/workspaces/1/events",
+    ],
+  });
+
   await context.close();
+  await waitForOpenStreamCount(0);
 }
 
 async function measureRapidSidebarNavigation(browser) {
@@ -397,6 +437,7 @@ async function measureRapidSidebarNavigation(browser) {
     }),
   );
   await new Promise((resolve) => setTimeout(resolve, 500));
+  await waitForOpenStreamCount(clientCount);
 
   const total = [...counts.values()].reduce((sum, count) => sum + count, 0);
   printAndAssertCounts(`${clientCount} concurrent rapid sidebar navigation flows`, {
@@ -412,6 +453,38 @@ async function measureRapidSidebarNavigation(browser) {
   }
 
   await Promise.all(sessions.map(({ context }) => context.close()));
+  await waitForOpenStreamCount(0);
+}
+
+async function setDocumentVisibility(page, visibilityState) {
+  await page.evaluate((nextVisibilityState) => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => nextVisibilityState === "hidden",
+    });
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => nextVisibilityState,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  }, visibilityState);
+}
+
+function assertOpenStreamCount(expected, label) {
+  if (openStreams.size !== expected) {
+    throw new Error(
+      `${label}: expected ${expected} open SSE stream(s), received ${openStreams.size}.`,
+    );
+  }
+}
+
+async function waitForOpenStreamCount(expected, timeoutMs = 5_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (openStreams.size === expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  assertOpenStreamCount(expected, "SSE stream cleanup");
 }
 
 function broadcastWorkspaceChange({ zone, entityType, entityId, action }) {
@@ -493,4 +566,6 @@ async function measureScenario({
       throw new Error(`${label} unexpectedly requested ${pathname}.`);
     }
   }
+
+  await waitForOpenStreamCount(0);
 }
