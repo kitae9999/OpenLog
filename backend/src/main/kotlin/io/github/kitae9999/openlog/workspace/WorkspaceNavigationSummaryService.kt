@@ -18,9 +18,10 @@ class WorkspaceNavigationSummaryService(
     @Transactional(readOnly = true)
     fun getSummary(userId: Long, workspaceId: Long): WorkspaceNavigationSummaryResponse {
         workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
-        val doingTaskCount = workspaceTaskRepository.countByWorkspaceIdAndStatus(workspaceId, TaskStatus.DOING)
-        val activeTaskCount = doingTaskCount.takeIf { it > 0 }
-            ?: workspaceTaskRepository.countByWorkspaceIdAndStatus(workspaceId, TaskStatus.TODO)
+        val activeTaskCount = workspaceTaskRepository.countByWorkspaceIdAndStatusIn(
+            workspaceId,
+            listOf(TaskStatus.TODO, TaskStatus.DOING),
+        )
 
         return WorkspaceNavigationSummaryResponse(
             activeTaskCount = activeTaskCount,

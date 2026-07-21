@@ -1,4 +1,7 @@
-import { getLogHref } from "@/entities/workspace/model/data";
+import {
+  getLogHref,
+  isActiveTaskStatus,
+} from "@/entities/workspace/model/data";
 import type {
   WorkspaceLogItem,
   WorkspaceOutputStatus,
@@ -360,8 +363,6 @@ export function buildWorkspaceUiData(
 function mapDashboard(response: WorkspaceDashboardResponse): Partial<WorkspaceUiData> {
   const tasks = response.tasks.map(mapTask);
   const logs = response.logs.map(mapLog);
-  const doingCount = tasks.filter((task) => task.status === "doing").length;
-  const todoCount = tasks.filter((task) => task.status === "todo").length;
 
   return {
     tasks,
@@ -391,7 +392,8 @@ function mapDashboard(response: WorkspaceDashboardResponse): Partial<WorkspaceUi
     memories: response.memories.map(mapMemory),
     activity: response.activity,
     navigationSummary: response.navigationSummary ?? {
-      activeTaskCount: doingCount || todoCount,
+      activeTaskCount: tasks.filter((task) => isActiveTaskStatus(task.status))
+        .length,
       logsCount: logs.length,
       openIssuesCount: logs.filter(
         (log) => log.kind === "ISSUE" && log.status !== "CLOSED",

@@ -30,6 +30,7 @@ import {
   getTabHref,
   getTasksHref,
   getWorkspaceGraphHref,
+  isActiveTaskStatus,
   logsSubnavItems,
   recommendedTopics,
   topContributors,
@@ -598,10 +599,9 @@ export function HomeSidebar({
     workspaceData?.workspaceId ??
     storedWorkspaceId ??
     workspaces[0]?.id;
-  const doingTaskCount =
+  const activeTaskCount =
     navigationSummary?.activeTaskCount ??
-    (sidebarTasks.filter((task) => task.status === "doing").length ||
-      sidebarTasks.filter((task) => task.status === "todo").length);
+    sidebarTasks.filter((task) => isActiveTaskStatus(task.status)).length;
   const logsCount = navigationSummary?.logsCount ?? sidebarLogs.length;
   const openIssuesCount =
     navigationSummary?.openIssuesCount ??
@@ -641,7 +641,7 @@ export function HomeSidebar({
               <SidebarLink
                 href={getTasksHref()}
                 label="Tasks"
-                badge={doingTaskCount > 0 ? String(doingTaskCount) : undefined}
+                badge={activeTaskCount > 0 ? String(activeTaskCount) : undefined}
                 active={workspaceNav === "tasks"}
                 icon={<IconTasks className="size-[15px]" />}
                 onNavigate={onNavigate}

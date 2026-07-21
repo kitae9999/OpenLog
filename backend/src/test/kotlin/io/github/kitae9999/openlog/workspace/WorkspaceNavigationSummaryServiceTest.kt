@@ -31,8 +31,13 @@ class WorkspaceNavigationSummaryServiceTest {
     }
 
     @Test
-    fun `summary uses doing tasks before todo tasks and counts logs without loading rows`() {
-        given(workspaceTaskRepository.countByWorkspaceIdAndStatus(10L, TaskStatus.DOING)).willReturn(3)
+    fun `summary counts todo and doing tasks as active without loading rows`() {
+        given(
+            workspaceTaskRepository.countByWorkspaceIdAndStatusIn(
+                10L,
+                listOf(TaskStatus.TODO, TaskStatus.DOING),
+            ),
+        ).willReturn(7)
         given(workspaceLogRepository.countByWorkspaceId(10L)).willReturn(12)
         given(
             workspaceLogRepository.countByWorkspaceIdAndKindAndStatus(10L, LogKind.ISSUE, LogStatus.OPEN),
@@ -40,17 +45,24 @@ class WorkspaceNavigationSummaryServiceTest {
 
         val response = service.getSummary(1L, 10L)
 
-        assertThat(response.activeTaskCount).isEqualTo(3)
+        assertThat(response.activeTaskCount).isEqualTo(7)
         assertThat(response.logsCount).isEqualTo(12)
         assertThat(response.openIssuesCount).isEqualTo(2)
         verify(workspaceAccessResolver).requireOwnedWorkspace(1L, 10L)
-        verify(workspaceTaskRepository).countByWorkspaceIdAndStatus(10L, TaskStatus.DOING)
+        verify(workspaceTaskRepository).countByWorkspaceIdAndStatusIn(
+            10L,
+            listOf(TaskStatus.TODO, TaskStatus.DOING),
+        )
     }
 
     @Test
-    fun `summary falls back to todo count when there are no doing tasks`() {
-        given(workspaceTaskRepository.countByWorkspaceIdAndStatus(10L, TaskStatus.DOING)).willReturn(0)
-        given(workspaceTaskRepository.countByWorkspaceIdAndStatus(10L, TaskStatus.TODO)).willReturn(4)
+    fun `summary returns zero when there are no active tasks`() {
+        given(
+            workspaceTaskRepository.countByWorkspaceIdAndStatusIn(
+                10L,
+                listOf(TaskStatus.TODO, TaskStatus.DOING),
+            ),
+        ).willReturn(0)
         given(workspaceLogRepository.countByWorkspaceId(10L)).willReturn(0)
         given(
             workspaceLogRepository.countByWorkspaceIdAndKindAndStatus(10L, LogKind.ISSUE, LogStatus.OPEN),
@@ -58,7 +70,6 @@ class WorkspaceNavigationSummaryServiceTest {
 
         val response = service.getSummary(1L, 10L)
 
-        assertThat(response.activeTaskCount).isEqualTo(4)
-        verify(workspaceTaskRepository).countByWorkspaceIdAndStatus(10L, TaskStatus.TODO)
+        assertThat(response.activeTaskCount).isZero()
     }
 }
