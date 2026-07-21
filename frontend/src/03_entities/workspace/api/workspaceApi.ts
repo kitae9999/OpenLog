@@ -7,6 +7,7 @@ import { formatWorkspaceDateLabel } from "@/shared/lib/formatWorkspaceDateLabel"
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import {
   getLogHref,
+  isActiveTaskStatus,
   type WorkspaceLogItem,
   type WorkspaceOutputStatus,
   type WorkspaceTaskOutput,
@@ -810,11 +811,9 @@ function buildNavigationSummary(
   tasks: WorkspaceWorkItem[],
   logs: WorkspaceLogItem[],
 ) {
-  const doingTaskCount = tasks.filter((task) => task.status === "doing").length;
-  const todoTaskCount = tasks.filter((task) => task.status === "todo").length;
-
   return {
-    activeTaskCount: doingTaskCount || todoTaskCount,
+    activeTaskCount: tasks.filter((task) => isActiveTaskStatus(task.status))
+      .length,
     logsCount: logs.length,
     openIssuesCount: logs.filter(
       (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
