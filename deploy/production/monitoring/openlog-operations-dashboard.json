@@ -1448,6 +1448,6 @@
   "timezone": "browser",
   "title": "OpenLog Operations",
   "uid": "openlog-operations",
-  "version": 3,
+  "version": 5,
   "weekStart": ""
 }
