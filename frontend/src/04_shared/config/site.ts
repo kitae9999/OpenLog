@@ -8,12 +8,12 @@ export const SITE_URL = resolveSiteUrl();
 function resolveSiteUrl(): string {
   const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (!configuredUrl) {
-    return "https://openlog.kr";
+    return "https://www.openlog.kr";
   }
 
   try {
     return new URL(configuredUrl).toString().replace(/\/$/, "");
   } catch {
-    return "https://openlog.kr";
+    return "https://www.openlog.kr";
   }
 }

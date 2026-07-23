@@ -12,14 +12,16 @@ test.describe("SEO metadata and crawler controls", () => {
     expect(body).toContain("Allow: /");
     expect(body).toContain("Disallow: /e2e/");
     expect(body).toContain("Disallow: /*/posts/*/suggestions");
-    expect(body).toContain("Sitemap: https://openlog.kr/sitemap.xml");
-    expect(body).toContain("Host: https://openlog.kr");
+    expect(body).toContain("Sitemap: https://www.openlog.kr/sitemap.xml");
+    expect(body).toContain("Host: https://www.openlog.kr");
   });
 
   test("serves a sitemap with the canonical site root", async ({ request }) => {
     const response = await request.get("/sitemap.xml");
     expect(response.ok()).toBeTruthy();
-    expect(await response.text()).toContain("<loc>https://openlog.kr</loc>");
+    expect(await response.text()).toContain(
+      "<loc>https://www.openlog.kr</loc>",
+    );
   });
 
   test("adds root metadata and noindex headers to private routes", async ({
@@ -37,7 +39,7 @@ test.describe("SEO metadata and crawler controls", () => {
     );
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
-      "https://openlog.kr",
+      "https://www.openlog.kr",
     );
     await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute(
       "content",
@@ -51,7 +53,7 @@ test.describe("SEO metadata and crawler controls", () => {
     await page.goto("/?tab=workspace");
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
-      "https://openlog.kr",
+      "https://www.openlog.kr",
     );
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
       "content",
