@@ -10,8 +10,68 @@ const apiUrl = `http://127.0.0.1:${apiPort}`;
 const clientCount = 5;
 
 const counts = new Map();
+const responseBytes = new Map();
 const openStreams = new Set();
 const dashboardTodos = [];
+const now = new Date().toISOString();
+const dashboardTasks = [
+  {
+    id: 1,
+    title: "Initial task",
+    description: "Task used by the workspace refresh benchmark.",
+    content: "## Benchmark task",
+    status: "DOING",
+    createdAt: now,
+    updatedAt: now,
+  },
+];
+const dashboardLogs = [
+  {
+    id: 1,
+    kind: "NOTE",
+    status: "NONE",
+    title: "Initial log",
+    summary: "Log used by the workspace refresh benchmark.",
+    content: "## Benchmark log",
+    taskId: 1,
+    createdAt: now,
+    updatedAt: now,
+    closedAt: null,
+  },
+];
+const dashboardOutputs = [
+  {
+    id: 1,
+    status: "DRAFT",
+    title: "Initial output",
+    taskCount: 1,
+    logCount: 1,
+    taskIds: [1],
+    logIds: [1],
+    updatedAt: now,
+    exportedAt: null,
+  },
+];
+const dashboardMemories = [
+  {
+    id: 1,
+    title: "Initial memory",
+    content: "Memory used by the workspace refresh benchmark.",
+    excerpt: "Memory used by the workspace refresh benchmark.",
+    task: { id: 1, title: "Initial task" },
+    originLog: { id: 1, title: "Initial log" },
+    createdAt: now,
+    updatedAt: now,
+  },
+];
+let dashboardWorkingBrief = {
+  title: "Initial brief",
+  prose: "Working brief used by the workspace refresh benchmark.",
+  taskId: 1,
+  taskTitle: "Initial task",
+  branch: "benchmark/dashboard-refresh",
+  updatedAt: now,
+};
 const bootstrapResponse = {
   user: {
     id: 1,
@@ -53,13 +113,33 @@ function record(pathname) {
   counts.set(pathname, (counts.get(pathname) ?? 0) + 1);
 }
 
+function toLogSummary(log) {
+  return {
+    id: log.id,
+    kind: log.kind,
+    status: log.status,
+    title: log.title,
+    summary: log.summary,
+    taskId: log.taskId,
+    createdAt: log.createdAt,
+    updatedAt: log.updatedAt,
+  };
+}
+
 function json(response, status, value) {
+  const body = JSON.stringify(value);
+  const pathname = response.requestPathname ?? "unknown";
+  responseBytes.set(
+    pathname,
+    (responseBytes.get(pathname) ?? 0) + Buffer.byteLength(body),
+  );
   response.writeHead(status, { "Content-Type": "application/json" });
-  response.end(JSON.stringify(value));
+  response.end(body);
 }
 
 const mockApi = http.createServer((request, response) => {
   const url = new URL(request.url ?? "/", apiUrl);
+  response.requestPathname = url.pathname;
   record(url.pathname);
 
   if (url.pathname === "/app/bootstrap") {
@@ -104,24 +184,31 @@ const mockApi = http.createServer((request, response) => {
 
   if (url.pathname === "/workspaces/1/tasks") {
     json(response, 200, {
-      tasks: [],
+      tasks: dashboardTasks,
       nextCursor: null,
       hasNext: false,
     });
     return;
   }
 
+  if (url.pathname.startsWith("/workspaces/1/tasks/")) {
+    const taskId = Number(url.pathname.split("/").at(-1));
+    const task = dashboardTasks.find((item) => item.id === taskId);
+    json(response, task ? 200 : 404, task ?? { code: "NOT_FOUND" });
+    return;
+  }
+
   if (url.pathname === "/workspaces/1/dashboard") {
     json(response, 200, {
-      tasks: [],
-      logs: [],
+      tasks: dashboardTasks.slice(0, 20),
+      logs: dashboardLogs.slice(0, 6).map(toLogSummary),
       taskLinks: [],
       logLinks: [],
       crossLinks: [],
       todos: dashboardTodos,
-      outputs: [],
-      memories: [],
-      workingBrief: null,
+      outputs: dashboardOutputs.slice(0, 1),
+      memories: dashboardMemories.slice(0, 8),
+      workingBrief: dashboardWorkingBrief,
       activity: {
         from: url.searchParams.get("from"),
         to: url.searchParams.get("to"),
@@ -137,6 +224,84 @@ const mockApi = http.createServer((request, response) => {
     return;
   }
 
+  if (url.pathname === "/workspaces/1/dashboard/refresh") {
+    const zone = url.searchParams.get("zone");
+    const entityIds = url.searchParams
+      .getAll("entityIds")
+      .map(Number)
+      .filter(Number.isFinite);
+    const mode = entityIds.length === 1 ? "PATCH" : "REPLACE";
+    const navigationSummary = {
+      activeTaskCount: 0,
+      logsCount: dashboardLogs.length,
+      openIssuesCount: 0,
+    };
+
+    if (zone === "TASKS") {
+      const task =
+        mode === "PATCH"
+          ? dashboardTasks.find((item) => item.id === entityIds[0])
+          : null;
+      if (mode === "PATCH" && !task) {
+        json(response, 404, { code: "NOT_FOUND" });
+        return;
+      }
+      json(response, 200, {
+        zone,
+        mode,
+        task,
+        tasks: mode === "REPLACE" ? dashboardTasks.slice(0, 20) : [],
+        log: null,
+        logs: [],
+        linkedTask: null,
+        navigationSummary,
+        activity: null,
+      });
+      return;
+    }
+
+    if (zone === "LOGS") {
+      const log =
+        mode === "PATCH"
+          ? dashboardLogs.find((item) => item.id === entityIds[0])
+          : null;
+      if (mode === "PATCH" && !log) {
+        json(response, 404, { code: "NOT_FOUND" });
+        return;
+      }
+      const linkedTask =
+        log?.taskId === null || log?.taskId === undefined
+          ? null
+          : dashboardTasks.find((item) => item.id === log.taskId) ?? null;
+      json(response, 200, {
+        zone,
+        mode,
+        task: null,
+        tasks:
+          mode === "REPLACE"
+            ? dashboardTasks.slice(0, 20)
+            : [],
+        log,
+        logs:
+          mode === "REPLACE"
+            ? dashboardLogs.slice(0, 20).map(toLogSummary)
+            : [],
+        linkedTask,
+        navigationSummary,
+        activity: {
+          from: url.searchParams.get("from"),
+          to: url.searchParams.get("to"),
+          totalLogCount: dashboardLogs.length,
+          days: [],
+        },
+      });
+      return;
+    }
+
+    json(response, 400, { code: "BAD_ZONE" });
+    return;
+  }
+
   if (url.pathname === "/workspaces/1/navigation-summary") {
     json(response, 200, {
       activeTaskCount: 0,
@@ -146,26 +311,57 @@ const mockApi = http.createServer((request, response) => {
     return;
   }
 
+  if (url.pathname === "/workspaces/1/graph-view") {
+    json(response, 200, {
+      tasks: dashboardTasks,
+      logs: dashboardLogs.map(toLogSummary),
+      outputs: dashboardOutputs,
+      memories: dashboardMemories,
+      taskLinks: [],
+      logLinks: [],
+      crossLinks: [],
+    });
+    return;
+  }
+
   if (url.pathname === "/workspaces/1/logs") {
     json(response, 200, {
-      logs: [],
+      logs: dashboardLogs.map(toLogSummary),
       nextCursor: null,
       hasNext: false,
     });
+    return;
+  }
+
+  if (url.pathname.startsWith("/workspaces/1/logs/")) {
+    const logId = Number(url.pathname.split("/").at(-1));
+    const log = dashboardLogs.find((item) => item.id === logId);
+    json(response, log ? 200 : 404, log ?? { code: "NOT_FOUND" });
     return;
   }
 
   if (url.pathname === "/workspaces/1/memories") {
     json(response, 200, {
-      memories: [],
+      memories: dashboardMemories,
       nextCursor: null,
       hasNext: false,
     });
     return;
   }
 
+  if (url.pathname.startsWith("/workspaces/1/memories/")) {
+    const memoryId = Number(url.pathname.split("/").at(-1));
+    const memory = dashboardMemories.find((item) => item.id === memoryId);
+    json(response, memory ? 200 : 404, memory ?? { code: "NOT_FOUND" });
+    return;
+  }
+
   if (url.pathname === "/workspaces/1/working-brief") {
-    json(response, 404, { code: "NOT_FOUND" });
+    json(
+      response,
+      dashboardWorkingBrief ? 200 : 404,
+      dashboardWorkingBrief ?? { code: "NOT_FOUND" },
+    );
     return;
   }
 
@@ -212,6 +408,49 @@ const mockApi = http.createServer((request, response) => {
     return;
   }
 
+  if (url.pathname === "/workspaces/1/todos") {
+    json(response, 200, dashboardTodos);
+    return;
+  }
+
+  if (url.pathname === "/workspaces/1/outputs") {
+    json(response, 200, dashboardOutputs);
+    return;
+  }
+
+  if (url.pathname.startsWith("/workspaces/1/outputs/")) {
+    const outputId = Number(url.pathname.split("/").at(-1));
+    const output = dashboardOutputs.find((item) => item.id === outputId);
+    json(
+      response,
+      output ? 200 : 404,
+      output
+        ? {
+            ...output,
+            content: "## Benchmark output",
+            tasks: dashboardTasks
+              .filter((task) => output.taskIds.includes(task.id))
+              .map((task) => ({
+                id: task.id,
+                title: task.title,
+                status: task.status,
+              })),
+            logs: dashboardLogs
+              .filter((log) => output.logIds.includes(log.id))
+              .map((log) => ({
+                id: log.id,
+                title: log.title,
+                kind: log.kind,
+                status: log.status,
+                taskId: log.taskId,
+              })),
+            linkedPost: null,
+          }
+        : { code: "NOT_FOUND" },
+    );
+    return;
+  }
+
   if (url.pathname === "/notifications") {
     json(response, 200, { notifications: [], unreadCount: 0 });
     return;
@@ -235,9 +474,7 @@ const mockApi = http.createServer((request, response) => {
   if (
     url.pathname === "/workspaces/1/task-links" ||
     url.pathname === "/workspaces/1/log-links" ||
-    url.pathname === "/workspaces/1/cross-links" ||
-    url.pathname === "/workspaces/1/todos" ||
-    url.pathname === "/workspaces/1/outputs"
+    url.pathname === "/workspaces/1/cross-links"
   ) {
     json(response, 200, []);
     return;
@@ -318,7 +555,7 @@ async function measureDashboardRefreshUseCases(browser) {
   await page.waitForTimeout(500);
   await waitForOpenStreamCount(1);
 
-  counts.clear();
+  clearMetrics();
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.getByRole("heading", { name: "Fanout Test" }).waitFor();
   await page.waitForTimeout(500);
@@ -333,7 +570,7 @@ async function measureDashboardRefreshUseCases(browser) {
     forbidden: ["/auth/me", "/workspaces", "/notifications"],
   });
 
-  counts.clear();
+  clearMetrics();
   const todoTitle = "Optimistic dashboard todo";
   await page.getByLabel("New todo").fill(todoTitle);
   await page.getByLabel("New todo").press("Enter");
@@ -345,7 +582,7 @@ async function measureDashboardRefreshUseCases(browser) {
     forbidden: ["/workspaces", "/workspaces/1/dashboard"],
   });
 
-  counts.clear();
+  clearMetrics();
   const externalTitle = "External SSE dashboard todo";
   dashboardTodos.push({
     id: dashboardTodos.length + 1,
@@ -361,11 +598,296 @@ async function measureDashboardRefreshUseCases(browser) {
     action: "CREATED",
   });
   await page.getByText(externalTitle, { exact: true }).waitFor();
-  await page.waitForTimeout(300);
-  printAndAssertCounts("SSE dashboard refresh", {
+  await waitForRequestCount("/workspaces/1/todos", 1);
+  const singleTodoMetrics = printAndAssertCounts(
+    "single-zone SSE todo refresh",
+    {
+    maxRequestCount: 1,
+      required: { "/workspaces/1/todos": 1 },
+      forbidden: [
+        "/auth/me",
+        "/workspaces",
+        "/notifications",
+        "/workspaces/1/dashboard",
+      ],
+    },
+  );
+
+  clearMetrics();
+  dashboardTasks[0] = {
+    ...dashboardTasks[0],
+    title: "Task updated through SSE",
+    updatedAt: new Date(Date.now() + 1_000).toISOString(),
+  };
+  broadcastWorkspaceChange({
+    zone: "tasks",
+    entityType: "TASK",
+    entityId: "1",
+    action: "UPDATED",
+  });
+  await page.getByText("Task updated through SSE", { exact: true }).waitFor();
+  await waitForRequestCount("/workspaces/1/dashboard/refresh", 1);
+  const singleTaskMetrics = printAndAssertCounts(
+    "single-entity SSE task refresh",
+    {
+      maxRequestCount: 1,
+      required: { "/workspaces/1/dashboard/refresh": 1 },
+      forbidden: [
+        "/workspaces/1/dashboard",
+        "/workspaces/1/tasks",
+        "/workspaces/1/tasks/1",
+        "/workspaces/1/navigation-summary",
+        "/workspaces/1/graph-view",
+        "/workspaces/1/planner-view",
+      ],
+    },
+  );
+
+  clearMetrics();
+  dashboardLogs[0] = {
+    ...dashboardLogs[0],
+    title: "Log updated through SSE",
+    updatedAt: new Date(Date.now() + 2_000).toISOString(),
+  };
+  dashboardTasks[0] = {
+    ...dashboardTasks[0],
+    updatedAt: new Date(Date.now() + 2_000).toISOString(),
+  };
+  broadcastWorkspaceChange({
+    zone: "logs",
+    entityType: "LOG",
+    entityId: "1",
+    action: "UPDATED",
+  });
+  await page.getByText("Log updated through SSE", { exact: true }).waitFor();
+  await waitForRequestCount("/workspaces/1/dashboard/refresh", 1);
+  const singleLogMetrics = printAndAssertCounts(
+    "single-entity SSE log refresh",
+    {
+      maxRequestCount: 1,
+      required: { "/workspaces/1/dashboard/refresh": 1 },
+      forbidden: [
+        "/workspaces/1/dashboard",
+        "/workspaces/1/logs",
+        "/workspaces/1/logs/1",
+        "/workspaces/1/tasks/1",
+        "/workspaces/1/navigation-summary",
+        "/workspaces/1/activity",
+        "/workspaces/1/graph-view",
+      ],
+    },
+  );
+
+  clearMetrics();
+  dashboardOutputs[0] = {
+    ...dashboardOutputs[0],
+    title: "Output updated through SSE",
+    updatedAt: new Date(Date.now() + 3_000).toISOString(),
+  };
+  broadcastWorkspaceChange({
+    zone: "output",
+    entityType: "OUTPUT",
+    entityId: "1",
+    action: "UPDATED",
+  });
+  await waitForRequestCount("/workspaces/1/outputs/1", 1);
+  printAndAssertCounts("single-entity SSE output refresh", {
+    maxRequestCount: 1,
+    required: { "/workspaces/1/outputs/1": 1 },
+    forbidden: ["/workspaces/1/dashboard", "/workspaces/1/outputs"],
+  });
+
+  clearMetrics();
+  dashboardMemories[0] = {
+    ...dashboardMemories[0],
+    title: "Memory updated through SSE",
+    updatedAt: new Date(Date.now() + 4_000).toISOString(),
+  };
+  broadcastWorkspaceChange({
+    zone: "memory",
+    entityType: "MEMORY",
+    entityId: "1",
+    action: "UPDATED",
+  });
+  await waitForRequestCount("/workspaces/1/memories/1", 1);
+  printAndAssertCounts("single-entity SSE memory refresh", {
+    maxRequestCount: 1,
+    required: { "/workspaces/1/memories/1": 1 },
+    forbidden: ["/workspaces/1/dashboard", "/workspaces/1/memories"],
+  });
+
+  clearMetrics();
+  dashboardWorkingBrief = {
+    ...dashboardWorkingBrief,
+    title: "Brief updated through SSE",
+    updatedAt: new Date(Date.now() + 5_000).toISOString(),
+  };
+  broadcastWorkspaceChange({
+    zone: "brief",
+    entityType: "BRIEF",
+    entityId: "1",
+    action: "UPDATED",
+  });
+  await waitForRequestCount("/workspaces/1/working-brief", 1);
+  printAndAssertCounts("single-zone SSE working brief refresh", {
+    maxRequestCount: 1,
+    required: { "/workspaces/1/working-brief": 1 },
+    forbidden: ["/workspaces/1/dashboard"],
+  });
+
+  clearMetrics();
+  dashboardTasks.push(
+    {
+      id: 2,
+      title: "Burst task two",
+      description: null,
+      content: null,
+      status: "TODO",
+      createdAt: now,
+      updatedAt: new Date(Date.now() + 6_000).toISOString(),
+    },
+    {
+      id: 3,
+      title: "Burst task three",
+      description: null,
+      content: null,
+      status: "TODO",
+      createdAt: now,
+      updatedAt: new Date(Date.now() + 7_000).toISOString(),
+    },
+  );
+  broadcastWorkspaceChange({
+    zone: "tasks",
+    entityType: "TASK",
+    entityId: "2",
+    action: "CREATED",
+  });
+  broadcastWorkspaceChange({
+    zone: "tasks",
+    entityType: "TASK",
+    entityId: "3",
+    action: "CREATED",
+  });
+  await page.getByText("Burst task three", { exact: true }).waitFor();
+  await waitForRequestCount("/workspaces/1/dashboard/refresh", 1);
+  const taskBurstMetrics = printAndAssertCounts(
+    "same-zone SSE task burst",
+    {
+      maxRequestCount: 1,
+      required: { "/workspaces/1/dashboard/refresh": 1 },
+      forbidden: [
+        "/workspaces/1/dashboard",
+        "/workspaces/1/tasks",
+        "/workspaces/1/tasks/2",
+        "/workspaces/1/tasks/3",
+        "/workspaces/1/navigation-summary",
+      ],
+    },
+  );
+
+  clearMetrics();
+  const multiZoneTodoTitle = "Multi-zone recovery todo";
+  dashboardTodos.push({
+    id: dashboardTodos.length + 1,
+    title: multiZoneTodoTitle,
+    done: false,
+    taskId: null,
+    plannedFor: new Date().toISOString().slice(0, 10),
+  });
+  dashboardTasks[0] = {
+    ...dashboardTasks[0],
+    title: "Multi-zone recovery task",
+    updatedAt: new Date(Date.now() + 8_000).toISOString(),
+  };
+  broadcastWorkspaceChange({
+    zone: "tasks",
+    entityType: "TASK",
+    entityId: "1",
+    action: "UPDATED",
+  });
+  broadcastWorkspaceChange({
+    zone: "todos",
+    entityType: "TODO",
+    entityId: String(dashboardTodos.length),
+    action: "CREATED",
+  });
+  await page.getByText(multiZoneTodoTitle, { exact: true }).waitFor();
+  await waitForRequestCount("/workspaces/1/dashboard", 1);
+  const multiZoneMetrics = printAndAssertCounts(
+    "multi-zone SSE snapshot recovery",
+    {
+      maxRequestCount: 1,
+      required: { "/workspaces/1/dashboard": 1 },
+      forbidden: [
+        "/workspaces/1/tasks",
+        "/workspaces/1/tasks/1",
+        "/workspaces/1/todos",
+      ],
+    },
+  );
+  for (const [label, metrics] of [
+    ["Todo", singleTodoMetrics],
+    ["Task", singleTaskMetrics],
+    ["Log", singleLogMetrics],
+    ["Task burst", taskBurstMetrics],
+  ]) {
+    const payloadReduction = Math.round(
+      (1 - metrics.totalBytes / multiZoneMetrics.totalBytes) * 100,
+    );
+    console.log(
+      `${label} refresh response bytes were ${payloadReduction}% smaller than the dashboard snapshot fixture.`,
+    );
+  }
+
+  clearMetrics();
+  dashboardTasks.splice(
+    dashboardTasks.findIndex((task) => task.id === 2),
+    1,
+  );
+  broadcastWorkspaceChange({
+    zone: "tasks",
+    entityType: "TASK",
+    entityId: "2",
+    action: "DELETED",
+  });
+  await waitForRequestCount("/workspaces/1/dashboard", 1);
+  printAndAssertCounts("cascading task delete snapshot recovery", {
     maxRequestCount: 1,
     required: { "/workspaces/1/dashboard": 1 },
-    forbidden: ["/auth/me", "/workspaces", "/notifications"],
+    forbidden: ["/workspaces/1/tasks", "/workspaces/1/tasks/2"],
+  });
+
+  clearMetrics();
+  broadcastWorkspaceChange({
+    zone: "tasks",
+    entityType: "TASK",
+    entityId: "999",
+    action: "UPDATED",
+  });
+  await waitForRequestCount("/workspaces/1/dashboard", 1);
+  printAndAssertCounts("missing entity snapshot recovery", {
+    maxRequestCount: 2,
+    required: {
+      "/workspaces/1/dashboard/refresh": 1,
+      "/workspaces/1/dashboard": 1,
+    },
+    forbidden: [
+      "/workspaces/1/tasks/999",
+      "/workspaces/1/navigation-summary",
+    ],
+  });
+
+  clearMetrics();
+  broadcastWorkspaceChange({
+    zone: "unknown",
+    entityType: "UNKNOWN",
+    entityId: "1",
+    action: "UPDATED",
+  });
+  await waitForRequestCount("/workspaces/1/dashboard", 1);
+  printAndAssertCounts("unknown-zone snapshot recovery", {
+    maxRequestCount: 1,
+    required: { "/workspaces/1/dashboard": 1 },
   });
 
   await page.clock.install();
@@ -375,10 +897,20 @@ async function measureDashboardRefreshUseCases(browser) {
   await page.clock.fastForward(1_000);
   await waitForOpenStreamCount(0);
 
+  clearMetrics();
   await setDocumentVisibility(page, "visible");
   await waitForOpenStreamCount(1);
+  await waitForRequestCount("/workspaces/1/dashboard", 1);
+  printAndAssertCounts("visible SSE reconnect snapshot recovery", {
+    maxRequestCount: 2,
+    required: {
+      "/workspaces/1/events": 1,
+      "/workspaces/1/dashboard": 1,
+    },
+    forbidden: ["/auth/me", "/workspaces", "/notifications"],
+  });
 
-  counts.clear();
+  clearMetrics();
   const resumedTitle = "Visible reconnect dashboard todo";
   dashboardTodos.push({
     id: dashboardTodos.length + 1,
@@ -393,15 +925,53 @@ async function measureDashboardRefreshUseCases(browser) {
     entityId: String(dashboardTodos.length),
     action: "CREATED",
   });
+  await page.clock.fastForward(250);
   await page.getByText(resumedTitle, { exact: true }).waitFor();
-  printAndAssertCounts("visible SSE reconnect refresh", {
+  await waitForRequestCount("/workspaces/1/todos", 1);
+  printAndAssertCounts("post-reconnect single-zone todo refresh", {
     maxRequestCount: 1,
-    required: { "/workspaces/1/dashboard": 1 },
+    required: { "/workspaces/1/todos": 1 },
     forbidden: [
       "/auth/me",
       "/workspaces",
       "/notifications",
       "/workspaces/1/events",
+      "/workspaces/1/dashboard",
+    ],
+  });
+
+  await page.getByRole("link", { name: "Graph" }).click();
+  await page.waitForURL(`${appUrl}/graph`);
+  await page
+    .getByRole("link", { name: "Open Multi-zone recovery task" })
+    .waitFor();
+  clearMetrics();
+  dashboardTasks[0] = {
+    ...dashboardTasks[0],
+    title: "Graph projection updated through one refresh bundle",
+    updatedAt: new Date(Date.now() + 9_000).toISOString(),
+  };
+  broadcastWorkspaceChange({
+    zone: "tasks",
+    entityType: "TASK",
+    entityId: "1",
+    action: "UPDATED",
+  });
+  await page.clock.fastForward(250);
+  await page
+    .getByRole("link", {
+      name: "Open Graph projection updated through one refresh bundle",
+    })
+    .waitFor();
+  await waitForRequestCount("/workspaces/1/dashboard/refresh", 1);
+  printAndAssertCounts("active graph cache task refresh", {
+    maxRequestCount: 1,
+    required: { "/workspaces/1/dashboard/refresh": 1 },
+    forbidden: [
+      "/workspaces/1/dashboard",
+      "/workspaces/1/tasks/1",
+      "/workspaces/1/navigation-summary",
+      "/workspaces/1/graph-view",
     ],
   });
 
@@ -423,7 +993,7 @@ async function measureRapidSidebarNavigation(browser) {
     }),
   );
   await new Promise((resolve) => setTimeout(resolve, 500));
-  counts.clear();
+  clearMetrics();
 
   await Promise.all(
     sessions.map(async ({ page }) => {
@@ -487,6 +1057,22 @@ async function waitForOpenStreamCount(expected, timeoutMs = 5_000) {
   assertOpenStreamCount(expected, "SSE stream cleanup");
 }
 
+async function waitForRequestCount(pathname, expected, timeoutMs = 5_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if ((counts.get(pathname) ?? 0) >= expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(
+    `Expected at least ${expected} request(s) to ${pathname}, received ${counts.get(pathname) ?? 0}.`,
+  );
+}
+
+function clearMetrics() {
+  counts.clear();
+  responseBytes.clear();
+}
+
 function broadcastWorkspaceChange({ zone, entityType, entityId, action }) {
   const data = JSON.stringify({
     workspaceId: 1,
@@ -504,8 +1090,13 @@ function broadcastWorkspaceChange({ zone, entityType, entityId, action }) {
 function printAndAssertCounts(label, { maxRequestCount, required, forbidden = [] }) {
   const entries = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   const total = entries.reduce((sum, [, count]) => sum + count, 0);
+  const totalBytes = [...responseBytes.values()].reduce(
+    (sum, bytes) => sum + bytes,
+    0,
+  );
   console.log(`\nMeasured ${label}.`);
   console.log(`Backend API requests: ${total}`);
+  console.log(`JSON response bytes: ${totalBytes}`);
   for (const [pathname, count] of entries) {
     console.log(`${String(count).padStart(4)} ${pathname}`);
   }
@@ -522,6 +1113,7 @@ function printAndAssertCounts(label, { maxRequestCount, required, forbidden = []
       throw new Error(`${label}: unexpectedly requested ${pathname}.`);
     }
   }
+  return { total, totalBytes };
 }
 
 async function measureScenario({
@@ -532,7 +1124,7 @@ async function measureScenario({
   heading,
   forbiddenPaths = [],
 }) {
-  counts.clear();
+  clearMetrics();
   await Promise.all(
     Array.from({ length: clientCount }, async () => {
       const context = await browser.newContext();
