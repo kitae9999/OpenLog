@@ -1,6 +1,8 @@
 package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.user.entity.User
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceDashboardRefreshResponse
+import io.github.kitae9999.openlog.workspace.dto.WorkspaceDashboardRefreshZone
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceDashboardResponse
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -24,5 +26,24 @@ class WorkspaceDashboardController(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
     ): WorkspaceDashboardResponse {
         return workspaceDashboardService.getDashboard(requireNotNull(user.id), workspaceId, from, to)
+    }
+
+    @GetMapping("/refresh")
+    fun refreshDashboard(
+        @AuthenticationPrincipal user: User,
+        @PathVariable workspaceId: Long,
+        @RequestParam zone: WorkspaceDashboardRefreshZone,
+        @RequestParam entityIds: List<Long>,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+    ): WorkspaceDashboardRefreshResponse {
+        return workspaceDashboardService.refreshDashboard(
+            userId = requireNotNull(user.id),
+            workspaceId = workspaceId,
+            zone = zone,
+            entityIds = entityIds,
+            from = from,
+            to = to,
+        )
     }
 }
