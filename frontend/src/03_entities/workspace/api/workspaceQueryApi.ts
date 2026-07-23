@@ -18,7 +18,7 @@ import type {
   WorkspaceUiData,
 } from "@/entities/workspace/model/workspaceTypes";
 import type { WorkspaceAgentSettingsData } from "@/entities/workspace/api/workspaceAgentApi";
-import { clientApi } from "@/shared/api/clientApi";
+import { clientApi, ClientApiError } from "@/shared/api/clientApi";
 import { formatWorkspaceDateLabel } from "@/shared/lib/formatWorkspaceDateLabel";
 import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 
@@ -206,12 +206,52 @@ type WorkspaceDashboardResponse = {
   };
 };
 
+type WorkspaceDashboardRefreshResponse = {
+  zone: "TASKS" | "LOGS";
+  mode: "PATCH" | "REPLACE";
+  task: WorkspaceTaskResponse | null;
+  tasks: WorkspaceTaskResponse[];
+  log: WorkspaceLogDetailResponse | null;
+  logs: WorkspaceLogResponse[];
+  linkedTask: WorkspaceTaskResponse | null;
+  navigationSummary: NonNullable<WorkspaceUiData["navigationSummary"]>;
+  activity: WorkspaceActivity | null;
+};
+
 export async function fetchWorkspaceDashboard(workspaceId: string) {
   const { from, to } = getDashboardDateRange();
   const response = await clientApi<WorkspaceDashboardResponse>(
     `/api/workspaces/${workspaceId}/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
   );
   return mapDashboard(response);
+}
+
+export async function fetchWorkspaceDashboardRefresh(
+  workspaceId: string,
+  zone: "tasks" | "logs",
+  entityIds: string[],
+) {
+  const { from, to } = getDashboardDateRange();
+  const params = new URLSearchParams({
+    zone: zone.toUpperCase(),
+    from,
+    to,
+  });
+  for (const entityId of entityIds) params.append("entityIds", entityId);
+  const response = await clientApi<WorkspaceDashboardRefreshResponse>(
+    `/api/workspaces/${workspaceId}/dashboard/refresh?${params.toString()}`,
+  );
+  return {
+    zone: response.zone.toLowerCase() as "tasks" | "logs",
+    mode: response.mode,
+    task: response.task ? mapTask(response.task) : null,
+    tasks: response.tasks.map(mapTask),
+    log: response.log ? mapLog(response.log) : null,
+    logs: response.logs.map(mapLog),
+    linkedTask: response.linkedTask ? mapTask(response.linkedTask) : null,
+    navigationSummary: response.navigationSummary,
+    activity: response.activity,
+  };
 }
 
 export async function fetchWorkspaceTasks(workspaceId: string) {
@@ -254,6 +294,25 @@ export async function fetchWorkspacePlanner(
     tasks: response.tasks.map(mapTask),
     todos: response.todos.map(mapTodo),
   };
+}
+
+export async function fetchWorkspaceTodos(workspaceId: string) {
+  const response = await clientApi<TodoResponse[]>(
+    `/api/workspaces/${workspaceId}/todos`,
+  );
+  return response.map(mapTodo);
+}
+
+export async function fetchWorkspaceWorkingBrief(workspaceId: string) {
+  try {
+    const response = await clientApi<WorkingBriefResponse>(
+      `/api/workspaces/${workspaceId}/working-brief`,
+    );
+    return mapWorkingBrief(response);
+  } catch (error: unknown) {
+    if (error instanceof ClientApiError && error.status === 404) return null;
+    throw error;
+  }
 }
 
 export async function fetchWorkspaceGraph(workspaceId: string) {
@@ -400,17 +459,7 @@ function mapDashboard(response: WorkspaceDashboardResponse): Partial<WorkspaceUi
       ).length,
     },
     workingBrief: response.workingBrief
-      ? {
-          title: response.workingBrief.title,
-          prose: response.workingBrief.prose,
-          taskId:
-            response.workingBrief.taskId === null
-              ? undefined
-              : String(response.workingBrief.taskId),
-          taskTitle: response.workingBrief.taskTitle ?? undefined,
-          branch: response.workingBrief.branch ?? undefined,
-          updatedLabel: formatWorkspaceDateLabel(response.workingBrief.updatedAt),
-        }
+      ? mapWorkingBrief(response.workingBrief)
       : null,
   };
 }
@@ -503,6 +552,7 @@ function mapOutput(output: OutputResponse | OutputDetailResponse): WorkspaceTask
     description: `${taskCount} task${taskCount === 1 ? "" : "s"} · ${logCount} log${logCount === 1 ? "" : "s"}`,
     content: isDetail ? output.content : "",
     updatedLabel: formatWorkspaceDateLabel(output.updatedAt),
+    updatedAt: output.updatedAt,
     linkedPostId:
       isDetail && output.linkedPost ? String(output.linkedPost.id) : undefined,
     linkedPostStatus:
@@ -527,6 +577,17 @@ function mapTodo(todo: TodoResponse): WorkspaceTodoItem {
     done: todo.done,
     taskId: todo.taskId ? String(todo.taskId) : undefined,
     plannedFor: todo.plannedFor,
+  };
+}
+
+function mapWorkingBrief(brief: WorkingBriefResponse) {
+  return {
+    title: brief.title,
+    prose: brief.prose,
+    taskId: brief.taskId === null ? undefined : String(brief.taskId),
+    taskTitle: brief.taskTitle ?? undefined,
+    branch: brief.branch ?? undefined,
+    updatedLabel: formatWorkspaceDateLabel(brief.updatedAt),
   };
 }
 

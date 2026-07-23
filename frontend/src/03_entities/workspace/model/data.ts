@@ -604,6 +604,8 @@ export type WorkspaceTaskOutput = {
   description: string;
   content: string;
   updatedLabel: string;
+  /** ISO timestamp used to keep incremental dashboard updates in server order. */
+  updatedAt?: string;
   linkedPostId?: string;
   linkedPostStatus?: "draft" | "published" | "unpublished";
   postEditHref?: string;

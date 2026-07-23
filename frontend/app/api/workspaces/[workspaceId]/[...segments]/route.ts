@@ -42,6 +42,13 @@ function isAllowedPath(segments: string[]) {
   if (segments.length === 1) {
     return COLLECTION_PATHS.has(segments[0]);
   }
+  if (
+    segments.length === 2 &&
+    segments[0] === "dashboard" &&
+    segments[1] === "refresh"
+  ) {
+    return true;
+  }
   return (
     segments.length === 2 &&
     DETAIL_PATHS.has(segments[0]) &&

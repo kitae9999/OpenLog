@@ -1,19 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  recoverWorkspaceAfterReconnect,
+  refreshWorkspaceChangeBatch,
+  type WorkspaceChangedPayload,
+} from "@/features/workspace-sync/model/workspaceImpactRefresh";
 import { appQueryKeys } from "@/shared/api/queryKeys";
 
-type WorkspaceChangedPayload = {
-  workspaceId: number;
-  zone: string;
-  entityType: string;
-  entityId: string;
-  action: string;
-  occurredAt: string;
-};
-
 const HIDDEN_DISCONNECT_GRACE_MS = 60_000;
+const CHANGE_BATCH_WINDOW_MS = 250;
 
 export function useWorkspaceSse(workspaceId: string | null) {
   const queryClient = useQueryClient();
@@ -21,22 +18,56 @@ export function useWorkspaceSse(workspaceId: string | null) {
   useEffect(() => {
     if (!workspaceId) return;
     const currentWorkspaceId = workspaceId;
-    const timers = new Map<string, number>();
+    const pendingEvents: WorkspaceChangedPayload[] = [];
     let disposed = false;
     let connectionController: AbortController | null = null;
     let hiddenTimer: number | null = null;
+    let batchTimer: number | null = null;
     let pausedForVisibility = document.hidden;
+    let hasConnected = false;
+    let refreshChain = Promise.resolve();
 
-    function scheduleInvalidation(payload: WorkspaceChangedPayload) {
-      const zone = normalizeZone(payload.zone || payload.entityType);
-      const current = timers.get(zone);
-      if (current !== undefined) window.clearTimeout(current);
-      timers.set(
-        zone,
-        window.setTimeout(() => {
-          timers.delete(zone);
-          void invalidateForZone(queryClient, currentWorkspaceId, zone);
-        }, 250),
+    function enqueueRefresh(refresh: () => Promise<void>) {
+      refreshChain = refreshChain
+        .then(() => (disposed ? undefined : refresh()))
+        .catch(() => undefined);
+    }
+
+    function clearBatch() {
+      if (batchTimer !== null) {
+        window.clearTimeout(batchTimer);
+        batchTimer = null;
+      }
+      pendingEvents.splice(0);
+    }
+
+    function flushBatch() {
+      batchTimer = null;
+      const events = pendingEvents.splice(0);
+      if (events.length === 0) return;
+      enqueueRefresh(() =>
+        refreshWorkspaceChangeBatch({
+          queryClient,
+          workspaceId: currentWorkspaceId,
+          events,
+        }),
+      );
+    }
+
+    function scheduleRefresh(payload: WorkspaceChangedPayload) {
+      if (String(payload.workspaceId) !== currentWorkspaceId) return;
+      pendingEvents.push(payload);
+      if (batchTimer !== null) return;
+      batchTimer = window.setTimeout(flushBatch, CHANGE_BATCH_WINDOW_MS);
+    }
+
+    function recoverAfterReconnect() {
+      clearBatch();
+      enqueueRefresh(() =>
+        recoverWorkspaceAfterReconnect({
+          queryClient,
+          workspaceId: currentWorkspaceId,
+        }),
       );
     }
 
@@ -49,7 +80,13 @@ export function useWorkspaceSse(workspaceId: string | null) {
       void subscribe({
         workspaceId: currentWorkspaceId,
         signal: controller.signal,
-        onEvent: scheduleInvalidation,
+        onEvent: scheduleRefresh,
+        onConnected: (recoveredFromConnectionFailure) => {
+          if (hasConnected || recoveredFromConnectionFailure) {
+            recoverAfterReconnect();
+          }
+          hasConnected = true;
+        },
         onUnauthorized: () => {
           queryClient.removeQueries({ queryKey: appQueryKeys.session });
           window.location.assign("/");
@@ -100,8 +137,7 @@ export function useWorkspaceSse(workspaceId: string | null) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearHiddenTimer();
       closeConnection();
-      for (const timer of timers.values()) window.clearTimeout(timer);
-      timers.clear();
+      clearBatch();
     };
   }, [queryClient, workspaceId]);
 }
@@ -110,18 +146,22 @@ async function subscribe({
   workspaceId,
   signal,
   onEvent,
+  onConnected,
   onUnauthorized,
 }: {
   workspaceId: string;
   signal: AbortSignal;
   onEvent: (payload: WorkspaceChangedPayload) => void;
+  onConnected: (recoveredFromConnectionFailure: boolean) => void;
   onUnauthorized: () => void;
 }) {
   let retryMs = 1_000;
   let refreshedSession = false;
+  let connectionFailed = false;
 
   while (!signal.aborted) {
-    await waitUntilConnectable(signal);
+    connectionFailed =
+      (await waitUntilConnectable(signal)) || connectionFailed;
     if (signal.aborted) return;
 
     let response: Response;
@@ -133,6 +173,7 @@ async function subscribe({
       });
     } catch {
       if (signal.aborted) return;
+      connectionFailed = true;
       await abortableDelay(retryMs, signal);
       retryMs = Math.min(retryMs * 2, 30_000);
       continue;
@@ -140,6 +181,7 @@ async function subscribe({
 
     if (response.status === 401) {
       if (!refreshedSession && (await refreshSession(signal))) {
+        connectionFailed = true;
         refreshedSession = true;
         continue;
       }
@@ -148,6 +190,7 @@ async function subscribe({
     }
     if (response.status === 403 || response.status === 404) return;
     if (response.status === 429 || response.status >= 500 || !response.body) {
+      connectionFailed = true;
       await abortableDelay(retryMs, signal);
       retryMs = Math.min(retryMs * 2, 30_000);
       continue;
@@ -156,11 +199,14 @@ async function subscribe({
 
     retryMs = 1_000;
     refreshedSession = false;
+    onConnected(connectionFailed);
+    connectionFailed = false;
     try {
       await readEventStream(response.body, signal, onEvent);
     } catch {
       if (signal.aborted) return;
     }
+    connectionFailed = true;
     await abortableDelay(retryMs, signal);
     retryMs = Math.min(retryMs * 2, 30_000);
   }
@@ -208,42 +254,6 @@ function parseWorkspaceEvent(block: string): WorkspaceChangedPayload | null {
   }
 }
 
-async function invalidateForZone(
-  queryClient: QueryClient,
-  workspaceId: string,
-  zone: string,
-) {
-  const resources = resourcesForZone(zone);
-  await queryClient.invalidateQueries({
-    predicate: (query) =>
-      query.queryKey[0] === "workspace" &&
-      query.queryKey[1] === workspaceId &&
-      resources.has(String(query.queryKey[2])),
-    refetchType: "active",
-  });
-}
-
-function resourcesForZone(zone: string) {
-  if (zone === "tasks") return new Set(["tasks", "task", "navigation", "dashboard", "graph", "planner"]);
-  if (zone === "logs") return new Set(["logs", "log", "navigation", "dashboard", "graph", "activity"]);
-  if (zone === "todos") return new Set(["planner", "dashboard"]);
-  if (zone === "outputs") return new Set(["outputs", "output", "dashboard", "graph"]);
-  if (zone === "memories") return new Set(["memories", "memory", "dashboard", "graph"]);
-  if (zone === "links") return new Set(["graph"]);
-  return new Set(["dashboard"]);
-}
-
-function normalizeZone(value: string) {
-  const normalized = value.trim().toLowerCase();
-  if (normalized.includes("task")) return "tasks";
-  if (normalized.includes("log")) return "logs";
-  if (normalized.includes("todo")) return "todos";
-  if (normalized.includes("output")) return "outputs";
-  if (normalized.includes("memor")) return "memories";
-  if (normalized.includes("link")) return "links";
-  return normalized;
-}
-
 async function refreshSession(signal: AbortSignal) {
   try {
     const response = await fetch("/auth/refresh", {
@@ -258,12 +268,15 @@ async function refreshSession(signal: AbortSignal) {
 }
 
 async function waitUntilConnectable(signal: AbortSignal) {
+  let waited = false;
   while (!signal.aborted && (document.hidden || !navigator.onLine)) {
+    waited = true;
     await Promise.race([
       once(document, "visibilitychange", signal),
       once(window, "online", signal),
     ]);
   }
+  return waited;
 }
 
 function once(target: EventTarget, eventName: string, signal: AbortSignal) {
