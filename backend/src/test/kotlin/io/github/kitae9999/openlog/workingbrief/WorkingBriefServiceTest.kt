@@ -1,6 +1,5 @@
 package io.github.kitae9999.openlog.workingbrief
 
-import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workingbrief.dto.UpsertWorkingBriefRequest
 import io.github.kitae9999.openlog.workingbrief.entity.WorkspaceWorkingBrief
@@ -10,7 +9,6 @@ import io.github.kitae9999.openlog.workspace.WorkspaceChangeNotifier
 import io.github.kitae9999.openlog.workspace.entity.Workspace
 import io.github.kitae9999.openlog.workspace.entity.WorkspaceTask
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -111,12 +109,31 @@ class WorkingBriefServiceTest {
     }
 
     @Test
-    fun `getBrief throws when missing`() {
+    fun `findBrief returns null when missing`() {
         given(accessResolver.requireOwnedWorkspace(1L, 10L)).willReturn(workspace)
         given(repository.findByWorkspaceId(10L)).willReturn(null)
 
-        assertThatThrownBy { service.getBrief(1L, 10L) }
-            .isInstanceOf(NotFoundException::class.java)
+        assertThat(service.findBrief(1L, 10L)).isNull()
+    }
+
+    @Test
+    fun `findBrief returns the existing brief`() {
+        val existing = WorkspaceWorkingBrief(
+            id = 20L,
+            workspace = workspace,
+            author = user,
+            title = "Current focus",
+            prose = "Fix the dashboard.",
+            branch = "fix/dashboard",
+        )
+        given(accessResolver.requireOwnedWorkspace(1L, 10L)).willReturn(workspace)
+        given(repository.findByWorkspaceId(10L)).willReturn(existing)
+
+        val response = service.findBrief(1L, 10L)
+
+        assertThat(response?.title).isEqualTo("Current focus")
+        assertThat(response?.prose).isEqualTo("Fix the dashboard.")
+        assertThat(response?.branch).isEqualTo("fix/dashboard")
     }
 
     @Test

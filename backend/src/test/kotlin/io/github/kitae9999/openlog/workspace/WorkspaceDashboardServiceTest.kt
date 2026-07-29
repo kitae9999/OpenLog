@@ -2,7 +2,6 @@ package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.activity.ActivityService
 import io.github.kitae9999.openlog.activity.dto.WorkspaceActivityResponse
-import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.memory.MemoryService
 import io.github.kitae9999.openlog.memory.dto.MemoryCursorResponse
 import io.github.kitae9999.openlog.output.OutputService
@@ -74,7 +73,7 @@ class WorkspaceDashboardServiceTest {
         given(outputService.getRecentOutputs(1L, 10L, 1)).willReturn(emptyList())
         given(memoryService.getMemories(1L, 10L, null, 8))
             .willReturn(MemoryCursorResponse(emptyList(), 8, null, false))
-        given(workingBriefService.getBrief(1L, 10L)).willThrow(NotFoundException("missing"))
+        given(workingBriefService.findBrief(1L, 10L)).willReturn(null)
         given(activityService.getActivity(1L, 10L, from, to)).willReturn(
             WorkspaceActivityResponse(from.toString(), to.toString(), 0, emptyList()),
         )
@@ -98,7 +97,7 @@ class WorkspaceDashboardServiceTest {
         verify(todoService).getTodos(1L, 10L, to)
         verify(outputService).getRecentOutputs(1L, 10L, 1)
         verify(memoryService).getMemories(1L, 10L, null, 8)
-        verify(workingBriefService).getBrief(1L, 10L)
+        verify(workingBriefService).findBrief(1L, 10L)
         verify(activityService).getActivity(1L, 10L, from, to)
         verify(workspaceNavigationSummaryService).getSummary(1L, 10L)
     }

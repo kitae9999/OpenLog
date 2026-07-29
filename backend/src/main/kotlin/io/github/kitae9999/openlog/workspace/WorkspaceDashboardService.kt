@@ -2,7 +2,6 @@ package io.github.kitae9999.openlog.workspace
 
 import io.github.kitae9999.openlog.activity.ActivityService
 import io.github.kitae9999.openlog.common.exception.BadRequestException
-import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.memory.MemoryService
 import io.github.kitae9999.openlog.output.OutputService
 import io.github.kitae9999.openlog.todo.TodoService
@@ -60,11 +59,7 @@ class WorkspaceDashboardService(
                 cursor = null,
                 size = DASHBOARD_MEMORY_LIMIT,
             ).memories,
-            workingBrief = try {
-                workingBriefService.getBrief(userId, workspaceId)
-            } catch (_: NotFoundException) {
-                null
-            },
+            workingBrief = workingBriefService.findBrief(userId, workspaceId),
             activity = activityService.getActivity(userId, workspaceId, from, to),
             navigationSummary = workspaceNavigationSummaryService.getSummary(userId, workspaceId),
         )
