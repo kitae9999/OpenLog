@@ -23,8 +23,14 @@ class WorkingBriefController(
     fun getBrief(
         @AuthenticationPrincipal user: User,
         @PathVariable workspaceId: Long,
-    ): WorkingBriefResponse =
-        workingBriefService.getBrief(requireNotNull(user.id), workspaceId)
+    ): ResponseEntity<WorkingBriefResponse> {
+        val brief = workingBriefService.findBrief(requireNotNull(user.id), workspaceId)
+        return if (brief == null) {
+            ResponseEntity.notFound().build()
+        } else {
+            ResponseEntity.ok(brief)
+        }
+    }
 
     @PutMapping
     fun upsertBrief(

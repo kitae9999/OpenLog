@@ -3,7 +3,6 @@ package io.github.kitae9999.openlog.workingbrief
 import io.github.kitae9999.openlog.common.event.payload.WorkspaceChangeAction
 import io.github.kitae9999.openlog.common.event.payload.WorkspaceEntityType
 import io.github.kitae9999.openlog.common.event.payload.WorkspaceSyncZone
-import io.github.kitae9999.openlog.common.exception.NotFoundException
 import io.github.kitae9999.openlog.user.entity.User
 import io.github.kitae9999.openlog.workingbrief.dto.UpsertWorkingBriefRequest
 import io.github.kitae9999.openlog.workingbrief.dto.WorkingBriefResponse
@@ -22,11 +21,10 @@ class WorkingBriefService(
     private val workspaceChangeNotifier: WorkspaceChangeNotifier,
 ) {
     @Transactional(readOnly = true)
-    fun getBrief(userId: Long, workspaceId: Long): WorkingBriefResponse {
+    fun findBrief(userId: Long, workspaceId: Long): WorkingBriefResponse? {
         workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
-        val brief = workingBriefRepository.findByWorkspaceId(workspaceId)
-            ?: throw NotFoundException("Working brief를 찾을 수 없습니다.")
-        return workingBriefMapper.toResponse(brief)
+        return workingBriefRepository.findByWorkspaceId(workspaceId)
+            ?.let(workingBriefMapper::toResponse)
     }
 
     @Transactional
