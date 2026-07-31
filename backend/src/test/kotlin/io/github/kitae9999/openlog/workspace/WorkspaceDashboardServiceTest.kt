@@ -14,7 +14,6 @@ import io.github.kitae9999.openlog.workspace.dto.WorkspaceDashboardRefreshZone
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogCursorResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogDetailResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogResponse
-import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceNavigationSummaryResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskResponse
 import io.github.kitae9999.openlog.workspace.entity.LogKind
@@ -62,8 +61,7 @@ class WorkspaceDashboardServiceTest {
     fun `getDashboard combines the workspace screen into one response`() {
         val from = LocalDate.of(2025, 7, 21)
         val to = LocalDate.of(2026, 7, 20)
-        given(workspaceTaskService.getTasks(1L, 10L, null, null, 20))
-            .willReturn(WorkspaceTaskCursorResponse(emptyList(), 20, null, false))
+        given(workspaceTaskService.getActiveTasks(1L, 10L)).willReturn(emptyList())
         given(workspaceLogService.getLogs(1L, 10L, null, null, 6))
             .willReturn(WorkspaceLogCursorResponse(emptyList(), 6, null, false))
         given(workspaceLinkService.getTaskLinks(1L, 10L)).willReturn(emptyList())
@@ -89,7 +87,7 @@ class WorkspaceDashboardServiceTest {
         assertThat(response.activity.from).isEqualTo("2025-07-21")
         assertThat(response.activity.to).isEqualTo("2026-07-20")
         assertThat(response.navigationSummary.logsCount).isEqualTo(42)
-        verify(workspaceTaskService).getTasks(1L, 10L, null, null, 20)
+        verify(workspaceTaskService).getActiveTasks(1L, 10L)
         verify(workspaceLogService).getLogs(1L, 10L, null, null, 6)
         verify(workspaceLinkService).getTaskLinks(1L, 10L)
         verify(workspaceLinkService).getLogLinks(1L, 10L)
@@ -127,11 +125,10 @@ class WorkspaceDashboardServiceTest {
     }
 
     @Test
-    fun `task burst refresh returns one bounded replacement bundle`() {
+    fun `task burst refresh returns every active task`() {
         val task = taskSummary(8L)
         val navigation = navigationSummary()
-        given(workspaceTaskService.getTasks(1L, 10L, null, null, 20))
-            .willReturn(WorkspaceTaskCursorResponse(listOf(task), 20, null, false))
+        given(workspaceTaskService.getActiveTasks(1L, 10L)).willReturn(listOf(task))
         given(workspaceNavigationSummaryService.getSummary(1L, 10L)).willReturn(navigation)
 
         val response = service.refreshDashboard(
@@ -146,7 +143,7 @@ class WorkspaceDashboardServiceTest {
         assertThat(response.mode).isEqualTo(WorkspaceDashboardRefreshMode.REPLACE)
         assertThat(response.task).isNull()
         assertThat(response.tasks).containsExactly(task)
-        verify(workspaceTaskService).getTasks(1L, 10L, null, null, 20)
+        verify(workspaceTaskService).getActiveTasks(1L, 10L)
         verify(workspaceNavigationSummaryService).getSummary(1L, 10L)
     }
 
@@ -190,8 +187,7 @@ class WorkspaceDashboardServiceTest {
         val log = logSummary(9L, 7L)
         val navigation = navigationSummary()
         val activity = WorkspaceActivityResponse(from.toString(), to.toString(), 2, emptyList())
-        given(workspaceTaskService.getTasks(1L, 10L, null, null, 20))
-            .willReturn(WorkspaceTaskCursorResponse(listOf(task), 20, null, false))
+        given(workspaceTaskService.getActiveTasks(1L, 10L)).willReturn(listOf(task))
         given(workspaceLogService.getLogs(1L, 10L, null, null, 20))
             .willReturn(WorkspaceLogCursorResponse(listOf(log), 20, null, false))
         given(workspaceNavigationSummaryService.getSummary(1L, 10L)).willReturn(navigation)
@@ -210,7 +206,7 @@ class WorkspaceDashboardServiceTest {
         assertThat(response.logs).containsExactly(log)
         assertThat(response.tasks).containsExactly(task)
         assertThat(response.activity).isEqualTo(activity)
-        verify(workspaceTaskService).getTasks(1L, 10L, null, null, 20)
+        verify(workspaceTaskService).getActiveTasks(1L, 10L)
         verify(workspaceLogService).getLogs(1L, 10L, null, null, 20)
         verify(workspaceNavigationSummaryService).getSummary(1L, 10L)
         verify(activityService).getActivity(1L, 10L, from, to)

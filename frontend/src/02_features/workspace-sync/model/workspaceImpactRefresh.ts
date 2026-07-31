@@ -49,7 +49,6 @@ const SUPPORTED_ZONES = new Set<SupportedZone>([
 ]);
 
 const DASHBOARD_LIMITS = {
-  tasks: 20,
   logs: 6,
   outputs: 1,
   memories: 8,
@@ -169,12 +168,8 @@ async function refreshDashboardProjection(
       ...dashboard,
       tasks:
         refresh.mode === "REPLACE"
-          ? tasks.slice(0, DASHBOARD_LIMITS.tasks)
-          : mergeRecent(
-              dashboard.tasks ?? [],
-              tasks,
-              DASHBOARD_LIMITS.tasks,
-            ),
+          ? tasks
+          : mergeRecent(dashboard.tasks ?? [], tasks),
       navigationSummary: refresh.navigationSummary,
     }));
     patchGraph(queryClient, workspaceId, (graph) => ({
@@ -239,8 +234,8 @@ async function refreshDashboardProjection(
         : mergeRecent(dashboard.logs ?? [], logs, DASHBOARD_LIMITS.logs),
     tasks:
       refresh.mode === "REPLACE"
-        ? tasks.slice(0, DASHBOARD_LIMITS.tasks)
-        : mergeRecent(dashboard.tasks ?? [], tasks, DASHBOARD_LIMITS.tasks),
+        ? tasks
+        : mergeRecent(dashboard.tasks ?? [], tasks),
     activity,
     navigationSummary: refresh.navigationSummary,
   }));

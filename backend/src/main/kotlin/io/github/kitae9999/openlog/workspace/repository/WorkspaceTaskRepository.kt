@@ -13,6 +13,12 @@ interface WorkspaceTaskRepository : JpaRepository<WorkspaceTask, Long> {
     fun countByWorkspaceIdAndStatusIn(workspaceId: Long, statuses: Collection<TaskStatus>): Long
 
     @EntityGraph(attributePaths = ["author"])
+    fun findAllByWorkspaceIdAndStatusInOrderByUpdatedAtDescIdDesc(
+        workspaceId: Long,
+        statuses: Collection<TaskStatus>,
+    ): List<WorkspaceTask>
+
+    @EntityGraph(attributePaths = ["author"])
     fun findAllByWorkspaceIdOrderByUpdatedAtDescIdDesc(
         workspaceId: Long,
         pageable: Pageable,

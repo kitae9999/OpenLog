@@ -74,6 +74,17 @@ class WorkspaceTaskService(
     }
 
     @Transactional(readOnly = true)
+    fun getActiveTasks(userId: Long, workspaceId: Long): List<WorkspaceTaskResponse> {
+        workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
+        return workspaceTaskRepository
+            .findAllByWorkspaceIdAndStatusInOrderByUpdatedAtDescIdDesc(
+                workspaceId,
+                listOf(TaskStatus.TODO, TaskStatus.DOING),
+            )
+            .map(workspaceMapper::toTaskResponse)
+    }
+
+    @Transactional(readOnly = true)
     fun getTaskDetail(userId: Long, workspaceId: Long, taskId: Long): TaskDetailResponse {
         val workspace = workspaceAccessResolver.requireOwnedWorkspace(userId, workspaceId)
         val task = workspaceAccessResolver.requireOwnedTask(workspace, taskId)

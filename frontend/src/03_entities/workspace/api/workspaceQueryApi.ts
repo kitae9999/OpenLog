@@ -256,10 +256,23 @@ export async function fetchWorkspaceDashboardRefresh(
 }
 
 export async function fetchWorkspaceTasks(workspaceId: string) {
-  const response = await clientApi<WorkspaceTaskCursorResponse>(
-    `/api/workspaces/${workspaceId}/tasks?size=50`,
-  );
-  return response.tasks.map(mapTask);
+  const tasks: WorkspaceTaskResponse[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const params = new URLSearchParams({ size: "50" });
+    if (cursor) {
+      params.set("cursor", cursor);
+    }
+
+    const response = await clientApi<WorkspaceTaskCursorResponse>(
+      `/api/workspaces/${workspaceId}/tasks?${params.toString()}`,
+    );
+    tasks.push(...response.tasks);
+    cursor = response.hasNext ? response.nextCursor : null;
+  } while (cursor);
+
+  return tasks.map(mapTask);
 }
 
 export async function fetchWorkspaceLogs(workspaceId: string) {
@@ -359,10 +372,23 @@ export async function fetchWorkspaceOutputs(workspaceId: string) {
 }
 
 export async function fetchWorkspaceMemories(workspaceId: string) {
-  const response = await clientApi<MemoryCursorResponse>(
-    `/api/workspaces/${workspaceId}/memories?size=50`,
-  );
-  return response.memories.map(mapMemory);
+  const memories: MemoryResponse[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const params = new URLSearchParams({ size: "50" });
+    if (cursor) {
+      params.set("cursor", cursor);
+    }
+
+    const response = await clientApi<MemoryCursorResponse>(
+      `/api/workspaces/${workspaceId}/memories?${params.toString()}`,
+    );
+    memories.push(...response.memories);
+    cursor = response.hasNext ? response.nextCursor : null;
+  } while (cursor);
+
+  return memories.map(mapMemory);
 }
 
 export async function fetchWorkspaceOutput(workspaceId: string, outputId: string) {
