@@ -49,7 +49,6 @@ const SUPPORTED_ZONES = new Set<SupportedZone>([
 ]);
 
 const DASHBOARD_LIMITS = {
-  tasks: 20,
   logs: 6,
   outputs: 1,
   memories: 8,
@@ -71,7 +70,9 @@ export async function refreshWorkspaceChangeBatch({
 }) {
   if (events.length === 0) return;
 
-  const zones = new Set(events.map((event) => normalizeZone(event.zone || event.entityType)));
+  const zones = new Set(
+    events.map((event) => normalizeZone(event.zone || event.entityType)),
+  );
   const supportedZones = [...zones].filter(isSupportedZone);
   const needsSnapshotRecovery =
     supportedZones.length !== zones.size ||
@@ -169,12 +170,8 @@ async function refreshDashboardProjection(
       ...dashboard,
       tasks:
         refresh.mode === "REPLACE"
-          ? tasks.slice(0, DASHBOARD_LIMITS.tasks)
-          : mergeRecent(
-              dashboard.tasks ?? [],
-              tasks,
-              DASHBOARD_LIMITS.tasks,
-            ),
+          ? tasks
+          : mergeRecent(dashboard.tasks ?? [], tasks),
       navigationSummary: refresh.navigationSummary,
     }));
     patchGraph(queryClient, workspaceId, (graph) => ({
@@ -239,8 +236,8 @@ async function refreshDashboardProjection(
         : mergeRecent(dashboard.logs ?? [], logs, DASHBOARD_LIMITS.logs),
     tasks:
       refresh.mode === "REPLACE"
-        ? tasks.slice(0, DASHBOARD_LIMITS.tasks)
-        : mergeRecent(dashboard.tasks ?? [], tasks, DASHBOARD_LIMITS.tasks),
+        ? tasks
+        : mergeRecent(dashboard.tasks ?? [], tasks),
     activity,
     navigationSummary: refresh.navigationSummary,
   }));
@@ -328,6 +325,7 @@ async function refreshZoneList(
 ) {
   if (zone === "todos") {
     const todos = await fetchWorkspaceTodos(workspaceId);
+    queryClient.setQueryData(workspaceQueryKeys.todos(workspaceId), todos);
     patchDashboard(queryClient, workspaceId, (dashboard) => ({
       ...dashboard,
       todos: todos.filter((todo) => todo.plannedFor === getSeoulToday()),
@@ -381,14 +379,22 @@ async function recoverWorkspaceSnapshot(
     queryFn: () => fetchWorkspaceDashboard(workspaceId),
     staleTime: 0,
   });
-  queryClient.setQueryData(workspaceQueryKeys.dashboard(workspaceId), dashboard);
+  queryClient.setQueryData(
+    workspaceQueryKeys.dashboard(workspaceId),
+    dashboard,
+  );
   if (dashboard.navigationSummary) {
     queryClient.setQueryData(
       workspaceQueryKeys.navigation(workspaceId),
       dashboard.navigationSummary,
     );
   }
-  await invalidateDerivedQueries(queryClient, workspaceId, new Set(zones), true);
+  await invalidateDerivedQueries(
+    queryClient,
+    workspaceId,
+    new Set(zones),
+    true,
+  );
 }
 
 async function invalidateDerivedQueries(
@@ -414,7 +420,10 @@ async function invalidateDerivedQueries(
       resources.add("log");
     }
   }
-  if (zones.has("todos")) resources.add("planner");
+  if (zones.has("todos")) {
+    resources.add("todos");
+    resources.add("planner");
+  }
   if (zones.has("outputs")) {
     resources.add("graph");
     if (includePrimaryLists) {
@@ -441,9 +450,7 @@ async function invalidateDerivedQueries(
 function patchDashboard(
   queryClient: QueryClient,
   workspaceId: string,
-  updater: (
-    dashboard: Partial<WorkspaceUiData>,
-  ) => Partial<WorkspaceUiData>,
+  updater: (dashboard: Partial<WorkspaceUiData>) => Partial<WorkspaceUiData>,
 ) {
   queryClient.setQueryData<Partial<WorkspaceUiData>>(
     workspaceQueryKeys.dashboard(workspaceId),
@@ -454,18 +461,12 @@ function patchDashboard(
 function patchGraph(
   queryClient: QueryClient,
   workspaceId: string,
-  updater: (
-    graph: Partial<WorkspaceUiData>,
-  ) => Partial<WorkspaceUiData>,
+  updater: (graph: Partial<WorkspaceUiData>) => Partial<WorkspaceUiData>,
 ) {
   queryClient.setQueriesData<Partial<WorkspaceUiData>>(
     {
       predicate: (query) =>
-        belongsToWorkspaceResource(
-          query,
-          workspaceId,
-          new Set(["graph"]),
-        ),
+        belongsToWorkspaceResource(query, workspaceId, new Set(["graph"])),
     },
     (graph) => (graph ? updater(graph) : graph),
   );
@@ -479,18 +480,12 @@ type WorkspacePlannerProjection = {
 function patchPlanner(
   queryClient: QueryClient,
   workspaceId: string,
-  updater: (
-    planner: WorkspacePlannerProjection,
-  ) => WorkspacePlannerProjection,
+  updater: (planner: WorkspacePlannerProjection) => WorkspacePlannerProjection,
 ) {
   queryClient.setQueriesData<WorkspacePlannerProjection>(
     {
       predicate: (query) =>
-        belongsToWorkspaceResource(
-          query,
-          workspaceId,
-          new Set(["planner"]),
-        ),
+        belongsToWorkspaceResource(query, workspaceId, new Set(["planner"])),
     },
     (planner) => (planner ? updater(planner) : planner),
   );
@@ -503,11 +498,7 @@ function replacePlannerTodos(
 ) {
   const queries = queryClient.getQueryCache().findAll({
     predicate: (query) =>
-      belongsToWorkspaceResource(
-        query,
-        workspaceId,
-        new Set(["planner"]),
-      ),
+      belongsToWorkspaceResource(query, workspaceId, new Set(["planner"])),
   });
   for (const query of queries) {
     const month = String(query.queryKey[3] ?? "");
@@ -540,11 +531,8 @@ function patchActivityQueries(
   const range = `${activity.from}:${activity.to}`;
   const queries = queryClient.getQueryCache().findAll({
     predicate: (query) =>
-      belongsToWorkspaceResource(
-        query,
-        workspaceId,
-        new Set(["activity"]),
-      ) && query.queryKey[3] === range,
+      belongsToWorkspaceResource(query, workspaceId, new Set(["activity"])) &&
+      query.queryKey[3] === range,
   });
   for (const query of queries) {
     const selectedDate = String(query.queryKey[4] ?? "");
@@ -581,11 +569,7 @@ function updateListQueries<T>(
   queryClient.setQueriesData<T[]>(
     {
       predicate: (query) =>
-        belongsToWorkspaceResource(
-          query,
-          workspaceId,
-          new Set([resource]),
-        ),
+        belongsToWorkspaceResource(query, workspaceId, new Set([resource])),
     },
     (items) => (items ? updater(items) : items),
   );
@@ -639,10 +623,7 @@ function mergeRecent<T extends { id: string; updatedAt?: string }>(
   );
 }
 
-function requireRefreshEntity<T>(
-  value: T | null,
-  entityName: string,
-): T {
+function requireRefreshEntity<T>(value: T | null, entityName: string): T {
   if (value === null) {
     throw new Error(`Dashboard refresh response is missing ${entityName}.`);
   }

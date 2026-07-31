@@ -34,13 +34,7 @@ class WorkspaceDashboardService(
         to: LocalDate,
     ): WorkspaceDashboardResponse {
         return WorkspaceDashboardResponse(
-            tasks = workspaceTaskService.getTasks(
-                userId = userId,
-                workspaceId = workspaceId,
-                status = null,
-                cursor = null,
-                size = DASHBOARD_TASK_LIMIT,
-            ).tasks,
+            tasks = workspaceTaskService.getActiveTasks(userId, workspaceId),
             logs = workspaceLogService.getLogs(
                 userId = userId,
                 workspaceId = workspaceId,
@@ -105,13 +99,7 @@ class WorkspaceDashboardService(
         return WorkspaceDashboardRefreshResponse(
             zone = WorkspaceDashboardRefreshZone.TASKS,
             mode = WorkspaceDashboardRefreshMode.REPLACE,
-            tasks = workspaceTaskService.getTasks(
-                userId = userId,
-                workspaceId = workspaceId,
-                status = null,
-                cursor = null,
-                size = DASHBOARD_TASK_LIMIT,
-            ).tasks,
+            tasks = workspaceTaskService.getActiveTasks(userId, workspaceId),
             navigationSummary = workspaceNavigationSummaryService.getSummary(userId, workspaceId),
         )
     }
@@ -141,13 +129,7 @@ class WorkspaceDashboardService(
         return WorkspaceDashboardRefreshResponse(
             zone = WorkspaceDashboardRefreshZone.LOGS,
             mode = WorkspaceDashboardRefreshMode.REPLACE,
-            tasks = workspaceTaskService.getTasks(
-                userId = userId,
-                workspaceId = workspaceId,
-                status = null,
-                cursor = null,
-                size = DASHBOARD_TASK_LIMIT,
-            ).tasks,
+            tasks = workspaceTaskService.getActiveTasks(userId, workspaceId),
             logs = workspaceLogService.getLogs(
                 userId = userId,
                 workspaceId = workspaceId,
@@ -161,7 +143,6 @@ class WorkspaceDashboardService(
     }
 
     private companion object {
-        private const val DASHBOARD_TASK_LIMIT = 20
         private const val DASHBOARD_LOG_LIMIT = 6
         private const val REFRESH_LOG_LIMIT = 20
         private const val DASHBOARD_OUTPUT_LIMIT = 1

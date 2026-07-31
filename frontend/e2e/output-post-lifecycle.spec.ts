@@ -54,6 +54,9 @@ test.describe("Output and post lifecycle", () => {
   });
 
   test("submits ordinary writing as a server post draft", async ({ page }) => {
+    await page.route("**/api/notifications/summary", (route) =>
+      route.fulfill({ json: { unreadCount: 0 } }),
+    );
     await page.goto("/e2e/post-draft");
     await page.evaluate(() => window.localStorage.removeItem("openlog.e2e.post-draft"));
     await page.reload();

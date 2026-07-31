@@ -46,8 +46,7 @@ export type WorkspaceLogItem = {
 };
 
 export function isOpenIssue(log: WorkspaceLogItem) {
-  const isIssue =
-    log.kind === "ISSUE" || log.label.toLowerCase() === "issue";
+  const isIssue = log.kind === "ISSUE" || log.label.toLowerCase() === "issue";
 
   return isIssue && log.status === "OPEN";
 }
@@ -77,9 +76,7 @@ export function getSidebarTabs(isLoggedIn: boolean) {
     ? ["workspace", "explore", "home", "following", "liked"]
     : ["home", "explore", "workspace", "following", "liked"];
 
-  return order.map(
-    (key) => sidebarTabs.find((tab) => tab.key === key)!,
-  );
+  return order.map((key) => sidebarTabs.find((tab) => tab.key === key)!);
 }
 
 export function getTabHref(tab: TabKey, isLoggedIn: boolean) {
@@ -222,8 +219,7 @@ dev·빌드 모두 통과. CI의 pnpm 캐시 키 갱신은 TODO로 남김.
     tone: "zinc",
     label: "Log",
     title: "HomeFeedShell footer 사이드바 오프셋",
-    description:
-      "사이드바 open 시 footer에 lg:ml-[282px] 적용해 겹침 제거.",
+    description: "사이드바 open 시 footer에 lg:ml-[282px] 적용해 겹침 제거.",
     meta: "Jun 28",
     commit: "b8c14fd",
     href: "/write",
@@ -235,7 +231,8 @@ dev·빌드 모두 통과. CI의 pnpm 캐시 키 갱신은 TODO로 남김.
     tone: "amber",
     label: "Issue",
     title: "Turbopack HMR이 간헐적으로 끊김",
-    description: "dev 서버 장시간 실행 후 HMR websocket이 끊기고 full reload 필요.",
+    description:
+      "dev 서버 장시간 실행 후 HMR websocket이 끊기고 full reload 필요.",
     meta: "open 2d · fix/pnpm",
     href: "/write",
     taskId: "pnpm-migration",
@@ -606,6 +603,8 @@ export type WorkspaceTaskOutput = {
   logIds: string[];
   taskCount?: number;
   logCount?: number;
+  sourceTasks?: WorkspaceWorkItem[];
+  sourceLogs?: WorkspaceLogItem[];
   status: WorkspaceOutputStatus;
   title: string;
   description: string;
@@ -645,7 +644,9 @@ public post로 발행하기 전에 CI plan/apply 흐름과 권한 범위를 한 
 ];
 
 export function getOutputsForTask(taskId: string) {
-  return workspaceTaskOutputs.filter((output) => output.taskIds.includes(taskId));
+  return workspaceTaskOutputs.filter((output) =>
+    output.taskIds.includes(taskId),
+  );
 }
 
 export function getOutputById(outputId: string) {
@@ -677,7 +678,8 @@ export function getOutputsFiltered(status: WorkspaceOutputStatus | "all") {
 }
 
 export function countOutputsByStatus(status: WorkspaceOutputStatus) {
-  return workspaceTaskOutputs.filter((output) => output.status === status).length;
+  return workspaceTaskOutputs.filter((output) => output.status === status)
+    .length;
 }
 
 export function getLogsForOutput(output: WorkspaceTaskOutput) {
@@ -798,7 +800,9 @@ export function getSpawnedTodosForTask(taskId: string) {
       todo: workspaceTodos.find((item) => item.id === link.todoId),
     }))
     .filter(
-      (entry): entry is { link: WorkspaceSpawnedTodo; todo: WorkspaceTodoItem } =>
+      (
+        entry,
+      ): entry is { link: WorkspaceSpawnedTodo; todo: WorkspaceTodoItem } =>
         entry.link.taskId === taskId && entry.todo !== undefined,
     );
 }
@@ -980,10 +984,7 @@ export function buildLogsListHref(
   return query ? `${base}?${query}` : base;
 }
 
-function matchesLogTypeFilter(
-  log: WorkspaceLogItem,
-  type: LogListTypeFilter,
-) {
+function matchesLogTypeFilter(log: WorkspaceLogItem, type: LogListTypeFilter) {
   switch (type) {
     case "issues":
       return log.label.toLowerCase() === "issue";

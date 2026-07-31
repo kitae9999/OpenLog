@@ -10,7 +10,6 @@ import io.github.kitae9999.openlog.workingbrief.WorkingBriefMapper
 import io.github.kitae9999.openlog.workingbrief.WorkingBriefService
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceLogCursorResponse
 import io.github.kitae9999.openlog.workspace.dto.WorkspaceNavigationSummaryResponse
-import io.github.kitae9999.openlog.workspace.dto.WorkspaceTaskCursorResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -57,8 +56,7 @@ class WorkspaceDashboardTransactionIntegrationTest @Autowired constructor(
 
     @BeforeEach
     fun setUp() {
-        given(workspaceTaskService.getTasks(1L, 10L, null, null, 20))
-            .willReturn(WorkspaceTaskCursorResponse(emptyList(), 20, null, false))
+        given(workspaceTaskService.getActiveTasks(1L, 10L)).willReturn(emptyList())
         given(workspaceLogService.getLogs(1L, 10L, null, null, 6))
             .willReturn(WorkspaceLogCursorResponse(emptyList(), 6, null, false))
         given(workspaceLinkService.getTaskLinks(1L, 10L)).willReturn(emptyList())

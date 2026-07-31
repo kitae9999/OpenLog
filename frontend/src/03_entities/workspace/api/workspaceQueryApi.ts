@@ -256,10 +256,23 @@ export async function fetchWorkspaceDashboardRefresh(
 }
 
 export async function fetchWorkspaceTasks(workspaceId: string) {
-  const response = await clientApi<WorkspaceTaskCursorResponse>(
-    `/api/workspaces/${workspaceId}/tasks?size=50`,
-  );
-  return response.tasks.map(mapTask);
+  const tasks: WorkspaceTaskResponse[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const params = new URLSearchParams({ size: "50" });
+    if (cursor) {
+      params.set("cursor", cursor);
+    }
+
+    const response = await clientApi<WorkspaceTaskCursorResponse>(
+      `/api/workspaces/${workspaceId}/tasks?${params.toString()}`,
+    );
+    tasks.push(...response.tasks);
+    cursor = response.hasNext ? response.nextCursor : null;
+  } while (cursor);
+
+  return tasks.map(mapTask);
 }
 
 export async function fetchWorkspaceLogs(workspaceId: string) {
@@ -359,20 +372,39 @@ export async function fetchWorkspaceOutputs(workspaceId: string) {
 }
 
 export async function fetchWorkspaceMemories(workspaceId: string) {
-  const response = await clientApi<MemoryCursorResponse>(
-    `/api/workspaces/${workspaceId}/memories?size=50`,
-  );
-  return response.memories.map(mapMemory);
+  const memories: MemoryResponse[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const params = new URLSearchParams({ size: "50" });
+    if (cursor) {
+      params.set("cursor", cursor);
+    }
+
+    const response = await clientApi<MemoryCursorResponse>(
+      `/api/workspaces/${workspaceId}/memories?${params.toString()}`,
+    );
+    memories.push(...response.memories);
+    cursor = response.hasNext ? response.nextCursor : null;
+  } while (cursor);
+
+  return memories.map(mapMemory);
 }
 
-export async function fetchWorkspaceOutput(workspaceId: string, outputId: string) {
+export async function fetchWorkspaceOutput(
+  workspaceId: string,
+  outputId: string,
+) {
   const response = await clientApi<OutputDetailResponse>(
     `/api/workspaces/${workspaceId}/outputs/${outputId}`,
   );
   return mapOutput(response);
 }
 
-export async function fetchWorkspaceMemory(workspaceId: string, memoryId: string) {
+export async function fetchWorkspaceMemory(
+  workspaceId: string,
+  memoryId: string,
+) {
   const response = await clientApi<MemoryResponse>(
     `/api/workspaces/${workspaceId}/memories/${memoryId}`,
   );
@@ -407,7 +439,9 @@ export function buildWorkspaceUiData(
   workspaceId: string,
   partial: Partial<WorkspaceUiData>,
 ): WorkspaceUiData | null {
-  const workspace = bootstrap.workspaces.find((item) => item.id === workspaceId);
+  const workspace = bootstrap.workspaces.find(
+    (item) => item.id === workspaceId,
+  );
   if (!workspace) return null;
 
   return {
@@ -433,7 +467,9 @@ export function buildWorkspaceUiData(
   };
 }
 
-function mapDashboard(response: WorkspaceDashboardResponse): Partial<WorkspaceUiData> {
+function mapDashboard(
+  response: WorkspaceDashboardResponse,
+): Partial<WorkspaceUiData> {
   const tasks = response.tasks.map(mapTask);
   const logs = response.logs.map(mapLog);
 
@@ -456,7 +492,8 @@ function mapDashboard(response: WorkspaceDashboardResponse): Partial<WorkspaceUi
     })),
     crossLinks: response.crossLinks.map((link) => ({
       id: String(link.id),
-      fromType: link.fromType.toLowerCase() as WorkspaceCrossLinkItem["fromType"],
+      fromType:
+        link.fromType.toLowerCase() as WorkspaceCrossLinkItem["fromType"],
       fromNodeId: String(link.fromNodeId),
       toType: link.toType.toLowerCase() as WorkspaceCrossLinkItem["toType"],
       toNodeId: String(link.toNodeId),
@@ -476,7 +513,9 @@ function mapDashboard(response: WorkspaceDashboardResponse): Partial<WorkspaceUi
   };
 }
 
-function mapGraph(response: WorkspaceGraphViewResponse): Partial<WorkspaceUiData> {
+function mapGraph(
+  response: WorkspaceGraphViewResponse,
+): Partial<WorkspaceUiData> {
   return {
     tasks: response.tasks.map(mapTask),
     logs: response.logs.map(mapLog),
@@ -496,7 +535,8 @@ function mapGraph(response: WorkspaceGraphViewResponse): Partial<WorkspaceUiData
     })),
     crossLinks: response.crossLinks.map((link) => ({
       id: String(link.id),
-      fromType: link.fromType.toLowerCase() as WorkspaceCrossLinkItem["fromType"],
+      fromType:
+        link.fromType.toLowerCase() as WorkspaceCrossLinkItem["fromType"],
       fromNodeId: String(link.fromNodeId),
       toType: link.toType.toLowerCase() as WorkspaceCrossLinkItem["toType"],
       toNodeId: String(link.toNodeId),
@@ -540,8 +580,34 @@ export function mapLog(
   };
 }
 
-function mapOutput(output: OutputResponse | OutputDetailResponse): WorkspaceTaskOutput {
+function mapOutput(
+  output: OutputResponse | OutputDetailResponse,
+): WorkspaceTaskOutput {
   const isDetail = "content" in output;
+  const sourceTasks = isDetail
+    ? output.tasks.map((task) => ({
+        id: String(task.id),
+        title: task.title,
+        status: mapTaskStatus(task.status),
+        apiStatus: task.status,
+        body: "",
+      }))
+    : undefined;
+  const sourceLogs = isDetail
+    ? output.logs.map((log) => ({
+        id: String(log.id),
+        tone: mapLogTone(log.kind),
+        label: mapLogLabel(log.kind),
+        kind: log.kind,
+        status: log.status,
+        title: log.title,
+        description: "",
+        meta:
+          log.status === "NONE" ? "Linked source" : log.status.toLowerCase(),
+        href: getLogHref(String(log.id)),
+        taskId: log.taskId ? String(log.taskId) : undefined,
+      }))
+    : undefined;
   const taskIds = isDetail
     ? output.tasks.map((task) => String(task.id))
     : (output.taskIds ?? []).map(String);
@@ -559,6 +625,8 @@ function mapOutput(output: OutputResponse | OutputDetailResponse): WorkspaceTask
     logIds,
     taskCount,
     logCount,
+    sourceTasks,
+    sourceLogs,
     status,
     title: output.title,
     description: `${taskCount} task${taskCount === 1 ? "" : "s"} · ${logCount} log${logCount === 1 ? "" : "s"}`,
@@ -569,7 +637,10 @@ function mapOutput(output: OutputResponse | OutputDetailResponse): WorkspaceTask
       isDetail && output.linkedPost ? String(output.linkedPost.id) : undefined,
     linkedPostStatus:
       isDetail && output.linkedPost
-        ? output.linkedPost.status.toLowerCase() as "draft" | "published" | "unpublished"
+        ? (output.linkedPost.status.toLowerCase() as
+            | "draft"
+            | "published"
+            | "unpublished")
         : undefined,
     postEditHref:
       isDetail && output.linkedPost
@@ -577,7 +648,10 @@ function mapOutput(output: OutputResponse | OutputDetailResponse): WorkspaceTask
         : undefined,
     publishedHref:
       isDetail && output.linkedPost?.status === "PUBLISHED"
-        ? buildPublicPostPath(output.linkedPost.authorUsername, output.linkedPost.slug)
+        ? buildPublicPostPath(
+            output.linkedPost.authorUsername,
+            output.linkedPost.slug,
+          )
         : undefined,
   };
 }

@@ -118,16 +118,22 @@ export function OutputDetailView({
     );
   }
 
-  const tasks = workspaceData
-    ? output.taskIds
-        .map((taskId) => workspaceData.tasks.find((task) => task.id === taskId))
-        .filter((task): task is WorkspaceWorkItem => Boolean(task))
-    : getTasksForOutput(output);
-  const logs = workspaceData
-    ? output.logIds
-        .map((logId) => workspaceData.logs.find((log) => log.id === logId))
-        .filter((log): log is WorkspaceLogItem => Boolean(log))
-    : getLogsForOutput(output);
+  const tasks =
+    output.sourceTasks ??
+    (workspaceData
+      ? output.taskIds
+          .map((taskId) =>
+            workspaceData.tasks.find((task) => task.id === taskId),
+          )
+          .filter((task): task is WorkspaceWorkItem => Boolean(task))
+      : getTasksForOutput(output));
+  const logs =
+    output.sourceLogs ??
+    (workspaceData
+      ? output.logIds
+          .map((logId) => workspaceData.logs.find((log) => log.id === logId))
+          .filter((log): log is WorkspaceLogItem => Boolean(log))
+      : getLogsForOutput(output));
   const canMutate = output.status === "draft";
   const canSave = title.trim().length > 0 && content.trim().length > 0;
   const hasContent = (isEditing ? content : output.content).trim().length > 0;

@@ -17,7 +17,10 @@ import { OutputsListView } from "@/pages/outputs/ui/OutputsListView";
 import { MemoryListView } from "@/pages/memory/ui/MemoryViews";
 import { OutputCreateView } from "@/pages/outputs/ui/OutputCreateView";
 import { OutputDetailView } from "@/pages/outputs/ui/OutputDetailView";
-import { MemoryDetailView, MemoryEditorView } from "@/pages/memory/ui/MemoryViews";
+import {
+  MemoryDetailView,
+  MemoryEditorView,
+} from "@/pages/memory/ui/MemoryViews";
 import { WorkspaceGraphView } from "@/widgets/workspace-graph/ui/WorkspaceGraphView";
 import { WorkspaceCreateView } from "@/pages/workspace-create/ui/WorkspaceCreateView";
 import { ManageView } from "@/pages/workspace-manage/ui/ManageView";
@@ -39,6 +42,7 @@ import {
   fetchWorkspacePlanner,
   fetchWorkspaceTask,
   fetchWorkspaceTasks,
+  fetchWorkspaceTodos,
 } from "@/entities/workspace/api/workspaceQueryApi";
 import type { WorkspaceOutputStatus } from "@/entities/workspace/model/data";
 import { useWorkspaceApp } from "@/features/app-session/model/WorkspaceAppContext";
@@ -82,15 +86,32 @@ export function WorkspaceTasksQueryView() {
     enabled: activeWorkspaceId !== null,
     ...workspaceQueryPolicy,
   });
+  const logs = useQuery({
+    queryKey: workspaceQueryKeys.logs(activeWorkspaceId ?? "none", "all"),
+    queryFn: () => fetchWorkspaceLogs(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
+  const outputs = useQuery({
+    queryKey: workspaceQueryKeys.outputs(activeWorkspaceId ?? "none", "all"),
+    queryFn: () => fetchWorkspaceOutputs(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
   const workspaceData = activeWorkspaceId
     ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
         tasks: tasks.data ?? [],
+        logs: logs.data ?? [],
+        outputs: outputs.data ?? [],
       })
     : null;
 
   return (
     <WorkspaceRouteSection label="Tasks">
-      <QueryState isLoading={tasks.isLoading} isError={tasks.isError}>
+      <QueryState
+        isLoading={tasks.isLoading || logs.isLoading || outputs.isLoading}
+        isError={tasks.isError || logs.isError || outputs.isError}
+      >
         <TasksListView isLoggedIn workspaceData={workspaceData} />
       </QueryState>
     </WorkspaceRouteSection>
@@ -109,15 +130,25 @@ export function WorkspaceLogsQueryView({
     enabled: activeWorkspaceId !== null,
     ...workspaceQueryPolicy,
   });
+  const tasks = useQuery({
+    queryKey: workspaceQueryKeys.tasks(activeWorkspaceId ?? "none", "all"),
+    queryFn: () => fetchWorkspaceTasks(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
   const workspaceData = activeWorkspaceId
     ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
         logs: logs.data ?? [],
+        tasks: tasks.data ?? [],
       })
     : null;
 
   return (
     <WorkspaceRouteSection label="Logs">
-      <QueryState isLoading={logs.isLoading} isError={logs.isError}>
+      <QueryState
+        isLoading={logs.isLoading || tasks.isLoading}
+        isError={logs.isError || tasks.isError}
+      >
         <Suspense fallback={null}>
           <LogsListView
             isLoggedIn
@@ -156,19 +187,60 @@ export function WorkspaceTaskQueryView({
     enabled: activeWorkspaceId !== null,
     ...workspaceQueryPolicy,
   });
+  const logs = useQuery({
+    queryKey: workspaceQueryKeys.logs(activeWorkspaceId ?? "none", "all"),
+    queryFn: () => fetchWorkspaceLogs(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null && mode === "detail",
+    ...workspaceQueryPolicy,
+  });
+  const outputs = useQuery({
+    queryKey: workspaceQueryKeys.outputs(activeWorkspaceId ?? "none", "all"),
+    queryFn: () => fetchWorkspaceOutputs(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null && mode === "detail",
+    ...workspaceQueryPolicy,
+  });
+  const todos = useQuery({
+    queryKey: workspaceQueryKeys.todos(activeWorkspaceId ?? "none"),
+    queryFn: () => fetchWorkspaceTodos(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null && mode === "detail",
+    ...workspaceQueryPolicy,
+  });
   const workspaceData = activeWorkspaceId
     ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
         tasks: task.data ? [task.data] : [],
+        logs: logs.data ?? [],
+        outputs: outputs.data ?? [],
+        todos: todos.data ?? [],
       })
     : null;
   return (
-    <WorkspaceRouteSection label={mode === "edit" ? "Edit task" : "Task detail"}>
-      <QueryState isLoading={task.isLoading} isError={task.isError}>
+    <WorkspaceRouteSection
+      label={mode === "edit" ? "Edit task" : "Task detail"}
+    >
+      <QueryState
+        isLoading={
+          task.isLoading ||
+          (mode === "detail" &&
+            (logs.isLoading || outputs.isLoading || todos.isLoading))
+        }
+        isError={
+          task.isError ||
+          (mode === "detail" &&
+            (logs.isError || outputs.isError || todos.isError))
+        }
+      >
         {task.data && mode === "detail" ? (
-          <TaskDetailView task={task.data} workspaceData={workspaceData} isLoggedIn />
+          <TaskDetailView
+            task={task.data}
+            workspaceData={workspaceData}
+            isLoggedIn
+          />
         ) : null}
         {task.data && mode === "edit" ? (
-          <TaskEditView task={task.data} workspaceId={activeWorkspaceId ?? undefined} />
+          <TaskEditView
+            task={task.data}
+            workspaceId={activeWorkspaceId ?? undefined}
+          />
         ) : null}
       </QueryState>
     </WorkspaceRouteSection>
@@ -177,16 +249,26 @@ export function WorkspaceTaskQueryView({
 
 export function WorkspaceLogCreateQueryView({ taskId }: { taskId?: string }) {
   const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
+  const tasks = useQuery({
+    queryKey: workspaceQueryKeys.tasks(activeWorkspaceId ?? "none", "all"),
+    queryFn: () => fetchWorkspaceTasks(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null,
+    ...workspaceQueryPolicy,
+  });
   const workspaceData = activeWorkspaceId
-    ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {})
+    ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
+        tasks: tasks.data ?? [],
+      })
     : null;
   return (
     <WorkspaceRouteSection label="New log">
-      <LogCreateView
-        isLoggedIn
-        initialTaskId={taskId}
-        workspaceData={workspaceData}
-      />
+      <QueryState isLoading={tasks.isLoading} isError={tasks.isError}>
+        <LogCreateView
+          isLoggedIn
+          initialTaskId={taskId}
+          workspaceData={workspaceData}
+        />
+      </QueryState>
     </WorkspaceRouteSection>
   );
 }
@@ -205,19 +287,58 @@ export function WorkspaceLogQueryView({
     enabled: activeWorkspaceId !== null,
     ...workspaceQueryPolicy,
   });
+  const tasks = useQuery({
+    queryKey: workspaceQueryKeys.tasks(activeWorkspaceId ?? "none", "all"),
+    queryFn: () => fetchWorkspaceTasks(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null && mode === "detail",
+    ...workspaceQueryPolicy,
+  });
+  const outputs = useQuery({
+    queryKey: workspaceQueryKeys.outputs(activeWorkspaceId ?? "none", "all"),
+    queryFn: () => fetchWorkspaceOutputs(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null && mode === "detail",
+    ...workspaceQueryPolicy,
+  });
+  const memories = useQuery({
+    queryKey: workspaceQueryKeys.memories(activeWorkspaceId ?? "none"),
+    queryFn: () => fetchWorkspaceMemories(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null && mode === "detail",
+    ...workspaceQueryPolicy,
+  });
   const workspaceData = activeWorkspaceId
     ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
         logs: log.data ? [log.data] : [],
+        tasks: tasks.data ?? [],
+        outputs: outputs.data ?? [],
+        memories: memories.data ?? [],
       })
     : null;
   return (
     <WorkspaceRouteSection label={mode === "edit" ? "Edit log" : "Log detail"}>
-      <QueryState isLoading={log.isLoading} isError={log.isError}>
+      <QueryState
+        isLoading={
+          log.isLoading ||
+          (mode === "detail" &&
+            (tasks.isLoading || outputs.isLoading || memories.isLoading))
+        }
+        isError={
+          log.isError ||
+          (mode === "detail" &&
+            (tasks.isError || outputs.isError || memories.isError))
+        }
+      >
         {log.data && mode === "detail" ? (
-          <LogDetailView log={log.data} workspaceData={workspaceData} isLoggedIn />
+          <LogDetailView
+            log={log.data}
+            workspaceData={workspaceData}
+            isLoggedIn
+          />
         ) : null}
         {log.data && mode === "edit" ? (
-          <LogEditView log={log.data} workspaceId={activeWorkspaceId ?? undefined} />
+          <LogEditView
+            log={log.data}
+            workspaceId={activeWorkspaceId ?? undefined}
+          />
         ) : null}
       </QueryState>
     </WorkspaceRouteSection>
@@ -233,7 +354,9 @@ export function WorkspacePlannerQueryView({
 }) {
   const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
   const today = getSeoulIsoDate(new Date());
-  const month = isValidMonth(requestedMonth) ? requestedMonth : today.slice(0, 7);
+  const month = isValidMonth(requestedMonth)
+    ? requestedMonth
+    : today.slice(0, 7);
   const { from, to } = getMonthRange(month);
   const selectedDate =
     isValidDate(requestedDate) && requestedDate.startsWith(`${month}-`)
@@ -309,7 +432,11 @@ export function WorkspaceOutputsQueryView({
   return (
     <WorkspaceRouteSection label="Outputs">
       <QueryState isLoading={outputs.isLoading} isError={outputs.isError}>
-        <OutputsListView isLoggedIn status={status} workspaceData={workspaceData} />
+        <OutputsListView
+          isLoggedIn
+          status={status}
+          workspaceData={workspaceData}
+        />
       </QueryState>
     </WorkspaceRouteSection>
   );
@@ -337,14 +464,20 @@ export function WorkspaceMemoryQueryView() {
   );
 }
 
-export function WorkspaceActivityQueryView({ requestedDate }: { requestedDate?: string }) {
+export function WorkspaceActivityQueryView({
+  requestedDate,
+}: {
+  requestedDate?: string;
+}) {
   const { activeWorkspaceId } = useWorkspaceApp();
   const today = getSeoulIsoDate(new Date());
   const from = getSeoulIsoDate(
     new Date(new Date(`${today}T00:00:00Z`).getTime() - 364 * 86_400_000),
   );
   const selectedDate =
-    isValidDate(requestedDate) && requestedDate >= from && requestedDate <= today
+    isValidDate(requestedDate) &&
+    requestedDate >= from &&
+    requestedDate <= today
       ? requestedDate
       : today;
   const activity = useQuery({
@@ -388,7 +521,11 @@ export function WorkspaceManageQueryView() {
   );
 }
 
-export function WorkspaceOutputCreateQueryView({ taskId }: { taskId?: string }) {
+export function WorkspaceOutputCreateQueryView({
+  taskId,
+}: {
+  taskId?: string;
+}) {
   const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
   const graph = useQuery({
     queryKey: workspaceQueryKeys.graph(activeWorkspaceId ?? "none"),
@@ -402,7 +539,11 @@ export function WorkspaceOutputCreateQueryView({ taskId }: { taskId?: string }) 
   return (
     <WorkspaceRouteSection label="New output">
       <QueryState isLoading={graph.isLoading} isError={graph.isError}>
-        <OutputCreateView isLoggedIn initialTaskId={taskId} workspaceData={workspaceData} />
+        <OutputCreateView
+          isLoggedIn
+          initialTaskId={taskId}
+          workspaceData={workspaceData}
+        />
       </QueryState>
     </WorkspaceRouteSection>
   );
@@ -444,30 +585,49 @@ export function WorkspaceMemoryEditorQueryView({
 }) {
   const { bootstrap, activeWorkspaceId } = useWorkspaceApp();
   const memory = useQuery({
-    queryKey: workspaceQueryKeys.memory(activeWorkspaceId ?? "none", memoryId ?? "new"),
+    queryKey: workspaceQueryKeys.memory(
+      activeWorkspaceId ?? "none",
+      memoryId ?? "new",
+    ),
     queryFn: () => fetchWorkspaceMemory(activeWorkspaceId!, memoryId!),
     enabled: activeWorkspaceId !== null && memoryId !== undefined,
+    ...workspaceQueryPolicy,
+  });
+  const tasks = useQuery({
+    queryKey: workspaceQueryKeys.tasks(activeWorkspaceId ?? "none", "all"),
+    queryFn: () => fetchWorkspaceTasks(activeWorkspaceId!),
+    enabled: activeWorkspaceId !== null && mode !== "detail",
     ...workspaceQueryPolicy,
   });
   const workspaceData = activeWorkspaceId
     ? buildWorkspaceUiData(bootstrap, activeWorkspaceId, {
         memories: memory.data ? [memory.data] : [],
+        tasks: tasks.data ?? [],
       })
     : null;
   return (
     <WorkspaceRouteSection label="Memory">
       <QueryState
-        isLoading={memoryId !== undefined && memory.isLoading}
-        isError={memory.isError}
+        isLoading={
+          (memoryId !== undefined && memory.isLoading) ||
+          (mode !== "detail" && tasks.isLoading)
+        }
+        isError={memory.isError || (mode !== "detail" && tasks.isError)}
       >
         {workspaceData && mode === "new" ? (
           <MemoryEditorView workspaceData={workspaceData} />
         ) : null}
         {workspaceData && memory.data && mode === "detail" ? (
-          <MemoryDetailView memory={memory.data} workspaceData={workspaceData} />
+          <MemoryDetailView
+            memory={memory.data}
+            workspaceData={workspaceData}
+          />
         ) : null}
         {workspaceData && memory.data && mode === "edit" ? (
-          <MemoryEditorView memory={memory.data} workspaceData={workspaceData} />
+          <MemoryEditorView
+            memory={memory.data}
+            workspaceData={workspaceData}
+          />
         ) : null}
       </QueryState>
     </WorkspaceRouteSection>
@@ -484,7 +644,8 @@ export function WorkspaceAgentSettingsQueryView({
   const { bootstrap } = useWorkspaceApp();
   const settings = useQuery({
     queryKey: ["workspace", workspaceId, "agent"],
-    queryFn: () => fetchWorkspaceAgentSettings(bootstrap.workspaces, workspaceId),
+    queryFn: () =>
+      fetchWorkspaceAgentSettings(bootstrap.workspaces, workspaceId),
     ...workspaceQueryPolicy,
   });
   return (
@@ -549,7 +710,10 @@ function isValidMonth(value?: string): value is string {
 function isValidDate(value?: string): value is string {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
 }
 
 function getMonthRange(month: string) {
