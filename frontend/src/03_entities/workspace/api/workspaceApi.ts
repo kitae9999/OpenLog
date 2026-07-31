@@ -8,6 +8,7 @@ import { buildPublicPostPath } from "@/shared/lib/publicRoutes";
 import {
   getLogHref,
   isActiveTaskStatus,
+  isOpenIssue,
   type WorkspaceLogItem,
   type WorkspaceOutputStatus,
   type WorkspaceTaskOutput,
@@ -815,9 +816,7 @@ function buildNavigationSummary(
     activeTaskCount: tasks.filter((task) => isActiveTaskStatus(task.status))
       .length,
     logsCount: logs.length,
-    openIssuesCount: logs.filter(
-      (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
-    ).length,
+    openIssuesCount: logs.filter(isOpenIssue).length,
   };
 }
 

@@ -45,6 +45,13 @@ export type WorkspaceLogItem = {
   updatedAt?: string;
 };
 
+export function isOpenIssue(log: WorkspaceLogItem) {
+  const isIssue =
+    log.kind === "ISSUE" || log.label.toLowerCase() === "issue";
+
+  return isIssue && log.status === "OPEN";
+}
+
 export type WorkspaceMetric = {
   label: string;
   value: string;
@@ -913,6 +920,8 @@ export type LogListTypeFilter = (typeof logsSubnavItems)[number]["key"];
 
 export type LogTaskFilter = "all" | "unassigned" | string;
 
+export type IssueStatusFilter = "open" | "closed";
+
 export function getLogListTitle(type: LogListTypeFilter) {
   switch (type) {
     case "issues":
@@ -955,13 +964,20 @@ export function getPlannerHref(month?: string, date?: string) {
 export function buildLogsListHref(
   type: LogListTypeFilter,
   taskFilter: LogTaskFilter = "all",
+  issueStatusFilter: IssueStatusFilter = "open",
 ) {
   const base = getLogsHref(type);
-  if (taskFilter === "all") {
-    return base;
+  const params = new URLSearchParams();
+
+  if (taskFilter !== "all") {
+    params.set("task", taskFilter);
+  }
+  if (type === "issues" && issueStatusFilter === "closed") {
+    params.set("status", issueStatusFilter);
   }
 
-  return `${base}?task=${encodeURIComponent(taskFilter)}`;
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
 }
 
 function matchesLogTypeFilter(
@@ -1008,7 +1024,7 @@ export function countLogsByType(type: LogListTypeFilter) {
 }
 
 export function countOpenIssues() {
-  return countLogsByType("issues");
+  return workspaceLogs.filter(isOpenIssue).length;
 }
 
 export function getTaskFiltersForLogs(type: LogListTypeFilter) {

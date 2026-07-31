@@ -56,6 +56,19 @@ const workspaceData: WorkspaceUiData = {
       body: "Second log body",
       createdAt: "2026-07-12T10:00:00",
     },
+    {
+      id: "45",
+      tone: "amber",
+      label: "Issue",
+      kind: "ISSUE",
+      status: "CLOSED",
+      title: "Closed log",
+      description: "Closed log description",
+      meta: "Closed yesterday · main",
+      href: "/logs/45",
+      body: "Closed log body",
+      createdAt: "2026-07-11T10:00:00",
+    },
   ],
   outputs: [
     {
@@ -118,7 +131,7 @@ export default function DocumentBulkDeleteFixturePage() {
         <Suspense fallback={<p>Loading logs...</p>}>
           <LogsListView
             isLoggedIn
-            typeFilter="all"
+            typeFilter="issues"
             workspaceData={workspaceData}
           />
         </Suspense>

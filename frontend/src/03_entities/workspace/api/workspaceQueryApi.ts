@@ -1,6 +1,7 @@
 import {
   getLogHref,
   isActiveTaskStatus,
+  isOpenIssue,
 } from "@/entities/workspace/model/data";
 import type {
   WorkspaceLogItem,
@@ -262,10 +263,23 @@ export async function fetchWorkspaceTasks(workspaceId: string) {
 }
 
 export async function fetchWorkspaceLogs(workspaceId: string) {
-  const response = await clientApi<WorkspaceLogCursorResponse>(
-    `/api/workspaces/${workspaceId}/logs?size=50`,
-  );
-  return response.logs.map(mapLog);
+  const logs: WorkspaceLogResponse[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const params = new URLSearchParams({ size: "50" });
+    if (cursor) {
+      params.set("cursor", cursor);
+    }
+
+    const response = await clientApi<WorkspaceLogCursorResponse>(
+      `/api/workspaces/${workspaceId}/logs?${params.toString()}`,
+    );
+    logs.push(...response.logs);
+    cursor = response.hasNext ? response.nextCursor : null;
+  } while (cursor);
+
+  return logs.map(mapLog);
 }
 
 export async function fetchWorkspaceTask(workspaceId: string, taskId: string) {
@@ -454,9 +468,7 @@ function mapDashboard(response: WorkspaceDashboardResponse): Partial<WorkspaceUi
       activeTaskCount: tasks.filter((task) => isActiveTaskStatus(task.status))
         .length,
       logsCount: logs.length,
-      openIssuesCount: logs.filter(
-        (log) => log.kind === "ISSUE" && log.status !== "CLOSED",
-      ).length,
+      openIssuesCount: logs.filter(isOpenIssue).length,
     },
     workingBrief: response.workingBrief
       ? mapWorkingBrief(response.workingBrief)

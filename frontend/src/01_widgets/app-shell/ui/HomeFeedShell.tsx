@@ -31,6 +31,7 @@ import {
   getTasksHref,
   getWorkspaceGraphHref,
   isActiveTaskStatus,
+  isOpenIssue,
   logsSubnavItems,
   recommendedTopics,
   topContributors,
@@ -605,9 +606,7 @@ export function HomeSidebar({
   const logsCount = navigationSummary?.logsCount ?? sidebarLogs.length;
   const openIssuesCount =
     navigationSummary?.openIssuesCount ??
-    sidebarLogs.filter(
-      (log) => log.label.toLowerCase() === "issue" && log.status !== "CLOSED",
-    ).length;
+    sidebarLogs.filter(isOpenIssue).length;
 
   return (
     <aside
