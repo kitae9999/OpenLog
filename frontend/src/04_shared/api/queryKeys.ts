@@ -15,14 +15,14 @@ export const workspaceQueryKeys = {
     ["workspace", workspaceId, "tasks", filters] as const,
   task: (workspaceId: string, taskId: string) =>
     ["workspace", workspaceId, "task", taskId] as const,
+  todos: (workspaceId: string) => ["workspace", workspaceId, "todos"] as const,
   logs: (workspaceId: string, filters: string = "all") =>
     ["workspace", workspaceId, "logs", filters] as const,
   log: (workspaceId: string, logId: string) =>
     ["workspace", workspaceId, "log", logId] as const,
   planner: (workspaceId: string, month: string) =>
     ["workspace", workspaceId, "planner", month] as const,
-  graph: (workspaceId: string) =>
-    ["workspace", workspaceId, "graph"] as const,
+  graph: (workspaceId: string) => ["workspace", workspaceId, "graph"] as const,
   outputs: (workspaceId: string, status: string) =>
     ["workspace", workspaceId, "outputs", status] as const,
   output: (workspaceId: string, outputId: string) =>

@@ -29,19 +29,39 @@ export function useInvalidateWorkspaceQueries() {
           const resource = key[2];
           if (zone === "workspace") return true;
           if (zone === "tasks") {
-            return resource === "tasks" || resource === "task" || resource === "dashboard";
+            return (
+              resource === "tasks" ||
+              resource === "task" ||
+              resource === "dashboard"
+            );
           }
           if (zone === "logs") {
-            return resource === "logs" || resource === "log" || resource === "dashboard";
+            return (
+              resource === "logs" ||
+              resource === "log" ||
+              resource === "dashboard"
+            );
           }
           if (zone === "todos") {
-            return resource === "planner" || resource === "dashboard";
+            return (
+              resource === "todos" ||
+              resource === "planner" ||
+              resource === "dashboard"
+            );
           }
           if (zone === "outputs") {
-            return resource === "outputs" || resource === "output" || resource === "dashboard";
+            return (
+              resource === "outputs" ||
+              resource === "output" ||
+              resource === "dashboard"
+            );
           }
           if (zone === "memories") {
-            return resource === "memories" || resource === "memory" || resource === "dashboard";
+            return (
+              resource === "memories" ||
+              resource === "memory" ||
+              resource === "dashboard"
+            );
           }
           return resource === "graph";
         },
