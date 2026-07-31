@@ -45,6 +45,13 @@ export type WorkspaceLogItem = {
   updatedAt?: string;
 };
 
+export function isOpenIssue(log: WorkspaceLogItem) {
+  const isIssue =
+    log.kind === "ISSUE" || log.label.toLowerCase() === "issue";
+
+  return isIssue && log.status === "OPEN";
+}
+
 export type WorkspaceMetric = {
   label: string;
   value: string;
@@ -1008,7 +1015,7 @@ export function countLogsByType(type: LogListTypeFilter) {
 }
 
 export function countOpenIssues() {
-  return countLogsByType("issues");
+  return workspaceLogs.filter(isOpenIssue).length;
 }
 
 export function getTaskFiltersForLogs(type: LogListTypeFilter) {

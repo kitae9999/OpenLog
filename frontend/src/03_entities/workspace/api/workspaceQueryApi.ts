@@ -1,6 +1,7 @@
 import {
   getLogHref,
   isActiveTaskStatus,
+  isOpenIssue,
 } from "@/entities/workspace/model/data";
 import type {
   WorkspaceLogItem,
@@ -454,9 +455,7 @@ function mapDashboard(response: WorkspaceDashboardResponse): Partial<WorkspaceUi
       activeTaskCount: tasks.filter((task) => isActiveTaskStatus(task.status))
         .length,
       logsCount: logs.length,
-      openIssuesCount: logs.filter(
-        (log) => log.kind === "ISSUE" && log.status !== "CLOSED",
-      ).length,
+      openIssuesCount: logs.filter(isOpenIssue).length,
     },
     workingBrief: response.workingBrief
       ? mapWorkingBrief(response.workingBrief)
