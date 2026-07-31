@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   useEffect,
   useMemo,
@@ -19,6 +19,7 @@ import {
   getTabHref,
   getTaskHref,
   logsSubnavItems,
+  type IssueStatusFilter,
   type LogListTypeFilter,
   type LogTaskFilter,
   type WorkspaceLogItem,
@@ -46,6 +47,7 @@ export function LogsListView({
   workspaceData?: WorkspaceUiData | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const deleteMutation = useWorkspaceMutation("logs");
   const searchParams = useSearchParams();
   const tasks = workspaceData?.tasks ?? [];
@@ -58,32 +60,34 @@ export function LogsListView({
   const [sortFilter, setSortFilter] = useState<SortFilter>("newest");
 
   const taskFilter = parseTaskFilter(searchParams.get("task"));
+  const issueStatusFilter = parseIssueStatusFilter(searchParams.get("status"));
   const title = getLogListTitle(typeFilter);
   const unassignedForType = logs.filter(
-    (log) => matchesLogTypeFilter(log, typeFilter) && !log.taskId,
+    (log) => matchesLogView(log, typeFilter, issueStatusFilter) && !log.taskId,
   ).length;
   const taskFilters = getTaskFiltersForLogs(tasks, logs, typeFilter);
+  const issueStatusCounts = countIssuesByStatus(logs, taskFilter);
 
-  const filteredLogs = useMemo(() => {
-    const items = logs.filter((log) => {
-      if (!matchesLogTypeFilter(log, typeFilter)) {
-        return false;
-      }
-      if (taskFilter === "unassigned") {
-        return !log.taskId;
-      }
-      if (taskFilter !== "all") {
-        return log.taskId === taskFilter;
-      }
-      return true;
-    });
-
-    if (sortFilter === "oldest") {
-      return [...items].reverse();
+  const matchingLogs = logs.filter((log) => {
+    if (!matchesLogTypeFilter(log, typeFilter)) {
+      return false;
     }
-
-    return items;
-  }, [logs, typeFilter, taskFilter, sortFilter]);
+    if (
+      typeFilter === "issues" &&
+      log.status !== (issueStatusFilter === "open" ? "OPEN" : "CLOSED")
+    ) {
+      return false;
+    }
+    if (taskFilter === "unassigned") {
+      return !log.taskId;
+    }
+    if (taskFilter !== "all") {
+      return log.taskId === taskFilter;
+    }
+    return true;
+  });
+  const filteredLogs =
+    sortFilter === "oldest" ? [...matchingLogs].reverse() : matchingLogs;
   const selection = useDocumentSelection(filteredLogs.map((log) => log.id));
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -93,13 +97,26 @@ export function LogsListView({
   function setTypeFilter(next: LogListTypeFilter) {
     selection.clear();
     setDeleteError(null);
-    router.push(buildLogsListHref(next, taskFilter));
+    router.push(buildLogsListHref(next, taskFilter, issueStatusFilter));
   }
 
   function setTaskFilter(next: LogTaskFilter) {
     selection.clear();
     setDeleteError(null);
-    router.push(buildLogsListHref(typeFilter, next));
+    router.push(buildLogsListHref(typeFilter, next, issueStatusFilter));
+  }
+
+  function setIssueStatusFilter(next: IssueStatusFilter) {
+    selection.clear();
+    setDeleteError(null);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "open") {
+      params.delete("status");
+    } else {
+      params.set("status", next);
+    }
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
   }
 
   async function deleteSelectedLogs() {
@@ -252,6 +269,45 @@ export function LogsListView({
             )}
           </FilterDropdown>
 
+          {typeFilter === "issues" ? (
+            <FilterDropdown
+              label="Status"
+              active
+              valueLabel={issueStatusFilter === "closed" ? "Closed" : "Open"}
+            >
+              {(close) => (
+                <>
+                  <FilterMenuItem
+                    active={issueStatusFilter === "open"}
+                    onClick={() => {
+                      setIssueStatusFilter("open");
+                      close();
+                    }}
+                  >
+                    <IssueStatusDot status="open" />
+                    Open
+                    <span className="ml-auto tabular-nums text-zinc-400">
+                      {issueStatusCounts.open}
+                    </span>
+                  </FilterMenuItem>
+                  <FilterMenuItem
+                    active={issueStatusFilter === "closed"}
+                    onClick={() => {
+                      setIssueStatusFilter("closed");
+                      close();
+                    }}
+                  >
+                    <IssueStatusDot status="closed" />
+                    Closed
+                    <span className="ml-auto tabular-nums text-zinc-400">
+                      {issueStatusCounts.closed}
+                    </span>
+                  </FilterMenuItem>
+                </>
+              )}
+            </FilterDropdown>
+          ) : null}
+
           <FilterDropdown
             label="Sort"
             active={sortFilter !== "newest"}
@@ -345,6 +401,10 @@ function parseTaskFilter(value: string | null): LogTaskFilter {
   return value;
 }
 
+function parseIssueStatusFilter(value: string | null): IssueStatusFilter {
+  return value === "closed" ? "closed" : "open";
+}
+
 function matchesLogTypeFilter(log: WorkspaceLogItem, type: LogListTypeFilter) {
   switch (type) {
     case "issues":
@@ -360,8 +420,48 @@ function matchesLogTypeFilter(log: WorkspaceLogItem, type: LogListTypeFilter) {
   }
 }
 
+function matchesLogView(
+  log: WorkspaceLogItem,
+  type: LogListTypeFilter,
+  issueStatusFilter: IssueStatusFilter,
+) {
+  if (!matchesLogTypeFilter(log, type)) {
+    return false;
+  }
+  if (type !== "issues") {
+    return true;
+  }
+
+  return log.status === issueStatusFilter.toUpperCase();
+}
+
+function matchesTaskFilter(log: WorkspaceLogItem, taskFilter: LogTaskFilter) {
+  if (taskFilter === "unassigned") {
+    return !log.taskId;
+  }
+  if (taskFilter !== "all") {
+    return log.taskId === taskFilter;
+  }
+  return true;
+}
+
 function countLogsByType(logs: WorkspaceLogItem[], type: LogListTypeFilter) {
   return logs.filter((log) => matchesLogTypeFilter(log, type)).length;
+}
+
+function countIssuesByStatus(
+  logs: WorkspaceLogItem[],
+  taskFilter: LogTaskFilter,
+) {
+  const issues = logs.filter(
+    (log) =>
+      matchesLogTypeFilter(log, "issues") && matchesTaskFilter(log, taskFilter),
+  );
+
+  return {
+    open: issues.filter((log) => log.status === "OPEN").length,
+    closed: issues.filter((log) => log.status === "CLOSED").length,
+  };
 }
 
 function getTaskFiltersForLogs(
@@ -377,6 +477,18 @@ function getTaskFiltersForLogs(
   );
 
   return tasks.filter((task) => taskIds.has(task.id));
+}
+
+function IssueStatusDot({ status }: { status: IssueStatusFilter }) {
+  return (
+    <span
+      className={cn(
+        "size-[7px] shrink-0 rounded-full",
+        status === "open" ? "border-2 border-amber-500" : "bg-emerald-600",
+      )}
+      aria-hidden="true"
+    />
+  );
 }
 
 function FilterDropdown({

@@ -40,6 +40,33 @@ test.describe("Workspace document bulk delete", () => {
     );
   });
 
+  test("switches the issues list between open and closed statuses", async ({
+    page,
+  }) => {
+    const fixture = page.getByRole("region", { name: "Logs bulk fixture" });
+
+    await expect(
+      fixture.getByRole("link", { name: "First log", exact: true }),
+    ).toBeVisible();
+    await expect(
+      fixture.getByRole("link", { name: "Closed log", exact: true }),
+    ).toHaveCount(0);
+
+    await fixture.getByRole("button", { name: /^Status/ }).click();
+    await fixture.getByRole("menuitem").filter({ hasText: "Closed" }).click();
+
+    await expect(page).toHaveURL(/status=closed/);
+    await expect(
+      fixture.getByRole("link", { name: "Closed log", exact: true }),
+    ).toBeVisible();
+    await expect(
+      fixture.getByRole("link", { name: "First log", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      fixture.getByRole("button", { name: /Status.*Closed/ }),
+    ).toBeVisible();
+  });
+
   test("asks for confirmation before deleting selected documents", async ({
     page,
   }) => {

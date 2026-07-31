@@ -263,10 +263,23 @@ export async function fetchWorkspaceTasks(workspaceId: string) {
 }
 
 export async function fetchWorkspaceLogs(workspaceId: string) {
-  const response = await clientApi<WorkspaceLogCursorResponse>(
-    `/api/workspaces/${workspaceId}/logs?size=50`,
-  );
-  return response.logs.map(mapLog);
+  const logs: WorkspaceLogResponse[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const params = new URLSearchParams({ size: "50" });
+    if (cursor) {
+      params.set("cursor", cursor);
+    }
+
+    const response = await clientApi<WorkspaceLogCursorResponse>(
+      `/api/workspaces/${workspaceId}/logs?${params.toString()}`,
+    );
+    logs.push(...response.logs);
+    cursor = response.hasNext ? response.nextCursor : null;
+  } while (cursor);
+
+  return logs.map(mapLog);
 }
 
 export async function fetchWorkspaceTask(workspaceId: string, taskId: string) {
